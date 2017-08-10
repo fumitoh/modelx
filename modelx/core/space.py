@@ -521,8 +521,9 @@ class SpaceImpl(SpaceContainerImpl):
         return self.interface
 
     def get_object(self, name):
-        parts = name.split('.')
+        """Retrieve an object by a dotted name relative to the space."""
 
+        parts = name.split('.')
         child = parts.pop(0)
 
         if parts:

@@ -50,6 +50,8 @@ class ModelImpl(SpaceContainerImpl):
             pickle.dump(self, file, protocol=4)
 
     def get_object(self, name):
+        """Retrieve an object by a dotted name relative to the model."""
+
         parts = name.split('.')
         space = self.spaces[parts.pop(0)]
 
