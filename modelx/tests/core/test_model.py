@@ -1,0 +1,95 @@
+import pytest
+
+from modelx.core.api import *
+from modelx.core.cells import CellPointer
+from modelx.core.base import get_interfaces
+
+
+@pytest.fixture
+def simplemodel():
+
+    model = create_model(name='simplemodel')
+    space = model.create_space()
+
+    @defcells
+    def fibo(x):
+        if x == 0 or x == 1:
+            return x
+        else:
+            return fibo(x - 1) + fibo(x - 2)
+
+    return model
+
+
+def test_autoname_space(simplemodel):
+    #space = simplemodel.create_space()
+    assert simplemodel.currentspace.name == 'Space1'
+
+
+def test_create_space(simplemodel):
+    space = simplemodel.create_space()
+    assert space in simplemodel.spaces.values()
+
+
+def test_mro_simple(simplemodel):
+    model = simplemodel
+    C = model.create_space(name='C')
+    A = model.create_space(name='A', bases=C)
+    B = model.create_space(name='B', bases=C)
+    D = model.create_space(name='D', bases=[A, B])
+
+    assert get_interfaces(D._impl.mro) == [D, A, B, C]
+
+
+def test_mro_complicated(simplemodel):
+    model = simplemodel
+    o = model.create_space(name='o')
+    f = model.create_space(name='f', bases=o)
+    e = model.create_space(name='e', bases=o)
+    d = model.create_space(name='d', bases=o)
+    c = model.create_space(name='c', bases=[d, f])
+    b = model.create_space(name='b', bases=[e, d])
+    a = model.create_space(name='a', bases=[b, c])
+
+    assert get_interfaces(a._impl.mro) == [a, b, e, c, d, f, o]
+
+
+def test_cellgraph(simplemodel):
+
+    space = simplemodel.spaces["Space1"]
+
+    space.fibo[10]
+
+    for x in range(10):
+        fibo = CellPointer(space.fibo._impl, x)
+        fibo_prev1 = CellPointer(space.fibo._impl, x - 1)
+        fibo_prev2 = CellPointer(space.fibo._impl, x - 2)
+        fibo_next1 = CellPointer(space.fibo._impl, x + 1)
+        fibo_next2 = CellPointer(space.fibo._impl, x + 2)
+
+        predec = simplemodel._impl.cellgraph.predecessors(fibo)
+        succ = simplemodel._impl.cellgraph.successors(fibo)
+
+        if x == 0 or x == 1:
+            assert (predec == [] and
+                    fibo_next2 in succ)
+        elif x < 9:
+            assert (fibo_prev1 in predec and
+                    fibo_prev2 in predec and
+                    fibo_next1 in succ and
+                    fibo_next2 in succ)
+
+# ---- Test impl ----
+
+def test_get_object(simplemodel):
+
+    # print(type(simplemodel._impl.get_object('simplespace.fibo')))
+    # print(simplemodel._impl.spaces['simplespace'].cells['fibo'])
+
+    assert simplemodel._impl.get_object('Space1.fibo') is \
+        simplemodel._impl.spaces['Space1'].cells['fibo']
+
+
+
+
+

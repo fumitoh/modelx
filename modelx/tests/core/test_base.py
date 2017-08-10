@@ -1,0 +1,73 @@
+import pytest
+from modelx.core.base import *
+
+
+data1 = {'A': 1, 'B': 2}
+data2 = {'C': 3, 'D': 4}
+
+check = {'B': 2, 'C': 3, 'D': 4, 'E': 5}
+ledict2 = LazyEvalDict(data2, [])
+ledict1 = LazyEvalDict(data1, [ledict2])
+
+
+class LazyEvalDict2(LazyEvalDict):
+
+    def __init__(self, source, data, observers):
+        self.source = source
+        self.org_data = data.copy()
+        LazyEvalDict.__init__(self, data, observers)
+
+    def _update_data(self):
+        self.data.clear()
+        self.data.update(self.org_data)
+        self.data.update(self.source)
+
+
+class SampleLazyEval:
+    def __init__(self):
+        self._lazy_eval_dict1 = LazyEvalDict(data1, [])
+        self._lazy_eval_dict2 = LazyEvalDict2(self._lazy_eval_dict1, data2, [])
+        self._lazy_eval_dict1.append_observer(self._lazy_eval_dict2)
+        self._lazy_eval_chmap = LazyEvalChainMap([self._lazy_eval_dict2], [])
+        # self._lazy_eval_dict2.append_observer(self._lazy_eval_chmap)
+
+    @property
+    def lazy_eval_dict1(self):
+        return self._lazy_eval_dict1.update_data()
+
+    @property
+    def lazy_eval_dict2(self):
+        return self._lazy_eval_dict2.update_data()
+
+    @property
+    def lazy_eval_chmap(self):
+        return self._lazy_eval_chmap.update_data()
+
+
+def test_lazy_eval_dict():
+    sample = SampleLazyEval()
+    assert sample.lazy_eval_dict2 == ChainMap(data1, data2)
+
+
+def test_lazy_eval_dict_update():
+    sample = SampleLazyEval()
+    del sample.lazy_eval_dict1['A']
+    sample.lazy_eval_dict1['E'] = 5
+    sample.lazy_eval_dict1.set_update()
+
+    assert sample.lazy_eval_dict2 == check
+
+
+def test_lazy_eval_chmap():
+    sample = SampleLazyEval()
+    assert sample.lazy_eval_chmap == ChainMap(data1, data2)
+
+
+def test_lazy_eval_chmap_update():
+
+    sample = SampleLazyEval()
+    del sample.lazy_eval_dict1['A']
+    sample.lazy_eval_dict1['E'] = 5
+    sample.lazy_eval_dict1.set_update()
+
+    assert sample.lazy_eval_chmap == check

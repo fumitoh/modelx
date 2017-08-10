@@ -1,0 +1,77 @@
+    0: \x80 PROTO      4              Protocol version indicator.
+    2: \x95 FRAME      261            Indicate the beginning of a new frame.
+   11: \x8c SHORT_BINUNICODE 'modelx.core.model' Push a Python Unicode string object.
+   30: \x94 MEMOIZE                              Store the stack top into the memo.  The stack is not popped.
+   31: \x8c SHORT_BINUNICODE 'ModelImpl'         Push a Python Unicode string object.
+   42: \x94 MEMOIZE                              Store the stack top into the memo.  The stack is not popped.
+   43: \x93 STACK_GLOBAL                         Push a global object (module.attr) on the stack.
+   44: \x94 MEMOIZE                              Store the stack top into the memo.  The stack is not popped.
+   45: )    EMPTY_TUPLE                          Push an empty tuple.
+   46: }    EMPTY_DICT                           Push an empty dict.
+   47: \x94 MEMOIZE                              Store the stack top into the memo.  The stack is not popped.
+   48: \x92 NEWOBJ_EX                            Build an object instance.
+   49: \x94 MEMOIZE                              Store the stack top into the memo.  The stack is not popped.
+   50: }    EMPTY_DICT                           Push an empty dict.
+   51: \x94 MEMOIZE                              Store the stack top into the memo.  The stack is not popped.
+   52: (    MARK                                 Push markobject onto the stack.
+   53: \x8c     SHORT_BINUNICODE 'spaces'        Push a Python Unicode string object.
+   61: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+   62: }        EMPTY_DICT                       Push an empty dict.
+   63: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+   64: \x8c     SHORT_BINUNICODE 'param_spaces'  Push a Python Unicode string object.
+   78: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+   79: }        EMPTY_DICT                       Push an empty dict.
+   80: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+   81: \x8c     SHORT_BINUNICODE 'name'          Push a Python Unicode string object.
+   87: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+   88: \x8c     SHORT_BINUNICODE 'Model1'        Push a Python Unicode string object.
+   96: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+   97: \x8c     SHORT_BINUNICODE 'factory'       Push a Python Unicode string object.
+  106: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+  107: N        NONE                             Push None on the stack.
+  108: \x8c     SHORT_BINUNICODE 'spacenamer'    Push a Python Unicode string object.
+  120: \x94     MEMOIZE                          Store the stack top into the memo.  The stack is not popped.
+  121: \x8c     SHORT_BINUNICODE 'modelx.core.util' Push a Python Unicode string object.
+  139: \x94     MEMOIZE                             Store the stack top into the memo.  The stack is not popped.
+  140: \x8c     SHORT_BINUNICODE 'AutoNamer'        Push a Python Unicode string object.
+  151: \x94     MEMOIZE                             Store the stack top into the memo.  The stack is not popped.
+  152: \x93     STACK_GLOBAL                        Push a global object (module.attr) on the stack.
+  153: \x94     MEMOIZE                             Store the stack top into the memo.  The stack is not popped.
+  154: )        EMPTY_TUPLE                         Push an empty tuple.
+  155: }        EMPTY_DICT                          Push an empty dict.
+  156: \x94     MEMOIZE                             Store the stack top into the memo.  The stack is not popped.
+  157: \x92     NEWOBJ_EX                           Build an object instance.
+  158: \x94     MEMOIZE                             Store the stack top into the memo.  The stack is not popped.
+  159: }        EMPTY_DICT                          Push an empty dict.
+  160: \x94     MEMOIZE                             Store the stack top into the memo.  The stack is not popped.
+  161: (        MARK                                Push markobject onto the stack.
+  162: \x8c         SHORT_BINUNICODE '_AutoNamer__last_postfix' Push a Python Unicode string object.
+  188: \x94         MEMOIZE           Store the stack top into the memo.  The stack is not popped.
+  189: K            BININT1    0      Push a one-byte unsigned integer.
+  191: \x8c         SHORT_BINUNICODE '_AutoNamer__basename' Push a Python Unicode string object.
+  213: \x94         MEMOIZE           Store the stack top into the memo.  The stack is not popped.
+  214: \x8c         SHORT_BINUNICODE 'Space' Push a Python Unicode string object.
+  221: \x94         MEMOIZE                  Store the stack top into the memo.  The stack is not popped.
+  222: u            SETITEMS   (MARK at 161) Add an arbitrary number of key+value pairs to an existing dict.
+  223: b        BUILD                        Finish building an object, via __setstate__ or dict update.
+  224: \x8c     SHORT_BINUNICODE 'interface' Push a Python Unicode string object.
+  235: \x94     MEMOIZE                      Store the stack top into the memo.  The stack is not popped.
+  236: h        BINGET     0                 Read an object from the memo and push it on the stack.
+  238: \x8c     SHORT_BINUNICODE 'Model'     Push a Python Unicode string object.
+  245: \x94     MEMOIZE                      Store the stack top into the memo.  The stack is not popped.
+  246: \x93     STACK_GLOBAL                 Push a global object (module.attr) on the stack.
+  247: \x94     MEMOIZE                      Store the stack top into the memo.  The stack is not popped.
+  248: \x8c     SHORT_BINUNICODE '<pickled>' Push a Python Unicode string object.
+  259: \x94     MEMOIZE                      Store the stack top into the memo.  The stack is not popped.
+  260: \x85     TUPLE1                       Build a one-tuple out of the topmost item on the stack.
+  261: \x94     MEMOIZE                      Store the stack top into the memo.  The stack is not popped.
+  262: }        EMPTY_DICT                   Push an empty dict.
+  263: \x94     MEMOIZE                      Store the stack top into the memo.  The stack is not popped.
+  264: \x92     NEWOBJ_EX                    Build an object instance.
+  265: \x94     MEMOIZE                      Store the stack top into the memo.  The stack is not popped.
+  266: h        BINGET     4                 Read an object from the memo and push it on the stack.
+  268: b        BUILD                        Finish building an object, via __setstate__ or dict update.
+  269: u        SETITEMS   (MARK at 52)      Add an arbitrary number of key+value pairs to an existing dict.
+  270: b    BUILD                            Finish building an object, via __setstate__ or dict update.
+  271: .    STOP                             Stop the unpickling machine.
+highest protocol among opcodes = 4
