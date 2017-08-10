@@ -108,7 +108,8 @@ class CellsImpl(Impl):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def fix_unpickled_states(self, system):
+    def restore_state(self, system):
+        """Called after unpickling to restore some attributes manually."""
         self.system = system
 
     def __repr__(self):

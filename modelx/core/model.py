@@ -82,10 +82,10 @@ class ModelImpl(SpaceContainerImpl):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
+    def restore_state(self, system):
+        """Called after unpickling to restore some attributes manually."""
 
-    def fix_unpickled_states(self, system):
-
-        SpaceContainerImpl.fix_unpickled_states(self, system)
+        SpaceContainerImpl.restore_state(self, system)
 
         mapping = {}
         for node in self.cellgraph:

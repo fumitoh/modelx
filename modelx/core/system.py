@@ -63,7 +63,7 @@ class System:
         with open(path, 'rb') as file:
             self._currentmodel = pickle.load(file)
 
-        self._currentmodel.fix_unpickled_states(self)
+        self._currentmodel.restore_state(self)
 
         return self._currentmodel
 

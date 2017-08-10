@@ -82,12 +82,13 @@ class SpaceContainerImpl(Impl):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def fix_unpickled_states(self, system):
+    def restore_state(self, system):
+        """Called after unpickling to restore some attributes manually."""
 
         self.system = system
 
         for space in self._spaces.values():
-            space.fix_unpickled_states(system)
+            space.restore_state(system)
 
     @property
     def spaces(self):
@@ -502,15 +503,16 @@ class SpaceImpl(SpaceContainerImpl):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def fix_unpickled_states(self, system):
+    def restore_state(self, system):
+        """Called after unpickling to restore some attributes manually."""
 
         self.system = system
 
         for space in self._spaces.values():
-            space.fix_unpickled_states(system)
+            space.restore_state(system)
 
         for cells in self._cells.values():
-            cells.fix_unpickled_states(system)
+            cells.restore_state(system)
 
     def __repr__(self):
         return '<SpaceImpl: ' + self.name + '>'
