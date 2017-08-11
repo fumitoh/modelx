@@ -55,7 +55,10 @@ class SpaceContainerImpl(Impl):
 
     A space in
     """
-    state_attrs = ['_spaces', 'param_spaces', 'spacenamer', 'factory']
+    state_attrs = ['_spaces',
+                   'param_spaces',
+                   'spacenamer',
+                   'factory'] + Impl.state_attrs
 
     def __init__(self, system, if_class, factory):
 

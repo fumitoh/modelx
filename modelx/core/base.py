@@ -136,7 +136,7 @@ def get_impls(interfaces):
 
 class Impl:
 
-    state_attrs = []
+    state_attrs = ['interface']
 
     def __init__(self, interface_class):
         self.interface = interface_class(self)
