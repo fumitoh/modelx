@@ -893,10 +893,15 @@ class Space(SpaceContainer):
     def set_factory(self, factory):
         self._impl.set_factory(factory)
 
+    # ----------------------------------------------------------------------
+    # Conversion to Pandas objects
+
     def to_dataframe(self):
         return self._impl.to_dataframe()
 
-
+    @property
+    def frame(self):
+        return self._impl.to_dataframe()
 
 
 

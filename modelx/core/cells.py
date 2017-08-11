@@ -356,10 +356,18 @@ class Cells(Interface, Container, Callable, Sized):
             raise TypeError
 
     # ----------------------------------------------------------------------
-    # Conversion to Pandas
+    # Conversion to Pandas objects
 
     def to_series(self):
         return self._impl.to_series()
 
+    @property
+    def series(self):
+        return self._impl.to_series()
+
     def to_dataframe(self):
+        return self._impl.to_dataframe()
+
+    @property
+    def frame(self):
         return self._impl.to_dataframe()
