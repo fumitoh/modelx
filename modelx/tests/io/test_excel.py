@@ -1,8 +1,9 @@
 import os
 import sys
-from modelx.io.excel import *
+import modelx.io.excel as xl
 
 import pytest
+import openpyxl as opxl
 
 test_path = os.path.dirname(sys.modules[__name__].__file__)
 sample_book = test_path + '\\test_xl_range.xlsx'
@@ -18,7 +19,7 @@ def book_with_namedranges():
     ('C3:E5', 'SHEET1'),
 ])
 def test_get_xlrange_booklevel(range_expr, sheet):
-    result = read_range(sample_book, range_expr, sheet)
+    result = xl.read_range(sample_book, range_expr, sheet)
 
     keys = ((r, c) for r in range(3) for c in range(3))
 
@@ -34,7 +35,7 @@ def test_get_xlrange_booklevel(range_expr, sheet):
     'C3:E5',
 ])
 def test_get_xlrange_sheetlevel(range_expr):
-    result = read_range(sample_book, range_expr, 'SHEET 2')
+    result = xl.read_range(sample_book, range_expr, 'SHEET 2')
 
     keys = ((r, c) for r in range(3) for c in range(3))
 
@@ -50,14 +51,14 @@ def test_get_xlrange_sheetlevel(range_expr):
     ('C8', 'SHEET1'),
 ])
 def test_get_xlrange_booklevel_singlecell(range_expr, sheet):
-    result = read_range(sample_book, range_expr, sheet)
+    result = xl.read_range(sample_book, range_expr, sheet)
     assert result == 'string'
 
 
 def test_get_namedrange_booklevel(book_with_namedranges):
 
     book = book_with_namedranges
-    range1 = get_namedrange(book, 'NamedRange1')
+    range1 = xl._get_namedrange(book, 'NamedRange1')
 
     check = range1[0][0].parent.title == 'Sheet1'
     for row_ind, row in enumerate(range1):
@@ -70,7 +71,7 @@ def test_get_namedrange_booklevel(book_with_namedranges):
 def test_get_namedrange_sheetlevel(book_with_namedranges):
 
     book = book_with_namedranges
-    range1_local = get_namedrange(book, 'NamedRange1', sheetname='Sheet 2')
+    range1_local = xl._get_namedrange(book, 'NamedRange1', sheetname='Sheet 2')
 
     check = range1_local[0][0].parent.title == 'Sheet 2'
     for row_ind, row in enumerate(range1_local):
@@ -83,7 +84,7 @@ def test_get_namedrange_sheetlevel(book_with_namedranges):
 def test_get_namedranges_multipleranges(book_with_namedranges):
 
     book = book_with_namedranges
-    multrange = get_namedrange(book, 'NamedMultiRanges')
+    multrange = xl._get_namedrange(book, 'NamedMultiRanges')
 
     check = multrange[0].value == 'ABC'
     for i in range(3):
@@ -98,7 +99,7 @@ def test_get_namedranges_multipleranges(book_with_namedranges):
     'A1:XFD1048576',
 ])
 def test_is_range_address_valid(valid_range_address):
-    assert is_range_address(valid_range_address)
+    assert xl._is_range_address(valid_range_address)
 
 
 @pytest.mark.parametrize("invalid_range_address", [
@@ -108,5 +109,5 @@ def test_is_range_address_valid(valid_range_address):
     'A1:XFE1048577'
 ])
 def test_is_range_address_invalid(invalid_range_address):
-    assert not is_range_address(invalid_range_address)
+    assert not xl._is_range_address(invalid_range_address)
 

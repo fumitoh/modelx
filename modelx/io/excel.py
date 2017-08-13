@@ -4,7 +4,7 @@ import string
 import openpyxl as opxl
 
 
-def get_col_index(name):
+def _get_col_index(name):
     """Convert column name to index."""
 
     index = string.ascii_uppercase.index
@@ -14,7 +14,7 @@ def get_col_index(name):
     return col
 
 
-def is_range_address(range_addr):
+def _is_range_address(range_addr):
 
     # RANGE_EXPR modified from openpyxl.utils.cells
     # see https://bitbucket.org/openpyxl/openpyxl
@@ -39,13 +39,13 @@ def is_range_address(range_addr):
     if not cells:
         return False
     else:
-        min_col = get_col_index(match.group("min_col"))
+        min_col = _get_col_index(match.group("min_col"))
         min_row = int(match.group("min_row"))
 
         # if range_addr is for a single cell,
         # max_col and max_row are None.
         max_col = match.group("max_col")
-        max_col = max_col and get_col_index(max_col)
+        max_col = max_col and _get_col_index(max_col)
 
         max_row = match.group("max_row")
         max_row = max_row and int(max_row)
@@ -97,12 +97,12 @@ def read_range(filepath, range_expr, sheet=None, dict_generator=None):
 
     book = opxl.load_workbook(filepath, data_only=True)
 
-    if is_range_address(range_expr):
+    if _is_range_address(range_expr):
         sheet_names = [name.upper() for name in book.sheetnames]
         index = sheet_names.index(sheet.upper())
         cells = book.worksheets[index][range_expr]
     else:
-        cells = get_namedrange(book, range_expr, sheet)
+        cells = _get_namedrange(book, range_expr, sheet)
 
     # In case of a single cell, return its value.
     if isinstance(cells, opxl.cell.Cell):
@@ -115,7 +115,7 @@ def read_range(filepath, range_expr, sheet=None, dict_generator=None):
     return {keyval[0]: keyval[1] for keyval in gen}
 
 
-def get_namedrange(book, rangename, sheetname=None):
+def _get_namedrange(book, rangename, sheetname=None):
     """Get range from a workbook.
 
     A workbook can contain multiple definitions for a single name,
