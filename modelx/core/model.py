@@ -116,8 +116,8 @@ class Model(SpaceContainer):
     def __getitem__(self, space):
         return self._impl.space[space]
 
-    def __repr__(self):
-        return self._impl.repr_
+    # def __repr__(self):
+    #     return self._impl.repr_
 
     @property
     def spaces(self):
