@@ -84,6 +84,12 @@ def test_set_value(sample_space):
     assert sample_space.return_last(5) == 5
 
 
+def test_clear_value(sample_space):
+    sample_space.fibo[5]
+    sample_space.fibo.clear_value(3)
+    assert set(sample_space.fibo) == {(0,), (1,), (2,)}
+
+
 def test_call_single_value(sample_space):
     assert sample_space.single_value() == 5
 

@@ -5,6 +5,8 @@ from collections.abc import (Container,
                              Callable,
                              Sized)
 
+import networkx as nx
+
 from modelx.core.base import (ObjectPointer,
                               Impl,
                               Interface)
@@ -206,6 +208,22 @@ class CellsImpl(Impl):
                 raise KeyError("Assignment in cells other than %s" %
                                ptr.argvalues)
 
+    def clear_value(self, args, kwargs):
+
+        ptr = CellPointer(self, args, kwargs)
+
+        if self.has_cell(ptr.argvalues):
+
+            # remove all descendants from Model.cellgraph
+            graph = self.model.cellgraph
+            desc = nx.descendants(graph, ptr)
+            desc.add(ptr)
+            graph.remove_nodes_from(desc)
+
+            for cell in desc:
+                del self.data[cell.argvalues]
+
+
     def _store_value(self, ptr, value, overwrite=False):
 
         key = ptr.argvalues
@@ -283,6 +301,9 @@ class Cells(Interface, Container, Callable, Sized):
 
     def __repr__(self):
         return self._impl.repr_
+
+    def clear_value(self, *args, **kwargs):
+        return self._impl.clear_value(args, kwargs)
 
     # ----------------------------------------------------------------------
     # Coercion to single value
