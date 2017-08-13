@@ -768,8 +768,7 @@ class SpaceImpl(SpaceContainerImpl):
     def signature(self):
         return self.factory.signature
 
-    @property
-    def fullname(self):
+    def get_fullname(self, omit_model=False):
 
         fullname = self.name
         parent = self.parent
@@ -778,6 +777,11 @@ class SpaceImpl(SpaceContainerImpl):
             if hasattr(parent, 'parent'):
                 parent = parent.parent
             else:
+                if omit_model:
+                    separated = fullname.split('.')
+                    separated.pop(0)
+                    fullname = '.'.join(separated)
+
                 return fullname
 
     def to_dataframe(self):

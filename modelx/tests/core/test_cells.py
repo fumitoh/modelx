@@ -102,7 +102,13 @@ def x_test_itr(sample_space):
 # Test _impl methods
 
 def test_fullname(sample_space):
-    assert sample_space.fibo._impl.fullname == "samplemodel.samplespace.fibo"
+    assert sample_space.fibo._impl.get_fullname() \
+           == "samplemodel.samplespace.fibo"
+
+
+def test_fullname_omit_model(sample_space):
+    assert sample_space.fibo._impl.get_fullname(omit_model=True) \
+           == "samplespace.fibo"
 
 
 

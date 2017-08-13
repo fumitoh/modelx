@@ -72,9 +72,7 @@ class ModelImpl(SpaceContainerImpl):
 
         mapping = {}
         for node in self.cellgraph:
-            name = node.obj_.fullname.split('.')     # Drop model name
-            name.pop(0)
-            name = '.'.join(name)
+            name = node.obj_.get_fullname(omit_model=True)
             mapping[node] = (name, node.argvalues)
 
         state['cellgraph'] = nx.relabel_nodes(self.cellgraph, mapping)

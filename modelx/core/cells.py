@@ -115,9 +115,8 @@ class CellsImpl(Impl):
     def __repr__(self):
         return '<CellsImpl: %s>' % self.name
 
-    @property
-    def fullname(self):
-        return self.space.fullname + '.' + self.name
+    def get_fullname(self, omit_model=False):
+        return self.space.get_fullname(omit_model) + '.' + self.name
 
     @property
     def signature(self):

@@ -50,4 +50,4 @@ def test_fullname(samplemodel):
 
     # print('name is\n', space._impl.fullname)
 
-    assert space._impl.fullname == "samplemodel.derived_space"
+    assert space._impl.get_fullname() == "samplemodel.derived_space"

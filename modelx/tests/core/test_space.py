@@ -87,4 +87,8 @@ def test_factory(samplespace):
 
 
 def test_fullname(samplespace):
-    assert samplespace._impl.fullname == "samplemodel.samplespace"
+    assert samplespace._impl.get_fullname() == "samplemodel.samplespace"
+
+
+def test_fullname_omit_model(samplespace):
+    assert samplespace._impl.get_fullname(omit_model=True) == 'samplespace'
