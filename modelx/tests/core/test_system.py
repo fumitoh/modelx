@@ -27,6 +27,22 @@ def test_defcells_withspace():
     assert foo[10] == 123
 
 
+def test_defcells_lambda_object():
+
+    fibo = defcells(space=get_currentspace(), name='fibo')(
+        lambda x: x if x == 0 or x == 1 else fibo[x - 1] + fibo[x - 2])
+
+    assert fibo(10) == 55
+
+
+def test_decells_lambda_source():
+
+    src = "lambda x: x if x == 0 or x == 1 else fibo2[x - 1] + fibo2[x - 2]"
+    fibo2 = get_currentspace().create_cells(name='fibo2', func=src)
+
+    assert fibo2(10) == 55
+
+
 def test_create_cells_from_module():
     # import modelx.tests.core.data.sample as sample
     from .data import sample
