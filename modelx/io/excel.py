@@ -60,7 +60,7 @@ def is_range_address(range_addr):
                     and (min_row <= 1048576))
 
 
-def read_xlrange(filepath, range_expr, sheet=None, dict_generator=None):
+def read_range(filepath, range_expr, sheet=None, dict_generator=None):
     """Read values from an Excel range into a dictionary.
 
     `range_expr` ie either a range address string, such as "A1", "$C$3:$E$5",

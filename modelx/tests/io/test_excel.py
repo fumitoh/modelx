@@ -18,7 +18,7 @@ def book_with_namedranges():
     ('C3:E5', 'SHEET1'),
 ])
 def test_get_xlrange_booklevel(range_expr, sheet):
-    result = read_xlrange(sample_book, range_expr, sheet)
+    result = read_range(sample_book, range_expr, sheet)
 
     keys = ((r, c) for r in range(3) for c in range(3))
 
@@ -34,7 +34,7 @@ def test_get_xlrange_booklevel(range_expr, sheet):
     'C3:E5',
 ])
 def test_get_xlrange_sheetlevel(range_expr):
-    result = read_xlrange(sample_book, range_expr, 'SHEET 2')
+    result = read_range(sample_book, range_expr, 'SHEET 2')
 
     keys = ((r, c) for r in range(3) for c in range(3))
 
@@ -50,7 +50,7 @@ def test_get_xlrange_sheetlevel(range_expr):
     ('C8', 'SHEET1'),
 ])
 def test_get_xlrange_booklevel_singlecell(range_expr, sheet):
-    result = read_xlrange(sample_book, range_expr, sheet)
+    result = read_range(sample_book, range_expr, sheet)
     assert result == 'string'
 
 
