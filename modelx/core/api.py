@@ -2,6 +2,7 @@ from types import FunctionType as _FunctionType
 
 from modelx.core import system as _system
 from modelx.core.cells import CellsMaker as _CellsMaker
+from modelx.core.base import get_interfaces
 
 
 def create_model(name=None):
@@ -28,7 +29,7 @@ def create_cells_from_module(module, space=None):
 
 
 def get_models():
-    return _system.models
+    return get_interfaces(_system.models)
 
 
 def get_currentmodel():
