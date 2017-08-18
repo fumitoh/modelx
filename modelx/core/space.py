@@ -846,8 +846,8 @@ class Space(SpaceContainer):
             if isinstance(func, FunctionType):
                 # Choose only the functions defined in the module.
                 if func.__module__ == module_.__name__:
-                    newcells[name] = CellsMaker(space=self._impl,
-                                                name=name)(func)
+                    newcells[name] = \
+                        self._impl.create_cells(name, func).interface
 
         return newcells
 
