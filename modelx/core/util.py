@@ -1,5 +1,8 @@
+import sys
 import re
 import keyword
+import importlib
+import types
 from inspect import getmro
 
 class AutoNamer:
@@ -57,3 +60,21 @@ def get_state_attrs(obj):
         attrs.update(klass_attrs)
 
     return attrs
+
+
+def get_module(module_):
+
+    if isinstance(module_, types.ModuleType):
+        pass
+
+    elif isinstance(module_, str):
+        if module_ not in sys.modules:
+            importlib.import_module(module_)
+
+        module_ = sys.modules[module_]
+
+    else:
+        raise TypeError("%s is not a module or string." %
+                        module_)
+
+    return module_

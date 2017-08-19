@@ -17,7 +17,7 @@ from modelx.core.formula import Formula, create_closure
 from modelx.core.cells import (Cells,
                                CellsMaker,
                                CellsImpl)
-from modelx.core.util import AutoNamer, is_valid_name
+from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
 class SpacePointer(ObjectPointer):
@@ -134,6 +134,24 @@ class SpaceContainerImpl(Impl):
 
         return space
 
+    def create_space_from_module(self, module_, name=None, recursive=False):
+
+        module_ = get_module(module_)
+
+        if name is None:
+            name = module_.__name__.split('.')[-1]  # xxx.yyy.zzz -> zzz
+
+        space = self.create_space(name=name)
+        space.create_cells_from_module(module_)
+
+        if recursive and hasattr(module_, '_spaces'):
+            for name in module_._spaces:
+                submodule = module_.__name__ + '.' + name
+                space.create_space_from_module(module_=submodule,
+                                               recursive=True)
+
+        return space
+
     def get_space(self, args, kwargs=None):
 
         ptr = SpacePointer(self, args, kwargs)
@@ -175,7 +193,6 @@ class SpaceContainer(Interface):
             bases: If specified, the new space becomes a derived space of
                 the `base` space.
             factory: Function whose parameters used to set space parameters.
-            base_self
 
         """
         space = self._impl.model.currentspace \
@@ -183,6 +200,15 @@ class SpaceContainer(Interface):
                                       factory=factory)
 
         return space.interface
+
+    def create_space_from_module(self, module_, name=None, recursive=False):
+
+        space = self._impl.model.currentspace \
+            = self._impl.create_space_from_module(module_, name=name,
+                                                  recursive=recursive)
+
+        return get_interfaces(space)
+
 
 
 class InheritedMembers(LazyEvalDict):
@@ -764,6 +790,23 @@ class SpaceImpl(SpaceContainerImpl):
         self.set_cells(cells.name, cells)
         return cells
 
+    def create_cells_from_module(self, module_):
+        # Outside formulas only
+
+        module_ = get_module(module_)
+        newcells = {}
+
+        for name in dir(module_):
+            func = getattr(module_, name)
+            if isinstance(func, FunctionType):
+                # Choose only the functions defined in the module.
+                if func.__module__ == module_.__name__:
+                    newcells[name] = \
+                        self.create_cells(name, func)
+
+        return newcells
+
+
     @property
     def signature(self):
         return self.factory.signature
@@ -826,30 +869,8 @@ class Space(SpaceContainer):
     def create_cells_from_module(self, module_):
         # Outside formulas only
 
-        if isinstance(module_, ModuleType):
-            pass
-
-        elif isinstance(module_, str):
-            if module_ not in sys.modules:
-                importlib.import_module(module_)
-
-            module_ = sys.modules[module_]
-
-        else:
-            raise TypeError("%s is not a module or string." %
-                            module_)
-
-        newcells = {}
-
-        for name in dir(module_):
-            func = getattr(module_, name)
-            if isinstance(func, FunctionType):
-                # Choose only the functions defined in the module.
-                if func.__module__ == module_.__name__:
-                    newcells[name] = \
-                        self._impl.create_cells(name, func).interface
-
-        return newcells
+        newcells = self._impl.create_cells_from_module(module_)
+        return get_interfaces(newcells)
 
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells

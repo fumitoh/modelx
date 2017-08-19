@@ -51,3 +51,37 @@ def test_fullname(samplemodel):
     # print('name is\n', space._impl.fullname)
 
     assert space._impl.get_fullname() == "samplemodel.derived_space"
+
+
+def test_create_space_from_module(samplemodel):
+    from .data import sample
+
+    space = samplemodel.create_space_from_module(sample, name='sample_module')
+
+    assert set(sample.funcs) == set(space.cells.keys())
+
+
+def test_create_space_from_module_by_name(samplemodel):
+    from .data import sample
+
+    space = samplemodel.create_space_from_module(sample.__name__)
+
+    assert set(sample.funcs) == set(space.cells.keys())
+
+
+def test_create_sapce_recursive(samplemodel):
+    from .data import testpkg
+
+    space = samplemodel.create_space_from_module(testpkg.__name__,
+                                                 recursive=True)
+    errors = []
+    if not space.pkgfibo(10) == 55:
+        errors.append("error with pkgfibo")
+
+    if not space.testmod.modfibo(10) == 55:
+        errors.append("error with testmod.modfibo")
+
+    if not space.nestedpkg.nestedfibo(10) == 55:
+        errors.append("error with nestedpkg.nestedfibo")
+
+    assert not errors, "errors:\n{}".format("\n".join(errors))
