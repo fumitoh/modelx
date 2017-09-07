@@ -152,6 +152,9 @@ class SpaceContainerImpl(Impl):
 
         return space
 
+    def create_space_from_excel(self):
+        pass
+
     def get_space(self, args, kwargs=None):
 
         ptr = SpacePointer(self, args, kwargs)
@@ -806,6 +809,58 @@ class SpaceImpl(SpaceContainerImpl):
 
         return newcells
 
+    def create_cells_from_excel(self, file_, range_, sheet=None,
+                                names_row=None, param_cols=None,
+                                param_order=None,
+                                transpose=False,
+                                names_col=None, param_rows=None):
+        """Create multiple cells from an Excel range.
+
+        Args:
+            file_ (str): Path to an Excel file.
+            range_ (str): Range expression, such as "A1", "$G4:$K10",
+                or named range "NamedRange1".
+            sheet (str): Sheet name (case ignored).
+            names_row: Cells names in a sequence, or an integer number, or
+              a string expression indicating row (or column depending on
+              ```orientation```) to read cells names from.
+            param_cols: a sequence of them
+                indicating parameter columns (or rows depending on ```
+                orientation```)
+            param_order: a sequence of integers representing
+                the order of params and extra_params.
+            transpose: in which direction 'vertical' or 'horizontal'
+            names_col: a string or a list of names of the extra params.
+            param_rows: integer or string expression, or a sequence of them
+                indicating row (or column) to be interpreted as parameters.
+        """
+        import openpyxl as opxl
+        import modelx.io.excel as xl
+
+        book = opxl.load_workbook(file_, data_only=True)
+
+        if xl._is_range_address(range_):
+            sheet_names = [name.upper() for name in book.sheetnames]
+            index = sheet_names.index(sheet.upper())
+            data = book.worksheets[index][range_]
+        else:
+            data = xl._get_namedrange(book, range_, sheet)
+
+        if transpose:
+            orientation = xl.CellsOrientation.ROW
+        else:
+            orientation = xl.CellsOrientation.COL
+
+        cellstable = xl.CellsTable(data, names_row, param_cols, param_order,
+                                   orientation, names_col, param_rows)
+
+        blank_func = "def _blank_func(" + \
+                     "=None, ".join(cellstable.param_names) + "=None): pass"
+
+        for cellsdata in cellstable.items():
+            cells = self.create_cells(name=cellsdata.name, func=blank_func)
+            for args, value in cellsdata.items():
+                cells.set_value(args, value)
 
     @property
     def signature(self):
@@ -872,6 +927,36 @@ class Space(SpaceContainer):
         newcells = self._impl.create_cells_from_module(module_)
         return get_interfaces(newcells)
 
+    def create_cells_from_excel(self, file_, range_, sheet=None,
+                                names_row=None, param_cols=None,
+                                param_order=None,
+                                transpose=False,
+                                names_col=None, param_rows=None):
+        """Create multiple cells from an Excel range.
+
+        Args:
+            file_ (str): Path to an Excel file.
+            range_ (str): Range expression, such as "A1", "$G4:$K10",
+                or named range "NamedRange1".
+            sheet (str): Sheet name (case ignored).
+            names_row: Cells names in a sequence, or an integer number, or
+              a string expression indicating row (or column depending on
+              ```orientation```) to read cells names from.
+            param_cols: a sequence of them
+                indicating parameter columns (or rows depending on ```
+                orientation```)
+            param_order: a sequence of integers representing
+                the order of params and extra_params.
+            transpose: in which direction 'vertical' or 'horizontal'
+            names_col: a string or a list of names of the extra params.
+            param_rows: integer or string expression, or a sequence of them
+                indicating row (or column) to be interpreted as parameters.
+        """
+        return self._impl.create_cells_from_excel(
+            file_, range_, sheet, names_row, param_cols,
+            param_order, transpose,
+            names_col, param_rows)
+
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells
 
@@ -927,6 +1012,5 @@ class Space(SpaceContainer):
     @property
     def frame(self):
         return self._impl.to_dataframe()
-
 
 
