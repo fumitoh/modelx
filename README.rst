@@ -114,7 +114,7 @@ Python 3.4+
 Free software
 -------------
 modelx is free software; you can redistribute it and/or
-modify it under the terms of the BSD license.
+modify it under the terms of GNU General Public License v3 (GPLv3).
 
 Contributions, productive comments, requests and feedback from the community
 are always welcome. Information on modelx development is found at Github
