@@ -152,8 +152,52 @@ class SpaceContainerImpl(Impl):
 
         return space
 
-    def create_space_from_excel(self):
-        pass
+    def create_space_from_excel(self, book, range_, sheet=None,
+                                name=None,
+                                names_row=None, param_cols=None,
+                                space_param_order=None,
+                                cells_param_order=None,
+                                transpose=False,
+                                names_col=None, param_rows=None):
+
+        import modelx.io.excel as xl
+
+        param_order = space_param_order + cells_param_order
+
+        cellstable = xl.CellsTable(book, range_, sheet,
+                                   names_row, param_cols,
+                                   param_order,
+                                   transpose,
+                                   names_col, param_rows)
+
+        space_params = cellstable.param_names[:len(space_param_order)]
+        cells_params = cellstable.param_names[len(space_param_order):]
+
+        param_func = "def _param_func(" + \
+                     "=None, ".join(space_params) + "=None): pass"
+
+        blank_func = "def _blank_func(" + \
+                     "=None, ".join(cells_params) + "=None): pass"
+
+        space = self.create_space(name=name, factory=param_func)
+
+        for cellsdata in cellstable.items():
+            for args, value in cellsdata.items():
+                space_args = args[:len(space_params)]
+                cells_args = args[len(space_params):]
+
+                subspace = space.get_space(space_args)
+
+                if cellsdata.name in subspace.cells:
+                    cells = subspace.cells[cellsdata.name]
+                else:
+                    cells = subspace.create_cells(name=cellsdata.name,
+                                                  func=blank_func)
+                cells.set_value(cells_args, value)
+
+        return space
+
+
 
     def get_space(self, args, kwargs=None):
 
@@ -167,12 +211,16 @@ class SpaceContainerImpl(Impl):
             self.system.self = self
 
             try:
-                space_args = ptr.eval_formula().copy()
+                space_args = ptr.eval_formula()
 
             finally:
                 self.system.self = last_self
 
-            space_args['bases'] = get_impls(space_args['bases'])
+            if space_args is None:
+                space_args = {}
+            else:
+                space_args = get_impls(space_args)
+
             space_args['arguments'] = ptr.arguments
             space = self.create_space(**space_args)
             self.param_spaces[ptr.argvalues] = space
@@ -212,6 +260,23 @@ class SpaceContainer(Interface):
 
         return get_interfaces(space)
 
+    def create_space_from_excel(self, book, range_, sheet=None,
+                                name=None,
+                                names_row=None, param_cols=None,
+                                space_param_order=None,
+                                cells_param_order=None,
+                                transpose=False,
+                                names_col=None, param_rows=None):
+
+        space = self._impl.create_space_from_excel(
+            book, range_, sheet, name,
+            names_row, param_cols,
+            space_param_order,
+            cells_param_order,
+            transpose,
+            names_col, param_rows)
+
+        return get_interfaces(space)
 
 
 class InheritedMembers(LazyEvalDict):

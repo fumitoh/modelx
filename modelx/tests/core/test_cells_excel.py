@@ -128,4 +128,37 @@ def test_create_cells_from_excel_multextparams(testmodel, range_, orientation):
     assert check
 
 
+@pytest.mark.parametrize("range_, transpose", [
+    ('C3:H24', False),
+    ('C32:X37', True)
+])
+def test_create_space_from_excel(testmodel, range_, transpose):
 
+    space = testmodel.create_space_from_excel(book=test_path,
+                                              range_=range_,
+                                              sheet='TestSpaceTables',
+                                              names_row=0, param_cols=[0, 1],
+                                              names_col=1, param_rows=[1],
+                                              space_param_order=[1],
+                                              cells_param_order=[2, 0],
+                                              transpose=transpose)
+
+    check = True
+    for product, offset1 in zip(['A', 'B'], [0, 1000]):
+
+        subspace = space[product]
+        check = check and subspace.Product == product
+
+        for cells, offset2 in zip(['Cells1', 'Cells2'], [1000, 2000]):
+
+            check = check and \
+                    list(subspace.cells[cells]._impl.parameters.keys()) \
+                    == ['Sex', 'Year']
+
+            for sex, offset3 in zip(['M', 'F'], [0, 1000]):
+                for year in range(10):
+                    check = check and \
+                        subspace.cells[cells](sex, year) \
+                        == year + offset1 + offset2 + offset3
+
+    assert check
