@@ -173,11 +173,18 @@ class SpaceContainerImpl(Impl):
         space_params = cellstable.param_names[:len(space_param_order)]
         cells_params = cellstable.param_names[len(space_param_order):]
 
-        param_func = "def _param_func(" + \
-                     "=None, ".join(space_params) + "=None): pass"
+        if space_params:
+            space_sig = "=None, ".join(space_params) + "=None"
+        else:
+            space_sig = ""
 
-        blank_func = "def _blank_func(" + \
-                     "=None, ".join(cells_params) + "=None): pass"
+        if cells_params:
+            cells_sig = "=None, ".join(cells_params) + "=None"
+        else:
+            cells_sig = ""
+
+        param_func = "def _param_func(" + space_sig + "): pass"
+        blank_func = "def _blank_func(" + cells_sig + "): pass"
 
         space = self.create_space(name=name, factory=param_func)
 
@@ -905,8 +912,12 @@ class SpaceImpl(SpaceContainerImpl):
                                    names_row, param_cols, param_order,
                                    transpose, names_col, param_rows)
 
-        blank_func = "def _blank_func(" + \
-                     "=None, ".join(cellstable.param_names) + "=None): pass"
+        if cellstable.param_names:
+            sig = "=None, ".join(cellstable.param_names) + "=None"
+        else:
+            sig = ""
+
+        blank_func = "def _blank_func(" + sig + "): pass"
 
         for cellsdata in cellstable.items():
             cells = self.create_cells(name=cellsdata.name, func=blank_func)
