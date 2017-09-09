@@ -62,6 +62,26 @@ def _is_range_address(range_addr):
                     and (min_row <= 1048576))
 
 
+def _get_range(book, range_, sheet):
+    """Return a range as nested dict of openpyxl cells."""
+
+    if isinstance(book, str):
+        book = opxl.load_workbook(book, data_only=True)
+    elif isinstance(book, opxl.Workbook):
+        pass
+    else:
+        raise TypeError
+
+    if _is_range_address(range_):
+        sheet_names = [name.upper() for name in book.sheetnames]
+        index = sheet_names.index(sheet.upper())
+        data = book.worksheets[index][range_]
+    else:
+        data = _get_namedrange(book, range_, sheet)
+
+    return data
+
+
 def read_range(filepath, range_expr, sheet=None, dict_generator=None):
     """Read values from an Excel range into a dictionary.
 
@@ -200,24 +220,25 @@ def _get_namedrange(book, rangename, sheetname=None):
 _IndexRange = namedtuple('_Index', ['begin', 'len', 'skip'])
 
 
-class CellsOrientation:
+class _CellsOrientation:
     ROW = 1
     COL = COLUMN = 2
 
-_ROW = CellsOrientation.ROW
-_COL = CellsOrientation.COL
+_ROW = _CellsOrientation.ROW
+_COL = _CellsOrientation.COL
 
 
 class CellsTable:
 
-    def __init__(self, data, names, params,
-                 param_order, orientation,
+    def __init__(self, book, range_, sheet,
+                 names, params,
+                 param_order, transpose,
                  names_ext, params_ext):
 
-        self.data = data
+        self.data = _get_range(book, range_, sheet)
         self.names_idx = names
         self.param_order = param_order
-        self.orientation = orientation
+        self.orientation = _ROW if transpose else _COL
 
         if self.orientation == _COL:
 
@@ -234,9 +255,9 @@ class CellsTable:
                                     [self.names_idx] + self.col_param_rows)
             param_names = []
             for col in self.row_param_cols:
-                param_names.append(data[self.names_idx][col].value)
+                param_names.append(self.data[self.names_idx][col].value)
             for row in self.col_param_rows:
-                param_names.append(data[row][names_ext].value)
+                param_names.append(self.data[row][names_ext].value)
 
         elif self.orientation == _ROW:
 
@@ -253,9 +274,9 @@ class CellsTable:
                                     [self.names_idx] + self.row_param_cols)
             param_names = []
             for row in self.col_param_rows:
-                param_names.append(data[row][self.names_idx].value)
+                param_names.append(self.data[row][self.names_idx].value)
             for col in self.row_param_cols:
-                param_names.append(data[names_ext][col].value)
+                param_names.append(self.data[names_ext][col].value)
 
         else:
             raise ValueError("invalid orientation")

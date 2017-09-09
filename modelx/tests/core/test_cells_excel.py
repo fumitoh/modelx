@@ -22,7 +22,7 @@ def testmodel():
 def test_create_cells_from_excel(testmodel, range_, orientation):
 
     space = testmodel.create_space()
-    space.create_cells_from_excel(file_=test_path,
+    space.create_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0],
@@ -48,7 +48,7 @@ def test_create_cells_from_excel(testmodel, range_, orientation):
 def test_create_cells_from_excel_multparams(testmodel, range_, orientation):
 
     space = testmodel.create_space()
-    space.create_cells_from_excel(file_=test_path,
+    space.create_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0, 1],
@@ -75,7 +75,7 @@ def test_create_cells_from_excel_multparams(testmodel, range_, orientation):
 def test_create_cells_from_excel_extparams(testmodel, range_, orientation):
 
     space = testmodel.create_space()
-    space.create_cells_from_excel(file_=test_path,
+    space.create_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0],
@@ -104,7 +104,7 @@ def test_create_cells_from_excel_extparams(testmodel, range_, orientation):
 def test_create_cells_from_excel_multextparams(testmodel, range_, orientation):
 
     space = testmodel.create_space()
-    space.create_cells_from_excel(file_=test_path,
+    space.create_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0, 1],
