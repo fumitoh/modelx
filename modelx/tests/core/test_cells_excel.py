@@ -149,6 +149,31 @@ def test_create_cells_from_excel_const(testmodel, range_, transpose):
 
     assert check
 
+@pytest.mark.parametrize("range_, transpose", [
+    ('AG8:AJ11', False),
+    ('C71:F74', True)
+])
+def test_create_cells_from_excel_empty_prams(testmodel, range_, transpose):
+
+    space = testmodel.create_space()
+    space.create_cells_from_excel(
+        book=test_path,
+        range_=range_,
+        sheet='TestTables',
+        names_row=0, param_cols=[0, 1],
+        param_order=[0, 1],
+        transpose=transpose
+    )
+
+    check = True
+    for cells, offset in zip(['Cells1', 'Cells2'], [0, 1]):
+        check = check and \
+            space.cells[cells]() == 0 + offset and \
+            space.cells[cells](1) == 1 + offset and \
+            space.cells[cells](None, 2) == 2 + offset
+
+    assert check
+
 
 # -- SpaceContainer --
 
