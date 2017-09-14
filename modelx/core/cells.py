@@ -299,8 +299,8 @@ class Cells(Interface, Container, Callable, Sized):
     def __hash__(self):
         return hash(id(self))
 
-    def __repr__(self):
-        return self._impl.repr_
+    # def __repr__(self):
+    #     return self._impl.repr_
 
     def clear_value(self, *args, **kwargs):
         return self._impl.clear_value(args, kwargs)
