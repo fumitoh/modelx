@@ -7,7 +7,7 @@ from modelx import *
 
 
 test_path = os.path.dirname(sys.modules[__name__].__file__) \
-    + '\\data\\testdata.xlsx'
+    + '/data/testdata.xlsx'
 
 
 @pytest.fixture

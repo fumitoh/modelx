@@ -6,7 +6,7 @@ import pytest
 import openpyxl as opxl
 
 test_path = os.path.dirname(sys.modules[__name__].__file__)
-sample_book = test_path + '\\test_xl_range.xlsx'
+sample_book = test_path + '/test_xl_range.xlsx'
 
 
 @pytest.fixture
