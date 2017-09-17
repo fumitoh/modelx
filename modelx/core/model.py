@@ -47,7 +47,7 @@ class ModelImpl(SpaceContainerImpl):
     def save(self, filename):
 
         with open(filename, 'wb') as file:
-            pickle.dump(self, file, protocol=4)
+            pickle.dump(self.interface, file, protocol=4)
 
     def get_object(self, name):
         """Retrieve an object by a dotted name relative to the model."""
