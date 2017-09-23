@@ -584,7 +584,6 @@ class SpaceImpl(SpaceContainerImpl):
         '_inherited_names',
         '_direct_bases',
         '_static_spaces',
-        '_spaces',
         '_self_spaces',
         '_self_members',
         '_cells',
@@ -595,11 +594,7 @@ class SpaceImpl(SpaceContainerImpl):
         'interface',
         'cellsnamer',
         'name',
-        'parent',
-        'param_spaces',
-        'factory',
-        'spacenamer'
-    ]
+        'parent'] + SpaceContainerImpl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()

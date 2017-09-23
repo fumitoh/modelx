@@ -99,7 +99,11 @@ class CellsImpl(Impl):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = ['model', 'space', 'formula', 'name', 'data']
+    state_attrs = ['model',
+                   'space',
+                   'formula',
+                   'name',
+                   'data'] + Impl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
