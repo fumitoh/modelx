@@ -118,10 +118,6 @@ class Model(SpaceContainer):
     #     return self._impl.repr_
 
     @property
-    def spaces(self):
-        return MappingProxyType(get_interfaces(self._impl.spaces))
-
-    @property
     def cellgraph(self):
         return self._impl.cellgraph
 

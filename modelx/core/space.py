@@ -285,6 +285,9 @@ class SpaceContainer(Interface):
 
         return get_interfaces(space)
 
+    @property
+    def spaces(self):
+        return MappingProxyType(get_interfaces(self._impl.spaces))
 
 class InheritedMembers(LazyEvalDict):
 
