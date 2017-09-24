@@ -657,7 +657,6 @@ class SpaceImpl(SpaceContainerImpl):
         '_inherited_cells',
         '_observed_bases',
         '_self_names',
-        'interface',
         'cellsnamer',
         'name',
         'parent'] + SpaceContainerImpl.state_attrs
