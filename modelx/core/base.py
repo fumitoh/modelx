@@ -225,14 +225,25 @@ class LazyEvalChain:
 
 class LazyEvalDict(LazyEvalChain, UserDict):
 
-    def __init__(self, data={}, observers=[]):
+    def __init__(self, data=None, observers=None):
+
+        if data is None:
+            data = {}
+        if observers is None:
+            observers = []
+
         UserDict.__init__(self, data)
         LazyEvalChain.__init__(self, observers)
 
 
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
 
-    def __init__(self, maps=[], observers=[], register_self=True):
+    def __init__(self, maps=None, observers=None, register_self=True):
+
+        if maps is None:
+            maps = []
+        if observers is None:
+            observers = []
 
         ChainMap.__init__(self, *maps)
         LazyEvalChain.__init__(self, observers)

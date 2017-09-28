@@ -357,7 +357,12 @@ class SpaceContainer(Interface):
 
 class InheritedMembers(LazyEvalDict):
 
-    def __init__(self, space, data={}, observers=[], attr=''):
+    def __init__(self, space, data=None, observers=None, attr=''):
+
+        if data is None:
+            data = {}
+        if observers is None:
+            observers = []
 
         LazyEvalDict.__init__(self, data, observers)
         self.space = space
