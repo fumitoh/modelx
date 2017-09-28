@@ -97,18 +97,23 @@ class ModelImpl(SpaceContainerImpl):
 
 
 class Model(SpaceContainer):
-    """Container of spaces.
+    """Unit of work that contains spaces.
 
+    A model is a unit of work. It can be saved to a file and loaded again.
+    A model contains spaces.
     """
 
     @property
     def currentspace(self):
+        """The current space of the model."""
         return self._impl.currentspace.interface
 
     def save(self, filename):
+        """Save the model to a file."""
         self._impl.save(filename)
 
     def close(self):
+        """Close the model."""
         self._impl.close()
 
     def __getitem__(self, space):
@@ -119,6 +124,7 @@ class Model(SpaceContainer):
 
     @property
     def cellgraph(self):
+        """A directed graph of cells."""
         return self._impl.cellgraph
 
 

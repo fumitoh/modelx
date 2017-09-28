@@ -51,10 +51,8 @@ class SpaceFactory(Formula):
 
 
 class SpaceContainerImpl(Impl):
-    """Base class of Model and Space that contain spaces.
+    """Base class of Model and Space that contain spaces."""
 
-    A space in
-    """
     state_attrs = ['_spaces',
                    'param_spaces',
                    'spacenamer',
@@ -241,17 +239,28 @@ class SpaceContainerImpl(Impl):
 
 
 class SpaceContainer(Interface):
+    """A common base class shared by Model and Space.
+
+    A base class for implementing (sub)space containment.
+    """
 
     def create_space(self, name=None, bases=None, factory=None):
-        """Create a space in the model.
+        """Create a (sub)space.
 
         Args:
-            name (str): Name of the space. If omitted, the space is
-                created automatically.
-            bases: If specified, the new space becomes a derived space of
-                the `base` space.
-            factory: Function whose parameters used to set space parameters.
+            name (str, optional): Name of the space. Defaults to ``SpaceN``,
+                where ``N`` is a number determined automatically.
+            bases (optional): If specified, the new space becomes a derived
+                space of the `base` space.
+            factory (optional): Function to specify the parameters of
+                dynamic (sub)spaces. The signature of this function is used
+                for setting parameters for dynamic (sub)spaces.
+                This function should return a mapping of keyword arguments
+                to be passed to this method when the dynamic (sub)spaces
+                are created.
 
+        Returns:
+            The new (sub)space.
         """
         space = self._impl.model.currentspace \
             = self._impl.create_space(name=name, bases=get_impls(bases),
@@ -260,6 +269,17 @@ class SpaceContainer(Interface):
         return space.interface
 
     def create_space_from_module(self, module_, name=None, recursive=False):
+        """Create a (sub)space from an module.
+
+        Args:
+            module_: a module object or name of the module object.
+            name(optional): Name of the space. Defaults to ``SpaceN``,
+                where ``N`` is a number determined automatically.
+            recursive: Not yet implemented.
+
+        Returns:
+            The new (sub)space created from the module.
+        """
 
         space = self._impl.model.currentspace \
             = self._impl.create_space_from_module(module_, name=name,
@@ -274,6 +294,50 @@ class SpaceContainer(Interface):
                                 cells_param_order=None,
                                 transpose=False,
                                 names_col=None, param_rows=None):
+        """Create a (sub)space from an Excel range.
+
+        To use this method, ``openpyxl`` package must be installed.
+
+        Args:
+            book (str): Path to an Excel file.
+            range_ (str): Range expression, such as "A1", "$G4:$K10",
+                or named range "NamedRange1".
+            sheet (str): Sheet name (case ignored).
+            name (str, optional): Name of the space. Defaults to ``SpaceN``,
+                where ``N`` is a number determined automatically.
+            names_row (optional): an index number indicating
+                what row contains the names of cells and parameters.
+                Defaults to the top row (0).
+            param_cols (optional): a sequence of index numbers
+                indicating parameter columns.
+                Defaults to only the leftmost column ([0]).
+            names_col (optional): an index number, starting from 0,
+                indicating what column contains additional parameters.
+            param_rows (optional): a sequence of index numbers, starting from
+                0, indicating rows of additional parameters, in case cells are
+                defined in two dimensions.
+            transpose (optional): Defaults to ``False``.
+                If set to ``True``, "row(s)" and "col(s)" in the parameter
+                names are interpreted inversely, i.e.
+                all indexes passed to "row(s)" parameters are interpreted
+                as column indexes,
+                and all indexes passed to "col(s)" parameters as row indexes.
+            space_param_order: a sequence to specify space parameters and
+                their orders. The elements of the sequence denote the indexes
+                of ``param_cols`` elements, and optionally the index of
+                ``param_rows`` elements shifted by the length of
+                ``param_cols``. The elements of this parameter and
+                ``cell_param_order`` must not overlap.
+            cell_param_order (optional): a sequence to reorder the parameters.
+                The elements of the sequence denote the indexes of
+                ``param_cols`` elements, and optionally the index of
+                ``param_rows`` elements shifted by the length of
+                ``param_cols``. The elements of this parameter and
+                ``cell_space_order`` must not overlap.
+
+        Returns:
+            The new (sub)space created from the Excel range.
+        """
 
         space = self._impl.create_space_from_excel(
             book, range_, sheet, name,
@@ -287,7 +351,9 @@ class SpaceContainer(Interface):
 
     @property
     def spaces(self):
+        """A mapping of the names of (sub)spaces to the Space objects"""
         return MappingProxyType(get_interfaces(self._impl.spaces))
+
 
 class InheritedMembers(LazyEvalDict):
 
@@ -950,20 +1016,12 @@ class SpaceImpl(SpaceContainerImpl):
 
 
 class Space(SpaceContainer):
-    """Container for cells and other objects referred in formulas.
-
-    Args:
-        model: Model to contain the space.
-        name (str): Name of the space. 
-        params: Function with the signature to specify 
-            space parameters. 
-        bases: space or sequence of spaces.
-    
-    """
+    """Container for cells and other objects referred in formulas."""
     # __slots__ = ('_impl',)
 
     @property
     def name(self):
+        """The name of the space."""
         return self._impl.name
 
     # def __repr__(self):
@@ -973,15 +1031,27 @@ class Space(SpaceContainer):
     # Manipulating cells
 
     def create_cells(self, name=None, func=None):
+        """Create a cells in the space.
+
+        Args:
+            name: If omitted, the model is named automatically ``CellsN``,
+                where ``N`` is an available number.
+            func: The function to define the formula of the cells.
+
+        Returns:
+            The new cells.
+        """
         # Outside formulas only
         return self._impl.create_cells(name, func).interface
 
     @property
     def cells(self):
+        """A mapping of cells names to the cells objects in the space."""
         return MappingProxyType(get_interfaces(self._impl.cells))
         # return get_interfaces(self._impl.cells)
 
     def create_cells_from_module(self, module_):
+        """Create a cells from a module."""
         # Outside formulas only
 
         newcells = self._impl.create_cells_from_module(module_)
@@ -994,23 +1064,37 @@ class Space(SpaceContainer):
                                 names_col=None, param_rows=None):
         """Create multiple cells from an Excel range.
 
+        To use this method, ``openpyxl`` package must be installed.
+
         Args:
             book (str): Path to an Excel file.
             range_ (str): Range expression, such as "A1", "$G4:$K10",
                 or named range "NamedRange1".
             sheet (str): Sheet name (case ignored).
-            names_row: Cells names in a sequence, or an integer number, or
-              a string expression indicating row (or column depending on
-              ```orientation```) to read cells names from.
-            param_cols: a sequence of them
-                indicating parameter columns (or rows depending on ```
-                orientation```)
-            param_order: a sequence of integers representing
-                the order of params and extra_params.
-            transpose: in which direction 'vertical' or 'horizontal'
-            names_col: a string or a list of names of the extra params.
-            param_rows: integer or string expression, or a sequence of them
-                indicating row (or column) to be interpreted as parameters.
+            names_row (optional): an index number indicating
+                what row contains the names of cells and parameters.
+                Defaults to the top row (0).
+            param_cols (optional): a sequence of index numbers
+                indicating parameter columns.
+                Defaults to only the leftmost column ([0]).
+            names_col (optional): an index number, starting from 0,
+                indicating what column contains additional parameters.
+            param_rows (optional): a sequence of index numbers, starting from
+                0, indicating rows of additional parameters, in case cells are
+                defined in two dimensions.
+            transpose (optional): Defaults to ``False``.
+                If set to ``True``, "row(s)" and "col(s)" in the parameter
+                names are interpreted inversely, i.e.
+                all indexes passed to "row(s)" parameters are interpreted
+                as column indexes,
+                and all indexes passed to "col(s)" parameters as row indexes.
+            param_order (optional): a sequence to reorder the parameters.
+                The elements of the sequence are the indexes of ``param_cols``
+                elements, and optionally the index of ``param_rows`` elements
+                shifted by the length of ``param_cols``.
+
+        Returns:
+            The new cells created from the Excel range.
         """
         return self._impl.create_cells_from_excel(
             book, range_, sheet, names_row, param_cols,
@@ -1051,6 +1135,7 @@ class Space(SpaceContainer):
     # Manipulating subspaces
 
     def has_params(self):
+        """Check if the parameter function is set."""
         # Outside formulas only
         return bool(self.signature)
 
@@ -1061,16 +1146,19 @@ class Space(SpaceContainer):
         return self._impl.get_space(args, kwargs).interface
 
     def set_factory(self, factory):
+        """Set if the parameter function."""
         self._impl.set_factory(factory)
 
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
 
     def to_dataframe(self):
+        """Convert the space itself into a Pandas DataFrame object."""
         return self._impl.to_dataframe()
 
     @property
     def frame(self):
+        """Alias of ``to_frame()``."""
         return self._impl.to_dataframe()
 
 

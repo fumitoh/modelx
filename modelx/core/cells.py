@@ -255,15 +255,11 @@ class CellsImpl(Impl):
 
 
 class Cells(Interface, Container, Callable, Sized):
-    """
-    Data container optionally with a formula to set its own values.
+    """Data container with a formula to calculate its own values.
 
-    Args:
-        space: Space to contain the cell.
-        name: Cell's name.
-        func: Python function or Formula
-        data: array-like, dict, pandas.DataSeries or scalar values.
-        index: YTBI
+    Cells are created by ``create_cells`` method or its variant methods of
+    the containing space, or by function definitions with ``defcells``
+    decorator.
     """
 
     # __slots__ = ('_impl',)
@@ -296,8 +292,7 @@ class Cells(Interface, Container, Callable, Sized):
         return inner()
 
     def copy(self, space=None, name=None):
-        """Make a copy of itself."""
-
+        """Make a copy of itself and return it."""
         return Cells(space=space, name=name, func=self.formula)
 
     def __hash__(self):
@@ -307,6 +302,7 @@ class Cells(Interface, Container, Callable, Sized):
     #     return self._impl.repr_
 
     def clear_value(self, *args, **kwargs):
+        """Clear all the values."""
         return self._impl.clear_value(args, kwargs)
 
     # ----------------------------------------------------------------------
@@ -383,15 +379,19 @@ class Cells(Interface, Container, Callable, Sized):
     # Conversion to Pandas objects
 
     def to_series(self):
+        """Convert the cells itself into a Pandas Series and return it."""
         return self._impl.to_series()
 
     @property
     def series(self):
+        """Alias of ``to_series()``."""
         return self._impl.to_series()
 
     def to_dataframe(self):
+        """Convert the cells itself into a Pandas DataFrame and return it."""
         return self._impl.to_dataframe()
 
     @property
     def frame(self):
+        """Alias of ``to_frame()``."""
         return self._impl.to_dataframe()
