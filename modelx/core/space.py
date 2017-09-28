@@ -1012,7 +1012,7 @@ class SpaceImpl(SpaceContainerImpl):
 
                 return fullname
 
-    def to_dataframe(self):
+    def to_frame(self):
 
         from modelx.io.pandas import space_to_dataframe
 
@@ -1156,13 +1156,13 @@ class Space(SpaceContainer):
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
 
-    def to_dataframe(self):
+    def to_frame(self):
         """Convert the space itself into a Pandas DataFrame object."""
-        return self._impl.to_dataframe()
+        return self._impl.to_frame()
 
     @property
     def frame(self):
         """Alias of ``to_frame()``."""
-        return self._impl.to_dataframe()
+        return self._impl.to_frame()
 
 

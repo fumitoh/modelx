@@ -247,7 +247,7 @@ class CellsImpl(Impl):
 
         return cells_to_series(self)
 
-    def to_dataframe(self):
+    def to_frame(self):
 
         from modelx.io.pandas import cells_to_dataframe
 
@@ -387,11 +387,11 @@ class Cells(Interface, Container, Callable, Sized):
         """Alias of ``to_series()``."""
         return self._impl.to_series()
 
-    def to_dataframe(self):
+    def to_frame(self):
         """Convert the cells itself into a Pandas DataFrame and return it."""
-        return self._impl.to_dataframe()
+        return self._impl.to_frame()
 
     @property
     def frame(self):
         """Alias of ``to_frame()``."""
-        return self._impl.to_dataframe()
+        return self._impl.to_frame()

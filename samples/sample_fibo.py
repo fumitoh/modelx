@@ -57,4 +57,4 @@ y = s.distance.to_series()
 print(x)
 print(y)
 
-print(s.to_dataframe())
+print(s.to_frame())
