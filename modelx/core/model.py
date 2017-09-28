@@ -44,9 +44,9 @@ class ModelImpl(SpaceContainerImpl):
     def close(self):
         self.system.close_model(self)
 
-    def save(self, filename):
+    def save(self, filepath):
 
-        with open(filename, 'wb') as file:
+        with open(filepath, 'wb') as file:
             pickle.dump(self.interface, file, protocol=4)
 
     def get_object(self, name):
@@ -108,9 +108,9 @@ class Model(SpaceContainer):
         """The current space of the model."""
         return self._impl.currentspace.interface
 
-    def save(self, filename):
+    def save(self, filepath):
         """Save the model to a file."""
-        self._impl.save(filename)
+        self._impl.save(filepath)
 
     def close(self):
         """Close the model."""
