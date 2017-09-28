@@ -55,11 +55,6 @@ def defcells(space=None, name=None):
         return _CellsMaker(space=space._impl, name=name)
 
 
-def create_cells_from_module(module, space=None):
-    """Same as ``Space.create_cells_from_module``."""
-    return _system.create_cells_from_module(module, space=None)
-
-
 def get_models():
     """Return a dict that maps model names to models."""
     return get_interfaces(_system.models)

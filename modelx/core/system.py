@@ -52,13 +52,6 @@ class System:
     def currentspace(self):
         return self.currentmodel.currentspace
 
-    def create_cells_from_module(self, module, *, space=None):
-
-        if space is None:
-            space = self.currentspace.interface
-
-        return space.create_cells_from_module(module)
-
     def open_model(self, path):
         with open(path, 'rb') as file:
             self._currentmodel = pickle.load(file)

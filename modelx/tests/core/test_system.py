@@ -43,24 +43,4 @@ def test_decells_lambda_source():
     assert fibo2(10) == 55
 
 
-def test_create_cells_from_module():
-    # import modelx.tests.core.data.sample as sample
-    from .data import sample
-
-    cells = create_cells_from_module(sample)
-    assert set(sample.funcs) == set(cells.keys())
-
-
-def test_create_cells_from_module_name():
-    # import modelx.tests.core.data.sample as sample
-    from .data import sample
-
-    # module_name = 'modelx.tests.core.data.sample'
-    names = __name__.split('.')
-    names = names[:-1] + ['data', 'sample']
-    module_name = '.'.join(names)
-
-    cells = create_cells_from_module(module_name)
-    assert set(sample.funcs) == set(cells.keys())
-
 
