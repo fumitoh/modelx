@@ -30,7 +30,7 @@ class SpacePointer(ObjectPointer):
 
     def eval_formula(self):
 
-        func = self.space.factory.func
+        func = self.space.paramfunc.func
         codeobj = func.__code__
         name = self.space.name
         namespace = self.space.namespace
@@ -45,7 +45,7 @@ class SpacePointer(ObjectPointer):
         return altfunc(**self.arguments)
 
 
-class SpaceFactory(Formula):
+class ParamFunc(Formula):
     def __init__(self, func):
         Formula.__init__(self, func)
 
@@ -56,9 +56,9 @@ class SpaceContainerImpl(Impl):
     state_attrs = ['_spaces',
                    'param_spaces',
                    'spacenamer',
-                   'factory'] + Impl.state_attrs
+                   'paramfunc'] + Impl.state_attrs
 
-    def __init__(self, system, if_class, factory):
+    def __init__(self, system, if_class, paramfunc):
 
         Impl.__init__(self, if_class)
 
@@ -66,10 +66,10 @@ class SpaceContainerImpl(Impl):
         self.param_spaces = {}
         self.spacenamer = AutoNamer('Space')
 
-        if factory is None:
-            self.factory = None
+        if paramfunc is None:
+            self.paramfunc = None
         else:
-            self.factory = SpaceFactory(factory)
+            self.paramfunc = ParamFunc(paramfunc)
 
         self._spaces = {}
 
@@ -102,7 +102,7 @@ class SpaceContainerImpl(Impl):
         else:
             return False
 
-    def create_space(self, *, name=None, bases=None, factory=None,
+    def create_space(self, *, name=None, bases=None, paramfunc=None,
                      arguments=None):
         """Create a child space.
 
@@ -111,7 +111,7 @@ class SpaceContainerImpl(Impl):
                 created automatically.
             bases: If specified, the new space becomes a derived space of
                 the `base` space.
-            factory: Function whose parameters used to set space parameters.
+            paramfunc: Function whose parameters used to set space parameters.
             arguments: ordered dict of space parameter names to their values.
             base_self: True if subspaces inherit self by default.
 
@@ -126,7 +126,7 @@ class SpaceContainerImpl(Impl):
             raise ValueError("Invalid name '%s'." % name)
 
         space = SpaceImpl(parent=self, name=name, bases=bases,
-                          factory=factory, arguments=arguments)
+                          paramfunc=paramfunc, arguments=arguments)
 
         self.spaces[name] = space
 
@@ -184,7 +184,7 @@ class SpaceContainerImpl(Impl):
         param_func = "def _param_func(" + space_sig + "): pass"
         blank_func = "def _blank_func(" + cells_sig + "): pass"
 
-        space = self.create_space(name=name, factory=param_func)
+        space = self.create_space(name=name, paramfunc=param_func)
 
         for cellsdata in cellstable.items():
             for args, value in cellsdata.items():
@@ -231,11 +231,11 @@ class SpaceContainerImpl(Impl):
             self.param_spaces[ptr.argvalues] = space
             return space
 
-    def set_factory(self, factory):
-        if self.factory is None:
-            self.factory = SpaceFactory(factory)
+    def set_paramfunc(self, paramfunc):
+        if self.paramfunc is None:
+            self.paramfunc = ParamFunc(paramfunc)
         else:
-            raise ValueError("Factory already assigned.")
+            raise ValueError("paramfunc already assigned.")
 
 
 class SpaceContainer(Interface):
@@ -244,7 +244,7 @@ class SpaceContainer(Interface):
     A base class for implementing (sub)space containment.
     """
 
-    def create_space(self, name=None, bases=None, factory=None):
+    def create_space(self, name=None, bases=None, paramfunc=None):
         """Create a (sub)space.
 
         Args:
@@ -252,7 +252,7 @@ class SpaceContainer(Interface):
                 where ``N`` is a number determined automatically.
             bases (optional): If specified, the new space becomes a derived
                 space of the `base` space.
-            factory (optional): Function to specify the parameters of
+            paramfunc (optional): Function to specify the parameters of
                 dynamic (sub)spaces. The signature of this function is used
                 for setting parameters for dynamic (sub)spaces.
                 This function should return a mapping of keyword arguments
@@ -264,7 +264,7 @@ class SpaceContainer(Interface):
         """
         space = self._impl.model.currentspace \
             = self._impl.create_space(name=name, bases=get_impls(bases),
-                                      factory=factory)
+                                      paramfunc=paramfunc)
 
         return space.interface
 
@@ -428,7 +428,7 @@ class InheritedMembers(LazyEvalDict):
 
             space = SpaceImpl(parent=self.space, name=base_space.name,
                               bases=base_space.bases,
-                              factory=base_space.factory)
+                              paramfunc=base_space.paramfunc)
 
             self.data[space.name] = space
 
@@ -549,10 +549,10 @@ class SpaceImpl(SpaceContainerImpl):
         _namespace (dict)
     """
 
-    def __init__(self, parent, name, bases, factory, arguments=None):
+    def __init__(self, parent, name, bases, paramfunc, arguments=None):
 
         SpaceContainerImpl.__init__(self, parent.system, if_class=Space,
-                                    factory=factory)
+                                    paramfunc=paramfunc)
 
         self.name = name
         self.parent = parent
@@ -994,7 +994,7 @@ class SpaceImpl(SpaceContainerImpl):
 
     @property
     def signature(self):
-        return self.factory.signature
+        return self.paramfunc.signature
 
     def get_fullname(self, omit_model=False):
 
@@ -1149,9 +1149,9 @@ class Space(SpaceContainer):
     def __call__(self, *args, **kwargs):
         return self._impl.get_space(args, kwargs).interface
 
-    def set_factory(self, factory):
+    def set_paramfunc(self, paramfunc):
         """Set if the parameter function."""
-        self._impl.set_factory(factory)
+        self._impl.set_paramfunc(paramfunc)
 
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects

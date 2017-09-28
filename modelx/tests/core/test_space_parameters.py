@@ -18,10 +18,10 @@ def samplemodel():
 
     base_space.create_cells(func=foo_def)
 
-    def factory(x0):
+    def paramfunc(x0):
         return {'bases': base_space}
 
-    base_space.set_factory(factory)
+    base_space.set_paramfunc(paramfunc)
 
     return model
 

@@ -12,7 +12,7 @@ from modelx.core.util import is_valid_name
 class ModelImpl(SpaceContainerImpl):
 
     def __init__(self, *, system, name):
-        SpaceContainerImpl.__init__(self, system, if_class=Model, factory=None)
+        SpaceContainerImpl.__init__(self, system, if_class=Model, paramfunc=None)
 
         self.cellgraph = nx.DiGraph()   # CellGraph(self)
         self.currentspace = None

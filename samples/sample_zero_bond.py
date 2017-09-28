@@ -2,7 +2,7 @@ from modelx import *
 
 
 space = create_model().create_space(
-    factory=lambda int_rate: {'bases': get_self()})
+    paramfunc=lambda int_rate: {'bases': get_self()})
 
 
 @defcells

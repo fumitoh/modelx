@@ -71,7 +71,7 @@ def get_currentspace():
 
 
 def get_self():
-    """Return self space during its dynamic creation in factory."""
+    """Return self space during its dynamic creation in paramfunc."""
     return _system.self.interface
 
 

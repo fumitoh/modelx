@@ -75,10 +75,10 @@ def test_derived_spaces(samplespace):
     assert space_a.cells_a[2] == 1 and space_b.cells_a(2) == 2
 
 
-def test_factory(samplespace):
+def test_paramfunc(samplespace):
 
     model = get_currentmodel()
-    base = model.create_space(factory=lambda x, y: {'bases': get_self()})
+    base = model.create_space(paramfunc=lambda x, y: {'bases': get_self()})
 
     distance_def = dedent("""\
     def distance():

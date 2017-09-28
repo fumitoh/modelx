@@ -45,7 +45,7 @@ def qx(x):
         return mortality_table[(x, 1)]
 
 policies = model.create_space(bases=policy,
-                              factory=lambda policy_id: {'bases': get_self()})
+                              paramfunc=lambda policy_id: {'bases': get_self()})
 
 for policy_id in range(1, 13):
     policy = policies[policy_id]
