@@ -11,7 +11,7 @@ version of spreadsheet, but it’s so much more!
 
 How modelx works
 ----------------
-modelx eposes its API functions and classes such as Model, Space and Cells to
+modelx exposes its API functions and classes such as Model, Space and Cells to
 its users, and the users build their models from those classes, by defining
 calculation formulas in the form of Python functions and associating those
 calculations with Cells objects.
@@ -106,15 +106,12 @@ form of a Python function) does not affect the result of formula evaluation.
 It is what space the cells belongs to that affects the result.
 
 
-Requirements
-------------
-Python 3.4+
-
-
 Free software
 -------------
 modelx is free software; you can redistribute it and/or
-modify it under the terms of GNU General Public License v3 (GPLv3).
+modify it under the terms of
+`GNU General Public License v3 (GPLv3)
+<https://github.com/fumitoh/modelx/blob/master/LICENSE.txt>`_.
 
 Contributions, productive comments, requests and feedback from the community
 are always welcome. Information on modelx development is found at Github
@@ -124,4 +121,11 @@ https://github.com/fumitoh/modelx
 History
 -------
 modelx was originally conceived and written by Fumito Hamamura
-and it was first released in August 2017.
+and it was first released in October 2017.
+
+
+Requirements
+------------
+* Python 3.4+
+* OpenPyXL
+* Pandas
