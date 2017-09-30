@@ -11,7 +11,10 @@ from modelx.core.base import (ObjectPointer,
                               Impl,
                               Interface)
 
-from modelx.core.formula import Formula, create_closure
+from modelx.core.formula import (
+    Formula,
+    create_closure,
+    NULL_FORMULA)
 from modelx.core.util import is_valid_name
 
 
@@ -161,6 +164,16 @@ class CellsImpl(Impl):
         else:
             return TypeError
 
+    def clear_formula(self):
+        self.model.clear_obj(self)
+        # TODO: Consider derived spaces.
+        self.formula = NULL_FORMULA
+
+    def set_formula(self, func):
+        formula = Formula(func)
+        self.clear_formula()
+        self.formula = formula
+
     def get_value(self, args, kwargs=None):
 
         ptr = CellPointer(self, args, kwargs)
@@ -212,21 +225,14 @@ class CellsImpl(Impl):
                 raise KeyError("Assignment in cells other than %s" %
                                ptr.argvalues)
 
-    def clear_value(self, args, kwargs):
-
+    def clear_value(self, args, kwargs=None):
         ptr = CellPointer(self, args, kwargs)
-
         if self.has_cell(ptr.argvalues):
+            self.model.clear_descendants(ptr)
 
-            # remove all descendants from Model.cellgraph
-            graph = self.model.cellgraph
-            desc = nx.descendants(graph, ptr)
-            desc.add(ptr)
-            graph.remove_nodes_from(desc)
-
-            for cell in desc:
-                del self.data[cell.argvalues]
-
+    def clear_all_values(self):
+        for args in self.data:
+            self.clear_value(args)
 
     def _store_value(self, ptr, value, overwrite=False):
 
@@ -290,6 +296,14 @@ class Cells(Interface, Container, Callable, Sized):
                 yield args
 
         return inner()
+
+    def clear_formula(self):
+        """Clear the formula."""
+        self._impl.clear_formula()
+
+    def set_formula(self, func):
+        """Set the formula."""
+        self._impl.set_formula(func)
 
     def copy(self, space=None, name=None):
         """Make a copy of itself and return it."""

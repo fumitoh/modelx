@@ -1,3 +1,4 @@
+from textwrap import dedent
 import pytest
 
 from modelx import *
@@ -86,8 +87,119 @@ def test_set_value(sample_space):
 
 def test_clear_value(sample_space):
     sample_space.fibo[5]
+    # fibo = sample_space.fibo
     sample_space.fibo.clear_value(3)
     assert set(sample_space.fibo) == {(0,), (1,), (2,)}
+
+
+def test_clear_value_source(sample_space):
+
+    space = sample_space
+
+    f1 = dedent("""\
+        def source(x):
+            if x == 1:
+                return 1
+            else:
+                return source(x - 1) + 1""")
+
+    f2 = dedent("""\
+        def dependant(x):
+            return 2 * source(x)""")
+
+    space.create_cells(func=f1)
+    space.create_cells(func=f2)
+
+    errors = []
+    space.dependant(2)
+    if not set(space.dependant) == {(2,)}:
+        errors.append("error with dependant")
+    if not set(space.source) == {(1,), (2,)}:
+        errors.append("error with source")
+
+    space.source.clear_value(1)
+    if not set(space.source) == set():
+        errors.append("clear error with source")
+    if not set(space.dependant) == set():
+        errors.append("clear error with dependant")
+
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+
+def test_clear_formula(sample_space):
+
+    space = sample_space
+    f1 = dedent("""\
+        def clear_source(x):
+            if x == 1:
+                return 1
+            else:
+                return clear_source(x - 1) + 1""")
+
+    f2 = dedent("""\
+        def clear_dependant(x):
+            return 2 * clear_source(x)""")
+
+    source = space.create_cells(func=f1)
+    dependant = space.create_cells(func=f2)
+
+    errors = []
+    dependant(2)
+    if not set(dependant) == {(2,)}:
+        errors.append("error with dependant")
+    if not set(source) == {(1,), (2,)}:
+        errors.append("error with source")
+
+    source.clear_formula()
+    if not set(source) == set():
+        errors.append("clear error with source")
+    if not set(dependant) == set():
+        errors.append("clear error with dependant")
+
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+
+
+def test_set_formula(sample_space):
+
+    space = sample_space
+    f1 = dedent("""\
+        def clear_source(x):
+            if x == 1:
+                return 1
+            else:
+                return clear_source(x - 1) + 1""")
+
+    f2 = dedent("""\
+        def clear_dependant(x):
+            return 2 * clear_source(x)""")
+
+    f3 = dedent("""\
+        def replace_source(x):
+            if x == 1:
+                return 2
+            else:
+                return clear_source(x - 1) + 1""")
+
+    source = space.create_cells(func=f1)
+    dependant = space.create_cells(func=f2)
+
+    errors = []
+    dependant(2)
+    if not set(dependant) == {(2,)}:
+        errors.append("error with dependant")
+    if not set(source) == {(1,), (2,)}:
+        errors.append("error with source")
+
+    source.set_formula(f3)
+    result = dependant(2)
+    if not set(source) == {(1,), (2,)}:
+        errors.append("clear error with source")
+    if not set(dependant) == {(2,)}:
+        errors.append("clear error with dependant")
+    if not result == 6:
+        errors.append("invalid result")
+
+    assert not errors, "errors occured:\n{}".format("\n".join(errors))
 
 
 def test_call_single_value(sample_space):

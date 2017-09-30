@@ -9,12 +9,49 @@ from modelx.core.cells import CellPointer
 from modelx.core.space import SpaceContainerImpl, SpaceContainer
 from modelx.core.util import is_valid_name
 
+
+class DependencyGraph(nx.DiGraph):
+    """Directed Graph of ObjectArguments"""
+
+    def clear_descendants(self, source, clear_source=True):
+        """Remove all descendants of(reachable from) `source`.
+
+        Args:
+            source: Node descendants
+            clear_source(bool): Remove origin too if True.
+        Returns:
+            set: The removed nodes.
+        """
+        desc = nx.descendants(self, source)
+        if clear_source:
+            desc.add(source)
+        self.remove_nodes_from(desc)
+        return desc
+
+    def clear_obj(self, obj):
+        """"Remove all nodes with `obj` and their descendants."""
+        obj_nodes = self.get_nodes_with(obj)
+        removed = set()
+        for node in obj_nodes:
+            if self.has_node(node):
+                removed.update(self.clear_descendants(node))
+        return removed
+
+    def get_nodes_with(self, obj):
+        """Return nodes with `obj`."""
+        result = set()
+        for node in nx.nodes_iter(self):
+            if node.obj_ == obj:
+                result.add(node)
+        return result
+
+
 class ModelImpl(SpaceContainerImpl):
 
     def __init__(self, *, system, name):
         SpaceContainerImpl.__init__(self, system, if_class=Model, paramfunc=None)
 
-        self.cellgraph = nx.DiGraph()   # CellGraph(self)
+        self.cellgraph = DependencyGraph()  #nx.DiGraph()
         self.currentspace = None
 
         if not name:
@@ -25,6 +62,18 @@ class ModelImpl(SpaceContainerImpl):
             raise ValueError("Invalid name '%s'." % name)
 
         Impl.__init__(self, Model)
+
+    def clear_descendants(self, source, clear_source=True):
+        """Clear values and nodes calculated from `source`."""
+        removed = self.cellgraph.clear_descendants(source, clear_source)
+        for cell in removed:
+            del cell.cells.data[cell.argvalues]
+
+    def clear_obj(self, obj):
+        """Clear values and nodes of `obj` and their dependants."""
+        removed = self.cellgraph.clear_obj(obj)
+        for cell in removed:
+            del cell.cells.data[cell.argvalues]
 
     @property
     def repr_(self):
