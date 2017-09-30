@@ -194,13 +194,8 @@ class CellsImpl(Impl):
                                          % args)
                     else:
                         value = self.data[args]
-
-                elif value is not None:
-                    self._store_value(ptr, value, False)
-
                 else:
-                    raise ValueError("No value returned for %s"
-                                     % args)
+                    self._store_value(ptr, value, False)
             finally:
                 self.system.callstack.pop()
 
