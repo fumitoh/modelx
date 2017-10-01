@@ -266,8 +266,7 @@ class SpaceContainer(Interface):
 
         Args:
             module_: a module object or name of the module object.
-            name(optional): Name of the space. Defaults to ``SpaceN``,
-                where ``N`` is a number determined automatically.
+            name(optional): Name of the space. Defaults to the module name.
             recursive: Not yet implemented.
 
         Returns:
