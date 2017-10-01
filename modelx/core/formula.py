@@ -41,6 +41,7 @@ def _dummy_defcells(space=None, name=None):
             return func
         return _dummy_decorator
 
+
 class Formula:
 
     __slots__ = ('func', 'signature', 'source')

@@ -41,8 +41,7 @@ if sys.version_info < (3, 5, 0):
 
 
 class ObjectArgs:
-
-    # from modelx.core.cells import CellsImpl
+    """Pair of an object and its arguments"""
 
     state_attrs = ['obj_', 'argvalues']
 
@@ -106,7 +105,7 @@ class ObjectArgs:
 
 
 def get_interfaces(impls):
-
+    """Get interfaces from their implementations."""
     if impls is None:
         return None
 
@@ -121,6 +120,7 @@ def get_interfaces(impls):
 
 
 def get_impls(interfaces):
+    """Get impls from their interfaces."""
     if interfaces is None:
         return None
 

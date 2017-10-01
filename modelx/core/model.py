@@ -1,10 +1,9 @@
-from types import MappingProxyType
 from textwrap import dedent
 import pickle
 
 import networkx as nx
 
-from modelx.core.base import Impl, get_interfaces
+from modelx.core.base import Impl
 from modelx.core.cells import CellArgs
 from modelx.core.space import SpaceContainerImpl, SpaceContainer
 from modelx.core.util import is_valid_name
@@ -77,7 +76,6 @@ class ModelImpl(SpaceContainerImpl):
 
     @property
     def repr_(self):
-
         format_ = dedent("""\
         name: %s
         spaces(%s): %s""")
@@ -94,16 +92,13 @@ class ModelImpl(SpaceContainerImpl):
         self.system.close_model(self)
 
     def save(self, filepath):
-
         with open(filepath, 'wb') as file:
             pickle.dump(self.interface, file, protocol=4)
 
     def get_object(self, name):
         """Retrieve an object by a dotted name relative to the model."""
-
         parts = name.split('.')
         space = self.spaces[parts.pop(0)]
-
         if parts:
             return space.get_object('.'.join(parts))
         else:
@@ -133,9 +128,7 @@ class ModelImpl(SpaceContainerImpl):
 
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
-
         SpaceContainerImpl.restore_state(self, system)
-
         mapping = {}
         for node in self.cellgraph:
             name, argvalues = node

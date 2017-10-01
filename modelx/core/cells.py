@@ -1,16 +1,15 @@
 from types import FunctionType
 from textwrap import dedent
 from collections import Sequence
-from collections.abc import (Container,
-                             Callable,
-                             Sized)
+from collections.abc import (
+    Container,
+    Callable,
+    Sized)
 
-import networkx as nx
-
-from modelx.core.base import (ObjectArgs,
-                              Impl,
-                              Interface)
-
+from modelx.core.base import (
+    ObjectArgs,
+    Impl,
+    Interface)
 from modelx.core.formula import (
     Formula,
     create_closure,
@@ -262,7 +261,6 @@ class Cells(Interface, Container, Callable, Sized):
     the containing space, or by function definitions with ``defcells``
     decorator.
     """
-
     # __slots__ = ('_impl',)
 
     def __contains__(self, args):

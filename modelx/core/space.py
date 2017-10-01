@@ -1,5 +1,3 @@
-import sys
-import importlib
 from collections import Sequence
 from textwrap import dedent
 from types import (MappingProxyType,
@@ -14,9 +12,7 @@ from modelx.core.base import (ObjectArgs,
                               LazyEvalDict,
                               LazyEvalChainMap)
 from modelx.core.formula import Formula, create_closure
-from modelx.core.cells import (Cells,
-                               CellsMaker,
-                               CellsImpl)
+from modelx.core.cells import Cells, CellsImpl
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
@@ -202,8 +198,6 @@ class SpaceContainerImpl(Impl):
 
         return space
 
-
-
     def get_space(self, args, kwargs=None):
 
         ptr = SpaceArgs(self, args, kwargs)
@@ -243,7 +237,6 @@ class SpaceContainer(Interface):
 
     A base class for implementing (sub)space containment.
     """
-
     def create_space(self, name=None, bases=None, paramfunc=None):
         """Create a (sub)space.
 
@@ -548,7 +541,6 @@ class SpaceImpl(SpaceContainerImpl):
                 
         _namespace (dict)
     """
-
     def __init__(self, parent, name, bases, paramfunc, arguments=None):
 
         SpaceContainerImpl.__init__(self, parent.system, if_class=Space,
