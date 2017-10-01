@@ -3,7 +3,7 @@ import pytest
 import pickle
 
 from modelx.core.api import *
-from modelx.core.cells import CellPointer
+from modelx.core.cells import CellArgs
 from modelx.core.base import get_interfaces
 
 

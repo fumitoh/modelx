@@ -40,7 +40,7 @@ if sys.version_info < (3, 5, 0):
     BoundArguments.apply_defaults = _apply_defaults
 
 
-class ObjectPointer:
+class ObjectArgs:
 
     # from modelx.core.cells import CellsImpl
 

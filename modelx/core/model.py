@@ -5,13 +5,13 @@ import pickle
 import networkx as nx
 
 from modelx.core.base import Impl, get_interfaces
-from modelx.core.cells import CellPointer
+from modelx.core.cells import CellArgs
 from modelx.core.space import SpaceContainerImpl, SpaceContainer
 from modelx.core.util import is_valid_name
 
 
 class DependencyGraph(nx.DiGraph):
-    """Directed Graph of ObjectArguments"""
+    """Directed Graph of ObjectArgs"""
 
     def clear_descendants(self, source, clear_source=True):
         """Remove all descendants of(reachable from) `source`.
@@ -140,7 +140,7 @@ class ModelImpl(SpaceContainerImpl):
         for node in self.cellgraph:
             name, argvalues = node
             cells = self.get_object(name)
-            mapping[node] = CellPointer(cells, argvalues)
+            mapping[node] = CellArgs(cells, argvalues)
 
         self.cellgraph = nx.relabel_nodes(self.cellgraph, mapping)
 

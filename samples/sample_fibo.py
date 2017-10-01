@@ -1,5 +1,5 @@
 from modelx.core.api import *
-from modelx.core.cells import CellPointer
+from modelx.core.cells import CellArgs
 
 m = create_model()
 s = m.create_space()
@@ -40,7 +40,7 @@ graph = model.cellgraph
 
 # print(ptr in graph)
 for i in range(11):
-    ptr = CellPointer(fibo._impl, i)
+    ptr = CellArgs(fibo._impl, i)
     print(ptr, graph.predecessors(ptr), graph.successors(ptr))
 
 print(fibo)

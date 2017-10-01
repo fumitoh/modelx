@@ -7,7 +7,7 @@ from collections.abc import (Container,
 
 import networkx as nx
 
-from modelx.core.base import (ObjectPointer,
+from modelx.core.base import (ObjectArgs,
                               Impl,
                               Interface)
 
@@ -18,9 +18,9 @@ from modelx.core.formula import (
 from modelx.core.util import is_valid_name
 
 
-class CellPointer(ObjectPointer):
+class CellArgs(ObjectArgs):
 
-    state_attrs = ['cells'] + ObjectPointer.state_attrs
+    state_attrs = ['cells'] + ObjectArgs.state_attrs
 
     def __init__(self, cells, args, kwargs=None):
 
@@ -36,7 +36,7 @@ class CellPointer(ObjectPointer):
                 if isinstance(arg, Cells):
                     kwargs[key] = arg._impl.single_value
 
-        ObjectPointer.__init__(self, cells, args, kwargs)
+        ObjectArgs.__init__(self, cells, args, kwargs)
         self.cells = self.obj_
 
     def eval_formula(self):
@@ -176,7 +176,7 @@ class CellsImpl(Impl):
 
     def get_value(self, args, kwargs=None):
 
-        ptr = CellPointer(self, args, kwargs)
+        ptr = CellArgs(self, args, kwargs)
         args = ptr.argvalues
 
         if self.has_cell(args):
@@ -207,7 +207,7 @@ class CellsImpl(Impl):
 
     def set_value(self, key, value):
 
-        ptr = CellPointer(self, key)
+        ptr = CellArgs(self, key)
 
         if self.system.callstack.is_empty():
             self._store_value(ptr, value, True)
@@ -221,7 +221,7 @@ class CellsImpl(Impl):
                                ptr.argvalues)
 
     def clear_value(self, args, kwargs=None):
-        ptr = CellPointer(self, args, kwargs)
+        ptr = CellArgs(self, args, kwargs)
         if self.has_cell(ptr.argvalues):
             self.model.clear_descendants(ptr)
 

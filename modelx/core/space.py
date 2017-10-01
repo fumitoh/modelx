@@ -6,7 +6,7 @@ from types import (MappingProxyType,
                    FunctionType,
                    ModuleType)
 
-from modelx.core.base import (ObjectPointer,
+from modelx.core.base import (ObjectArgs,
                               get_impls,
                               get_interfaces,
                               Impl,
@@ -20,12 +20,12 @@ from modelx.core.cells import (Cells,
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
-class SpacePointer(ObjectPointer):
+class SpaceArgs(ObjectArgs):
     """Combination of space and arguments to locate its subspace."""
 
     def __init__(self, space, args, kwargs=None):
 
-        ObjectPointer.__init__(self, space, args, kwargs)
+        ObjectArgs.__init__(self, space, args, kwargs)
         self.space = self.obj_
 
     def eval_formula(self):
@@ -206,7 +206,7 @@ class SpaceContainerImpl(Impl):
 
     def get_space(self, args, kwargs=None):
 
-        ptr = SpacePointer(self, args, kwargs)
+        ptr = SpaceArgs(self, args, kwargs)
 
         if ptr.argvalues in self.param_spaces:
             return self.param_spaces[ptr.argvalues]

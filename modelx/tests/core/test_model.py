@@ -1,7 +1,7 @@
 import pytest
 
 from modelx.core.api import *
-from modelx.core.cells import CellPointer
+from modelx.core.cells import CellArgs
 from modelx.core.base import get_interfaces
 
 
@@ -61,11 +61,11 @@ def test_cellgraph(simplemodel):
     space.fibo[10]
 
     for x in range(10):
-        fibo = CellPointer(space.fibo._impl, x)
-        fibo_prev1 = CellPointer(space.fibo._impl, x - 1)
-        fibo_prev2 = CellPointer(space.fibo._impl, x - 2)
-        fibo_next1 = CellPointer(space.fibo._impl, x + 1)
-        fibo_next2 = CellPointer(space.fibo._impl, x + 2)
+        fibo = CellArgs(space.fibo._impl, x)
+        fibo_prev1 = CellArgs(space.fibo._impl, x - 1)
+        fibo_prev2 = CellArgs(space.fibo._impl, x - 2)
+        fibo_next1 = CellArgs(space.fibo._impl, x + 1)
+        fibo_next2 = CellArgs(space.fibo._impl, x + 2)
 
         predec = simplemodel._impl.cellgraph.predecessors(fibo)
         succ = simplemodel._impl.cellgraph.successors(fibo)
