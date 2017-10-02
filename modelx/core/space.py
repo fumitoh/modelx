@@ -243,8 +243,8 @@ class SpaceContainer(Interface):
         Args:
             name (str, optional): Name of the space. Defaults to ``SpaceN``,
                 where ``N`` is a number determined automatically.
-            bases (optional): If specified, the new space becomes a derived
-                space of the `base` space.
+            bases (optional): A space or a sequence of spaces to be the base
+                space(s) of the created space.
             paramfunc (optional): Function to specify the parameters of
                 dynamic (sub)spaces. The signature of this function is used
                 for setting parameters for dynamic (sub)spaces.
