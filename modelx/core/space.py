@@ -612,7 +612,7 @@ class SpaceImpl(SpaceContainerImpl):
         self._spaces._repr = '<' + self.name + '.spaces>'
 
         self._builtin_names = LazyEvalDict(
-            data={
+            data={'__builtins__': __builtins__,
                   'get_self': self.get_self_interface})
 
         self._names = LazyEvalChainMap([self._builtin_names,
