@@ -611,9 +611,8 @@ class SpaceImpl(SpaceContainerImpl):
 
         self._spaces._repr = '<' + self.name + '.spaces>'
 
-        self._builtin_names = LazyEvalDict(
-            data={'__builtins__': __builtins__,
-                  'get_self': self.get_self_interface})
+        self._builtin_names = {'__builtins__': __builtins__,
+                               'get_self': self.get_self_interface}
 
         self._names = LazyEvalChainMap([self._builtin_names,
                                         self._arguments,
@@ -661,10 +660,22 @@ class SpaceImpl(SpaceContainerImpl):
         state = {key: value for key, value in self.__dict__.items()
                  if key in self.state_attrs}
 
+        state['_builtin_names'].clear()
+        if '__builtins__' in state['_namespace']:
+            state['_namespace']['__builtins__'] = '__builtins__'
+        if '__builtins__' in state['_namespace_cache']:
+            state['_namespace_cache']['__builtins__'] = '__builtins__'
+
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        self._builtin_names.update({'__builtins__': __builtins__,
+                                    'get_self': self.get_self_interface})
+        if '__builtins__' in state['_namespace']:
+            state['_namespace']['__builtins__'] = __builtins__
+        if '__builtins__' in state['_namespace_cache']:
+            state['_namespace_cache']['__builtins__'] = __builtins__
 
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""

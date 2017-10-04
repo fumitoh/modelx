@@ -251,13 +251,15 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
 
         if register_self:
             for other in maps:
-                other.append_observer(self)
+                if isinstance(other, LazyEvalChain):
+                    other.append_observer(self)
 
         self.update_data()
 
     def _update_data(self):
         for map_ in self.maps:
-            map_.update_data()
+            if isinstance(map_, LazyEvalChain):
+                map_.update_data()
 
     def __repr__(self):
 
