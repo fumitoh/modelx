@@ -347,7 +347,7 @@ class SpaceContainer(Interface):
         return MappingProxyType(get_interfaces(self._impl.spaces))
 
 
-class InheritedMembers(LazyEvalDict):
+class DerivedMembers(LazyEvalDict):
 
     def __init__(self, space, data=None, observers=None, attr=''):
 
@@ -366,8 +366,8 @@ class InheritedMembers(LazyEvalDict):
             self._update_data = self._update_data_cells
         elif attr == 'spaces':
             self._update_data = self._update_data_spaces
-        elif attr == 'names':
-            self._update_data = self._update_data_names
+        elif attr == 'refs':
+            self._update_data = self._update_data_refs
         else:
             raise ValueError
 
@@ -386,9 +386,6 @@ class InheritedMembers(LazyEvalDict):
             for name in self.base_data:
                 if name not in keys:
                     del self.base_data[name]
-
-    def __repr__(self):
-        return '<' + self.space.name + ':' + 'inherited_' + self.attr + '>'
 
     def _update_data_cells(self):
 
@@ -424,8 +421,8 @@ class InheritedMembers(LazyEvalDict):
 
             self.data[space.name] = space
 
-    def _update_data_names(self):
-        self._update_base('self_names')
+    def _update_data_refs(self):
+        self._update_base('self_refs')
         self.data.clear()
         self.data.update(self.base_data)
 
@@ -436,7 +433,6 @@ class NameSpaceDict(LazyEvalDict):
 
         if data is None:
             data = {}
-
         if observers is None:
             observers = []
 
@@ -448,10 +444,8 @@ class NameSpaceDict(LazyEvalDict):
         self.data.clear()
         self.data.update(get_interfaces(self.space.cells))
         self.data.update(get_interfaces(self.space.spaces))
-        self.data.update(self.space.names)
+        self.data.update(self.space.refs)
 
-    def __repr__(self):
-        return '<' + self.space.name + ':namespace>'
 
 
 class SelfMembers(LazyEvalDict):
@@ -468,9 +462,6 @@ class SelfMembers(LazyEvalDict):
         self.space = space
         self.attr = attr
 
-    def __repr__(self):
-        return "<" + self.space.name + "." + self.attr + ">"
-
 
 class SpaceImpl(SpaceContainerImpl):
     """The implementation of Space class.
@@ -484,36 +475,36 @@ class SpaceImpl(SpaceContainerImpl):
     namespace
 
         cells
-            inherited_cells
+            derived_cells
             self_cells
 
         spaces
             dynamic_spaces
             static_spaces
-                inherited_spaces
+                derived_spaces
                 self_spaces
 
-        names
-            inherited_names
-            self_names
-            builtin_names
+        refs
+            derived_refs
+            self_refs
+            builtin_refs
 
         arguments
         cells_parameters (Not yet implemented)
 
-    inherited_members (ChainMap)
-        inherited_cells
-        inherited_spaces
-        inherited_names
+    derived_members (ChainMap)
+        derived_cells
+        derived_spaces
+        derived_refs
 
     self_members
         self_cells
         self_spaces
-        self_names
+        self_refs
 
         # Operations
-        remove_inherited
-        revert_inherited
+        remove_derived
+        revert_derived
 
     Args:
         parent: SpaceImpl or ModelImpl to contain this.
@@ -530,9 +521,9 @@ class SpaceImpl(SpaceContainerImpl):
         cells (dict):  Dict to contained cells
         _self_cells (dict): cells defined in this space.
         base_cells (dict): cells in base spaces to inherit in this space.
-        _inherited_cells (dict): cells inherited from base cells.
-        _self_names
-        _inherited_names
+        _derived_cells (dict): cells derived from base cells.
+        _self_refs
+        _derived_refs
         
         cellsnamer (AutoNamer): AutoNamer to auto-name unnamed child cells.
         
@@ -572,59 +563,53 @@ class SpaceImpl(SpaceContainerImpl):
 
     def _init_members(self):
 
-        self._inherited_cells = InheritedMembers(self, attr='cells')
-        self._inherited_spaces = InheritedMembers(self, attr='spaces')
-        self._inherited_names = InheritedMembers(self, attr='names')
+        self._derived_cells = DerivedMembers(self, attr='cells')
+        self._derived_spaces = DerivedMembers(self, attr='spaces')
+        self._derived_refs = DerivedMembers(self, attr='refs')
 
-        inherited = [self._inherited_cells,
-                     self._inherited_spaces,
-                     self._inherited_names]
+        derived = [self._derived_cells,
+                     self._derived_spaces,
+                     self._derived_refs]
 
         base_self_members = [base._self_members for base in self.mro[1:]]
         self._observed_bases = LazyEvalChainMap(base_self_members,
-                                                observers=inherited)
+                                                observers=derived)
 
         self._self_cells = SelfMembers(self, 'cells')
         self._self_spaces = SelfMembers(self, 'spaces')
-        self._self_names = SelfMembers(self, 'names')
+        self._self_refs = SelfMembers(self, 'refs')
         self._dynamic_spaces = LazyEvalDict()
 
         self_members = [self._self_cells,
                         self._self_spaces,
-                        self._self_names,
+                        self._self_refs,
                         self._dynamic_spaces]
 
-        self._self_members = LazyEvalChainMap(self_members, inherited)
-        self._self_members._repr = '<' + self.name + '.self_members>'
+        self._self_members = LazyEvalChainMap(self_members, derived)
 
         self._cells = LazyEvalChainMap([self._self_cells,
-                                        self._inherited_cells])
-        self._cells._repr = '<' + self.name + '.cells>'
+                                        self._derived_cells])
 
         self._static_spaces = LazyEvalChainMap([self._self_spaces,
-                                                self._inherited_spaces])
+                                                self._derived_spaces])
 
-        self._static_spaces._repr = '<' + self.name + '.static_spaces>'
 
         self._spaces = LazyEvalChainMap([self._static_spaces,
                                          self._dynamic_spaces])
 
-        self._spaces._repr = '<' + self.name + '.spaces>'
 
-        self._builtin_names = {'__builtins__': __builtins__,
+        self._builtin_refs = {'__builtins__': __builtins__,
                                'get_self': self.get_self_interface}
 
-        self._names = LazyEvalChainMap([self._builtin_names,
+        self._refs = LazyEvalChainMap([self._builtin_refs,
                                         self._arguments,
-                                        self._self_names,
-                                        self._inherited_names])
+                                        self._self_refs,
+                                        self._derived_refs])
 
-        self._names._repr = '<' + self.name + '.names>'
         self._namespace_impl = LazyEvalChainMap([self._cells,
                                                  self._spaces,
-                                                 self._names])
+                                                 self._refs])
 
-        self._namespace_impl._repr = '<' + self.name + '.namespace_impl>'
         self._namespace = NameSpaceDict(self)
         self._namespace_impl.append_observer(self._namespace)
         self._namespace_cache = dict(self._namespace)
@@ -634,24 +619,24 @@ class SpaceImpl(SpaceContainerImpl):
 
     state_attrs = [
         '_mro',
-        '_names',
+        '_refs',
         '_namespace_cache',
         '_namespace_impl',
         '_arguments',
         '_namespace',
         '_dynamic_spaces',
-        '_builtin_names',
-        '_inherited_spaces',
-        '_inherited_names',
+        '_builtin_refs',
+        '_derived_spaces',
+        '_derived_refs',
         '_direct_bases',
         '_static_spaces',
         '_self_spaces',
         '_self_members',
         '_cells',
         '_self_cells',
-        '_inherited_cells',
+        '_derived_cells',
         '_observed_bases',
-        '_self_names',
+        '_self_refs',
         'cellsnamer',
         'name',
         'parent'] + SpaceContainerImpl.state_attrs
@@ -660,7 +645,7 @@ class SpaceImpl(SpaceContainerImpl):
         state = {key: value for key, value in self.__dict__.items()
                  if key in self.state_attrs}
 
-        state['_builtin_names'].clear()
+        state['_builtin_refs'].clear()
         if '__builtins__' in state['_namespace']:
             state['_namespace']['__builtins__'] = '__builtins__'
         if '__builtins__' in state['_namespace_cache']:
@@ -670,7 +655,7 @@ class SpaceImpl(SpaceContainerImpl):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self._builtin_names.update({'__builtins__': __builtins__,
+        self._builtin_refs.update({'__builtins__': __builtins__,
                                     'get_self': self.get_self_interface})
         if '__builtins__' in state['_namespace']:
             state['_namespace']['__builtins__'] = __builtins__
@@ -712,34 +697,34 @@ class SpaceImpl(SpaceContainerImpl):
         namespace_impl(%s) := %r
 
             cells := %r
-                inherited_cells := %r
+                derived_cells := %r
                 self_cells := %r.
 
             spaces := %r
                 dynamic_spaces := %r
                 static_spaces := %r
-                    inherited_spaces := %r
+                    derived_spaces := %r
                     self_spaces := %r
     
-            names := %r
-                inherited_names := %r
-                self_names := %r
-                builtin_names""")
+            refs := %r
+                derived_refs := %r
+                self_refs := %r
+                builtin_refs""")
 
         print(format_ % (
             self._namespace.needs_update, self._namespace.data,
             self._namespace_impl.needs_update, dict(self._namespace_impl),
             dict(self._cells),
-            dict(self._inherited_cells),
+            dict(self._derived_cells),
             dict(self._self_cells),
             dict(self._spaces),
             dict(self._dynamic_spaces),
             dict(self._static_spaces),
-            self._inherited_spaces.data,
+            self._derived_spaces.data,
             self._self_spaces.data,
-            dict(self._names),
-            self._inherited_names.data,
-            self._self_names.data))
+            dict(self._refs),
+            self._derived_refs.data,
+            self._self_refs.data))
 
     @property
     def repr_(self):
@@ -748,14 +733,14 @@ class SpaceImpl(SpaceContainerImpl):
         name: %s
         cells: %s
         spaces: %s
-        names: %s
+        refs: %s
         """)
 
         return format_ % (
             self.name,
             list(self.cells.keys()),
             list(self.spaces.keys()),
-            list(self.names.keys())
+            list(self.refs.keys())
         )
 
     # ----------------------------------------------------------------------
@@ -770,8 +755,8 @@ class SpaceImpl(SpaceContainerImpl):
         return self._self_spaces.update_data()
 
     @property
-    def self_names(self):
-        return self._self_names.update_data()
+    def self_refs(self):
+        return self._self_refs.update_data()
 
     @property
     def self_members(self):
@@ -786,8 +771,8 @@ class SpaceImpl(SpaceContainerImpl):
         return self._spaces.update_data()
 
     @property
-    def names(self):
-        return self._names.update_data()
+    def refs(self):
+        return self._refs.update_data()
 
     @property
     def namespace(self):
@@ -868,9 +853,9 @@ class SpaceImpl(SpaceContainerImpl):
             raise ValueError
 
         if name in self.namespace:
-            if name in self.names:
-                self.names[name] = value
-                self.names.set_update(skip_self=False)
+            if name in self.refs:
+                self.refs[name] = value
+                self.refs.set_update(skip_self=False)
 
             elif name in self.cells:
                 if self.cells[name].has_single_value():
@@ -880,8 +865,8 @@ class SpaceImpl(SpaceContainerImpl):
                 raise ValueError
 
         else:
-            self._self_names[name] = value
-            self._self_names.set_update(skip_self=True)
+            self._self_refs[name] = value
+            self._self_refs.set_update(skip_self=True)
 
     def remove_cells(self, name):
 
@@ -892,24 +877,24 @@ class SpaceImpl(SpaceContainerImpl):
         for base in self._direct_bases:
             if name in base.cells:
                 base_cells = base.cells[name]
-                self._inherited_cells[name] = \
+                self._derived_cells[name] = \
                     self.create_cells(name=name, func=base_cells.formula)
             break
 
-    def remove_inherited(self, name):
+    def remove_derived(self, name):
 
         if name in self.namespace:
 
-            if name in self._inherited_cells:
-                self._inherited_cells[name].parent = None
-                del self._inherited_cells[name]
+            if name in self._derived_cells:
+                self._derived_cells[name].parent = None
+                del self._derived_cells[name]
 
-            elif name in self._inherited_spaces:
-                self._inherited_spaces[name].parent = None
-                del self._inherited_spaces[name]
+            elif name in self._derived_spaces:
+                self._derived_spaces[name].parent = None
+                del self._derived_spaces[name]
 
-            elif name in self._inherited_names:
-                del self._inherited_names[name]
+            elif name in self._derived_refs:
+                del self._derived_refs[name]
 
             else:
                 raise RuntimeError("Name already assigned.")
@@ -919,7 +904,7 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             return False
 
-    def revert_inherited(self, name):
+    def revert_derived(self, name):
 
         if name in self.base_namespace:
             pass
