@@ -235,6 +235,11 @@ class LazyEvalDict(LazyEvalChain, UserDict):
         UserDict.__init__(self, data)
         LazyEvalChain.__init__(self, observers)
 
+    def get_updated_data(self):
+        """Get updated `data` instead of self."""
+        self.update_data()
+        return self.data
+
 
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
 

@@ -440,7 +440,7 @@ class NameSpaceDict(LazyEvalDict):
         self.space = space
 
     def _update_data(self):
-        self.space._namespace_impl.update_data()
+        self.space.namespace_impl.update_data()
         self.data.clear()
         self.data.update(get_interfaces(self.space.cells))
         self.data.update(get_interfaces(self.space.spaces))
@@ -612,7 +612,6 @@ class SpaceImpl(SpaceContainerImpl):
 
         self._namespace = NameSpaceDict(self)
         self._namespace_impl.append_observer(self._namespace)
-        self._namespace_cache = dict(self._namespace)
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
@@ -620,7 +619,6 @@ class SpaceImpl(SpaceContainerImpl):
     state_attrs = [
         '_mro',
         '_refs',
-        '_namespace_cache',
         '_namespace_impl',
         '_arguments',
         '_namespace',
@@ -648,8 +646,6 @@ class SpaceImpl(SpaceContainerImpl):
         state['_builtin_refs'].clear()
         if '__builtins__' in state['_namespace']:
             state['_namespace']['__builtins__'] = '__builtins__'
-        if '__builtins__' in state['_namespace_cache']:
-            state['_namespace_cache']['__builtins__'] = '__builtins__'
 
         return state
 
@@ -659,8 +655,7 @@ class SpaceImpl(SpaceContainerImpl):
                                     'get_self': self.get_self_interface})
         if '__builtins__' in state['_namespace']:
             state['_namespace']['__builtins__'] = __builtins__
-        if '__builtins__' in state['_namespace_cache']:
-            state['_namespace_cache']['__builtins__'] = __builtins__
+
 
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
@@ -775,11 +770,16 @@ class SpaceImpl(SpaceContainerImpl):
         return self._refs.update_data()
 
     @property
-    def namespace(self):
-        if self._namespace.needs_update:
-            self._namespace_cache = dict(self._namespace.update_data())
+    def namespace_impl(self):
+        return self._namespace_impl.update_data()
 
-        return self._namespace_cache
+    @property
+    def namespace(self):
+        return self._namespace.get_updated_data()
+        # if self._namespace.needs_update:
+        #     self._namespace_cache = dict(self._namespace.update_data())
+        #
+        # return self._namespace_cache
 
     # ----------------------------------------------------------------------
     # Inheritance
