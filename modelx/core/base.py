@@ -215,7 +215,6 @@ class LazyEvalChain:
         self.observers.remove(observer)
 
     def __getstate__(self):
-
         state = self.__dict__.copy()
         return state
 
@@ -236,14 +235,14 @@ class LazyEvalDict(LazyEvalChain, UserDict):
         LazyEvalChain.__init__(self, observers)
 
     def get_updated_data(self):
-        """Get updated `data` instead of self."""
+        """Get updated ``data`` instead of self. """
         self.update_data()
         return self.data
 
 
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
 
-    def __init__(self, maps=None, observers=None, register_self=True):
+    def __init__(self, maps=None, observers=None, observe_maps=True):
 
         if maps is None:
             maps = []
@@ -254,7 +253,7 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
         LazyEvalChain.__init__(self, observers)
         self._repr = ""
 
-        if register_self:
+        if observe_maps:
             for other in maps:
                 if isinstance(other, LazyEvalChain):
                     other.append_observer(self)
