@@ -1,7 +1,9 @@
 import pickle
 from collections import deque
+from textwrap import dedent
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer
+from modelx.core.errors import DeepReferenceError
 
 
 class Executive:
@@ -10,9 +12,10 @@ class Executive:
 
 class CallStack(deque):
 
-    def __init__(self, system):
+    def __init__(self, system, max_depth):
         self._succ = None
         self._system = system
+        self.max_depth = max_depth
         deque.__init__(self)
 
     def last(self):
@@ -21,11 +24,27 @@ class CallStack(deque):
     def is_empty(self):
         return len(self) == 0
 
+    def append(self, item):
+        if len(self) > self.max_depth:
+            message = dedent("""
+                Formula chain exceeded the {0} limit.
+                Call stack traceback:
+                """.format(self.max_depth))
+            message += self.traceback()
+            raise DeepReferenceError(message)
+        deque.append(self, item)
+
+    def traceback(self):
+        result = ''
+        for i, value in reversed(list(enumerate(self))):
+            result += "{0}:{1}\n".format(i, value)
+        return result
+
 
 class System:
 
-    def __init__(self):
-        self.callstack = CallStack(self)
+    def __init__(self, max_depth=1000):
+        self.callstack = CallStack(self, max_depth)
         self._modelnamer = AutoNamer("Model")
         self._currentmodel = None
         self._models = {}
