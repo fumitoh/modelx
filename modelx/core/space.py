@@ -123,14 +123,16 @@ class SpaceContainerImpl(Impl):
 
         return space
 
-    def create_space_from_module(self, module_, name=None, recursive=False):
+    def create_space_from_module(self, module_, recursive=False, **params):
 
         module_ = get_module(module_)
 
-        if name is None:
-            name = module_.__name__.split('.')[-1]  # xxx.yyy.zzz -> zzz
+        if 'name' not in params or params['name'] is None:
+            name = params['name'] = module_.__name__.split('.')[-1] # xxx.yyy.zzz -> zzz
+        else:
+            name = params['name']
 
-        space = self.create_space(name=name)
+        space = self.create_space(**params)
         space.create_cells_from_module(module_)
 
         if recursive and hasattr(module_, '_spaces'):
@@ -256,21 +258,22 @@ class SpaceContainer(Interface):
 
         return space.interface
 
-    def create_space_from_module(self, module_, name=None, recursive=False):
+    def create_space_from_module(self, module_, recursive=False, **params):
         """Create a (sub)space from an module.
 
         Args:
             module_: a module object or name of the module object.
-            name(optional): Name of the space. Defaults to the module name.
             recursive: Not yet implemented.
+            **params: arguments to pass to ``create_space``
 
         Returns:
             The new (sub)space created from the module.
         """
 
         space = self._impl.model.currentspace \
-            = self._impl.create_space_from_module(module_, name=name,
-                                                  recursive=recursive)
+            = self._impl.create_space_from_module(module_,
+                                                  recursive=recursive,
+                                                  **params)
 
         return get_interfaces(space)
 
