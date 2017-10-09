@@ -49,6 +49,7 @@ def test_decells_lambda_source():
 def test_deep_reference_error():
 
     from modelx.core import system
+    last_max_depth = system.callstack.max_depth
     system.callstack.max_depth = 3
 
     errfunc = dedent("""\
@@ -69,4 +70,5 @@ def test_deep_reference_error():
     3: ErrModel.ErrSpace.erronerous(x=4, y=0)
     """)
 
+    system.callstack.max_depth = last_max_depth
     assert errinfo.value.args[0] == errmsg

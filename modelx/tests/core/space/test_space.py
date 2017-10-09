@@ -3,7 +3,7 @@ from textwrap import dedent
 import pytest
 
 from modelx.core.api import *
-
+from ..data import testmodule
 
 @pytest.fixture
 def samplespace():
@@ -33,21 +33,20 @@ def test_get_cells_by_getattr(samplespace):
 
 
 def test_create_cells_from_module(samplespace):
-    from .data import sample
 
-    cells = samplespace.create_cells_from_module(sample)
-    assert set(sample.funcs) == set(cells.keys())
+
+    cells = samplespace.create_cells_from_module(testmodule)
+    assert set(testmodule.funcs) == set(cells.keys())
 
 
 def test_create_cells_from_modulename(samplespace):
-    from .data import sample
 
     names = __name__.split('.')
-    names = names[:-1] + ['data', 'sample']
+    names = names[:-2] + ['data', 'testmodule']
     module_name = '.'.join(names)
 
     cells = samplespace.create_cells_from_module(module_name)
-    assert set(sample.funcs) == set(cells.keys())
+    assert set(testmodule.funcs) == set(cells.keys())
 
 
 def test_mro_root(samplespace):

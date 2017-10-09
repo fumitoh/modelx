@@ -1,7 +1,8 @@
 import pytest
 from textwrap import dedent
 from modelx.core.api import *
-
+from ..data import testmodule
+from ..data import testpkg
 
 @pytest.fixture
 def samplemodel():
@@ -25,7 +26,6 @@ def samplemodel():
 
     base_space.create_cells(func=foo_def)
     model.create_space(name='derived_space', bases=base_space)
-
     base_space2.create_cells(func=bar_def)
     model.create_space(name='derived_space2', bases=[base_space, base_space2])
 
@@ -47,30 +47,22 @@ def test_multiple_inheritance(samplemodel):
 def test_fullname(samplemodel):
 
     space = samplemodel.spaces['derived_space']
-
-    # print('name is\n', space._impl.fullname)
-
     assert space._impl.get_fullname() == "samplemodel.derived_space"
 
 
 def test_create_space_from_module(samplemodel):
-    from .data import sample
 
-    space = samplemodel.create_space_from_module(sample, name='sample_module')
-
-    assert set(sample.funcs) == set(space.cells.keys())
+    space = samplemodel.create_space_from_module(testmodule, name='sample_module')
+    assert set(testmodule.funcs) == set(space.cells.keys())
 
 
 def test_create_space_from_module_by_name(samplemodel):
-    from .data import sample
 
-    space = samplemodel.create_space_from_module(sample.__name__)
-
-    assert set(sample.funcs) == set(space.cells.keys())
+    space = samplemodel.create_space_from_module(testmodule.__name__)
+    assert set(testmodule.funcs) == set(space.cells.keys())
 
 
 def test_create_sapce_recursive(samplemodel):
-    from .data import testpkg
 
     space = samplemodel.create_space_from_module(testpkg.__name__,
                                                  recursive=True)

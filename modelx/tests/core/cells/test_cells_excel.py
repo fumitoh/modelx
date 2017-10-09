@@ -5,9 +5,8 @@ import os
 
 from modelx import *
 
-
 test_path = os.path.dirname(sys.modules[__name__].__file__) \
-    + '/data/testdata.xlsx'
+    + '/../data/testdata.xlsx'
 
 
 @pytest.fixture
@@ -149,6 +148,7 @@ def test_create_cells_from_excel_const(testmodel, range_, transpose):
 
     assert check
 
+
 @pytest.mark.parametrize("range_, transpose", [
     ('AG8:AJ11', False),
     ('C71:F74', True)
@@ -210,7 +210,6 @@ def test_create_space_from_excel(testmodel, range_, transpose):
                     check = check and \
                         subspace.cells[cells](sex, year) \
                         == year + offset1 + offset2 + offset3
-
     assert check
 
 
