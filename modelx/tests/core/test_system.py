@@ -1,4 +1,7 @@
+from textwrap import dedent
 from modelx.core.api import *
+from modelx.core.errors import DeepReferenceError
+import pytest
 
 
 def test_defcells_withname():
@@ -43,4 +46,27 @@ def test_decells_lambda_source():
     assert fibo2(10) == 55
 
 
+def test_deep_reference_error():
 
+    from modelx.core import system
+    system.callstack.max_depth = 3
+
+    errfunc = dedent("""\
+    def erronerous(x, y):
+        return erronerous(x + 1, y - 1)""")
+
+    space = create_model(name='ErrModel').create_space(name='ErrSpace')
+    cells = space.create_cells(func=errfunc)
+    with pytest.raises(DeepReferenceError) as errinfo:
+        cells(1, 3)
+
+    errmsg = dedent("""
+    Formula chain exceeded the 3 limit.
+    Call stack traceback:
+    0: ErrModel.ErrSpace.erronerous(x=1, y=3)
+    1: ErrModel.ErrSpace.erronerous(x=2, y=2)
+    2: ErrModel.ErrSpace.erronerous(x=3, y=1)
+    3: ErrModel.ErrSpace.erronerous(x=4, y=0)
+    """)
+
+    assert errinfo.value.args[0] == errmsg
