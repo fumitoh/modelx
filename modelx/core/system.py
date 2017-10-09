@@ -36,8 +36,8 @@ class CallStack(deque):
 
     def traceback(self):
         result = ''
-        for i, value in reversed(list(enumerate(self))):
-            result += "{0}:{1}\n".format(i, value)
+        for i, value in enumerate(self):
+            result += "{0}: {1}\n".format(i, value)
         return result
 
 

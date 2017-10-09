@@ -94,6 +94,7 @@ class ObjectArgs:
         return self.id_ == other.id_
 
     def __repr__(self):
+        # TODO: Need to generalize. Currently CellsArg specific.
         arg_repr = ""
         for param, arg in self.arguments.items():
             arg_repr += param + "=" + repr(arg) + ", "
@@ -101,8 +102,7 @@ class ObjectArgs:
         if len(arg_repr) > 1:
             arg_repr = arg_repr[:-2]
 
-        return "<" + self.obj_.name + ", " + arg_repr + ">"
-
+        return self.obj_.get_fullname() + "(" + arg_repr + ")"
 
 def get_interfaces(impls):
     """Get interfaces from their implementations."""
