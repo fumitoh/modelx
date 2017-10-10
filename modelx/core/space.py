@@ -400,7 +400,7 @@ class DerivedMembers(LazyEvalDict):
             self.base_data.update(getattr(base, attr))
             keys = self.base_data.keys() - base_next.self_members.keys()
 
-            for name in self.base_data:
+            for name in list(self.base_data):
                 if name not in keys:
                     del self.base_data[name]
 
