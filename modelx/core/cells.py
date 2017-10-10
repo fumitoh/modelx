@@ -15,6 +15,7 @@ from modelx.core.formula import (
     create_closure,
     NULL_FORMULA)
 from modelx.core.util import is_valid_name
+from modelx.core.errors import NoneReturnedError
 
 
 class CellArgs(ObjectArgs):
@@ -85,6 +86,7 @@ class CellsImpl(Impl):
         self.model = space.model
         self.space = space
         self.formula = Formula(func)
+        self.can_return_none = True
 
         if is_valid_name(name):
             self.name = name
@@ -105,7 +107,8 @@ class CellsImpl(Impl):
                    'space',
                    'formula',
                    'name',
-                   'data'] + Impl.state_attrs
+                   'data',
+                   'can_return_none'] + Impl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -191,10 +194,21 @@ class CellsImpl(Impl):
                     if value is not None:
                         raise ValueError("Duplicate assignment for %s"
                                          % args)
+                    elif self.data[args] is None and not self.can_return_none:
+                        raise NoneReturnedError("None returned for %s" % args)
+
                     else:
                         value = self.data[args]
-                else:
+
+                elif value is not None:
                     self._store_value(ptr, value, False)
+
+                elif self.can_return_none:
+                    self._store_value(ptr, value, False)
+
+                else:
+                    raise NoneReturnedError("None returned for %s" % args)
+                    # TODO: Improve error message.
             finally:
                 self.system.callstack.pop()
 
@@ -402,3 +416,14 @@ class Cells(Interface, Container, Callable, Sized):
     def frame(self):
         """Alias of ``to_frame()``."""
         return self._impl.to_frame()
+
+    # ----------------------------------------------------------------------
+    # Attributes
+
+    @property   # TODO: Test can_return_none
+    def can_return_none(self):
+        return self._impl.can_return_none
+
+    @can_return_none.setter
+    def can_return_none(self, value):
+        self._impl.can_return_none = bool(value)
