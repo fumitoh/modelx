@@ -41,6 +41,14 @@ def sample_space():
     def return_last(x):
         return return_last(x - 1)
 
+    def func1(x):
+        return 5 * x
+
+    def func2(y):
+        return 6 * y
+
+    func1, func2 = defcells(func1, func2)
+
     # @defcells
     # def double_double(x):
     #     return 2 * double[x]
@@ -49,6 +57,10 @@ def sample_space():
 
 # def test_double_double(sample_space):
 #     assert sample_space.double_double[2] == 8
+
+def test_defcells_funcs(sample_space):
+    assert sample_space.func1[2] == 10 \
+        and sample_space.func2[2] == 12
 
 def test_init_from_str(sample_space):
     assert sample_space.func[2] == 4

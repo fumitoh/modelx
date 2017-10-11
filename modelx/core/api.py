@@ -15,6 +15,7 @@ from types import FunctionType as _FunctionType
 
 from modelx.core import system as _system
 from modelx.core.cells import CellsMaker as _CellsMaker
+from modelx.core.space import Space as _Space
 from modelx.core.base import get_interfaces as _get_interfaces
 
 
@@ -32,7 +33,7 @@ def create_model(name=None):
     return _system.create_model(name).interface
 
 
-def defcells(space=None, name=None):
+def defcells(space=None, name=None, *funcs):
     """Decorator to define a new cells.
 
     Args:
@@ -42,17 +43,27 @@ def defcells(space=None, name=None):
             automatically ``ModelN``, where ``N`` is an available number.
 
     """
-    if isinstance(space, _FunctionType) and name is None:
+    if isinstance(space, _FunctionType) \
+            and (name is None or isinstance(name, str)):
         # called as a function decorator
         func = space
         return _system.currentspace.create_cells(func=func).interface
 
-    else:
+    elif (isinstance(space, _Space) or space is None) \
+            and (isinstance(name, str) or name is None):
         # return decorator itself
-        if not space:
+        if space is None:
             space = _system.currentspace.interface
 
         return _CellsMaker(space=space._impl, name=name)
+
+    elif all(isinstance(func, _FunctionType) for func \
+             in (space, name) + funcs):
+
+        return [defcells(func) for func in (space, name) + funcs]
+
+    else:
+        raise TypeError('invalid defcells arguments')
 
 
 def get_models():
