@@ -195,8 +195,8 @@ class CellsImpl(Impl):
                         raise ValueError("Duplicate assignment for %s"
                                          % args)
                     elif self.data[args] is None and not self.can_return_none:
-                        raise NoneReturnedError("None returned for %s" % args)
-
+                        tracemsg = self.system.callstack.tracemessage()
+                        raise NoneReturnedError(ptr, tracemsg)
                     else:
                         value = self.data[args]
 
@@ -207,8 +207,8 @@ class CellsImpl(Impl):
                     self._store_value(ptr, value, False)
 
                 else:
-                    raise NoneReturnedError("None returned for %s" % args)
-                    # TODO: Improve error message.
+                    tracemsg = self.system.callstack.tracemessage()
+                    raise NoneReturnedError(ptr, tracemsg)
             finally:
                 self.system.callstack.pop()
 

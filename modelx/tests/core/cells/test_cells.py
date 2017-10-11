@@ -2,7 +2,7 @@ from textwrap import dedent
 import pytest
 
 from modelx import *
-
+from modelx.core.errors import NoneReturnedError
 
 @pytest.fixture
 def sample_space():
@@ -229,6 +229,26 @@ def test_fullname_omit_model(sample_space):
            == "samplespace.fibo"
 
 
+# -----------------------------------------------------------------
+# Test errors
 
 
+def test_none_returned_error():
 
+    errfunc = dedent("""\
+        def return_none(x, y):
+            return None""")
+
+    space = create_model(name='ErrModel').create_space(name='ErrSpace')
+    cells = space.create_cells(func=errfunc)
+    cells.can_return_none = False
+    with pytest.raises(NoneReturnedError) as errinfo:
+        cells(1, 3)
+
+    errmsg = dedent("""
+        None returned from ErrModel.ErrSpace.return_none(x=1, y=3).
+        Call stack traceback:
+        0: ErrModel.ErrSpace.return_none(x=1, y=3)
+        """)
+
+    assert errinfo.value.args[0] == errmsg

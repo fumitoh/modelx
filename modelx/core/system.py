@@ -1,6 +1,5 @@
 import pickle
 from collections import deque
-from textwrap import dedent
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer
 from modelx.core.errors import DeepReferenceError
@@ -26,15 +25,10 @@ class CallStack(deque):
 
     def append(self, item):
         if len(self) > self.max_depth:
-            message = dedent("""
-                Formula chain exceeded the {0} limit.
-                Call stack traceback:
-                """.format(self.max_depth))
-            message += self.traceback()
-            raise DeepReferenceError(message)
+            raise DeepReferenceError(self.max_depth, self.tracemessage())
         deque.append(self, item)
 
-    def traceback(self):
+    def tracemessage(self):
         result = ''
         for i, value in enumerate(self):
             result += "{0}: {1}\n".format(i, value)
