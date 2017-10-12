@@ -250,6 +250,7 @@ class CellsImpl(Impl):
             self.data[key] = value
 
         elif overwrite:
+            self.clear_value(key)
             self.data[key] = value
 
         else:
