@@ -23,12 +23,4 @@ def test_cells_mutual():
     f1 = space.create_cells(func=func1)
     f2 = space.create_cells(func=func2)
 
-    # @defcells
-    # def single_value(x):
-    #     return 5 * x
-    #
-    # @defcells
-    # def mult_single_value(x):
-    #     return 2 * single_value(x)
-
     assert f2(5) == 50

@@ -99,7 +99,7 @@ def test_set_value(sample_space):
 
 def test_clear_value(sample_space):
     sample_space.fibo[5]
-    # fibo = sample_space.fibo
+
     sample_space.fibo.clear_value(3)
     assert set(sample_space.fibo) == {(0,), (1,), (2,)}
 
