@@ -1,15 +1,15 @@
 """Sample script showing how dynamic reference feature works."""
 from modelx import *
 
-model = create_model()
+model = new_model()
 
 def paramfunc(n):
     names = {'space_a': SpaceA[n]}
     return {'bases': get_self(),
             'names': names}
 
-space_a = model.create_space(name='SpaceA', paramfunc=lambda n: None)
-space_b = model.create_space(name='SpaceB', paramfunc=paramfunc)
+space_a = model.new_space(name='SpaceA', paramfunc=lambda n: None)
+space_b = model.new_space(name='SpaceB', paramfunc=paramfunc)
 space_b.SpaceA = space_a
 
 space_a[1].NameA = 10

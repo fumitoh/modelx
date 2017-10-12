@@ -7,11 +7,11 @@ from modelx.core.errors import NoneReturnedError
 @pytest.fixture
 def sample_space():
 
-    space = create_model(name='samplemodel').create_space(name='samplespace')
+    space = new_model(name='samplemodel').new_space(name='samplespace')
 
     funcdef = """def func(x): return 2 * x"""
 
-    space.create_cells(func=funcdef)
+    space.new_cells(func=funcdef)
 
     @defcells
     def fibo(x):
@@ -119,8 +119,8 @@ def test_clear_value_source(sample_space):
         def dependant(x):
             return 2 * source(x)""")
 
-    space.create_cells(func=f1)
-    space.create_cells(func=f2)
+    space.new_cells(func=f1)
+    space.new_cells(func=f2)
 
     errors = []
     space.dependant(2)
@@ -152,8 +152,8 @@ def test_clear_formula(sample_space):
         def clear_dependant(x):
             return 2 * clear_source(x)""")
 
-    source = space.create_cells(func=f1)
-    dependant = space.create_cells(func=f2)
+    source = space.new_cells(func=f1)
+    dependant = space.new_cells(func=f2)
 
     errors = []
     dependant(2)
@@ -192,8 +192,8 @@ def test_set_formula(sample_space):
             else:
                 return clear_source(x - 1) + 1""")
 
-    source = space.create_cells(func=f1)
-    dependant = space.create_cells(func=f2)
+    source = space.new_cells(func=f1)
+    dependant = space.new_cells(func=f2)
 
     errors = []
     dependant(2)
@@ -251,8 +251,8 @@ def test_none_returned_error():
         def return_none(x, y):
             return None""")
 
-    space = create_model(name='ErrModel').create_space(name='ErrSpace')
-    cells = space.create_cells(func=errfunc)
+    space = new_model(name='ErrModel').new_space(name='ErrSpace')
+    cells = space.new_cells(func=errfunc)
     cells.can_return_none = False
     with pytest.raises(NoneReturnedError) as errinfo:
         cells(1, 3)

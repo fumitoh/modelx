@@ -29,11 +29,11 @@ def policy_keys(table):
 policy_data = read_range(sample_file, "PolicyData", None, policy_keys)
 
 
-model = create_model()
-policy = model.create_space()
-policy.create_cells_from_module('samples.netprem.policy')
-policy.create_cells_from_module('samples.netprem.lifetable')
-policy.create_cells_from_module('samples.netprem.commutation_funcs')
+model = new_model()
+policy = model.new_space()
+policy.new_cells_from_module('samples.netprem.policy')
+policy.new_cells_from_module('samples.netprem.lifetable')
+policy.new_cells_from_module('samples.netprem.commutation_funcs')
 policy.policy_data = policy_data
 policy.mortality_table = mortality_table
 
@@ -44,7 +44,7 @@ def qx(x):
     else:
         return mortality_table[(x, 1)]
 
-policies = model.create_space(bases=policy,
+policies = model.new_space(bases=policy,
                               paramfunc=lambda policy_id: {'bases': get_self()})
 
 for policy_id in range(1, 13):

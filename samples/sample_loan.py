@@ -1,6 +1,6 @@
 from modelx import *
 
-space = create_model().create_space()
+space = new_model().new_space()
 
 # print('start assign')
 

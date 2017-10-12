@@ -44,7 +44,7 @@ class System:
         self._models = {}
         self.self = None
 
-    def create_model(self, name=None):
+    def new_model(self, name=None):
         self._currentmodel = ModelImpl(system=self, name=name)
         self.models[self._currentmodel.name] = self._currentmodel
         return self._currentmodel

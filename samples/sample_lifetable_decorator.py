@@ -1,6 +1,6 @@
 from modelx import *
 
-create_model().create_space()
+new_model().new_space()
 
 @defcells
 def lx(x):

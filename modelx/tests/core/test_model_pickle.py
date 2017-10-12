@@ -12,8 +12,8 @@ from modelx.core.base import get_interfaces
 @pytest.fixture
 def pickletest():
 
-    model = create_model('TestModel')
-    space = model.create_space()
+    model = new_model('TestModel')
+    space = model.new_space()
 
     func1 = dedent("""\
     def single_value(x):
@@ -25,8 +25,8 @@ def pickletest():
         return 2 * single_value(x)
     """)
 
-    func1 = space.create_cells(func=func1)
-    func2 = space.create_cells(func=func2)
+    func1 = space.new_cells(func=func1)
+    func2 = space.new_cells(func=func2)
 
     func2(5)
 

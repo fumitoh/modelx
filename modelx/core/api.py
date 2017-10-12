@@ -19,7 +19,7 @@ from modelx.core.space import Space as _Space
 from modelx.core.base import get_interfaces as _get_interfaces
 
 
-def create_model(name=None):
+def new_model(name=None):
     """Create a new model.
 
     Args:
@@ -30,7 +30,7 @@ def create_model(name=None):
     Returns:
         A new model.
     """
-    return _system.create_model(name).interface
+    return _system.new_model(name).interface
 
 
 def defcells(space=None, name=None, *funcs):
@@ -47,7 +47,7 @@ def defcells(space=None, name=None, *funcs):
             and (name is None or isinstance(name, str)):
         # called as a function decorator
         func = space
-        return _system.currentspace.create_cells(func=func).interface
+        return _system.currentspace.new_cells(func=func).interface
 
     elif (isinstance(space, _Space) or space is None) \
             and (isinstance(name, str) or name is None):

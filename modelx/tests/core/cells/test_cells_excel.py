@@ -11,17 +11,17 @@ test_path = os.path.dirname(sys.modules[__name__].__file__) \
 
 @pytest.fixture
 def testmodel():
-    return create_model()
+    return new_model()
 
 
 @pytest.mark.parametrize("range_, orientation", [
     ('C9:E25', False),
     ('C36:S38', True)
 ])
-def test_create_cells_from_excel(testmodel, range_, orientation):
+def test_new_cells_from_excel(testmodel, range_, orientation):
 
-    space = testmodel.create_space()
-    space.create_cells_from_excel(book=test_path,
+    space = testmodel.new_space()
+    space.new_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0],
@@ -44,10 +44,10 @@ def test_create_cells_from_excel(testmodel, range_, orientation):
     ('H9:K25', False),
     ('C42:S45', True)
 ])
-def test_create_cells_from_excel_multparams(testmodel, range_, orientation):
+def test_new_cells_from_excel_multparams(testmodel, range_, orientation):
 
-    space = testmodel.create_space()
-    space.create_cells_from_excel(book=test_path,
+    space = testmodel.new_space()
+    space.new_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0, 1],
@@ -71,10 +71,10 @@ def test_create_cells_from_excel_multparams(testmodel, range_, orientation):
     ('N8:R25', False),
     ('C49:T53', True)
 ])
-def test_create_cells_from_excel_extparams(testmodel, range_, orientation):
+def test_new_cells_from_excel_extparams(testmodel, range_, orientation):
 
-    space = testmodel.create_space()
-    space.create_cells_from_excel(book=test_path,
+    space = testmodel.new_space()
+    space.new_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0],
@@ -100,10 +100,10 @@ def test_create_cells_from_excel_extparams(testmodel, range_, orientation):
     ('U8:Z29', False),
     ('C57:X62', True)
 ])
-def test_create_cells_from_excel_multextparams(testmodel, range_, orientation):
+def test_new_cells_from_excel_multextparams(testmodel, range_, orientation):
 
-    space = testmodel.create_space()
-    space.create_cells_from_excel(book=test_path,
+    space = testmodel.new_space()
+    space.new_cells_from_excel(book=test_path,
                                   range_=range_,
                                   sheet='TestTables',
                                   names_row=0, param_cols=[0, 1],
@@ -131,10 +131,10 @@ def test_create_cells_from_excel_multextparams(testmodel, range_, orientation):
     ('AC8:AD9', False),
     ('C66:D67', True)
 ])
-def test_create_cells_from_excel_const(testmodel, range_, transpose):
+def test_new_cells_from_excel_const(testmodel, range_, transpose):
 
-    space = testmodel.create_space()
-    space.create_cells_from_excel(
+    space = testmodel.new_space()
+    space.new_cells_from_excel(
         book=test_path,
         range_=range_,
         sheet='TestTables',
@@ -153,10 +153,10 @@ def test_create_cells_from_excel_const(testmodel, range_, transpose):
     ('AG8:AJ11', False),
     ('C71:F74', True)
 ])
-def test_create_cells_from_excel_empty_prams(testmodel, range_, transpose):
+def test_new_cells_from_excel_empty_prams(testmodel, range_, transpose):
 
-    space = testmodel.create_space()
-    space.create_cells_from_excel(
+    space = testmodel.new_space()
+    space.new_cells_from_excel(
         book=test_path,
         range_=range_,
         sheet='TestTables',
@@ -181,9 +181,9 @@ def test_create_cells_from_excel_empty_prams(testmodel, range_, transpose):
     ('C3:H24', False),
     ('C32:X37', True)
 ])
-def test_create_space_from_excel(testmodel, range_, transpose):
+def test_new_space_from_excel(testmodel, range_, transpose):
 
-    space = testmodel.create_space_from_excel(
+    space = testmodel.new_space_from_excel(
         book=test_path,
         range_=range_,
         sheet='TestSpaceTables',
@@ -217,9 +217,9 @@ def test_create_space_from_excel(testmodel, range_, transpose):
     ('K3:M5', False),
     ('C41:E43', True)
 ])
-def test_create_space_from_excel_const(testmodel, range_, transpose):
+def test_new_space_from_excel_const(testmodel, range_, transpose):
 
-    space = testmodel.create_space_from_excel(
+    space = testmodel.new_space_from_excel(
         book=test_path,
         range_=range_,
         sheet='TestSpaceTables',

@@ -5,8 +5,8 @@ from modelx import *
 @pytest.fixture
 def samplemodel():
 
-    model = create_model()
-    base_space = model.create_space(name="base")
+    model = new_model()
+    base_space = model.new_space(name="base")
 
     foo_def = dedent("""\
     def foo(x):
@@ -16,7 +16,7 @@ def samplemodel():
             return foo(x - 1)
     """)
 
-    base_space.create_cells(func=foo_def)
+    base_space.new_cells(func=foo_def)
 
     def paramfunc(x0):
         return {'bases': base_space}

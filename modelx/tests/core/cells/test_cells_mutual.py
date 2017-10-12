@@ -8,7 +8,7 @@ from modelx import *
 
 def test_cells_mutual():
 
-    space = create_model().create_space()
+    space = new_model().new_space()
 
     func1 = dedent("""\
     def single_value(x):
@@ -20,7 +20,7 @@ def test_cells_mutual():
         return 2 * single_value(x)
     """)
 
-    f1 = space.create_cells(func=func1)
-    f2 = space.create_cells(func=func2)
+    f1 = space.new_cells(func=func1)
+    f2 = space.new_cells(func=func2)
 
     assert f2(5) == 50

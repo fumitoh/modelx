@@ -1,7 +1,7 @@
 from modelx import *
 
-model = create_model()
-space = model.create_space()
+model = new_model()
+space = model.new_space()
 
 
 @defcells

@@ -1,7 +1,7 @@
 from modelx import *
 
 
-space = create_model().create_space(
+space = new_model().new_space(
     paramfunc=lambda int_rate: {'bases': get_self()})
 
 

@@ -7,9 +7,9 @@ from ..data import testpkg
 @pytest.fixture
 def samplemodel():
 
-    model = create_model(name='samplemodel')
-    base_space = model.create_space(name='base_space')
-    base_space2 = model.create_space(name='base_space2')
+    model = new_model(name='samplemodel')
+    base_space = model.new_space(name='base_space')
+    base_space2 = model.new_space(name='base_space2')
 
     foo_def = dedent("""\
     def foo(x):
@@ -24,10 +24,10 @@ def samplemodel():
         return foo(x)
     """)
 
-    base_space.create_cells(func=foo_def)
-    model.create_space(name='derived_space', bases=base_space)
-    base_space2.create_cells(func=bar_def)
-    model.create_space(name='derived_space2', bases=[base_space, base_space2])
+    base_space.new_cells(func=foo_def)
+    model.new_space(name='derived_space', bases=base_space)
+    base_space2.new_cells(func=bar_def)
+    model.new_space(name='derived_space2', bases=[base_space, base_space2])
 
     return model
 
@@ -50,21 +50,21 @@ def test_fullname(samplemodel):
     assert space._impl.get_fullname() == "samplemodel.derived_space"
 
 
-def test_create_space_from_module(samplemodel):
+def test_new_space_from_module(samplemodel):
 
-    space = samplemodel.create_space_from_module(testmodule, name='sample_module')
+    space = samplemodel.new_space_from_module(testmodule, name='sample_module')
     assert set(testmodule.funcs) == set(space.cells.keys())
 
 
-def test_create_space_from_module_by_name(samplemodel):
+def test_new_space_from_module_by_name(samplemodel):
 
-    space = samplemodel.create_space_from_module(testmodule.__name__)
+    space = samplemodel.new_space_from_module(testmodule.__name__)
     assert set(testmodule.funcs) == set(space.cells.keys())
 
 
 def test_create_sapce_recursive(samplemodel):
 
-    space = samplemodel.create_space_from_module(testpkg.__name__,
+    space = samplemodel.new_space_from_module(testpkg.__name__,
                                                  recursive=True)
     errors = []
     if not space.pkgfibo(10) == 55:

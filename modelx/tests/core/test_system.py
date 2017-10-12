@@ -6,7 +6,7 @@ import pytest
 
 def test_defcells_withname():
 
-    create_model().create_space()
+    new_model().new_space()
 
     @defcells(name="bar")
     def foo(x):
@@ -41,7 +41,7 @@ def test_defcells_lambda_object():
 def test_decells_lambda_source():
 
     src = "lambda x: x if x == 0 or x == 1 else fibo2[x - 1] + fibo2[x - 2]"
-    fibo2 = get_space().create_cells(name='fibo2', func=src)
+    fibo2 = get_space().new_cells(name='fibo2', func=src)
 
     assert fibo2(10) == 55
 
@@ -56,8 +56,8 @@ def test_deep_reference_error():
     def erronerous(x, y):
         return erronerous(x + 1, y - 1)""")
 
-    space = create_model(name='ErrModel').create_space(name='ErrSpace')
-    cells = space.create_cells(func=errfunc)
+    space = new_model(name='ErrModel').new_space(name='ErrSpace')
+    cells = space.new_cells(func=errfunc)
     with pytest.raises(DeepReferenceError) as errinfo:
         cells(1, 3)
 

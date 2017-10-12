@@ -1,7 +1,7 @@
 from modelx import *
 
-model = create_model()
-life = model.create_space(name='Life')
+model = new_model()
+life = model.new_space(name='Life')
 
 @defcells
 def l(x):
@@ -18,7 +18,7 @@ def d(x):
 def q():
     return 0.003
 
-term_life = model.create_space(name='TermLife', bases=life)
+term_life = model.new_space(name='TermLife', bases=life)
 
 
 @defcells
@@ -41,7 +41,7 @@ term_life.x_issue = 50
 term_life.n = 10
 term_life.disc_rate = 0
 
-endowment = model.create_space(name='Endowment', bases=term_life)
+endowment = model.new_space(name='Endowment', bases=term_life)
 
 @defcells
 def benefits(x):

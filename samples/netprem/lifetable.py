@@ -19,11 +19,11 @@ def qx(x):
 
 
 if __name__ == "__main__":
-    space = create_model().create_space()
+    space = new_model().new_space()
 
     g = globals()
     for name in funcs:
-        g[name] = space.create_cells(name, g[name])
+        g[name] = space.new_cells(name, g[name])
 
     print(lx(10))
 

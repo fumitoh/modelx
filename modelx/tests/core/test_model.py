@@ -8,8 +8,8 @@ from modelx.core.base import get_interfaces
 @pytest.fixture
 def simplemodel():
 
-    model = create_model(name='simplemodel')
-    space = model.create_space()
+    model = new_model(name='simplemodel')
+    space = model.new_space()
 
     @defcells
     def fibo(x):
@@ -22,34 +22,34 @@ def simplemodel():
 
 
 def test_autoname_space(simplemodel):
-    #space = simplemodel.create_space()
+    #space = simplemodel.new_space()
     assert simplemodel.currentspace.name == 'Space1'
 
 
-def test_create_space(simplemodel):
-    space = simplemodel.create_space()
+def test_new_space(simplemodel):
+    space = simplemodel.new_space()
     assert space in simplemodel.spaces.values()
 
 
 def test_mro_simple(simplemodel):
     model = simplemodel
-    C = model.create_space(name='C')
-    A = model.create_space(name='A', bases=C)
-    B = model.create_space(name='B', bases=C)
-    D = model.create_space(name='D', bases=[A, B])
+    C = model.new_space(name='C')
+    A = model.new_space(name='A', bases=C)
+    B = model.new_space(name='B', bases=C)
+    D = model.new_space(name='D', bases=[A, B])
 
     assert get_interfaces(D._impl.mro) == [D, A, B, C]
 
 
 def test_mro_complicated(simplemodel):
     model = simplemodel
-    o = model.create_space(name='o')
-    f = model.create_space(name='f', bases=o)
-    e = model.create_space(name='e', bases=o)
-    d = model.create_space(name='d', bases=o)
-    c = model.create_space(name='c', bases=[d, f])
-    b = model.create_space(name='b', bases=[e, d])
-    a = model.create_space(name='a', bases=[b, c])
+    o = model.new_space(name='o')
+    f = model.new_space(name='f', bases=o)
+    e = model.new_space(name='e', bases=o)
+    d = model.new_space(name='d', bases=o)
+    c = model.new_space(name='c', bases=[d, f])
+    b = model.new_space(name='b', bases=[e, d])
+    a = model.new_space(name='a', bases=[b, c])
 
     assert get_interfaces(a._impl.mro) == [a, b, e, c, d, f, o]
 

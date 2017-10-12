@@ -63,7 +63,7 @@ class CellsMaker:
         self.name = name
 
     def __call__(self, func):
-        return self.space.create_cells(func=func,
+        return self.space.new_cells(func=func,
                                        name=self.name).interface
 
 
@@ -272,7 +272,7 @@ class CellsImpl(Impl):
 class Cells(Interface, Container, Callable, Sized):
     """Data container with a formula to calculate its own values.
 
-    Cells are created by ``create_cells`` method or its variant methods of
+    Cells are created by ``new_cells`` method or its variant methods of
     the containing space, or by function definitions with ``defcells``
     decorator.
     """

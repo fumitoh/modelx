@@ -1,8 +1,8 @@
 from modelx import *
 
 
-m = create_model()
-s = m.create_space()
+m = new_model()
+s = m.new_space()
 
 @defcells
 def single_value():

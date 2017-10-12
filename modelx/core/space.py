@@ -93,7 +93,7 @@ class SpaceContainerImpl(Impl):
     def has_space(self, name):
         return name in self.spaces
 
-    def create_space(self, *, name=None, bases=None, paramfunc=None,
+    def new_space(self, *, name=None, bases=None, paramfunc=None,
                      arguments=None):
         """Create a child space.
 
@@ -123,7 +123,7 @@ class SpaceContainerImpl(Impl):
 
         return space
 
-    def create_space_from_module(self, module_, recursive=False, **params):
+    def new_space_from_module(self, module_, recursive=False, **params):
 
         module_ = get_module(module_)
 
@@ -132,18 +132,18 @@ class SpaceContainerImpl(Impl):
         else:
             name = params['name']
 
-        space = self.create_space(**params)
-        space.create_cells_from_module(module_)
+        space = self.new_space(**params)
+        space.new_cells_from_module(module_)
 
         if recursive and hasattr(module_, '_spaces'):
             for name in module_._spaces:
                 submodule = module_.__name__ + '.' + name
-                space.create_space_from_module(module_=submodule,
+                space.new_space_from_module(module_=submodule,
                                                recursive=True)
 
         return space
 
-    def create_space_from_excel(self, book, range_, sheet=None,
+    def new_space_from_excel(self, book, range_, sheet=None,
                                 name=None,
                                 names_row=None, param_cols=None,
                                 space_param_order=None,
@@ -177,7 +177,7 @@ class SpaceContainerImpl(Impl):
         param_func = "def _param_func(" + space_sig + "): pass"
         blank_func = "def _blank_func(" + cells_sig + "): pass"
 
-        space = self.create_space(name=name, paramfunc=param_func)
+        space = self.new_space(name=name, paramfunc=param_func)
 
         for cellsdata in cellstable.items():
             for args, value in cellsdata.items():
@@ -189,7 +189,7 @@ class SpaceContainerImpl(Impl):
                 if cellsdata.name in subspace.cells:
                     cells = subspace.cells[cellsdata.name]
                 else:
-                    cells = subspace.create_cells(name=cellsdata.name,
+                    cells = subspace.new_cells(name=cellsdata.name,
                                                   func=blank_func)
                 cells.set_value(cells_args, value)
 
@@ -218,7 +218,7 @@ class SpaceContainerImpl(Impl):
                 space_args = get_impls(space_args)
 
             space_args['arguments'] = ptr.arguments
-            space = self.create_space(**space_args)
+            space = self.new_space(**space_args)
             self.param_spaces[ptr.argvalues] = space
             return space
 
@@ -234,7 +234,7 @@ class SpaceContainer(Interface):
 
     A base class for implementing (sub)space containment.
     """
-    def create_space(self, name=None, bases=None, paramfunc=None):
+    def new_space(self, name=None, bases=None, paramfunc=None):
         """Create a (sub)space.
 
         Args:
@@ -253,31 +253,31 @@ class SpaceContainer(Interface):
             The new (sub)space.
         """
         space = self._impl.model.currentspace \
-            = self._impl.create_space(name=name, bases=get_impls(bases),
+            = self._impl.new_space(name=name, bases=get_impls(bases),
                                       paramfunc=paramfunc)
 
         return space.interface
 
-    def create_space_from_module(self, module_, recursive=False, **params):
+    def new_space_from_module(self, module_, recursive=False, **params):
         """Create a (sub)space from an module.
 
         Args:
             module_: a module object or name of the module object.
             recursive: Not yet implemented.
-            **params: arguments to pass to ``create_space``
+            **params: arguments to pass to ``new_space``
 
         Returns:
             The new (sub)space created from the module.
         """
 
         space = self._impl.model.currentspace \
-            = self._impl.create_space_from_module(module_,
+            = self._impl.new_space_from_module(module_,
                                                   recursive=recursive,
                                                   **params)
 
         return get_interfaces(space)
 
-    def create_space_from_excel(self, book, range_, sheet=None,
+    def new_space_from_excel(self, book, range_, sheet=None,
                                 name=None,
                                 names_row=None, param_cols=None,
                                 space_param_order=None,
@@ -329,7 +329,7 @@ class SpaceContainer(Interface):
             The new (sub)space created from the Excel range.
         """
 
-        space = self._impl.create_space_from_excel(
+        space = self._impl.new_space_from_excel(
             book, range_, sheet, name,
             names_row, param_cols,
             space_param_order,
@@ -870,7 +870,7 @@ class SpaceImpl(SpaceContainerImpl):
             if name in base.cells:
                 base_cells = base.cells[name]
                 self._derived_cells[name] = \
-                    self.create_cells(name=name, func=base_cells.formula)
+                    self.new_cells(name=name, func=base_cells.formula)
             break
 
     def remove_derived(self, name):
@@ -907,12 +907,12 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             return False
 
-    def create_cells(self, name=None, func=None):
+    def new_cells(self, name=None, func=None):
         cells = CellsImpl(space=self, name=name, func=func)
         self.set_cells(cells.name, cells)
         return cells
 
-    def create_cells_from_module(self, module_):
+    def new_cells_from_module(self, module_):
         # Outside formulas only
 
         module_ = get_module(module_)
@@ -924,11 +924,11 @@ class SpaceImpl(SpaceContainerImpl):
                 # Choose only the functions defined in the module.
                 if func.__module__ == module_.__name__:
                     newcells[name] = \
-                        self.create_cells(name, func)
+                        self.new_cells(name, func)
 
         return newcells
 
-    def create_cells_from_excel(self, book, range_, sheet=None,
+    def new_cells_from_excel(self, book, range_, sheet=None,
                                 names_row=None, param_cols=None,
                                 param_order=None,
                                 transpose=False,
@@ -967,7 +967,7 @@ class SpaceImpl(SpaceContainerImpl):
         blank_func = "def _blank_func(" + sig + "): pass"
 
         for cellsdata in cellstable.items():
-            cells = self.create_cells(name=cellsdata.name, func=blank_func)
+            cells = self.new_cells(name=cellsdata.name, func=blank_func)
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
 
@@ -1022,7 +1022,7 @@ class Space(SpaceContainer):
 
     ``space`` is first broken down into ``static_spaces`` and
     ``dynamic_spaces``. ``static_spaces`` contains subspaces of the space
-    that are explicitly created by the user by the space's ``create_space``
+    that are explicitly created by the user by the space's ``new_space``
     method or one of its variants. ``dynamic_spaces`` contains parametrized
     subspaces that are created dynamically by ``()`` or ``[]`` operation on
     the space.
@@ -1057,7 +1057,7 @@ class Space(SpaceContainer):
     # ----------------------------------------------------------------------
     # Manipulating cells
 
-    def create_cells(self, name=None, func=None):
+    def new_cells(self, name=None, func=None):
         """Create a cells in the space.
 
         Args:
@@ -1069,7 +1069,7 @@ class Space(SpaceContainer):
             The new cells.
         """
         # Outside formulas only
-        return self._impl.create_cells(name, func).interface
+        return self._impl.new_cells(name, func).interface
 
     @property
     def cells(self):
@@ -1091,14 +1091,14 @@ class Space(SpaceContainer):
         """A map associating names to objects accessible by the names."""
         return self._impl
 
-    def create_cells_from_module(self, module_):
+    def new_cells_from_module(self, module_):
         """Create a cells from a module."""
         # Outside formulas only
 
-        newcells = self._impl.create_cells_from_module(module_)
+        newcells = self._impl.new_cells_from_module(module_)
         return get_interfaces(newcells)
 
-    def create_cells_from_excel(self, book, range_, sheet=None,
+    def new_cells_from_excel(self, book, range_, sheet=None,
                                 names_row=None, param_cols=None,
                                 param_order=None,
                                 transpose=False,
@@ -1137,7 +1137,7 @@ class Space(SpaceContainer):
         Returns:
             The new cells created from the Excel range.
         """
-        return self._impl.create_cells_from_excel(
+        return self._impl.new_cells_from_excel(
             book, range_, sheet, names_row, param_cols,
             param_order, transpose,
             names_col, param_rows)

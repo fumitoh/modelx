@@ -18,17 +18,17 @@ mortality_table = read_xlrange("SampleActuarialModel1.xlsx",
                                None,
                                mortality_keys)
 
-model = create_model()
-policy = model.create_space(
+model = new_model()
+policy = model.new_space(
     factory=lambda id: {'bases': get_self()})
 
-policy.create_cells_from_module('samples.sample_lifetable')
-policy.create_cells_from_module('samples.sample_actuarialmodel')
+policy.new_cells_from_module('samples.sample_lifetable')
+policy.new_cells_from_module('samples.sample_actuarialmodel')
 policy.mortality_table = mortality_table
 
 print(policy)
 
-# policies = [model.create_space(name="Policy" + str(id)) for id in range(1, 13)]
+# policies = [model.new_space(name="Policy" + str(id)) for id in range(1, 13)]
 #
 # for id, policy in enumerate(policies, 1):
 #

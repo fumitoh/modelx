@@ -90,9 +90,9 @@ Then on the next line, we are creating a new Model object:
 .. literalinclude:: example_overview.py
    :lines: 3
 
-``create_model()`` is a modelx API function which returns a newly created
+``new_model()`` is a modelx API function which returns a newly created
 model. You can specify the name of the model by passing it as ``name`` argumet
-to the function, like ``create_model(name='MyModel')``.
+to the function, like ``new_model(name='MyModel')``.
 If no name is given as the argument,
 the returned model is named automatically by modelx.
 Confirm the model is created by ``get_models()`` function, which returns
@@ -105,7 +105,7 @@ Creating Spaces
 ---------------
 
 Now that you have created a brand new model, you can create a space in
-the model by calling its ``create_space()`` method.
+the model by calling its ``new_space()`` method.
 
 .. literalinclude:: example_overview.py
    :lines: 4
@@ -240,17 +240,17 @@ Spaces are containers of cells and other spaces.
 If a space contain other spaces, the contained spaces are called subspaces
 of the containing space.
 
-Spaces can be created in a model by calling the model's ``create_space``
+Spaces can be created in a model by calling the model's ``new_space``
 method::
 
-   model = create_model()
-   space = model.create_space(name='TheSpace')
+   model = new_model()
+   space = model.new_space(name='TheSpace')
 
 Spaces reside directly in models, but they can also reside in other spaces.
 Subspaces can be created in a space in the same way as spaces are created
-in a model, by calling the spaces's ``create_space`` method::
+in a model, by calling the spaces's ``new_space`` method::
 
-   subspace = space.create_space(name='TheSubspace')
+   subspace = space.new_space(name='TheSubspace')
 
 **Getting spaces**
 
@@ -381,8 +381,8 @@ to get output shorter. As long as we use a constant mortality age,
 it shouldn't affect the results whether the starting age is 0 or 50.
 Below the modelx code for this life model::
 
-   model = create_model()
-   life = model.create_space(name='Life')
+   model = new_model()
+   life = model.new_space(name='Life')
 
    @defcells
    def l(x):
@@ -415,7 +415,7 @@ To define dynamic spaces in a parent, whether it's a model or a space,
 You create the parent with a parameter function whose signature is
 used to define space parameters. The paremter function should return,
 if any, a mapping of parameter names to their arguments,
-to be pass on to the ``create_space`` method, when the dynamic spaces
+to be pass on to the ``new_space`` method, when the dynamic spaces
 are created.
 
 To see how this works, let's continue with the previous example.
