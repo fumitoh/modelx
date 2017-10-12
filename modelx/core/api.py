@@ -71,14 +71,20 @@ def get_models():
     return _get_interfaces(_system.models)
 
 
-def get_currentmodel():
+def get_model(name=None):
     """Returns the current model."""
-    return _system.currentmodel.interface
+    if name is None:
+        return _system.currentmodel.interface
+    else:
+        return get_models()[name]
 
 
-def get_currentspace():
+def get_space(name=None):
     """Returns the current space of the current model."""
-    return _system.currentmodel.currentspace.interface
+    if name is None:
+        return _system.currentmodel.currentspace.interface
+    else:
+        return _system.currentmodel.spaces[name].interface
 
 
 def get_self():

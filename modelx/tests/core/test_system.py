@@ -20,7 +20,7 @@ def test_defcells_withname():
 
 def test_defcells_withspace():
 
-    @defcells(space=get_currentspace())
+    @defcells(space=get_space())
     def foo(x):
         if x == 0:
             return 123
@@ -32,7 +32,7 @@ def test_defcells_withspace():
 
 def test_defcells_lambda_object():
 
-    fibo = defcells(space=get_currentspace(), name='fibo')(
+    fibo = defcells(space=get_space(), name='fibo')(
         lambda x: x if x == 0 or x == 1 else fibo[x - 1] + fibo[x - 2])
 
     assert fibo(10) == 55
@@ -41,7 +41,7 @@ def test_defcells_lambda_object():
 def test_decells_lambda_source():
 
     src = "lambda x: x if x == 0 or x == 1 else fibo2[x - 1] + fibo2[x - 2]"
-    fibo2 = get_currentspace().create_cells(name='fibo2', func=src)
+    fibo2 = get_space().create_cells(name='fibo2', func=src)
 
     assert fibo2(10) == 55
 

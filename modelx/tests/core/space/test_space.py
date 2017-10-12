@@ -21,7 +21,7 @@ def samplespace():
 
 
 def test_create(samplespace):
-    assert samplespace in get_currentmodel().spaces.values()
+    assert samplespace in get_model().spaces.values()
 
 
 def test_get_cells_by_cells(samplespace):
@@ -50,13 +50,13 @@ def test_create_cells_from_modulename(samplespace):
 
 
 def test_mro_root(samplespace):
-    space = get_currentspace()
+    space = get_space()
     assert [space._impl] == space._impl.mro
 
 
 def test_derived_spaces(samplespace):
 
-    model = get_currentmodel()
+    model = get_model()
 
     space_a = model.create_space()
 
@@ -76,7 +76,7 @@ def test_derived_spaces(samplespace):
 
 def test_paramfunc(samplespace):
 
-    model = get_currentmodel()
+    model = get_model()
     base = model.create_space(paramfunc=lambda x, y: {'bases': get_self()})
 
     distance_def = dedent("""\

@@ -21,7 +21,7 @@ def qx():
 
 
 if __name__ == "__main__":
-    print(get_currentspace().lx[10])
+    print(get_space().lx[10])
 
 
 
