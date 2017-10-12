@@ -75,7 +75,7 @@ more complex models in smart ways:
 - Dynamic parametrized spaces created automatically
 - Saving to / loading from files
 - Conversion to Pandas objects
-
+- Reading from Excel files
 
 Who is modelx for?
 ------------------
