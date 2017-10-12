@@ -1,23 +1,21 @@
 from modelx import *
 
 model = create_model()
-
 life = model.create_space(name='Life')
 
 @defcells
-def lx(x):
+def l(x):
     if x == 50:
         return 100000
     else:
-        return lx(x - 1) - dx(x - 1)
+        return l(x - 1) - d(x - 1)
 
 @defcells
-def dx(x):
-    return lx(x) * qx
-
+def d(x):
+    return l(x) * q
 
 @defcells
-def qx():
+def q():
     return 0.003
 
 term_life = model.create_space(name='TermLife', bases=life)
@@ -26,7 +24,7 @@ term_life = model.create_space(name='TermLife', bases=life)
 @defcells
 def benefits(x):
     if x < x_issue + n:
-        return dx(x) / lx(x_issue)
+        return d(x) / l(x_issue)
     if x <= x_issue + n:
         return 0
 
@@ -48,9 +46,9 @@ endowment = model.create_space(name='Endowment', bases=term_life)
 @defcells
 def benefits(x):
     if x < x_issue + n:
-        return dx(x) / lx(x_issue)
+        return d(x) / l(x_issue)
     elif x == x_issue + n:
-        return lx(x) / lx(x_issue)
+        return l(x) / l(x_issue)
     else:
         return 0
 
