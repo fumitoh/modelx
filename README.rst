@@ -27,13 +27,10 @@ Below is a very simple working example in which:
 
     from modelx import *
 
-    model = new_model()
-    space = model.new_space()
-
+    model, space = new_model(), new_space()
 
     @defcells
     def fibo(n):
-
         if n == 0 or n == 1:
             return n
         else:
