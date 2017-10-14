@@ -1,25 +1,23 @@
 from modelx import *
 
-model = new_model()
-life = model.new_space(name='Life')
+model, life = new_model(), new_space('Life')
 
-@defcells
 def l(x):
     if x == 50:
         return 100000
     else:
         return l(x - 1) - d(x - 1)
 
-@defcells
 def d(x):
     return l(x) * q
 
-@defcells
+
 def q():
     return 0.003
 
-term_life = model.new_space(name='TermLife', bases=life)
+l, d, x = defcells(l, d, q)
 
+term_life = model.new_space(name='TermLife', bases=life)
 
 @defcells
 def benefits(x):
@@ -36,6 +34,7 @@ def pv_benefits(x):
         return benefits(x) + pv_benefits(x + 1) / (1 + disc_rate)
     else:
         return 0
+
 
 term_life.x_issue = 50
 term_life.n = 10
