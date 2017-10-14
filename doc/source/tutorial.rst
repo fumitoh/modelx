@@ -5,7 +5,8 @@ demonstrate how to use modelx by going through some examples.
 
 This tutorial supplements the modelx reference,
 which is build from docstrings of the API functions and classes,
-and should cover the detailed description of each API element.
+and the reference should cover the detailed description of each API element,
+which may not be fully explained in this tutorial.
 
 Typical workflow
 ----------------
@@ -62,13 +63,13 @@ First example
 We'll start by talking a closer look at the simple example we saw
 in the overview section.
 
-.. literalinclude:: example_overview.py
+.. literalinclude:: samples/example_overview.py
    :lines: 1-13
 
 To start using modelx, import the package by the import statement, as is the
 case with any other package.
 
-.. literalinclude:: example_overview.py
+.. literalinclude:: samples/example_overview.py
    :lines: 1
 
 By doing so, you get to use modelx API functions in ``__main__`` module.
@@ -87,7 +88,7 @@ Creating Models
 
 Then on the next line, we are creating a new Model object:
 
-.. literalinclude:: example_overview.py
+.. literalinclude:: samples/example_overview.py
    :lines: 3
 
 ``new_model()`` is a modelx API function which returns a newly created
@@ -98,7 +99,7 @@ the returned model is named automatically by modelx.
 Confirm the model is created by ``get_models()`` function, which returns
 a mapping of the names of all existing models to the model objects::
 
-   >> get_models()
+   >>> get_models()
    {'Model1': <modelx.core.model.Model at 0x447f1b0>}
 
 Creating Spaces
@@ -107,8 +108,8 @@ Creating Spaces
 Now that you have created a brand new model, you can create a space in
 the model by calling its ``new_space()`` method.
 
-.. literalinclude:: example_overview.py
-   :lines: 4
+.. literalinclude:: samples/example_overview.py
+   :lines: 3
 
 Just as with the models, the name of the space can be specified by
 passing it to the method ``name`` argument, otherwise the space gets its
@@ -120,14 +121,14 @@ Getting Spaces
 To get all spaces in a model mapped to their names,
 you can check ``spaces`` property of the model::
 
-   >> model.spaces
+   >>> model.spaces
    mappingproxy({'Space1': <modelx.core.space.Space at 0x4452790>})
 
 The return MappingProxy objects acts like an immutable dictionary, so you can
 get Space1 by ``model.spaces['Space1']``. You can see the returned space is
 the same object as what is referred as ``space``::
 
-   >> space is model.spaces['Space1']
+   >>> space is model.spaces['Space1']
    True
 
 
@@ -137,8 +138,8 @@ There are a few ways to create a cells object and defiene the formula
 associated with the cells. As seen in the example above,
 one way is to define a python function with ``defcells`` decorator.
 
-.. literalinclude:: example_overview.py
-   :lines: 7-13
+.. literalinclude:: samples/example_overview.py
+   :lines: 3-
 
 By this definition, the cells is created in the current space in the current
 model. modelx keeps the last operated model as the current model, and
@@ -152,9 +153,8 @@ an argument to the ``defcells`` decorator. Below is the same as
 the definition above, but explicitly specifies in what space to define
 the cell::
 
-   @defcells(space=space)
+   @defcells(space)
    def fibo(n):
-
        if n == 0 or n == 1:
            return n
        else:
@@ -166,15 +166,15 @@ Similar to spaces in a model contained in the ``spaces`` property of the model,
 cells in a space are associated with their names and
 contained in the ``cells`` property of the model::
 
-   >> fibo is space.cells['fibo']
+   >>> fibo is space.cells['fibo']
    True
 
 There is another way of accessing cells. You can just use `.` with cells names,
 just like accessing the spaces's attribute::
 
-   >> space.fibo
+   >>> space.fibo
    <modelx.core.cells.Cells at 0x51ed090>
-   >> fibo is space.fibo
+   >>> fibo is space.fibo
    True
 
 
@@ -185,9 +185,9 @@ To get cells' value for a
 certain parameter, simply call ``fibo`` with the paratmer in parenthesis or
 in squre brackets::
 
-   >> fibo[10]
+   >>> fibo[10]
    55
-   >> fibo(10)
+   >>> fibo(10)
    55
 
 Its values are calculated automatically by the associated formula,
@@ -198,9 +198,9 @@ in order to get the value for the specified parameter.
 To see for what parameters values are calculated, export fibo to a Pandas
 Series object. (You need to have Pandas installed, ofcourse.)::
 
-   >> fibo[10]
+   >>> fibo[10]
    55
-   >> fibo.series
+   >>> fibo.series
    n
    0      0
    1      1
@@ -243,14 +243,13 @@ of the containing space.
 Spaces can be created in a model by calling the model's ``new_space``
 method::
 
-   model = new_model()
-   space = model.new_space(name='TheSpace')
+   model, space = new_model(), new_space('TheSpace')
 
 Spaces reside directly in models, but they can also reside in other spaces.
 Subspaces can be created in a space in the same way as spaces are created
 in a model, by calling the spaces's ``new_space`` method::
 
-   subspace = space.new_space(name='TheSubspace')
+   subspace = space.new_space('TheSubspace')
 
 **Getting spaces**
 
@@ -307,9 +306,9 @@ You can obtain a subspace as an attribute of the parent space,
 or by accessing the parent space's ``spaces``
 attribute::
 
-  >> parent.a_subspace
+  >>> parent.a_subspace
 
-  >> parent['a_subspace']
+  >>> parent['a_subspace']
 
 
 
@@ -343,7 +342,7 @@ https://en.wikipedia.org/wiki/C3_linearization
 
 **Inheritance Example**
 
-Let's see how inheritance works by walking through an example of
+Let's see how inheritance works by a simple code of
 pricing life insurance policies.
 First, you create a very simple life model as a space and name it ``Life``.
 You populate the space with cells that calculate the number of death
@@ -356,10 +355,10 @@ paid to the insured, and their present value.
 Next, you want to model an endowment policy. Since the endowment policy
 pays out a maturity benefit in addition to the death benefits covered by the
 term life policy, you derive a ``Endowment`` space from ``TermLife``,
-and make a residual change to the benefit cells.
+and make a residual change to the ``benefits`` formula.
 
 
-**Creating a life model**
+**Creating the Life space**
 
 Below is a mathematical representation of the life model we'll
 build as a ``Life`` space.
@@ -375,37 +374,184 @@ and age x + 1, :math:`q` denotes the annual mortality rate
 (for simplicity, we'll assume a constant mortality rate of 0.003 for all ages
 for the moment.)
 One letter names like l, d, q would be too short for real world practices,
-but we use them here as they often appear in classic actuarial textbooks.
+but we use them here just for simplicity,
+as they often appear in classic actuarial textbooks.
 Yet another simplification is, we set the starting age of x at 50, just
 to get output shorter. As long as we use a constant mortality age,
 it shouldn't affect the results whether the starting age is 0 or 50.
-Below the modelx code for this life model::
+Below the modelx code for this life model:
 
-   model = new_model()
-   life = model.new_space(name='Life')
+.. literalinclude:: samples/sample_inheritance.py
+   :lines: 6-20
 
-   @defcells
-   def l(x):
-       if x == 50:
-           return 100000
-       else:
-           return l(x - 1) - d(x - 1)
+The last line of the code above has the same effect as putting ``@defcells``
+decorator on top of each of the 3 function definitions.
+This line creates 3 new cells
+from the 3 functions in the ``Life`` space, and rebind names ``l``, ``d``,
+``q`` to the 3 cells in the current scope.
 
-   @defcells
-   def d(x):
-       return l(x) * q
+To examine the space, you can check values of the cells in ``Life`` as below::
 
-   @defcells
-   def q():
-       return 0.003
+   >>> l(60)
+   97040.17769489168
 
-Let's play around with this life model for a little bit.
+   >>> life.frame
+                      l           d      q
+   x
+    50.0  100000.000000  300.000000    NaN
+    51.0   99700.000000  299.100000    NaN
+    52.0   99400.900000  298.202700    NaN
+    53.0   99102.697300  297.308092    NaN
+    54.0   98805.389208  296.416168    NaN
+    55.0   98508.973040  295.526919    NaN
+    56.0   98213.446121  294.640338    NaN
+    57.0   97918.805783  293.756417    NaN
+    58.0   97625.049366  292.875148    NaN
+    59.0   97332.174218  291.996523    NaN
+    60.0   97040.177695         NaN    NaN
+   NaN              NaN         NaN  0.003
+
+**Deriving the Term Life space**
+
+Next, we'll see how we can extend this space to represent a term life policy.
+To simplify things, here we focus on one policy with the sum
+assured of 1 (in whatever unit of currency).
+With this assumption, if we define ``benefits(x)`` as the expected value at
+issue of benefits paid between the age x and x + 1, then it should
+equate to the probability of death between age x and x + 1, of the
+insured at the point of issue. In a math expression, this should be written:
+
+.. math::
+   benefits(x) = d(x) / l(x0)
+
+where :math:`l(x)` and :math:`d(x)` are the same definition from the
+preceding example, and :math:`x0` denotes the issue age of the policy.
+And further we define the present value of benefits at age x as:
+
+.. math::
+   pv\_benefits(x) = \sum_{x'=x}^{x0+n}benefits(x')/(1+disc\_rate)^{x'-x}
+
+``n`` denotes the policy term in years, and ``disc_rate`` denotes the
+discounting rate for the present value calculation.
+
+Continued from the previous code, we are going to derive the ``TermLife`` space
+from the ``Life`` space, to add the benefits and present value calculations.
+
+.. literalinclude:: samples/sample_inheritance.py
+   :lines: 25-41
+
+The first line in the sample above creates ``TermLife`` space derived
+from the ``Life`` space, by passing the ``Life`` space as ``bases`` parameter
+to the ``new_space`` method of the model. The ``TermLife`` space at this point
+has the same cells as its sole base space ``Life`` space.
+
+The following 2 cells definitions (2 function definitions with ``defcells``
+decorators), are for adding the cells that did not exist in ``Life``
+space. You must have noticed that the formulas are referring to the names
+that are not defined yet. Those are ``x0``, ``n``, ``disc_rate``.
+We need to define those in the ``Life`` space.
+
+.. literalinclude:: samples/sample_inheritance.py
+   :lines: 46-48
+
+
+You get the following results by examining the ``TermLife`` space (The
+order of the columns in the DataFrame may be different on your screen).::
+
+   >>> term_life.pv_benefits(50)
+   0.02959822305108317
+
+   >>> term_life.frame
+
+                   d      q              l  pv_benefits  benefits
+   x
+    50.0  300.000000    NaN  100000.000000     0.029598  0.003000
+    51.0  299.100000    NaN   99700.000000     0.026598  0.002991
+    52.0  298.202700    NaN   99400.900000     0.023607  0.002982
+    53.0  297.308092    NaN   99102.697300     0.020625  0.002973
+    54.0  296.416168    NaN   98805.389208     0.017652  0.002964
+    55.0  295.526919    NaN   98508.973040     0.014688  0.002955
+    56.0  294.640338    NaN   98213.446121     0.011733  0.002946
+    57.0  293.756417    NaN   97918.805783     0.008786  0.002938
+    58.0  292.875148    NaN   97625.049366     0.005849  0.002929
+    59.0  291.996523    NaN   97332.174218     0.002920  0.002920
+    60.0         NaN    NaN            NaN     0.000000  0.000000
+    61.0         NaN    NaN            NaN     0.000000       NaN
+   NaN           NaN  0.003            NaN          NaN       NaN
+
+
+You can see that the values of ``l``, ``d``, ``q`` cells are the same
+as those in ``Life`` space, as ``Life`` and ``LifeTerm`` have exactly
+the same formulas for those cells, but be aware that
+those cells are not shared between the base and derived spaces.
+Unlike class inheritance in OOP languages, space inheritance is in terms of
+space instances(or objects), not classes,
+so cells are copied from the base spaces to derived space
+upon creating the derived space.
+
+**Deriving the Endowment space**
+
+We're going to create another space to test overriding inherited cells.
+We will derive ``Endowment`` space from ``LifeTerm`` space. The diagram
+below shows the relationships of the 3 spaces considered here.
+A space from which an arrow originates is derived from the space the
+arrow points to.
+
+.. figure:: images/Inheritance1.png
+   :align: center
+
+   Life, TermLife and Endowment
+
+The endowment policy pays out the maturity benefit of 1
+at the end of its policy term.
+We have defined ``benefits`` cells as the expected value of benefits,
+so in addition to the death benefits considered in ``LifeTerm`` space,
+we'll add the maturity benefit by overriding the ``benefits`` definition
+in ``Endowment`` space. In reality, the insured will not get both death
+and maturity benefits, but here we are considering an probabilistic model,
+so the benefits would be the sum of expected value of death and maturity
+benefits:
+
+.. literalinclude:: samples/sample_inheritance.py
+   :lines: 53-62
+
+And the same operations on the ``Endowment`` space produces the following
+results::
+
+   >>> endowment.pv_benefits(50)
+   1.0
+   >>> endowment.frame
+          pv_benefits  benefits              l      q           d
+   x
+    50.0     1.000000  0.003000  100000.000000    NaN  300.000000
+    51.0     0.997000  0.002991   99700.000000    NaN  299.100000
+    52.0     0.994009  0.002982   99400.900000    NaN  298.202700
+    53.0     0.991027  0.002973   99102.697300    NaN  297.308092
+    54.0     0.988054  0.002964   98805.389208    NaN  296.416168
+    55.0     0.985090  0.002955   98508.973040    NaN  295.526919
+    56.0     0.982134  0.002946   98213.446121    NaN  294.640338
+    57.0     0.979188  0.002938   97918.805783    NaN  293.756417
+    58.0     0.976250  0.002929   97625.049366    NaN  292.875148
+    59.0     0.973322  0.002920   97332.174218    NaN  291.996523
+    60.0     0.970402  0.970402   97040.177695    NaN         NaN
+    61.0     0.000000       NaN            NaN    NaN         NaN
+   NaN            NaN       NaN            NaN  0.003         NaN
+
+You can see ``pv_benefits`` for all ages and ``benefits`` for age 60
+show values different from ``TermLife`` as we overrode ``benefits``.
+
+``pv_benefits(50)`` being 1 is not surprising. The ``disc_rate``
+set to 1 in ``TermLife`` space is also inherited to the ``Endowment`` space.
+The discounting rate of benefits being 1 means by taking the
+present value of the benefits, we are simply taking the sum of
+all expected values of future benefits, which must equates to 1,
+because the insured gets 1 by 100% chance.
 
 
 Dynamic spaces
 --------------
-In many cases, you want to apply a set of calculations in a space,
-or a tree of spaces, to differrent data sets.
+In many situations, you want to apply a set of calculations in a space,
+or a tree of spaces, to different data sets.
 You can achieve that by applying the space inheritance on dynamic spaces.
 
 Dynamic spaces are parametrized spaces that are created on-the-fly when

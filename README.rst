@@ -38,9 +38,9 @@ Below is a very simple working example in which:
 
 To get a Fibonacci number for, say 10, you can do::
 
-    >> fibo(10)
+    >>> fibo(10)
     55
-    >> fibo.series
+    >>> fibo.series
     n
     0      0
     1      1
