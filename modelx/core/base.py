@@ -239,6 +239,12 @@ class LazyEvalDict(LazyEvalChain, UserDict):
         self.update_data()
         return self.data
 
+    def __repr__(self):
+
+        if self._repr:
+            return self._repr
+        else:
+            return UserDict.__repr__(self)
 
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
 

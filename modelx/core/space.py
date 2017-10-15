@@ -107,19 +107,10 @@ class SpaceContainerImpl(Impl):
             base_self: True if subspaces inherit self by default.
 
         """
-        if name is None:
-            name = self.spacenamer.get_next(self.spaces)
-
-        if self.has_space(name):
-            raise ValueError("Name already assigned.")
-
-        if not is_valid_name(name):
-            raise ValueError("Invalid name '%s'." % name)
-
         space = SpaceImpl(parent=self, name=name, bases=bases,
                           paramfunc=paramfunc, arguments=arguments)
 
-        self.spaces[name] = space
+
 
         return space
 
@@ -580,6 +571,15 @@ class SpaceImpl(SpaceContainerImpl):
     """
     def __init__(self, parent, name, bases, paramfunc, arguments=None):
 
+        if name is None:
+            name = parent.spacenamer.get_next(parent.spaces)
+
+        if parent.has_space(name):
+            raise ValueError("Name already assigned.")
+
+        if not is_valid_name(name):
+            raise ValueError("Invalid name '%s'." % name)
+
         SpaceContainerImpl.__init__(self, parent.system, if_class=Space,
                                     paramfunc=paramfunc)
 
@@ -607,6 +607,14 @@ class SpaceImpl(SpaceContainerImpl):
         self._update_mro()
         self._init_members()
 
+        if isinstance(self.parent, SpaceImpl):
+            if self.is_dynamic():
+                parent._dynamic_spaces[self.name] = self
+            else:
+                parent._static_spaces[self.name] = self
+        else:
+            parent.spaces[self.name] = self
+
     def _init_members(self):
 
         self._self_cells = ImplSelfMembers(self, 'cells')
@@ -616,12 +624,14 @@ class SpaceImpl(SpaceContainerImpl):
 
         self._self_spaces = ImplSelfMembers(self, 'spaces')
         self._derived_spaces = ImplDerivedMembers(self, attr='spaces')
+        self._derived_spaces._repr = '_derived_spaces'
         self._static_spaces = ImplChainMap([self._self_spaces,
                                                 self._derived_spaces])
+        self._static_spaces._repr = '_static_spaces'
         self._dynamic_spaces = LazyEvalDict()
         self._spaces = ImplChainMap([self._static_spaces,
                                      self._dynamic_spaces])
-
+        self._spaces._repr = '_spaces'
         self._self_refs = SelfMembers(self, 'refs')
         self._derived_refs = DerivedMembers(self, attr='refs')
         self._global_refs = {'__builtins__': __builtins__,
@@ -631,6 +641,7 @@ class SpaceImpl(SpaceContainerImpl):
                                        self._arguments,
                                        self._self_refs,
                                        self._derived_refs])
+        self._refs._repr = '_refs'
 
         self_members = [self._self_cells,
                         self._self_spaces,
@@ -906,6 +917,9 @@ class SpaceImpl(SpaceContainerImpl):
             return True
         else:
             return False
+
+    def is_dynamic(self):
+        return bool(self._arguments)
 
     def new_cells(self, name=None, func=None):
         cells = CellsImpl(space=self, name=name, func=func)

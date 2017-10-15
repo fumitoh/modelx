@@ -88,6 +88,19 @@ def test_paramfunc(samplespace):
 
     assert base[3, 4].distance == 5
 
+
+def test_dynamic_spaces(samplespace):
+
+    model = get_model()
+    space = model.new_space(paramfunc=lambda n: {'bases': get_self()})
+
+    @defcells
+    def foo(x):
+        return x * n
+
+    assert space[1].foo(2) == 2 \
+        and space[2].foo(4) == 8
+
 # ----- Testing _impl methods ----
 
 
