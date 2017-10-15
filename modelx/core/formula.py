@@ -100,7 +100,7 @@ class Formula:
             self.source = func
 
         else:
-            raise ValueError("Invalid argument func: %s", func)
+            raise ValueError("Invalid argument func: %s" % func)
 
     def _copy_other(self, other):
         for attr in self.__slots__:

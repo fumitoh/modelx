@@ -85,7 +85,11 @@ class CellsImpl(Impl):
         self.system = space.system
         self.model = space.model
         self.space = space
-        self.formula = Formula(func)
+        if func is None:
+            self.formula = NULL_FORMULA
+        else:
+            self.formula = Formula(func)
+
         self.can_return_none = True
 
         if is_valid_name(name):
