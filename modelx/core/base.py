@@ -204,7 +204,7 @@ class LazyEvalChain:
             return self
 
     def _update_data(self):
-        pass    # To be overwritten in derived classes
+        raise NotImplementedError   # To be overwritten in derived classes
 
     def append_observer(self, observer):
         if all(observer is not other for other in self.observers):
