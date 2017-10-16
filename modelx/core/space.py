@@ -887,6 +887,8 @@ class SpaceImpl(SpaceContainerImpl):
             elif name in self.cells:
                 if self.cells[name].has_single_value():
                     self.cells[name].set_value((), value)
+                else:
+                    raise AttributeError("Cells '%s' is not a scalar." % name)
 
             else:
                 raise ValueError
