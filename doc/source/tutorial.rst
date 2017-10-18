@@ -582,3 +582,11 @@ Reading Excel files
 
 Exporting to Pandas objects
 ---------------------------
+
+If you have Pandas installed in your Python environment, you can export values
+of cells to Pandas' DataFrame or Series objects.
+Spaces have ``frame`` property, which generates a DataFrame
+object whose columns are cells names, and whose indexes are
+cells parameters. Multiple cells in a space may have different
+sets of parameters. Generated
+
