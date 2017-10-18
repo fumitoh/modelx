@@ -71,6 +71,34 @@ class CellsImpl(Impl):
     """
     Data container optionally with a formula to set its own values.
 
+    **Creation**
+
+    **Deletion**
+
+    * Values dependent on the cell are deleted clear_all()
+    * Values dependent on the derived cells of the cells are deleted
+    * Derived cells are deleted _del_derived
+    * The cells is deleted _del_self
+
+    **Changing formula**
+    clear_all
+    _set_formula
+    _clear_all_derived
+    _set_formula_derived
+
+    **Changing can_return_none**
+
+    **Setting Values**
+    clear()
+    _set
+
+    **Getting Values**
+
+    **Deleting Values**
+    clear(params)
+    clear_all
+    _clear_all_derived()
+
     Args:
         space: Space to contain the cell.
         name: Cell's name.
@@ -160,12 +188,12 @@ class CellsImpl(Impl):
         else:
             return False
 
-    def has_single_value(self):
+    def is_scalar(self):
         return len(self.parameters) == 0
 
     @property
     def single_value(self):
-        if self.has_single_value():
+        if self.is_scalar():
             return self.get_value(())
         else:
             return TypeError
@@ -237,13 +265,17 @@ class CellsImpl(Impl):
                 raise KeyError("Assignment in cells other than %s" %
                                ptr.argvalues)
 
-    def clear_value(self, args, kwargs=None):
-        ptr = CellArgs(self, args, kwargs)
-        if self.has_cell(ptr.argvalues):
-            self.model.clear_descendants(ptr)
+    def clear_value(self, args, **kwargs):
+
+        if not args and not kwargs:
+            self.clear_all_values()
+        else:
+            ptr = CellArgs(self, args, kwargs)
+            if self.has_cell(ptr.argvalues):
+                self.model.clear_descendants(ptr)
 
     def clear_all_values(self):
-        for args in self.data:
+        for args in list(self.data):
             self.clear_value(args)
 
     def _store_value(self, ptr, value, overwrite=False):
@@ -327,9 +359,9 @@ class Cells(Interface, Container, Callable, Sized):
     # def __repr__(self):
     #     return self._impl.repr_
 
-    def clear_value(self, *args, **kwargs):
+    def clear(self, *args, **kwargs):
         """Clear all the values."""
-        return self._impl.clear_value(args, kwargs)
+        return self._impl.clear_value(args, **kwargs)
 
     # ----------------------------------------------------------------------
     # Coercion to single value
@@ -394,7 +426,7 @@ class Cells(Interface, Container, Callable, Sized):
 
     def __eq__(self, other):
         """self == other"""
-        if self._impl.has_single_value():
+        if self._impl.is_scalar():
             return self._impl.single_value == other
         elif isinstance(other, Cells):
             return self is other

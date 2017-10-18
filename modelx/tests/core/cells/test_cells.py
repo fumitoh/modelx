@@ -100,9 +100,22 @@ def test_set_value(sample_space):
 def test_clear_value(sample_space):
     sample_space.fibo[5]
 
-    sample_space.fibo.clear_value(3)
+    sample_space.fibo.clear(3)
     assert set(sample_space.fibo) == {(0,), (1,), (2,)}
 
+def test_clear_value_kwargs(sample_space):
+    sample_space.fibo[5]
+
+    sample_space.fibo.clear(x=3)
+    assert set(sample_space.fibo) == {(0,), (1,), (2,)}
+
+def test_clear_all_values(sample_space):
+    sample_space.fibo[5]
+
+    check = set(sample_space.fibo) == {(0,), (1,), (2,),
+                                       (3,), (4,), (5,)}
+    sample_space.fibo.clear()
+    assert check and set(sample_space.fibo) == set()
 
 def test_clear_value_source(sample_space):
 
@@ -129,7 +142,7 @@ def test_clear_value_source(sample_space):
     if not set(space.source) == {(1,), (2,)}:
         errors.append("error with source")
 
-    space.source.clear_value(1)
+    space.source.clear(1)
     if not set(space.source) == set():
         errors.append("clear error with source")
     if not set(space.dependant) == set():

@@ -46,7 +46,13 @@ class ParamFunc(Formula):
 
 
 class SpaceContainerImpl(Impl):
-    """Base class of Model and Space that contain spaces."""
+    """Base class of Model and Space to work as container of spaces.
+
+    **Space Deletion**
+    new_space(name)
+    del_space(name)
+
+    """
 
     state_attrs = ['_spaces',
                    'param_spaces',
@@ -885,7 +891,7 @@ class SpaceImpl(SpaceContainerImpl):
                 self.refs.set_update(skip_self=False)
 
             elif name in self.cells:
-                if self.cells[name].has_single_value():
+                if self.cells[name].is_scalar():
                     self.cells[name].set_value((), value)
                 else:
                     raise AttributeError("Cells '%s' is not a scalar." % name)
