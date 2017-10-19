@@ -244,9 +244,11 @@ class CellsImpl(Impl):
             finally:
                 self.system.callstack.pop()
 
+        graph = self.model.cellgraph
         if not self.system.callstack.is_empty():
-            graph = self.system._currentmodel.cellgraph
             graph.add_path([ptr, self.system.callstack.last()])
+        else:
+            graph.add_node(ptr)
 
         return value
 
@@ -256,11 +258,10 @@ class CellsImpl(Impl):
 
         if self.system.callstack.is_empty():
             self._store_value(ptr, value, True)
-
+            self.model.cellgraph.add_node(ptr)
         else:
             if ptr == self.system.callstack.last():
                 self._store_value(ptr, value, False)
-
             else:
                 raise KeyError("Assignment in cells other than %s" %
                                ptr.argvalues)

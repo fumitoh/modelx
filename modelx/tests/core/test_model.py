@@ -79,6 +79,31 @@ def test_cellgraph(simplemodel):
                     fibo_next1 in succ and
                     fibo_next2 in succ)
 
+
+def test_cellgraph_standalone():
+    model, space = new_model(), new_space()
+
+    @defcells(space=space)
+    def foo(x):
+        return x
+
+    foo(1)
+    node = model.cellgraph.nodes()
+    assert node == [CellArgs(foo._impl, 1)]
+
+
+def test_cellgraph_informula_assignment():
+    model, space = new_model(), new_space()
+
+    @defcells(space=space)
+    def bar(x):
+        bar[x] = x
+
+    bar(1)
+    node = model.cellgraph.nodes()
+    assert node == [CellArgs(bar._impl, 1)]
+
+
 # ---- Test impl ----
 
 def test_get_object(simplemodel):
