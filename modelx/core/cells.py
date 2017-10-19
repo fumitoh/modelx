@@ -118,7 +118,7 @@ class CellsImpl(Impl):
         else:
             self.formula = Formula(func)
 
-        self.can_return_none = True
+        self.can_return_none = False
 
         if is_valid_name(name):
             self.name = name
@@ -459,6 +459,8 @@ class Cells(Interface, Container, Callable, Sized):
 
     @property   # TODO: Test can_return_none
     def can_return_none(self):
+        """bool: If True, the cells can return None, otherwise an error
+        is raised upon returning None. Defaults to False."""
         return self._impl.can_return_none
 
     @can_return_none.setter

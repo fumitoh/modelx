@@ -113,12 +113,28 @@ class SpaceContainerImpl(Impl):
             base_self: True if subspaces inherit self by default.
 
         """
+
+        if name is None:
+            name = self.spacenamer.get_next(self.spaces)
+
+        if self.has_space(name):
+            raise ValueError("Name already assigned.")
+
+        if not is_valid_name(name):
+            raise ValueError("Invalid name '%s'." % name)
+
         space = SpaceImpl(parent=self, name=name, bases=bases,
                           paramfunc=paramfunc, arguments=arguments)
 
-
-
+        self._set_space(space)
         return space
+
+    def _set_space(self, space):
+        """To be overridden in subclasses."""
+        raise NotImplementedError
+
+    def del_space(self, name):
+        raise NotImplementedError
 
     def new_space_from_module(self, module_, recursive=False, **params):
 
@@ -181,7 +197,7 @@ class SpaceContainerImpl(Impl):
                 space_args = args[:len(space_params)]
                 cells_args = args[len(space_params):]
 
-                subspace = space.get_space(space_args)
+                subspace = space.get_dyn_space(space_args)
 
                 if cellsdata.name in subspace.cells:
                     cells = subspace.cells[cellsdata.name]
@@ -192,7 +208,7 @@ class SpaceContainerImpl(Impl):
 
         return space
 
-    def get_space(self, args, kwargs=None):
+    def get_dyn_space(self, args, kwargs=None):
 
         ptr = SpaceArgs(self, args, kwargs)
 
@@ -597,15 +613,6 @@ class SpaceImpl(SpaceContainerImpl):
     """
     def __init__(self, parent, name, bases, paramfunc, arguments=None):
 
-        if name is None:
-            name = parent.spacenamer.get_next(parent.spaces)
-
-        if parent.has_space(name):
-            raise ValueError("Name already assigned.")
-
-        if not is_valid_name(name):
-            raise ValueError("Invalid name '%s'." % name)
-
         SpaceContainerImpl.__init__(self, parent.system, if_class=Space,
                                     paramfunc=paramfunc)
 
@@ -631,17 +638,9 @@ class SpaceImpl(SpaceContainerImpl):
 
         self.mro = []
         self._update_mro()
-        self._init_members()
 
-        if isinstance(self.parent, SpaceImpl):
-            if self.is_dynamic():
-                parent._dynamic_spaces[self.name] = self
-            else:
-                parent._static_spaces[self.name] = self
-        else:
-            parent.spaces[self.name] = self
-
-    def _init_members(self):
+        # ------------------------------------------------------------------
+        # Construct member containers
 
         self._self_cells = ImplSelfMembers(self, 'cells')
         self._self_spaces = ImplSelfMembers(self, 'spaces')
@@ -877,8 +876,29 @@ class SpaceImpl(SpaceContainerImpl):
         self._self_cells[name] = cells
         self._self_cells.set_update(skip_self=True)
 
-    def set_space(self, name, space):
-        pass
+    def _set_space(self, space):
+        if space.is_dynamic():
+            self._dynamic_spaces[space.name] = space
+        else:
+            self._self_spaces[space.name] = space
+
+    def del_space(self, name):
+        if name not in self.spaces:
+            raise ValueError("Space '%s' does not exist" % name)
+
+        space = self.spaces[name]
+        if space.is_dynamic():
+            # TODO: Destroy space
+            del self._dynamic_spaces[name]
+            self._dynamic_spaces.set_update(skip_self=True)
+
+        elif name in self._self_spaces[name]:
+            # TODO: Destroy space
+            del self._self_spaces[name]
+            self._self_spaces.set_update(skip_self=True)
+
+        else:
+            raise ValueError("Derived cells cannot be deleted")
 
     def set_name(self, name, value):
 
@@ -1222,10 +1242,10 @@ class Space(SpaceContainer):
         return bool(self.signature)
 
     def __getitem__(self, args):
-        return self._impl.get_space(args).interface
+        return self._impl.get_dyn_space(args).interface
 
     def __call__(self, *args, **kwargs):
-        return self._impl.get_space(args, kwargs).interface
+        return self._impl.get_dyn_space(args, kwargs).interface
 
     def set_paramfunc(self, paramfunc):
         """Set if the parameter function."""

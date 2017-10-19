@@ -137,6 +137,16 @@ class ModelImpl(SpaceContainerImpl):
 
         self.cellgraph = nx.relabel_nodes(self.cellgraph, mapping)
 
+    def del_space(self, name):
+        # TODO: Destroy the space
+        del self.spaces[name]
+
+    def _set_space(self, space):
+
+        if space.name in self.spaces:
+            self.del_space(space.name)
+
+        self.spaces[space.name] = space
 
 class Model(SpaceContainer):
     """Unit of work that contains spaces.
