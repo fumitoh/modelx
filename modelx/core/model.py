@@ -169,6 +169,19 @@ class Model(SpaceContainer):
         """A directed graph of cells."""
         return self._impl.cellgraph
 
+    def get_space(self, name=None):
+        """Set the current space and return it.
+
+        If called without arguments, the current space is returned.
+        Otherwise, the current space is set to the space named ``name``
+        and the space is returned.
+        """
+        if name is None:
+            return self._impl.currentspace.interface
+        else:
+            self._impl.currentspace = self._impl.spaces[name]
+            return self.get_space()
+
 
 
 

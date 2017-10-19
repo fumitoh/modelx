@@ -139,7 +139,8 @@ def get_model(name=None):
     if name is None:
         return _system.currentmodel.interface
     else:
-        return get_models()[name]
+        _system.currentmodel = _system.models[name]
+        return get_model(name)
 
 
 def get_space(name=None):
@@ -151,7 +152,8 @@ def get_space(name=None):
     if name is None:
         return _system.currentmodel.currentspace.interface
     else:
-        return _system.currentmodel.spaces[name].interface
+        _system.currentmodel.currentspace = _system.currentmodel.spaces[name]
+        return get_space()
 
 
 def get_self():
