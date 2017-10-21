@@ -358,8 +358,11 @@ class SpaceContainer(Interface):
         return MappingProxyType(get_interfaces(self._impl.spaces))
 
 
-class ImplMap:
-    """Base class"""
+class ImplMapMixin:
+    """Mixin to LazyEvalChain to update interface with impl
+
+    _update_interfaces needs to be manually called from _update_data.
+    """
     def __init__(self):
         self._interfaces = {}
         self.interfaces = MappingProxyType(self._interfaces)
@@ -414,6 +417,7 @@ class BaseMembers(LazyEvalDict):
                 if name not in keys:
                     del self.data[name]
 
+
 class DerivedMembers(LazyEvalDict):
 
     def __init__(self, space, data=None, observers=None, member=''):
@@ -433,25 +437,19 @@ class DerivedMembers(LazyEvalDict):
     def base_members(self):
         return self._base_members.update_data()
 
+
+class DerivedCells(ImplMapMixin, DerivedMembers):
+
+    def __init__(self, space, data=None, observers=None, member=''):
+        ImplMapMixin.__init__(self)
+        DerivedMembers.__init__(self, space, data, observers, member)
+
     def _update_data(self):
-        if self.member == 'cells':
-            self._update_data_cells()
-        elif self.member == 'spaces':
-            self._update_data_spaces()
-        elif self.member == 'refs':
-            self._update_data_refs()
-        else:
-            raise ValueError
-
-    def _update_data_cells(self):
-
         keys = self.data.keys() - self.base_members.keys()
-
         for key in keys:
             del self.data[key]
 
         for key, base_cell in self.base_members.items():
-
             if key in self.data:
                 if self.data[key].formula is base_cell.formula:
                     return
@@ -460,10 +458,18 @@ class DerivedMembers(LazyEvalDict):
 
             cell = CellsImpl(space=self.space, name=base_cell.name,
                              func=base_cell.formula)
-
             self.data[key] = cell
 
-    def _update_data_spaces(self):
+        self._update_interfaces()
+
+
+class DerivedSpaces(ImplMapMixin, DerivedMembers):
+
+    def __init__(self, space, data=None, observers=None, member=''):
+        ImplMapMixin.__init__(self)
+        DerivedMembers.__init__(self, space, data, observers, member)
+
+    def _update_data(self):
 
         self.data.clear()
         for base_space in self.base_members.values():
@@ -474,21 +480,14 @@ class DerivedMembers(LazyEvalDict):
 
             self.data[space.name] = space
 
-    def _update_data_refs(self):
-
-        self.data.clear()
-        self.data.update(self.base_members)
+        self._update_interfaces()
 
 
-class ImplDerivedMembers(ImplMap, DerivedMembers):
-
-    def __init__(self, space, data=None, observers=None, member=''):
-        ImplMap.__init__(self)
-        DerivedMembers.__init__(self, space, data, observers, member)
+class DerivedRefs(DerivedMembers):
 
     def _update_data(self):
-        DerivedMembers._update_data(self)
-        self._update_interfaces()
+        self.data.clear()
+        self.data.update(self.base_members)
 
 
 class SelfMembers(LazyEvalDict):
@@ -505,10 +504,10 @@ class SelfMembers(LazyEvalDict):
         self.attr = attr
 
 
-class ImplSelfMembers(ImplMap, SelfMembers):
+class ImplSelfMembers(ImplMapMixin, SelfMembers):
 
     def __init__(self, space, attr, data=None, observers=None):
-        ImplMap.__init__(self)
+        ImplMapMixin.__init__(self)
         SelfMembers.__init__(self, space, attr, data, observers)
         self._repr = self.space.get_fullname(omit_model=True) + '._self_' + attr
 
@@ -516,10 +515,10 @@ class ImplSelfMembers(ImplMap, SelfMembers):
         self._update_interfaces()
 
 
-class ImplChainMap(ImplMap, LazyEvalChainMap):
+class ImplChainMap(ImplMapMixin, LazyEvalChainMap):
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
-        ImplMap.__init__(self)
+        ImplMapMixin.__init__(self)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
     def _update_data(self):
@@ -657,34 +656,35 @@ class SpaceImpl(SpaceContainerImpl):
 
         # Add observers later to avoid circular reference
         self._self_members = LazyEvalChainMap(self_members)
-        self._self_members._repr = self.get_fullname(omit_model=True) + \
-                                   '._self_members'
+        self._self_members._repr = \
+            self.get_fullname(omit_model=True) + '._self_members'
 
-        self._derived_cells = ImplDerivedMembers(self, member='cells')
-        self._derived_cells._repr = self.get_fullname(omit_model=True) + \
-            '._derived_cells'
+        self._derived_cells = DerivedCells(self, member='cells')
+        self._derived_cells._repr = \
+            self.get_fullname(omit_model=True) + '._derived_cells'
 
         self._cells = ImplChainMap([self._self_cells,
                                     self._derived_cells])
-        self._cells._repr = self.get_fullname(omit_model=True) + \
-                            '._cells'
+        self._cells._repr = \
+            self.get_fullname(omit_model=True) + '._cells'
 
-        self._derived_spaces = ImplDerivedMembers(self, member='spaces')
-        self._derived_spaces._repr = self.get_fullname(omit_model=True) + \
-                                     '._derived_spaces'
+        self._derived_spaces = DerivedSpaces(self, member='spaces')
+        self._derived_spaces._repr = \
+            self.get_fullname(omit_model=True) + '._derived_spaces'
+
         self._static_spaces = ImplChainMap([self._self_spaces,
                                             self._derived_spaces])
-        self._static_spaces._repr = self.get_fullname(omit_model=True) + \
-                                    '._static_spaces'
+        self._static_spaces._repr = \
+            self.get_fullname(omit_model=True) + '._static_spaces'
 
         self._spaces = ImplChainMap([self._static_spaces,
                                      self._dynamic_spaces])
-        self._spaces._repr = self.get_fullname(omit_model=True) + \
-                             '._spaces'
+        self._spaces._repr = \
+            self.get_fullname(omit_model=True) + '._spaces'
 
-        self._derived_refs = DerivedMembers(self, member='refs')
-        self._derived_refs._repr = self.get_fullname(omit_model=True) + \
-            '._derived_refs'
+        self._derived_refs = DerivedRefs(self, member='refs')
+        self._derived_refs._repr = \
+            self.get_fullname(omit_model=True) + '._derived_refs'
 
         self._global_refs = {'__builtins__': __builtins__,
                              'get_self': self.get_self_interface}
@@ -706,14 +706,13 @@ class SpaceImpl(SpaceContainerImpl):
         self._namespace_impl = LazyEvalChainMap([self._cells,
                                                  self._spaces,
                                                  self._refs])
-        self._namespace_impl._repr = self.get_fullname(omit_model=True) + \
-            '._namespace_impl'
-
+        self._namespace_impl._repr = \
+            self.get_fullname(omit_model=True) + '._namespace_impl'
 
         self._namespace = NameSpaceDict(self)
         self._namespace_impl.append_observer(self._namespace)
-        self._namespace._repr = self.get_fullname(omit_model=True) + \
-            '._namespace'
+        self._namespace._repr = \
+            self.get_fullname(omit_model=True) + '._namespace'
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
