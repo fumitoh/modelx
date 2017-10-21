@@ -957,7 +957,7 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             raise ValueError("Derived cells cannot be deleted")
 
-    def set_name(self, name, value):
+    def set_attr(self, name, value):
 
         if not is_valid_name(name):
             raise ValueError
@@ -1288,7 +1288,7 @@ class Space(SpaceContainer):
         return self._impl.namespace[name]
 
     def __setattr__(self, name, value):
-        self._impl.set_name(name, value)
+        self._impl.set_attr(name, value)
 
     # ----------------------------------------------------------------------
     # Manipulating subspaces
