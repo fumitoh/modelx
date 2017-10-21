@@ -653,8 +653,7 @@ class SpaceImpl(SpaceContainerImpl):
 
         self_members = [self._self_cells,
                         self._self_spaces,
-                        self._self_refs,
-                        self._dynamic_spaces]
+                        self._self_refs]
 
         # Add observers later to avoid circular reference
         self._self_members = LazyEvalChainMap(self_members)
