@@ -394,6 +394,9 @@ class BaseMembers(LazyEvalDict):
         for base in self.space.mro[1:]:
             base._self_members.append_observer(self)
 
+        self._repr = self.space.get_fullname(omit_model=True) + \
+            '.BaseMembers(%s)' % self.member
+
         self.update_data()
 
     def _update_data(self):
@@ -507,6 +510,7 @@ class ImplSelfMembers(ImplMap, SelfMembers):
     def __init__(self, space, attr, data=None, observers=None):
         ImplMap.__init__(self)
         SelfMembers.__init__(self, space, attr, data, observers)
+        self._repr = self.space.get_fullname(omit_model=True) + '._self_' + attr
 
     def _update_data(self):
         self._update_interfaces()
@@ -654,30 +658,44 @@ class SpaceImpl(SpaceContainerImpl):
 
         # Add observers later to avoid circular reference
         self._self_members = LazyEvalChainMap(self_members)
+        self._self_members._repr = self.get_fullname(omit_model=True) + \
+                                   '._self_members'
 
         self._derived_cells = ImplDerivedMembers(self, member='cells')
+        self._derived_cells._repr = self.get_fullname(omit_model=True) + \
+            '._derived_cells'
+
         self._cells = ImplChainMap([self._self_cells,
                                     self._derived_cells])
+        self._cells._repr = self.get_fullname(omit_model=True) + \
+                            '._cells'
 
         self._derived_spaces = ImplDerivedMembers(self, member='spaces')
-        self._derived_spaces._repr = '_derived_spaces'
+        self._derived_spaces._repr = self.get_fullname(omit_model=True) + \
+                                     '._derived_spaces'
         self._static_spaces = ImplChainMap([self._self_spaces,
                                             self._derived_spaces])
-        self._static_spaces._repr = '_static_spaces'
+        self._static_spaces._repr = self.get_fullname(omit_model=True) + \
+                                    '._static_spaces'
 
         self._spaces = ImplChainMap([self._static_spaces,
                                      self._dynamic_spaces])
-        self._spaces._repr = '_spaces'
+        self._spaces._repr = self.get_fullname(omit_model=True) + \
+                             '._spaces'
 
         self._derived_refs = DerivedMembers(self, member='refs')
+        self._derived_refs._repr = self.get_fullname(omit_model=True) + \
+            '._derived_refs'
+
         self._global_refs = {'__builtins__': __builtins__,
-                               'get_self': self.get_self_interface}
+                             'get_self': self.get_self_interface}
 
         self._refs = LazyEvalChainMap([self._global_refs,
                                        self._arguments,
                                        self._self_refs,
                                        self._derived_refs])
-        self._refs._repr = '_refs'
+
+        self._refs._repr = self.get_fullname(omit_model=True) + '._refs'
 
         derived = [self._derived_cells,
                    self._derived_spaces,
@@ -689,9 +707,14 @@ class SpaceImpl(SpaceContainerImpl):
         self._namespace_impl = LazyEvalChainMap([self._cells,
                                                  self._spaces,
                                                  self._refs])
+        self._namespace_impl._repr = self.get_fullname(omit_model=True) + \
+            '._namespace_impl'
+
 
         self._namespace = NameSpaceDict(self)
         self._namespace_impl.append_observer(self._namespace)
+        self._namespace._repr = self.get_fullname(omit_model=True) + \
+            '._namespace'
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
@@ -765,20 +788,35 @@ class SpaceImpl(SpaceContainerImpl):
             return self._namespace_impl[child]
 
     @property
-    def repr_(self):
+    def debug_info(self):
 
-        format_ = dedent("""\
+        message = dedent("""\
         name: %s
+        self_cells:
+            need_update=%s
+            names:%s
+        derived_cells:
+            need_update=%s
+            names:%s
+        base_cells:
+            need_update=%s
+            names:%s
         cells: %s
         spaces: %s
         refs: %s
         """)
 
-        return format_ % (
+        return message % (
             self.name,
-            list(self.cells.keys()),
-            list(self.spaces.keys()),
-            list(self.refs.keys())
+            self._self_cells._needs_update,
+            list(self._self_cells.keys()),
+            self._derived_cells._needs_update,
+            list(self._derived_cells.keys()),
+            self._derived_cells._base_members._needs_update,
+            list(self._derived_cells._base_members.keys()),
+            list(self._cells.keys()),
+            list(self._spaces.keys()),
+            list(self._refs.keys())
         )
 
     # ----------------------------------------------------------------------
@@ -787,6 +825,13 @@ class SpaceImpl(SpaceContainerImpl):
     @property
     def self_cells(self):
         return self._self_cells.update_data()
+
+    def self_cells_set_update(self):
+        return self._self_cells.set_update(skip_self=False)
+
+    @property
+    def derived_cells(self):
+        return self._derived_cells.update_data()
 
     @property
     def self_spaces(self):

@@ -180,6 +180,7 @@ class LazyEvalChain:
     def __init__(self, observers):
         self._needs_update = False
         self.observers = []
+        self.observing = []
         for observer in observers:
             self.append_observer(observer)
 
@@ -199,6 +200,8 @@ class LazyEvalChain:
         if not self.needs_update:
             return self
         else:
+            for other in self.observing:
+                other.update_data()
             self._update_data()
             self._needs_update = False
             return self
@@ -209,10 +212,18 @@ class LazyEvalChain:
     def append_observer(self, observer):
         if all(observer is not other for other in self.observers):
             self.observers.append(observer)
+            observer.observing.append(self)
             observer.set_update()
+
+    def observe(self, other):
+        other.append_observer(self)
 
     def remove_observer(self, observer):
         self.observers.remove(observer)
+        observer.observing.remove(self)
+
+    def unobserve(self, other):
+        other.remove_observer(self)
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -221,6 +232,11 @@ class LazyEvalChain:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
+    def debug_print_observers(self, indent_level=0):
+        print(' ' * indent_level * 4,
+              self, ':', self.needs_update)
+        for observer in self.observers:
+            observer.debug_print_observers(indent_level + 1)
 
 class LazyEvalDict(LazyEvalChain, UserDict):
 
@@ -233,11 +249,15 @@ class LazyEvalDict(LazyEvalChain, UserDict):
 
         UserDict.__init__(self, data)
         LazyEvalChain.__init__(self, observers)
+        self._repr = ''
 
     def get_updated_data(self):
         """Get updated ``data`` instead of self. """
         self.update_data()
         return self.data
+
+    def _update_data(self):
+        pass
 
     def __repr__(self):
 
@@ -257,7 +277,7 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
 
         ChainMap.__init__(self, *maps)
         LazyEvalChain.__init__(self, observers)
-        self._repr = ""
+        self._repr = ''
 
         if observe_maps:
             for other in maps:

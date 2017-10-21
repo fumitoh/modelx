@@ -182,11 +182,7 @@ class CellsImpl(Impl):
                           len(self.data))
 
     def has_cell(self, args):
-
-        if args in self.data:
-            return True
-        else:
-            return False
+        return args in self.data
 
     def is_scalar(self):
         return len(self.parameters) == 0
@@ -198,15 +194,21 @@ class CellsImpl(Impl):
         else:
             return TypeError
 
+    @property
+    def is_derived(self):
+        return self.name in self.space.derived_cells
+
     def clear_formula(self):
-        self.model.clear_obj(self)
-        # TODO: Consider derived spaces.
-        self.formula = NULL_FORMULA
+        self.set_formula(NULL_FORMULA)
 
     def set_formula(self, func):
-        formula = Formula(func)
-        self.clear_formula()
-        self.formula = formula
+        if not self.is_derived:
+            formula = Formula(func)
+            self.model.clear_obj(self)
+            self.formula = formula
+            self.space.self_cells_set_update()
+        else:
+            raise NotImplementedError('Cannot change derived cells formula')
 
     def get_value(self, args, kwargs=None):
 
@@ -473,3 +475,6 @@ class Cells(Interface, Container, Callable, Sized):
         """Set formula from a function."""
         self._impl.set_formula(func)
 
+    def clear_formula(self):
+        """Clear the formula."""
+        self._impl.clear_formula()

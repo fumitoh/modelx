@@ -35,7 +35,7 @@ def new_model(name=None):
     return _system.new_model(name).interface
 
 
-def new_space(name=None):
+def new_space(name=None, bases=None, paramfunc=None):
     """Create and return a new space in the current model.
 
     The ``currentspace`` of the current model is set to the created model.
@@ -48,8 +48,7 @@ def new_space(name=None):
     Returns:
         The new space.
     """
-
-    return get_model().new_space(name)
+    return get_model().new_space(name, bases, paramfunc)
 
 
 def defcells(space=None, name=None, *funcs):
