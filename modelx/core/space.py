@@ -659,11 +659,10 @@ class SpaceImpl(SpaceContainerImpl):
         self._cells = ImplChainMap([self._self_cells,
                                     self._derived_cells])
 
-
         self._derived_spaces = ImplDerivedMembers(self, member='spaces')
         self._derived_spaces._repr = '_derived_spaces'
         self._static_spaces = ImplChainMap([self._self_spaces,
-                                                self._derived_spaces])
+                                            self._derived_spaces])
         self._static_spaces._repr = '_static_spaces'
 
         self._spaces = ImplChainMap([self._static_spaces,

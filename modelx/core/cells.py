@@ -467,3 +467,9 @@ class Cells(Interface, Container, Callable, Sized):
     @can_return_none.setter
     def can_return_none(self, value):
         self._impl.can_return_none = bool(value)
+
+
+    def set_formula(self, func):
+        """Set formula from a function."""
+        self._impl.set_formula(func)
+
