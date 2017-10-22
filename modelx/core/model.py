@@ -18,7 +18,7 @@ import pickle
 
 import networkx as nx
 
-from modelx.core.base import Impl
+from modelx.core.base import Impl, LazyEvalDict, LazyEvalChainMap
 from modelx.core.cells import CellArgs
 from modelx.core.space import SpaceContainerImpl, SpaceContainer
 from modelx.core.util import is_valid_name
@@ -59,13 +59,13 @@ class DependencyGraph(nx.DiGraph):
                 result.add(node)
         return result
 
-
 class ModelImpl(SpaceContainerImpl):
 
     def __init__(self, *, system, name):
-        SpaceContainerImpl.__init__(self, system, if_class=Model, paramfunc=None)
+        SpaceContainerImpl.__init__(self, system, if_class=Model,
+                                    paramfunc=None)
 
-        self.cellgraph = DependencyGraph()  #nx.DiGraph()
+        self.cellgraph = DependencyGraph()
         self.currentspace = None
 
         if not name:
@@ -76,6 +76,10 @@ class ModelImpl(SpaceContainerImpl):
             raise ValueError("Invalid name '%s'." % name)
 
         Impl.__init__(self, Model)
+
+        self._global_refs = LazyEvalDict(data={'__builtins__': __builtins__})
+        self._spaces = LazyEvalDict()
+        self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
 
     def clear_descendants(self, source, clear_source=True):
         """Clear values and nodes calculated from `source`."""
@@ -103,6 +107,14 @@ class ModelImpl(SpaceContainerImpl):
     def model(self):
         return self
 
+    @property
+    def global_refs(self):
+        return self._global_refs.update_data()
+
+    @property
+    def namespace(self):
+        return self._namespace.update_data()
+
     def close(self):
         self.system.close_model(self)
 
@@ -122,12 +134,16 @@ class ModelImpl(SpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = ['name', 'cellgraph'] + SpaceContainerImpl.state_attrs
+    state_attrs = ['name',
+                   'cellgraph',
+                   '_global_refs'] + SpaceContainerImpl.state_attrs
 
     def __getstate__(self):
 
         state = {key: value for key, value in self.__dict__.items()
                  if key in self.state_attrs}
+
+        # state['_global_refs'] = self._global_refs.data.copy()
 
         mapping = {}
         for node in self.cellgraph:
@@ -139,6 +155,7 @@ class ModelImpl(SpaceContainerImpl):
         return state
 
     def __setstate__(self, state):
+        # state['_global_refs']['__builtins__'] = __builtins__
         self.__dict__.update(state)
 
     def restore_state(self, system):
@@ -153,15 +170,47 @@ class ModelImpl(SpaceContainerImpl):
         self.cellgraph = nx.relabel_nodes(self.cellgraph, mapping)
 
     def del_space(self, name):
-        # TODO: Destroy the space
         del self.spaces[name]
+        self.spaces.set_update()
 
     def _set_space(self, space):
 
         if space.name in self.spaces:
             self.del_space(space.name)
+        elif space.name in self.global_refs:
+            raise KeyError("Name '%s' already already assigned" % self.name)
 
         self.spaces[space.name] = space
+        self.spaces.set_update()
+
+    def del_ref(self, name):
+        del self.global_refs[name]
+        self.global_refs.set_update()
+
+    def get_attr(self, name):
+        if name in self.spaces:
+            return self.spaces[name]
+        elif name in self.global_refs:
+            return self.global_refs[name]
+        else:
+            raise KeyError("Model '{0}' does not have '{1}'".\
+                           format(self.name, name))
+
+    def set_attr(self, name, value):
+        if name in self.spaces:
+            raise KeyError("Space named '%s' already exist" % self.name)
+
+        self.global_refs[name] = value
+        self.global_refs.set_update()
+
+    def del_attr(self, name):
+
+        if name in self.spaces:
+            self.del_space(name)
+        elif name in self.global_refs:
+            self.del_ref(name)
+        else:
+            raise KeyError("Name '%s' not defined" % name)
 
 
 class Model(SpaceContainer):
@@ -184,11 +233,17 @@ class Model(SpaceContainer):
         """Close the model."""
         self._impl.close()
 
-    def __getitem__(self, space):
-        return self._impl.space[space]
+    # ----------------------------------------------------------------------
+    # Getting and setting attributes
 
-    # def __repr__(self):
-    #     return self._impl.repr_
+    def __getattr__(self, name):
+        return self._impl.get_attr(name)
+
+    def __setattr__(self, name, value):
+        self._impl.set_attr(name, value)
+
+    def __delattr__(self, name):
+        self._impl.del_attr(name)
 
     @property
     def cellgraph(self):
@@ -196,7 +251,7 @@ class Model(SpaceContainer):
         return self._impl.cellgraph
 
     def get_space(self, name=None):
-        """Set the current space and return it.
+        """Set the current space to Space ``name`` and return it.
 
         If called without arguments, the current space is returned.
         Otherwise, the current space is set to the space named ``name``

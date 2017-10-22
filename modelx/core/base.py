@@ -253,6 +253,7 @@ class LazyEvalChain:
         for observer in self.observers:
             observer.debug_print_observers(indent_level + 1)
 
+
 class LazyEvalDict(LazyEvalChain, UserDict):
 
     def __init__(self, data=None, observers=None):
@@ -280,6 +281,24 @@ class LazyEvalDict(LazyEvalChain, UserDict):
             return self._repr
         else:
             return UserDict.__repr__(self)
+
+    def __getstate__(self):
+
+        state = self.__dict__.copy()
+        if '__builtins__' in state['data']:
+            data = state['data'].copy()
+            data['__builtins__'] = '__builtins__'
+            state['data'] = data
+
+        return state
+
+    def __setstate__(self, state):
+
+        if '__builtins__' in state['data']:
+            state['data']['__builtins__'] = __builtins__
+
+        self.__dict__.update(state)
+
 
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
 

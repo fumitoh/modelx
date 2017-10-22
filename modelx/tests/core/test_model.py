@@ -104,12 +104,33 @@ def test_cellgraph_informula_assignment():
     assert node == [CellArgs(bar._impl, 1)]
 
 
+def test_global_ref_attr():
+    model, space = new_model(), new_space()
+
+    @defcells
+    def func1(x):
+        return min(n, x)
+
+    model.n = 2
+    assert func1(3) == 2 and model.n == 2
+
+
+def test_global_ref_delattr():
+    model, space = new_model(), new_space()
+
+    @defcells
+    def func1(x):
+        return min(n, x)
+
+    model.n = 2
+    del model.n
+
+    with pytest.raises(NameError):
+        func1(4)
+
 # ---- Test impl ----
 
 def test_get_object(simplemodel):
-
-    # print(type(simplemodel._impl.get_object('simplespace.fibo')))
-    # print(simplemodel._impl.spaces['simplespace'].cells['fibo'])
 
     assert simplemodel._impl.get_object('Space1.fibo') is \
         simplemodel._impl.spaces['Space1'].cells['fibo']

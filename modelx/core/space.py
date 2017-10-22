@@ -156,7 +156,8 @@ class SpaceContainerImpl(Impl):
         module_ = get_module(module_)
 
         if 'name' not in params or params['name'] is None:
-            name = params['name'] = module_.__name__.split('.')[-1] # xxx.yyy.zzz -> zzz
+            # xxx.yyy.zzz -> zzz
+            name = params['name'] = module_.__name__.split('.')[-1]
         else:
             name = params['name']
 
@@ -166,8 +167,7 @@ class SpaceContainerImpl(Impl):
         if recursive and hasattr(module_, '_spaces'):
             for name in module_._spaces:
                 submodule = module_.__name__ + '.' + name
-                space.new_space_from_module(module_=submodule,
-                                               recursive=True)
+                space.new_space_from_module(module_=submodule, recursive=True)
 
         return space
 
@@ -586,6 +586,7 @@ class SpaceImpl(SpaceContainerImpl):
             derived_refs
             self_refs
             global_refs
+            local_refs
             arguments
 
         cells_parameters (Not yet implemented)
@@ -701,10 +702,11 @@ class SpaceImpl(SpaceContainerImpl):
         self._derived_refs._repr = \
             self.get_fullname(omit_model=True) + '._derived_refs'
 
-        self._global_refs = {'__builtins__': __builtins__,
-                             'get_self': self.get_self_interface}
+        self._local_refs = {'get_self': self.get_self_interface,
+                            '_self': self.interface}
 
-        self._refs = LazyEvalChainMap([self._global_refs,
+        self._refs = LazyEvalChainMap([self.model._global_refs,
+                                       self._local_refs,
                                        self._arguments,
                                        self._self_refs,
                                        self._derived_refs])
@@ -742,7 +744,7 @@ class SpaceImpl(SpaceContainerImpl):
         '_derived_spaces',
         '_static_spaces',
         '_dynamic_spaces',
-        '_global_refs',
+        '_local_refs',
         '_arguments',
         '_self_refs',
         '_derived_refs',
@@ -758,19 +760,10 @@ class SpaceImpl(SpaceContainerImpl):
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
                  if key in self.state_attrs}
-
-        state['_global_refs'].clear()
-        if '__builtins__' in state['_namespace']:
-            state['_namespace']['__builtins__'] = '__builtins__'
-
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self._global_refs.update({'__builtins__': __builtins__,
-                                    'get_self': self.get_self_interface})
-        if '__builtins__' in state['_namespace']:
-            state['_namespace']['__builtins__'] = __builtins__
 
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
@@ -936,8 +929,10 @@ class SpaceImpl(SpaceContainerImpl):
     def _set_space(self, space):
         if space.is_dynamic():
             self._dynamic_spaces[space.name] = space
+            self._dynamic_spaces.set_update(skip_self=True)
         else:
             self._self_spaces[space.name] = space
+            self._self_spaces.set_update(skip_self=True)
 
     def del_space(self, name):
         if name not in self.spaces:
