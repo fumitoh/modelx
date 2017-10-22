@@ -130,7 +130,7 @@ class SpaceContainerImpl(Impl):
         """
 
         if name is None:
-            name = self.spacenamer.get_next(self.spaces)
+            name = self.spacenamer.get_next(self.namespace)
 
         if self.has_space(name):
             raise ValueError("Name already assigned.")
@@ -149,6 +149,10 @@ class SpaceContainerImpl(Impl):
         raise NotImplementedError
 
     def del_space(self, name):
+        raise NotImplementedError
+
+    @property
+    def namespace(self):
         raise NotImplementedError
 
     def new_space_from_module(self, module_, recursive=False, **params):
