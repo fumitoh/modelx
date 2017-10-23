@@ -49,11 +49,6 @@ def test_new_cells_from_modulename(samplespace):
     assert set(testmodule.funcs) == set(cells.keys())
 
 
-def test_mro_root(samplespace):
-    space = get_space()
-    assert [space._impl] == space._impl.mro
-
-
 def test_derived_spaces(samplespace):
 
     model = get_model()
@@ -101,7 +96,41 @@ def test_dynamic_spaces(samplespace):
     assert space[1].foo(2) == 2 \
         and space[2].foo(4) == 8
 
-# ----- Testing _impl methods ----
+
+def test_ref(samplespace):
+
+    space = new_space()
+
+    @defcells
+    def foo(x):
+        return x * n
+
+    space.n = 3
+    assert foo(2) == 6
+
+
+def test_del_cells(samplespace):
+
+    space = new_space()
+
+    @defcells
+    def foo(x):
+        return 2 * x
+
+    foo(3)
+    del space.foo
+
+    with pytest.raises(KeyError):
+        space.foo(3)
+
+    with pytest.raises(RuntimeError):
+        foo(3)
+
+# ----- Testing _impl  ----
+
+def test_mro_root(samplespace):
+    space = get_space()
+    assert [space._impl] == space._impl.mro
 
 
 def test_fullname(samplespace):

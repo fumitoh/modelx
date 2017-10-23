@@ -157,6 +157,34 @@ class Impl:
         self.interface = interface_class(self)
 
 
+class NullImpl(Impl):
+    """Singleton to represent deleted objects.
+
+    Call ``impl.del_self`` if it exists,
+    and detach ``impl`` from its interface.
+    The interface points to this NllImpl singleton.
+    """
+    the_instance = None
+
+    def __new__(cls, impl):
+
+        if cls.the_instance is None:
+            cls.the_instance = object.__new__(cls)
+
+        if hasattr(impl, 'del_self'):
+            impl.del_self()
+
+        impl.interface._impl = cls.the_instance
+
+        return cls.the_instance
+
+    def __init__(self, impl):
+        pass
+
+    def __getattr__(self, item):
+        raise RuntimeError("Deleted object")
+
+
 class Interface:
 
     def __new__(cls, _impl):

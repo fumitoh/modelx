@@ -147,6 +147,10 @@ class CellsImpl(Impl):
             data = {}
         self.data.update(data)
 
+    def del_self(self):
+        """Delete content of self. Called from NullImpl(self)"""
+        self.clear_all_values()
+
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
@@ -321,6 +325,10 @@ class CellsImpl(Impl):
         from modelx.io.pandas import cells_to_dataframe
 
         return cells_to_dataframe(self)
+
+
+
+
 
 
 class Cells(Interface, Container, Callable, Sized):

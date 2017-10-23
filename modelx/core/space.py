@@ -22,6 +22,7 @@ from modelx.core.base import (ObjectArgs,
                               get_impls,
                               get_interfaces,
                               Impl,
+                              NullImpl,
                               Interface,
                               LazyEvalDict,
                               LazyEvalChainMap)
@@ -833,6 +834,14 @@ class SpaceImpl(SpaceContainerImpl):
     # Components and namespace
 
     @property
+    def self_members(self):
+        return self._self_members.update_data()
+
+    @property
+    def cells(self):
+        return self._cells.update_data()
+
+    @property
     def self_cells(self):
         return self._self_cells.update_data()
 
@@ -844,28 +853,32 @@ class SpaceImpl(SpaceContainerImpl):
         return self._derived_cells.update_data()
 
     @property
+    def spaces(self):
+        return self._spaces.update_data()
+
+    @property
     def self_spaces(self):
         return self._self_spaces.update_data()
+
+    @property
+    def derived_spaces(self):
+        return self._derived_spaces.update_data()
+
+    @property
+    def dynamic_spaces(self):
+        return self._dynamic_spaces.update_data()
+
+    @property
+    def refs(self):
+        return self._refs.update_data()
 
     @property
     def self_refs(self):
         return self._self_refs.update_data()
 
     @property
-    def self_members(self):
-        return self._self_members.update_data()
-
-    @property
-    def cells(self):
-        return self._cells.update_data()
-
-    @property
-    def spaces(self):
-        return self._spaces.update_data()
-
-    @property
-    def refs(self):
-        return self._refs.update_data()
+    def derived_refs(self):
+        return self._derived_refs.update_data()
 
     @property
     def namespace_impl(self):
@@ -979,23 +992,67 @@ class SpaceImpl(SpaceContainerImpl):
             self._self_refs[name] = value
             self._self_refs.set_update(skip_self=True)
 
-    def remove_cells(self, name):
-
-        if name in self._self_cells:
-            self._self_cells[name].parent = None
-            del self._self_cells[name]
-
-        for base in self.direct_bases:
-            if name in base.cells:
-                base_cells = base.cells[name]
-                self._derived_cells[name] = \
-                    self.new_cells(name=name, func=base_cells.formula)
-            break
-
-    def remove_derived(self, name):
+    def del_attr(self, name):
 
         if name in self.namespace:
+            if name in self.cells:
+                if name in self.self_cells:
+                    self.del_cells(name)
+                elif name in self.derived_cells:
+                    raise KeyError("Derived cells cannot be removed")
+                elif name in self.dynamic_spaces:
+                    self.del_cells(name)
+                else:
+                    raise RuntimeError("Must not happen")
 
+            elif name in self.spaces:
+                if name in self.self_spaces:
+                    pass
+                elif name in self.derived_cells:
+                    raise KeyError("Derived space cannot be removed")
+                else:
+                    raise RuntimeError("Must not happen")
+
+            elif name in self.refs:
+                if name in self.self_refs:
+                    pass
+                elif name in self.derived_refs:
+                    raise KeyError("Derived refs cannot be removed")
+                else:   # global refs, local refs or arguments
+                    raise KeyError("'%s' cannot be removed" % name)
+
+            else:
+                raise RuntimeError("Must not happen")
+
+        else:
+            raise KeyError("'%s' not found in Space '%s'" % (name, self.name))
+
+    def del_cells(self, name):
+
+        if name in self.self_cells:
+            # self._self_cells[name].parent = None
+            cells = self.self_cells.pop(name)
+            self.self_cells.set_update()
+
+        elif name in self.dynamic_spaces:
+            cells = self.dynamic_spaces.pop(name)
+            self.dynamic_spaces.set_update()
+
+        else:
+            raise KeyError("Cells '%s' does not exist" % name)
+
+        NullImpl(cells)
+
+        # for base in self.direct_bases:
+        #     if name in base.cells:
+        #         base_cells = base.cells[name]
+        #         self._derived_cells[name] = \
+        #             self.new_cells(name=name, func=base_cells.formula)
+        #     break
+
+    def _del_derived_cells(self, name):
+
+        if name in self.namespace:
             if name in self._derived_cells:
                 self._derived_cells[name].parent = None
                 del self._derived_cells[name]
@@ -1288,6 +1345,9 @@ class Space(SpaceContainer):
 
     def __setattr__(self, name, value):
         self._impl.set_attr(name, value)
+
+    def __delattr__(self, name):
+        self._impl.del_attr(name)
 
     # ----------------------------------------------------------------------
     # Manipulating subspaces
