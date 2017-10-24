@@ -248,7 +248,8 @@ class SpaceContainerImpl(Impl):
             if space_args is None:
                 space_args = {}
             else:
-                space_args = get_impls(space_args)
+                if 'bases' in space_args:
+                    space_args['bases'] = get_impls(space_args['bases'])
 
             space_args['arguments'] = ptr.arguments
             space = self.new_space(**space_args)
