@@ -49,21 +49,17 @@ def sample_space():
 
     func1, func2 = defcells(func1, func2)
 
-    # @defcells
-    # def double_double(x):
-    #     return 2 * double[x]
-
     return space
 
-# def test_double_double(sample_space):
-#     assert sample_space.double_double[2] == 8
 
 def test_defcells_funcs(sample_space):
     assert sample_space.func1[2] == 10 \
         and sample_space.func2[2] == 12
 
+
 def test_init_from_str(sample_space):
     assert sample_space.func[2] == 4
+
 
 def test_getitem(sample_space):
     assert sample_space.fibo[10] == 55
@@ -241,7 +237,7 @@ def x_test_itr(sample_space):
     assert x == [0, 1, 2, 3, 4, 5]
 
 
-# -----------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Test _impl methods
 
 def test_fullname(sample_space):
@@ -254,7 +250,7 @@ def test_fullname_omit_model(sample_space):
            == "samplespace.fibo"
 
 
-# -----------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Test errors
 
 
@@ -277,3 +273,58 @@ def test_none_returned_error():
         """)
 
     assert errinfo.value.args[0] == errmsg
+
+
+# --------------------------------------------------------------------------
+# Test comparison
+
+@pytest.fixture
+def testcomp():
+
+    model, space = new_model(), new_space()
+
+    @defcells
+    def bar():
+        return 3
+
+    @defcells
+    def baz():
+        return 4
+
+    return space
+
+def test_lt(testcomp):
+
+    check = True
+    check = check and testcomp.bar < testcomp.baz
+    check = check and not testcomp.baz < testcomp.bar
+    check = check and 3 < testcomp.baz
+    check = check and testcomp.bar < 4
+    assert check
+
+def test_le(testcomp):
+
+    check = True
+    check = check and testcomp.bar <= testcomp.baz
+    check = check and not testcomp.baz <= testcomp.bar
+    check = check and 3 <= testcomp.baz
+    check = check and testcomp.bar <= 4
+    assert check
+
+def test_gt(testcomp):
+
+    check = True
+    check = check and not testcomp.bar > testcomp.baz
+    check = check and testcomp.baz > testcomp.bar
+    check = check and not 3 > testcomp.baz
+    check = check and not testcomp.bar > 4
+    assert check
+
+def test_ge(testcomp):
+
+    check = True
+    check = check and not testcomp.bar >= testcomp.baz
+    check = check and testcomp.baz >= testcomp.bar
+    check = check and not 3 >= testcomp.baz
+    check = check and not testcomp.bar >= 4
+    assert check

@@ -450,6 +450,9 @@ class Cells(Interface, Container, Callable, Sized):
         """Returns the Real distance from 0. Called for abs(self)."""
         raise NotImplementedError
 
+    # ----------------------------------------------------------------------
+    # Comparison operations
+
     def __eq__(self, other):
         """self == other"""
         if self._impl.is_scalar():
@@ -458,6 +461,22 @@ class Cells(Interface, Container, Callable, Sized):
             return self is other
         else:
             raise TypeError
+
+    def __lt__(self, other):
+        """self < other"""
+        return self._impl.single_value < other
+
+    def __le__(self, other):
+        """self <= other"""
+        return self.__eq__(other) or self.__lt__(other)
+
+    def __gt__(self, other):
+        """self > other"""
+        return self._impl.single_value > other
+
+    def __ge__(self, other):
+        """self >= other"""
+        return self.__eq__(other) or self.__gt__(other)
 
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
