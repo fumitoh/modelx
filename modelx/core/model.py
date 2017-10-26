@@ -189,7 +189,7 @@ class ModelImpl(SpaceContainerImpl):
 
     def get_attr(self, name):
         if name in self.spaces:
-            return self.spaces[name]
+            return self.spaces[name].interface
         elif name in self.global_refs:
             return self.global_refs[name]
         else:
