@@ -3,9 +3,9 @@ Tutorial
 This tutorial aims to introduce core concepts and features of modelx, and
 demonstrate how to use modelx by going through some examples.
 
-This tutorial supplements the modelx reference,
-which is build from docstrings of the API functions and classes,
-and the reference should cover the detailed description of each API element,
+This tutorial supplements modelx reference,
+which is build from docstrings of the API functions and classes.
+The reference should cover the details of each API element,
 which may not be fully explained in this tutorial.
 
 Typical workflow
@@ -13,7 +13,7 @@ Typical workflow
 modelx is a Python package, and you use it by writing a Python script
 importing it, as you would normally do with any other Python package.
 
-modelx is best suited for building a complex numerical models composed of
+modelx is best suited for building complex numerical models composed of
 many formulas referencing each other, so when you start from scratch,
 the typical workflow would be to first write code for building a model,
 and then evaluate the model.
@@ -58,13 +58,18 @@ by the formula or assigned as an input. We will learn how to define
 cells formulas through the examples soon.
 
 
-First example
--------------
-We'll start by talking a closer look at the simple example we saw
-in the overview section.
+Basic Operation
+---------------
+In this section, we'll start learning how to perform basic operations,
+such as creating models, spaces and cells,
+by talking a closer look at the simple example
+we saw in the overview section.
 
 .. literalinclude:: samples/example_overview.py
    :lines: 1-13
+
+Importing modelx
+^^^^^^^^^^^^^^^^
 
 To start using modelx, import the package by the import statement, as is the
 case with any other package.
@@ -83,40 +88,59 @@ in which case you can use modelx API functions prepended with ``mx.``.
 We'll assume importing ``*`` in this tutorial, but be reminded that this
 is not a good practice when you write Python modules.
 
-Creating Models
----------------
+Creating a model
+^^^^^^^^^^^^^^^^
 
-Then on the next line, we are creating a new Model object:
+The next statement performs two assignments in one line
+to make better use of horizontal space, but we'll decompose it
+into to the two assignment statements below
+for the sake of explanation::
 
-.. literalinclude:: samples/example_overview.py
-   :lines: 3
+   model = new_model()
+   space = new_space()
 
-``new_model()`` is a modelx API function which returns a newly created
-model. You can specify the name of the model by passing it as ``name`` argumet
+
+In the first line, ``new_model()`` is a modelx API function that create
+a new model and returns it.
+
+You can specify the name of the model by passing it as ``name`` argumet
 to the function, like ``new_model(name='MyModel')``.
 If no name is given as the argument,
 the returned model is named automatically by modelx.
-Confirm the model is created by ``get_models()`` function, which returns
-a mapping of the names of all existing models to the model objects::
 
-   >>> get_models()
-   {'Model1': <modelx.core.model.Model at 0x447f1b0>}
+Creating a space
+^^^^^^^^^^^^^^^^
 
-Creating Spaces
----------------
+modelx keeps track of the 'current' model. This is somewhat
+analogous to how a spareadsheet program has 'active' book.
+In addition to creating a new model, ``new_model()`` function sets
+the current model to the new model we just created.
 
-Now that you have created a brand new model, you can create a space in
-the model by calling its ``new_space()`` method.
-
-.. literalinclude:: samples/example_overview.py
-   :lines: 3
-
+``new_space()``, on the same line creates a new space in the current model.
 Just as with the models, the name of the space can be specified by
 passing it to the method ``name`` argument, otherwise the space gets its
 name by modelx.
 
+If you want to create a space in a model other than the current model,
+you can call ``new_space()`` method on the model, with
+or without the space name as its argument::
+
+   >>> space = model.new_space('MySpace')
+
+
+Getting Models
+^^^^^^^^^^^^^^
+
+To get all existing models, you can use ``get_models()`` function,
+which returns a mapping of the names of all existing models to
+the model objects::
+
+   >>> get_models()
+   {'Model1': <modelx.core.model.Model at 0x447f1b0>}
+
+
 Getting Spaces
---------------
+^^^^^^^^^^^^^^
 
 To get all spaces in a model mapped to their names,
 you can check ``spaces`` property of the model::
@@ -133,7 +157,8 @@ the same object as what is referred as ``space``::
 
 
 Creating Cells
---------------
+^^^^^^^^^^^^^^
+
 There are a few ways to create a cells object and defiene the formula
 associated with the cells. As seen in the example above,
 one way is to define a python function with ``defcells`` decorator.
@@ -161,7 +186,8 @@ the cell::
            return fibo(n - 1) + fibo(n - 2)
 
 Getting Cells
--------------
+^^^^^^^^^^^^^
+
 Similar to spaces in a model contained in the ``spaces`` property of the model,
 cells in a space are associated with their names and
 contained in the ``cells`` property of the model::
@@ -178,8 +204,9 @@ just like accessing the spaces's attribute::
    True
 
 
-Getting Cells Values
---------------------
+Getting Values
+^^^^^^^^^^^^^^
+
 The cells ``fibo`` does not have values yet right after it is created.
 To get cells' value for a
 certain parameter, simply call ``fibo`` with the paratmer in parenthesis or
@@ -192,9 +219,9 @@ in squre brackets::
 
 Its values are calculated automatically by the associated formula,
 when the cells values are referenced.
-Note that values are calculated not only for the specified parameter,
-but also for the parameters that recursively referenced by the formula
-in order to get the value for the specified parameter.
+Note that values are calculated not only for the specified argument,
+but also for the arguments that recursively referenced by the formula
+in order to get the value for the specified arguumnet.
 To see for what parameters values are calculated, export fibo to a Pandas
 Series object. (You need to have Pandas installed, ofcourse.)::
 
@@ -220,6 +247,71 @@ Since ``fibo[10]`` refers to ``fibo[9]`` and ``fibo[8]``,
 the recursive reference goes on until it stops and ``fibo[1]`` and ``fibo[0]``.
 by just calling ``fibo[10]``, values for the parameters from 0 to 10 are
 calculated.
+
+Clearing Values
+^^^^^^^^^^^^^^^
+
+To clear cells values, you can use ``clear()`` method. Below shows
+what happens when the value of fibo at n = 5 is cleared::
+
+  >>> fibo.clear(5)
+  >>> fibo.series
+  n
+  0    0
+  1    1
+  2    1
+  3    2
+  4    3
+  Name: fibo, dtype: int64
+
+As you can see, not only at n = 5, but also for n = 6 to 10
+values of ``fibo`` are cleared. This is because the calculations of
+``fibo[6]`` to ``fibo[10]`` depend on the value of ``fibo[5]``.
+Dependent values are cleared all together with the specified value.
+
+To clear all values, simply call ``clear()`` witthout arguments::
+
+  >>> fibo.clear()
+  >>> fibo.series
+  Series([], Name: fibo, dtype: float64)
+
+Setting Values
+^^^^^^^^^^^^^^
+
+Other than letting the formula calculate cells values, you can
+input cells values manually by the set item (``[] =``) operation.
+If the cells already has a value at the specified parameter value,
+then the values of dependent cells are cleared first, then the
+specified value is assigned::
+
+  >>> fibo[10]
+  55
+  >>> fibo.series
+  n
+  0      0
+  1      1
+  2      1
+  3      2
+  4      3
+  5      5
+  6      8
+  7     13
+  8     21
+  9     34
+  10    55
+  Name: fibo, dtype: int64
+
+  >>> fibo[5] = 0
+  >>> fibo.series
+  n
+  0    0
+  1    1
+  2    1
+  3    2
+  4    3
+  5    0
+  Name: fibo, dtype: int64
+
 
 Model
 -----
@@ -382,7 +474,7 @@ it shouldn't affect the results whether the starting age is 0 or 50.
 Below the modelx code for this life model:
 
 .. literalinclude:: samples/sample_inheritance.py
-   :lines: 6-20
+   :lines: 6-21
 
 The last line of the code above has the same effect as putting ``@defcells``
 decorator on top of each of the 3 function definitions.
@@ -452,7 +544,7 @@ that are not defined yet. Those are ``x0``, ``n``, ``disc_rate``.
 We need to define those in the ``Life`` space.
 
 .. literalinclude:: samples/sample_inheritance.py
-   :lines: 46-48
+   :lines: 46-47
 
 
 You get the following results by examining the ``TermLife`` space (The
@@ -555,19 +647,36 @@ or a tree of spaces, to different data sets.
 You can achieve that by applying the space inheritance on dynamic spaces.
 
 Dynamic spaces are parametrized spaces that are created on-the-fly when
-requested through call(``()``) or subscript(``[]``) operation on their parents.
+requested through call(``()``) or subscript(``[]``) operation on their parent
+spaces.
 
-To define dynamic spaces in a parent, whether it's a model or a space,
-You create the parent with a parameter function whose signature is
-used to define space parameters. The paremter function should return,
+To define dynamic spaces in a parent space,
+You create the space with a parameter function whose signature is
+used to define space parameters. The parameter function should return,
 if any, a mapping of parameter names to their arguments,
 to be pass on to the ``new_space`` method, when the dynamic spaces
 are created.
 
 To see how this works, let's continue with the previous example.
+In the last example, we manually set the issue age ``x0`` of the policy
+to 50, and the policy term ``n`` to 10.
+Assume we have 3 polices with the following attributes:
+
+=========  =========  ===========
+Policy ID  Issue Age  Policy Term
+=========  =========  ===========
+1           50          10
+2           60          15
+3           70           5
+=========  =========  ===========
+
+We'll create this sample data as a nested list::
+
+   >>> data = [[1, 50, 10], [2, 60, 15], [3, 70, 5]]
 
 
-
+.. literalinclude:: samples/sample_inheritance.py
+   :lines: 72-86
 
 Dynamic spaces of a base space are not passed on to the derived spaces.
 When a space is derived from a base space that has dynamically created
@@ -580,6 +689,24 @@ the derived space with arguments.
 Reading Excel files
 -------------------
 
+You can read data stored in an Excel file into newly created cells.
+Space has two methods ``new_cells_from_excel`` and ``new_space_from_excel``.
+``new_space_from_excel`` is also available on Model.
+You need to have Openpyxl package available in your Python environment
+to use these methods.
+
+``new_cells_from_excel`` method reads values from a range in an Excel file,
+creates cells and populates them with the values in the range.
+
+``new_space_from_excel`` methods reads values from a range in an Excel file,
+creates a space, and in that space, creates
+dynamic spaces using one or some of the index rows and/or columns
+as space parameters, and creates cells in the dynamics spaces populating
+them with the values in the range.
+
+Refer to the modelx reference for concrete description of those methods.
+
+
 Exporting to Pandas objects
 ---------------------------
 
@@ -589,4 +716,3 @@ Spaces have ``frame`` property, which generates a DataFrame
 object whose columns are cells names, and whose indexes are
 cells parameters. Multiple cells in a space may have different
 sets of parameters. Generated
-

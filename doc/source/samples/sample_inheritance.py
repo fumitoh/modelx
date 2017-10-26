@@ -1,12 +1,12 @@
 from modelx import *
 
 # ---------------------------------------------------------------------
-# line:6-20
+# line:6-21
 
 model, life = new_model(), new_space('Life')
 
 def l(x):
-    if x == 50:
+    if x == x0:
         return 100000
     else:
         return l(x - 1) - d(x - 1)
@@ -18,7 +18,7 @@ def q():
     return 0.003
 
 l, d, q = defcells(l, d, q)
-
+life.x0 = 50
 # ---------------------------------------------------------------------
 # line:25-41
 
@@ -41,14 +41,14 @@ def pv_benefits(x):
         return 0
 
 # ---------------------------------------------------------------------
-# line:46-48
-
-term_life.x0 = 50
+# line:46-47
+#term_life.x0 = 50
 term_life.n = 10
 term_life.disc_rate = 0
 
 # ---------------------------------------------------------------------
 # line:53-62
+
 
 endowment = model.new_space(name='Endowment', bases=term_life)
 
@@ -61,5 +61,54 @@ def benefits(x):
     else:
         return 0
 
+# ---------------------------------------------------------------------
+# line:67
 
+data = [[1, 50, 10], [2, 60, 15], [3, 70, 5]]
+
+# ---------------------------------------------------------------------
+# line:72-86
+
+def params(policy_id):
+    return {'name': 'Policy%s' % policy_id,
+            'bases': _self}
+
+policy = model.new_space(name='Policy', bases=term_life, paramfunc=params)
+
+policy.data = data
+
+@defcells
+def x0():
+    return data[policy_id - 1][1]
+
+@defcells
+def n():
+    return data[policy_id - 1][2]
+
+def params(policy_id):
+    return {'name': 'Policy%s' % policy_id,
+            'bases': _self}
+
+# ---------------------------------------------------------------------
+# line:xx-yy
+
+def params(policy_id):
+    return {'name': 'Policy%s' % policy_id,
+            'bases': [_self,
+                      Endowment if data[policy_id - 1][0] == 2
+                      else TermLife]}
+
+policy = model.new_space(name='ThePolicy', paramfunc=params)
+
+policy.data = data
+policy.Endowment = endowment
+policy.TermLife = term_life
+
+@defcells
+def x0():
+    return data[policy_id - 1][1]
+
+@defcells
+def n():
+    return data[policy_id - 1][2]
 
