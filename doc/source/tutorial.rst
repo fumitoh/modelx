@@ -88,7 +88,7 @@ in which case you can use modelx API functions prepended with ``mx.``.
 We'll assume importing ``*`` in this tutorial, but be reminded that this
 is not a good practice when you write Python modules.
 
-Creating a model
+Creating a Model
 ^^^^^^^^^^^^^^^^
 
 The next statement performs two assignments in one line
@@ -108,16 +108,15 @@ to the function, like ``new_model(name='MyModel')``.
 If no name is given as the argument,
 the returned model is named automatically by modelx.
 
-Creating a space
+Creating a Space
 ^^^^^^^^^^^^^^^^
 
-modelx keeps track of the 'current' model. This is somewhat
+``new_space()``, in the next line creates a new space in the 'current' model.
+In this case, the 'current' model is set to the one we just created.
+modelx keeping track of the 'current' model is somewhat
 analogous to how a spareadsheet program has 'active' book.
-In addition to creating a new model, ``new_model()`` function sets
-the current model to the new model we just created.
 
-``new_space()``, on the same line creates a new space in the current model.
-Just as with the models, the name of the space can be specified by
+Just as with the model, the name of the space can be specified by
 passing it to the method ``name`` argument, otherwise the space gets its
 name by modelx.
 
@@ -312,9 +311,12 @@ specified value is assigned::
   5    0
   Name: fibo, dtype: int64
 
+Advanced Concepts
+-----------------
+
 
 Model
------
+^^^^^
 Models are to modelx what workbooks are to a spreadsheet program.
 Among Model, Space and Cells, Model is the largest concept.
 Models contain spaces.
@@ -322,12 +324,17 @@ Spaces can be directly contained in a model, but cells cannot.
 Cells must be contained in a space.
 You can save models to files, and later load them back into memory.
 
+Models are to modelx what workbooks are to a spreadsheet application.
+Model is a unit of work.
+Models contain spaces.
+
 **Getting spaces**
 
 **Global namespace**
 
 Space
------
+^^^^^
+
 Spaces are containers of cells and other spaces.
 If a space contain other spaces, the contained spaces are called subspaces
 of the containing space.
@@ -351,8 +358,21 @@ a model or a space, ``spaces`` property
 To obtain a space object from a Python script,
 
 
+Spaces are to modelx what worksheets are to a spreadsheet application.
+A space contains cells, and/or other spaces.
+
+A space can resides in another space or directly in its containing model.
+
+A space contained in another space is called subspace or child space
+of the containing space.
+
+Space objects contain cells. All cells are contained in one and
+only one space.
+
+
 Namespace
----------
+^^^^^^^^^
+
 In addition to serving as containers, spaces have a very important
 role of being the namespaces for the formulas of their contained cells.
 Spaces have ``namespace`` attribute, which is a mapping of names to objects.
@@ -374,23 +394,26 @@ parent's namespace mapping object.
 The namespace is composed of other mappings. cells, spaces and refs
 
 Cells
------
+^^^^^
+
 A Cells cannot reside in multiple Spaces at the same time.
 A Cells can be moved from one Space to another.
 
 References
-----------
+^^^^^^^^^^
+
 Often times you want access from cells formulas in a space to other objects
 than cells in the same space.
 References are names bound to arbitrary objects that are accessible from
 within the same space.
 
 
-As a cell container
--------------------
 
 Static subspaces
-----------------
+^^^^^^^^^^^^^^^^
+A subspace of another space is a space contained in the other space.
+
+
 As previously mentioned, spaces can be created in another space.
 Spaces in another space are called subspaces of the containing space.
 
@@ -406,7 +429,7 @@ attribute::
 
 
 Space inheritance
------------------
+^^^^^^^^^^^^^^^^^
 Space inheritance is a concept analogous to class inheritance
 in object-oriented programming languages.
 By making full use of space inheritance, you can minimize duplicated
@@ -432,25 +455,28 @@ https://www.python.org/download/releases/2.3/mro/
 
 https://en.wikipedia.org/wiki/C3_linearization
 
-**Inheritance Example**
+More complex example
+--------------------
 
 Let's see how inheritance works by a simple code of
 pricing life insurance policies.
-First, you create a very simple life model as a space and name it ``Life``.
-You populate the space with cells that calculate the number of death
+First, we are goint to create a very simple life model as a space and name it
+``Life``.
+Then we'll populate the space with cells that calculate the number of death
 and remaining lives by age.
 
-Then to price a term life policy, you derive a ``TermLife`` space from
+Then to price a term life policy, we will derive a ``TermLife`` space from
 the ``Life`` space, and add some cells to calculate death benefits
 paid to the insured, and their present value.
 
-Next, you want to model an endowment policy. Since the endowment policy
+Next, we want to model an endowment policy. Since the endowment policy
 pays out a maturity benefit in addition to the death benefits covered by the
-term life policy, you derive a ``Endowment`` space from ``TermLife``,
+term life policy, we derive a ``Endowment`` space from ``TermLife``,
 and make a residual change to the ``benefits`` formula.
 
 
-**Creating the Life space**
+Creating the Life space
+^^^^^^^^^^^^^^^^^^^^^^^
 
 Below is a mathematical representation of the life model we'll
 build as a ``Life`` space.
@@ -476,13 +502,18 @@ Below the modelx code for this life model:
 .. literalinclude:: samples/sample_inheritance.py
    :lines: 6-21
 
-The last line of the code above has the same effect as putting ``@defcells``
-decorator on top of each of the 3 function definitions.
+The second to last line of the code above has the same effect as putting
+``@defcells`` decorator on top of each of the 3 function definitions.
 This line creates 3 new cells
 from the 3 functions in the ``Life`` space, and rebind names ``l``, ``d``,
 ``q`` to the 3 cells in the current scope.
 
-To examine the space, you can check values of the cells in ``Life`` as below::
+You must have noticed that ``l(x)`` formula is referring
+to the name ``x0``, which is not defined yet.
+The last line is for defining ``x0`` as the issue age
+in the ``Life`` model and assigning a value to it.
+
+To examine the space, we can check values of the cells in ``Life`` as below::
 
    >>> l(60)
    97040.17769489168
@@ -503,7 +534,8 @@ To examine the space, you can check values of the cells in ``Life`` as below::
     60.0   97040.177695         NaN    NaN
    NaN              NaN         NaN  0.003
 
-**Deriving the Term Life space**
+Deriving the Term Life space
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Next, we'll see how we can extend this space to represent a term life policy.
 To simplify things, here we focus on one policy with the sum
@@ -539,9 +571,10 @@ has the same cells as its sole base space ``Life`` space.
 
 The following 2 cells definitions (2 function definitions with ``defcells``
 decorators), are for adding the cells that did not exist in ``Life``
-space. You must have noticed that the formulas are referring to the names
-that are not defined yet. Those are ``x0``, ``n``, ``disc_rate``.
-We need to define those in the ``Life`` space.
+space. The formulas are referring to the names
+that are not defined yet. Those are ``n``, ``disc_rate``.
+We need to define those in the ``TermLife`` space.
+The reference ``x0`` is inherited from the ``Life`` space.
 
 .. literalinclude:: samples/sample_inheritance.py
    :lines: 46-47
@@ -581,7 +614,8 @@ space instances(or objects), not classes,
 so cells are copied from the base spaces to derived space
 upon creating the derived space.
 
-**Deriving the Endowment space**
+Deriving the Endowment space
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We're going to create another space to test overriding inherited cells.
 We will derive ``Endowment`` space from ``LifeTerm`` space. The diagram
@@ -641,7 +675,8 @@ because the insured gets 1 by 100% chance.
 
 
 Dynamic spaces
---------------
+^^^^^^^^^^^^^^
+
 In many situations, you want to apply a set of calculations in a space,
 or a tree of spaces, to different data sets.
 You can achieve that by applying the space inheritance on dynamic spaces.
@@ -651,7 +686,7 @@ requested through call(``()``) or subscript(``[]``) operation on their parent
 spaces.
 
 To define dynamic spaces in a parent space,
-You create the space with a parameter function whose signature is
+you create the space with a parameter function whose signature is
 used to define space parameters. The parameter function should return,
 if any, a mapping of parameter names to their arguments,
 to be pass on to the ``new_space`` method, when the dynamic spaces
@@ -660,7 +695,9 @@ are created.
 To see how this works, let's continue with the previous example.
 In the last example, we manually set the issue age ``x0`` of the policy
 to 50, and the policy term ``n`` to 10.
-Assume we have 3 polices with the following attributes:
+We'll extend this example and create policies as dynamic spaces with
+with different policy attributes.
+Assume we have 3 term life polices with the following attributes:
 
 =========  =========  ===========
 Policy ID  Issue Age  Policy Term
@@ -672,11 +709,64 @@ Policy ID  Issue Age  Policy Term
 
 We'll create this sample data as a nested list::
 
-   >>> data = [[1, 50, 10], [2, 60, 15], [3, 70, 5]]
+   data = [[1, 50, 10], [2, 60, 15], [3, 70, 5]]
 
+The diagram shows the design of the model we are going to create.
+``Policy`` model is the parent space of the 3 dynamic spaces, ``Policy1``,
+``Policy2``, ``Policy3``, each of which represents
+each of the 3 policies above.
+While ``Policy`` is the parent space of the 3 dynamic space,
+it is also the base space of them.
+``Policy`` space inherits its members from ``Term`` model, and in turn
+``Policy`` is inherited by the 3 dynamic spaces.
+
+.. figure:: images/Inheritance2.png
+
+Below is a script to extend the model as we designed above.
 
 .. literalinclude:: samples/sample_inheritance.py
    :lines: 72-86
+
+The ``params`` function is passed to the constructor of the ``Policy`` space
+as the argument of ``paramfunc`` parameter. The signature of ``params`` func
+is used to determine the parameter of the dynamic spaces,
+and the returned dictionary is passed to the ``new_space`` as arguments when
+the dynamic spaces are created.
+``params`` is called when you create the dynamic subspaces of
+``Policy``, by calling the n-the element of ``Policy``.
+
+The parameter ``policy_id`` becomes available within the namespace of each
+dynamic space.
+
+In each of the dynamic spaces, the values of ``x0`` and ``n`` are
+taken from ``data`` for each policy::
+
+   >>> policy(1).pv_benefits(50)
+   0.02959822305108317
+
+   >>> policy(2).pv_benefits(60)
+   0.04406717516109439
+
+   >>> policy(3).pv_benefits(70)
+   0.014910269595243001
+
+   >>> policy(3).frame
+            n    x0           d  benefits              l  pv_benefits      q
+   x
+   NaN    5.0  70.0         NaN       NaN            NaN          NaN  0.003
+    70.0  NaN   NaN  300.000000  0.003000  100000.000000     0.014910    NaN
+    71.0  NaN   NaN  299.100000  0.002991   99700.000000     0.011910    NaN
+    72.0  NaN   NaN  298.202700  0.002982   99400.900000     0.008919    NaN
+    73.0  NaN   NaN  297.308092  0.002973   99102.697300     0.005937    NaN
+    74.0  NaN   NaN  296.416168  0.002964   98805.389208     0.002964    NaN
+    75.0  NaN   NaN         NaN  0.000000            NaN     0.000000    NaN
+    76.0  NaN   NaN         NaN       NaN            NaN     0.000000    NaN
+
+   >>> policy.spaces
+   mappingproxy({'Policy1': <modelx.core.space.Space at 0x3e05230>,
+                 'Policy2': <modelx.core.space.Space at 0x4ee0cd0>,
+                 'Policy3': <modelx.core.space.Space at 0xa29390>})
+
 
 Dynamic spaces of a base space are not passed on to the derived spaces.
 When a space is derived from a base space that has dynamically created

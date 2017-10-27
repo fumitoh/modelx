@@ -13,7 +13,6 @@ Welcome to modelx's documentation!
    overview
    installation
    tutorial
-   userguide
    reference/index
 
 

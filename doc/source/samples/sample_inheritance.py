@@ -85,30 +85,26 @@ def x0():
 def n():
     return data[policy_id - 1][2]
 
-def params(policy_id):
-    return {'name': 'Policy%s' % policy_id,
-            'bases': _self}
-
 # ---------------------------------------------------------------------
 # line:xx-yy
 
-def params(policy_id):
-    return {'name': 'Policy%s' % policy_id,
-            'bases': [_self,
-                      Endowment if data[policy_id - 1][0] == 2
-                      else TermLife]}
-
-policy = model.new_space(name='ThePolicy', paramfunc=params)
-
-policy.data = data
-policy.Endowment = endowment
-policy.TermLife = term_life
-
-@defcells
-def x0():
-    return data[policy_id - 1][1]
-
-@defcells
-def n():
-    return data[policy_id - 1][2]
+# def params(policy_id):
+#     return {'name': 'Policy%s' % policy_id,
+#             'bases': [_self,
+#                       Endowment if data[policy_id - 1][0] == 2
+#                       else TermLife]}
+#
+# policy = model.new_space(name='ThePolicy', paramfunc=params)
+#
+# policy.data = data
+# policy.Endowment = endowment
+# policy.TermLife = term_life
+#
+# @defcells
+# def x0():
+#     return data[policy_id - 1][1]
+#
+# @defcells
+# def n():
+#     return data[policy_id - 1][2]
 
