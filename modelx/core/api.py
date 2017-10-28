@@ -146,8 +146,9 @@ def get_models():
 
 
 def cur_model(name=None):
-    """Returns a model.
+    """Get and/or set the current model.
 
+    If ``name`` is given, set the current model to ``name`` and return it.
     If ``name`` is not given, the current model is returned.
     """
     if name is None:
@@ -158,8 +159,10 @@ def cur_model(name=None):
 
 
 def cur_space(name=None):
-    """Returns a space of the current model.
+    """Get and/or set the current space of the current model.
 
+    If ``name`` is given, the current space of the current model is
+    set to ``name`` and return it.
     If ``name`` is not given, the current space of the current model
     is returned.
     """
@@ -171,7 +174,12 @@ def cur_space(name=None):
 
 
 def get_self():
-    """Return self space during its dynamic creation in paramfunc."""
+    """Return self space during its dynamic creation in paramfunc.
+
+    Warning:
+        This function is depreciated and subject to be removed
+        in future releases.
+    """
     return _system.self.interface
 
 

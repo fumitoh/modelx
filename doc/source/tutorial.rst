@@ -11,7 +11,7 @@ which may not be fully explained in this tutorial.
 Typical workflow
 ----------------
 modelx is a Python package, and you use it by writing a Python script
-importing it, as you would normally do with any other Python package.
+and importing it, as you would normally do with any other Python package.
 
 modelx is best suited for building complex numerical models composed of
 many formulas referencing each other, so when you start from scratch,
@@ -27,7 +27,7 @@ IDLE, the Tk/Tcl based simple Python GUI shell that comes with CPython
 lets you do that. You can open an editor window, and when the part of
 building a model is done, you can press F5 to save and run the script
 in a Python shell window where you are prompted to enter Python code to
-evaluate the model. Jupyter notebook and many other popular Python shell
+evaluate the model. Jupyter Notebook and many other popular Python shell
 environments have similar capability.
 
 Model, Space and Cells
@@ -40,16 +40,19 @@ Model, Space and Cells are to modelx
 what workbook, worksheet and cells are to a spreadsheet program respectively,
 although there are differences.
 The diagram below illustrates containment
-relationship between those objects.
+relationships between those objects.
 
 .. figure:: images/ObjectContainment.png
 
    Model, Space and Cells
 
 
-A model is a unit of work. It can be saved to a file and loaded again.
+A model is a workspace that contains all the modelx objects.
+It can be saved to a file and loaded again.
 A model contains spaces. In turn, spaces can contain cells and also other
-spaces (subspaces). Spaces also serves as the namespace for contained
+spaces (subspaces). Each cells ('cells' is singular here)
+belongs to one and only one space.
+Spaces also serves as the namespace for contained
 cells but we'll get to this later.
 
 A Cells can have a formula that calculates the cells' values, just like
@@ -78,6 +81,8 @@ case with any other package.
    :lines: 1
 
 By doing so, you get to use modelx API functions in ``__main__`` module.
+The entire list of modelx API functions are
+:doc:`here in the reference manual </reference/generated/modelx.core.api>`.
 If you're not comfortable with importing modelx API functions directly into
 the global namespace of ``__main__`` module, you can alternatively import
 ``modelx`` as an abbreviated name, such as ``mx``, for example::
@@ -100,7 +105,8 @@ for the sake of explanation::
    space = new_space()
 
 
-In the first line, ``new_model()`` is a modelx API function that create
+In the first line, :py:func:`~modelx.core.api.new_model`
+is a modelx API function that create
 a new model and returns it.
 
 You can specify the name of the model by passing it as ``name`` argumet
@@ -111,17 +117,23 @@ the returned model is named automatically by modelx.
 Creating a Space
 ^^^^^^^^^^^^^^^^
 
-``new_space()``, in the next line creates a new space in the 'current' model.
-In this case, the 'current' model is set to the one we just created.
-modelx keeping track of the 'current' model is somewhat
-analogous to how a spareadsheet program has 'active' book.
+.. code-block:: python
+
+   space = new_space()
+
+:py:func:`~modelx.core.api.new_space`, in the line above creates a
+new space in the "current" model.
+In this case, the current model is set to the one we just created.
+modelx keeping track of the current model is somewhat
+analogous to how a spareadsheet program has "active" book.
 
 Just as with the model, the name of the space can be specified by
 passing it to the method ``name`` argument, otherwise the space gets its
 name by modelx.
 
 If you want to create a space in a model other than the current model,
-you can call ``new_space()`` method on the model, with
+you can call :py:meth:`~modelx.core.space.SpaceContainer.new_space`
+method on the model, with
 or without the space name as its argument::
 
    >>> space = model.new_space('MySpace')
@@ -137,6 +149,8 @@ the model objects::
    >>> get_models()
    {'Model1': <modelx.core.model.Model at 0x447f1b0>}
 
+To get the current model, use :py:func:`~modelx.core.api.cur_model`
+without arguments.
 
 Getting Spaces
 ^^^^^^^^^^^^^^
@@ -154,6 +168,13 @@ the same object as what is referred as ``space``::
    >>> space is model.spaces['Space1']
    True
 
+To get one space, its name is available as an attribute of the containing model::
+
+   >>> model.Space1
+   <modelx.core.space.Space at 0x5d088f0>
+
+You can get the current space of the current model by calling
+:py:func:`~modelx.core.api.cur_space` without arguments.
 
 Creating Cells
 ^^^^^^^^^^^^^^
@@ -165,11 +186,15 @@ one way is to define a python function with ``defcells`` decorator.
 .. literalinclude:: samples/example_overview.py
    :lines: 3-
 
+By ``defcells`` decorator, the name ``fibo`` in this scope points
+to the Cells object that has just been created from the formula definition.
+
 By this definition, the cells is created in the current space in the current
 model. modelx keeps the last operated model as the current model, and
 the last operated space for each model as the current space.
-``get_model()`` API function returns
-the current model, and ``currentspace`` property of a model holds
+:py:func:`~modelx.core.api.cur_model` API function returns
+the current model,
+and :py:meth:`~modelx.core.model.Model.cur_space` method of a model holds
 its current space.
 
 To specify the space to create a cells in, you can pass the space object as
@@ -184,6 +209,21 @@ the cell::
        else:
            return fibo(n - 1) + fibo(n - 2)
 
+There are other ways to create cells by ``defcells``.
+Refer to :py:func:`~modelx.core.api.defcells` section in the reference manual
+for the details.
+
+Another way to create a cells is to use Space's
+:py:meth:`~modelx.core.space.Space.new_cells` method. Not that
+the command below doesn't work in the current context as we've
+already defined ``fibo``::
+
+   >> space.new_cells(func=fibo)
+
+The ``func`` parameter can either be a function object, or a string
+of function definition.
+
+
 Getting Cells
 ^^^^^^^^^^^^^
 
@@ -194,8 +234,9 @@ contained in the ``cells`` property of the model::
    >>> fibo is space.cells['fibo']
    True
 
-There is another way of accessing cells. You can just use `.` with cells names,
-just like accessing the spaces's attribute::
+As you can get a space in a model by attribute access with ``.``,
+you can get a cells in a space by accessing the space attribute
+of the cells name with ``.``::
 
    >>> space.fibo
    <modelx.core.cells.Cells at 0x51ed090>
@@ -208,7 +249,7 @@ Getting Values
 
 The cells ``fibo`` does not have values yet right after it is created.
 To get cells' value for a
-certain parameter, simply call ``fibo`` with the paratmer in parenthesis or
+certain argument, simply call ``fibo`` with the paratmer in parenthesis or
 in squre brackets::
 
    >>> fibo[10]
@@ -217,12 +258,12 @@ in squre brackets::
    55
 
 Its values are calculated automatically by the associated formula,
-when the cells values are referenced.
+when the cells values are requested.
 Note that values are calculated not only for the specified argument,
 but also for the arguments that recursively referenced by the formula
-in order to get the value for the specified arguumnet.
-To see for what parameters values are calculated, export fibo to a Pandas
-Series object. (You need to have Pandas installed, ofcourse.)::
+in order to get the value for the specified argument.
+To see for what arguments values are calculated, export ``fibo`` to a Pandas
+Series object. (You need to have Pandas installed, of course.)::
 
    >>> fibo[10]
    55
@@ -243,15 +284,27 @@ Series object. (You need to have Pandas installed, ofcourse.)::
 
 Since ``fibo[10]`` refers to ``fibo[9]`` and ``fibo[8]``,
 ``fibo[9]`` refers to ``fibo[8]`` and ``fibo[7]``, and
-the recursive reference goes on until it stops and ``fibo[1]`` and ``fibo[0]``.
-by just calling ``fibo[10]``, values for the parameters from 0 to 10 are
-calculated.
+the recursive reference goes on until it stops and ``fibo[1]`` and ``fibo[0]``,
+values of ``fibo`` for argument ``0`` to ``10`` are
+calculated by just calling ``fibo[10]``.
+
+.. note::
+
+   It is important to understand in what namespace cells formulas
+   are executed. Unlike Python functions, the global namespace
+   of a cells formula has nothing to do with where in the source files
+   the formula is defined. The names in the formula are resolved
+   in the namespace associated with the cells' parent space.
+   In that namespace, available names are cells contained in the space,
+   spaces contained in the space (i.e. the subspaces of the space)
+   and "references" accessible in the space.
+
 
 Clearing Values
 ^^^^^^^^^^^^^^^
 
 To clear cells values, you can use ``clear()`` method. Below shows
-what happens when the value of fibo at n = 5 is cleared::
+what happens when the value of ``fibo`` at n = 5 is cleared::
 
   >>> fibo.clear(5)
   >>> fibo.series
@@ -314,64 +367,32 @@ specified value is assigned::
 Advanced Concepts
 -----------------
 
+In this section, more concepts we haven't yet covered
+are introduced. Some of them are demonstrated by examples
+in the following section.
 
-Model
-^^^^^
-Models are to modelx what workbooks are to a spreadsheet program.
-Among Model, Space and Cells, Model is the largest concept.
-Models contain spaces.
-Spaces can be directly contained in a model, but cells cannot.
-Cells must be contained in a space.
-You can save models to files, and later load them back into memory.
+Space Members
+^^^^^^^^^^^^^
 
-Models are to modelx what workbooks are to a spreadsheet application.
-Model is a unit of work.
-Models contain spaces.
+Spaces can contain cells and other spaces. In fact, spaces have 3 kinds of
+their "members". You can get those members as if they are attributes
+of the containing spaces,
+by attribute access(``.``) expression.
 
-**Getting spaces**
+Cells
+   As we have seen in the previous example, spaces contain cells, and
+   the cells belong to spaces. One cell must belong to one ane only one
+   space.
 
-**Global namespace**
+   The :py:meth:`cells <modelx.core.space.Space.cells>` property of Space
+   returns a dictionary of all the cells associated with their names.
 
-Space
-^^^^^
+(Sub)spaces
+   This is a text.
 
-Spaces are containers of cells and other spaces.
-If a space contain other spaces, the contained spaces are called subspaces
-of the containing space.
+References
+   This is a text.
 
-Spaces can be created in a model by calling the model's ``new_space``
-method::
-
-   model, space = new_model(), new_space('TheSpace')
-
-Spaces reside directly in models, but they can also reside in other spaces.
-Subspaces can be created in a space in the same way as spaces are created
-in a model, by calling the spaces's ``new_space`` method::
-
-   subspace = space.new_space('TheSubspace')
-
-**Getting spaces**
-
-To get all the spaces that are directly contained in a parent, whether it's
-a model or a space, ``spaces`` property
-
-To obtain a space object from a Python script,
-
-
-Spaces are to modelx what worksheets are to a spreadsheet application.
-A space contains cells, and/or other spaces.
-
-A space can resides in another space or directly in its containing model.
-
-A space contained in another space is called subspace or child space
-of the containing space.
-
-Space objects contain cells. All cells are contained in one and
-only one space.
-
-
-Namespace
-^^^^^^^^^
 
 In addition to serving as containers, spaces have a very important
 role of being the namespaces for the formulas of their contained cells.
@@ -393,11 +414,6 @@ parent's namespace mapping object.
 
 The namespace is composed of other mappings. cells, spaces and refs
 
-Cells
-^^^^^
-
-A Cells cannot reside in multiple Spaces at the same time.
-A Cells can be moved from one Space to another.
 
 References
 ^^^^^^^^^^
@@ -406,7 +422,6 @@ Often times you want access from cells formulas in a space to other objects
 than cells in the same space.
 References are names bound to arbitrary objects that are accessible from
 within the same space.
-
 
 
 Static subspaces
@@ -432,9 +447,11 @@ Space inheritance
 ^^^^^^^^^^^^^^^^^
 Space inheritance is a concept analogous to class inheritance
 in object-oriented programming languages.
-By making full use of space inheritance, you can minimize duplicated
+By making full use of space inheritance, you can organize multiple
+spaces sharing similar features into an inheritance tree of spaces,
+minimizing duplicated
 formula definitions, keeping your model organized and transparent
-and maintain model integrity.
+while maintaining model integrity.
 
 Inheritance lets one space use(inherit) other spaces, as base spaces.
 The inheriting space is called a derived space of the base spaces.
@@ -447,13 +464,14 @@ A space can have multiple base spaces. This is called multiple inheritance.
 The base spaces can have their base spaces, and derived-base relationships
 between spaces make up a directional graph of dependency.
 In case of multiple inheritance, we need a way to order base spaces to
-determine the priority of base spaces.modelx uses
-C3 superclass linearization algorithm (a.k.a C3 Method Resolution Order or MRO)
-for ordering the base spaces. Python uses the C3 MRO for obtaining the oder
-of which method should be inherited.
-https://www.python.org/download/releases/2.3/mro/
+determine the priority of base spaces.
+modelx uses the same algorithm as Python for ordering bases,
+which is, C3 superclass linearization algorithm
+(a.k.a C3 Method Resolution Order or MRO).
+The links below are provided in case you want to know more about C3 MRO, .
 
-https://en.wikipedia.org/wiki/C3_linearization
+* https://en.wikipedia.org/wiki/C3_linearization
+* https://www.python.org/download/releases/2.3/mro/
 
 More complex example
 --------------------

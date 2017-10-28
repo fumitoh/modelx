@@ -7,7 +7,7 @@ Functions
 .. autosummary::
    :toctree: generated/
 
-   modelx.core.api
+   ~modelx.core.api
 
 Classes
 -------
@@ -16,7 +16,7 @@ Classes
    :toctree: generated/
    :template: mxclass.rst
 
-   modelx.core.model.Model
-   modelx.core.space.SpaceContainer
-   modelx.core.space.Space
-   modelx.core.cells.Cells
+   ~modelx.core.model.Model
+   ~modelx.core.space.SpaceContainer
+   ~modelx.core.space.Space
+   ~modelx.core.cells.Cells

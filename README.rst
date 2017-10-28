@@ -16,7 +16,8 @@ its users, and the users build their models from those classes, by defining
 calculation formulas in the form of Python functions and associating those
 calculations with Cells objects.
 
-Below is a very simple working example in which:
+Below is a very simple working example in which following operations are
+demonstrated:
 
 - a new model is created,
 - and in the model, a new space is created,
@@ -59,7 +60,7 @@ To get a Fibonacci number for, say 10, you can do::
 Feature highlights
 ------------------
 You may not see the whole point of usig modelx as the example above is
-a simple one just to be meant for illustrating its fundamental mechanism,
+a simple one illustrating its fundamental mechanism, but
 modelx comes with features that enable users to build and manipulate
 more complex models in smart ways:
 
@@ -78,7 +79,7 @@ Who is modelx for?
 ------------------
 modelx is designed to be domain agnostic.
 The modelx was created by an actuary to be used as a base tool to develop
-actuarial projection models for light-weight tasks,
+actuarial projection models,
 but it is intentionally designed to eliminate domain specific features
 so that potential audience for modelx can be anyone who needs to develop
 complex models of any sorts that are too much to deal with by spreadsheets.
@@ -108,11 +109,19 @@ Free software
 modelx is free software; you can redistribute it and/or
 modify it under the terms of
 `GNU Lesser General Public License v3 (LGPLv3)
-<https://github.com/fumitoh/modelx/blob/master/LICENSE.txt>`_.
+<https://github.com/fumitoh/modelx/blob/master/LICENSE.LESSER.txt>`_.
 
 Contributions, productive comments, requests and feedback from the community
 are always welcome. Information on modelx development is found at Github
 https://github.com/fumitoh/modelx
+
+
+Development State
+-----------------
+modelx is in its early alpha-release stage, and its specifications
+are subject to change without consideration on backward compatibility.
+Likewise, model files saved with one version may not load
+with a newer version.
 
 
 History
@@ -124,5 +133,6 @@ and it was first released in October 2017.
 Requirements
 ------------
 * Python 3.4+
-* OpenPyXL
+* NetwrkX
 * Pandas
+* OpenPyXL
