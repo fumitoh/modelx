@@ -27,7 +27,9 @@ from modelx.core.base import (
     Interface,
     LazyEvalDict,
     LazyEvalChainMap,
-    ChainMapWithMappingProxy)
+    ChainMapWithMappingProxy,
+    InterfaceMixin,
+    ImplChainMap)
 from modelx.core.formula import Formula, create_closure
 from modelx.core.cells import Cells, CellsImpl
 from modelx.core.util import AutoNamer, is_valid_name, get_module
@@ -112,7 +114,7 @@ class SpaceContainerImpl(Impl):
 
     @property
     def spaces(self):
-        return self._spaces
+        return self._spaces.update_data()
 
     def has_space(self, name):
         return name in self.spaces
@@ -379,30 +381,8 @@ class SpaceContainer(Interface):
     def spaces(self):
         """A mapping of the names of (sub)spaces to the Space objects"""
         # TODO: Reuse a MappingProxy for better performance
-        return MappingProxyType(get_interfaces(self._impl.spaces))
-
-
-class ImplMapMixin:
-    """Mixin to LazyEvalChain to update interface with impl
-
-    _update_interfaces needs to be manually called from _update_data.
-    """
-    def __init__(self):
-        self._interfaces = {}
-        self.interfaces = MappingProxyType(self._interfaces)
-
-    def _update_interfaces(self):
-        self._interfaces.clear()
-        self._interfaces.update(get_interfaces(self))
-
-    def __getstate__(self):
-        state = {key: value for key, value in self.__dict__.items()}
-        del state['interfaces']
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.interfaces = MappingProxyType(self._interfaces)
+        # return MappingProxyType(get_interfaces(self._impl.spaces))
+        return self._impl.spaces.interfaces
 
 
 class BaseMembers(LazyEvalDict):
@@ -462,10 +442,10 @@ class DerivedMembers(LazyEvalDict):
         return self._base_members.update_data()
 
 
-class DerivedCells(ImplMapMixin, DerivedMembers):
+class DerivedCells(InterfaceMixin, DerivedMembers):
 
     def __init__(self, space, data=None, observers=None, member=''):
-        ImplMapMixin.__init__(self)
+        InterfaceMixin.__init__(self)
         DerivedMembers.__init__(self, space, data, observers, member)
 
     def _update_data(self):
@@ -487,10 +467,10 @@ class DerivedCells(ImplMapMixin, DerivedMembers):
         self._update_interfaces()
 
 
-class DerivedSpaces(ImplMapMixin, DerivedMembers):
+class DerivedSpaces(InterfaceMixin, DerivedMembers):
 
     def __init__(self, space, data=None, observers=None, member=''):
-        ImplMapMixin.__init__(self)
+        InterfaceMixin.__init__(self)
         DerivedMembers.__init__(self, space, data, observers, member)
 
     def _update_data(self):
@@ -528,25 +508,14 @@ class SelfMembers(LazyEvalDict):
         self.attr = attr
 
 
-class ImplSelfMembers(ImplMapMixin, SelfMembers):
+class ImplSelfMembers(InterfaceMixin, SelfMembers):
 
     def __init__(self, space, attr, data=None, observers=None):
-        ImplMapMixin.__init__(self)
+        InterfaceMixin.__init__(self)
         SelfMembers.__init__(self, space, attr, data, observers)
         self._repr = self.space.get_fullname(omit_model=True) + '._self_' + attr
 
     def _update_data(self):
-        self._update_interfaces()
-
-
-class ImplChainMap(ImplMapMixin, LazyEvalChainMap):
-
-    def __init__(self, maps=None, observers=None, observe_maps=True):
-        ImplMapMixin.__init__(self)
-        LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
-
-    def _update_data(self):
-        LazyEvalChainMap._update_data(self)
         self._update_interfaces()
 
 
@@ -855,10 +824,6 @@ class SpaceImpl(SpaceContainerImpl):
     @property
     def derived_cells(self):
         return self._derived_cells.update_data()
-
-    @property
-    def spaces(self):
-        return self._spaces.update_data()
 
     @property
     def self_spaces(self):

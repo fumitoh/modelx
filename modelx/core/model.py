@@ -21,7 +21,7 @@ import networkx as nx
 
 from modelx.core.base import (
     Impl,
-    LazyEvalDict,
+    ImplLazyEvalDict,
     LazyEvalDictWithMappingProxy,
     LazyEvalChainMap)
 from modelx.core.cells import CellArgs
@@ -86,7 +86,7 @@ class ModelImpl(SpaceContainerImpl):
 
         self._global_refs = LazyEvalDictWithMappingProxy(
             data={'__builtins__': __builtins__})
-        self._spaces = LazyEvalDict()
+        self._spaces = ImplLazyEvalDict()
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
 
     def clear_descendants(self, source, clear_source=True):

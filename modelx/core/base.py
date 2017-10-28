@@ -404,3 +404,48 @@ class ChainMapWithMappingProxy(LazyEvalChainMap):
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.mproxy = MappingProxyType(self)
+
+
+class InterfaceMixin:
+    """Mixin to LazyEvalChain to update interface with impl
+
+    _update_interfaces needs to be manually called from _update_data.
+    """
+    def __init__(self):
+        self._interfaces = {}
+        self.interfaces = MappingProxyType(self._interfaces)
+
+    def _update_interfaces(self):
+        self._interfaces.clear()
+        self._interfaces.update(get_interfaces(self))
+
+    def __getstate__(self):
+        state = {key: value for key, value in self.__dict__.items()}
+        del state['interfaces']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.interfaces = MappingProxyType(self._interfaces)
+
+
+class ImplLazyEvalDict(InterfaceMixin, LazyEvalDict):
+
+    def __init__(self, data=None, observers=None):
+        InterfaceMixin.__init__(self)
+        LazyEvalDict.__init__(self, data, observers)
+
+    def _update_data(self):
+        LazyEvalDict._update_data(self)
+        self._update_interfaces()
+
+
+class ImplChainMap(InterfaceMixin, LazyEvalChainMap):
+
+    def __init__(self, maps=None, observers=None, observe_maps=True):
+        InterfaceMixin.__init__(self)
+        LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
+
+    def _update_data(self):
+        LazyEvalChainMap._update_data(self)
+        self._update_interfaces()
