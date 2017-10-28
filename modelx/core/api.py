@@ -63,7 +63,7 @@ def new_space(name=None, bases=None, paramfunc=None):
     Returns:
         The new space.
     """
-    return get_model().new_space(name, bases, paramfunc)
+    return cur_model().new_space(name, bases, paramfunc)
 
 
 def defcells(space=None, name=None, *funcs):
@@ -145,7 +145,7 @@ def get_models():
     return _get_interfaces(_system.models)
 
 
-def get_model(name=None):
+def cur_model(name=None):
     """Returns a model.
 
     If ``name`` is not given, the current model is returned.
@@ -154,10 +154,10 @@ def get_model(name=None):
         return _system.currentmodel.interface
     else:
         _system.currentmodel = _system.models[name]
-        return get_model(name)
+        return cur_model(name)
 
 
-def get_space(name=None):
+def cur_space(name=None):
     """Returns a space of the current model.
 
     If ``name`` is not given, the current space of the current model
@@ -167,7 +167,7 @@ def get_space(name=None):
         return _system.currentmodel.currentspace.interface
     else:
         _system.currentmodel.currentspace = _system.currentmodel.spaces[name]
-        return get_space()
+        return cur_space()
 
 
 def get_self():

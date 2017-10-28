@@ -12,7 +12,7 @@ def fibo(x):
     else:
         return bar[x - 1] + bar[x - 2]
 
-get_model()
+cur_model()
 
 print(fibo(10) == 55)
 
@@ -33,7 +33,7 @@ def distance(x, y):
 # for i in single_value:
 #     print(i)
 
-model = get_model()
+model = cur_model()
 graph = model.cellgraph
 
 

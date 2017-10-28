@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     print(lx(10))
 
-    graph = get_model().cellgraph
+    graph = cur_model().cellgraph
 
     print(graph)
 
