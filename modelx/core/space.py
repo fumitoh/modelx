@@ -18,14 +18,16 @@ from textwrap import dedent
 from types import (MappingProxyType,
                    FunctionType)
 
-from modelx.core.base import (ObjectArgs,
-                              get_impls,
-                              get_interfaces,
-                              Impl,
-                              NullImpl,
-                              Interface,
-                              LazyEvalDict,
-                              LazyEvalChainMap)
+from modelx.core.base import (
+    ObjectArgs,
+    get_impls,
+    get_interfaces,
+    Impl,
+    NullImpl,
+    Interface,
+    LazyEvalDict,
+    LazyEvalChainMap,
+    ChainMapWithMappingProxy)
 from modelx.core.formula import Formula, create_closure
 from modelx.core.cells import Cells, CellsImpl
 from modelx.core.util import AutoNamer, is_valid_name, get_module
@@ -376,6 +378,7 @@ class SpaceContainer(Interface):
     @property
     def spaces(self):
         """A mapping of the names of (sub)spaces to the Space objects"""
+        # TODO: Reuse a MappingProxy for better performance
         return MappingProxyType(get_interfaces(self._impl.spaces))
 
 
@@ -711,11 +714,11 @@ class SpaceImpl(SpaceContainerImpl):
         self._local_refs = {'get_self': self.get_self_interface,
                             '_self': self.interface}
 
-        self._refs = LazyEvalChainMap([self.model._global_refs,
-                                       self._local_refs,
-                                       self._arguments,
-                                       self._self_refs,
-                                       self._derived_refs])
+        self._refs = ChainMapWithMappingProxy([self.model._global_refs,
+                                               self._local_refs,
+                                               self._arguments,
+                                               self._self_refs,
+                                               self._derived_refs])
 
         self._refs._repr = self.get_fullname(omit_model=True) + '._refs'
 
@@ -1264,7 +1267,7 @@ class Space(SpaceContainer):
     @property
     def refs(self):
         """A map associating names to objects accessible by the names."""
-        return self._impl
+        return self._impl.refs.mproxy
 
     def new_cells_from_module(self, module_):
         """Create a cells from a module."""

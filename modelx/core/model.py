@@ -13,14 +13,21 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+from types import MappingProxyType
 from textwrap import dedent
 import pickle
 
 import networkx as nx
 
-from modelx.core.base import Impl, LazyEvalDict, LazyEvalChainMap
+from modelx.core.base import (
+    Impl,
+    LazyEvalDict,
+    LazyEvalDictWithMappingProxy,
+    LazyEvalChainMap)
 from modelx.core.cells import CellArgs
-from modelx.core.space import SpaceContainerImpl, SpaceContainer
+from modelx.core.space import (
+    SpaceContainerImpl,
+    SpaceContainer)
 from modelx.core.util import is_valid_name
 
 
@@ -77,7 +84,8 @@ class ModelImpl(SpaceContainerImpl):
 
         Impl.__init__(self, Model)
 
-        self._global_refs = LazyEvalDict(data={'__builtins__': __builtins__})
+        self._global_refs = LazyEvalDictWithMappingProxy(
+            data={'__builtins__': __builtins__})
         self._spaces = LazyEvalDict()
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
 
@@ -262,6 +270,11 @@ class Model(SpaceContainer):
         else:
             self._impl.currentspace = self._impl.spaces[name]
             return self.cur_space()
+
+    @property
+    def refs(self):
+        """Return a mapping of global references."""
+        return self._impl.global_refs.mproxy
 
 
 

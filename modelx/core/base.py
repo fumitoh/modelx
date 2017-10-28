@@ -14,6 +14,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+from types import MappingProxyType
 from collections import Sequence, ChainMap, Mapping, UserDict
 from inspect import BoundArguments
 
@@ -328,6 +329,23 @@ class LazyEvalDict(LazyEvalChain, UserDict):
         self.__dict__.update(state)
 
 
+class LazyEvalDictWithMappingProxy(LazyEvalDict):
+
+    def __init__(self, data=None, observers=None):
+        LazyEvalDict.__init__(self, data, observers)
+        self.mproxy = MappingProxyType(self.data)
+
+    def __getstate__(self):
+        state = LazyEvalDict.__getstate__(self)
+        del state['mproxy']
+
+        return state
+
+    def __setstate__(self, state):
+        LazyEvalDict.__setstate__(self, state)
+        self.mproxy = MappingProxyType(self)
+
+
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
@@ -367,3 +385,22 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+
+class ChainMapWithMappingProxy(LazyEvalChainMap):
+
+    def __init__(self, maps=None, observers=None, observe_maps=True):
+        LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
+        self.mproxy = MappingProxyType(self)
+
+    def _update_data(self):
+        LazyEvalChainMap._update_data(self)
+
+    def __getstate__(self):
+        state = {key: value for key, value in self.__dict__.items()}
+        del state['mproxy']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.mproxy = MappingProxyType(self)
