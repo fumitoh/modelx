@@ -548,40 +548,52 @@ class SpaceImpl(SpaceContainerImpl):
     special methods that are meant for changing the behaviour of operations
     for users.
 
-    namespace
+    Space objects have quite a few mapping members. Those are
+    MappyingProxyTypes objects, which are essentially frozen dictionaries.
 
-        cells
-            derived_cells
-            self_cells
+    ``namespace`` stores all names, with their associated objects,
+    that can be referenced in the form of attribute access to the space.
+    Those names can also be referenced from within the formulas of the
+    cells contained in the space.
 
-        spaces
-            dynamic_spaces
-            static_spaces
-                derived_spaces
-                self_spaces
+    ``namespace`` is broken down into ``cells``, ``spaces`` and ``refs`` maps.
+    ``cells`` is a map of all the cells contained in the space,
+    and ``spaces`` is a map of all the subspaces of the space.
+    ``refs`` contains names and their associated objects that are not
+    part of the space but are accessible from the space.
 
-        refs
-            derived_refs
-            self_refs
-            global_refs
-            local_refs
-            arguments
+    ``cells`` is further broken down into ``self_cells`` and ``derived_cells``.
+    ``self_cells`` contains cells that are newly defined or overridden
+    in the class. On the other hand, ``derived_cells`` contains cells
+    derived from the space's base class(s).
 
-        cells_parameters (Not yet implemented)
+    ``space`` is first broken down into ``static_spaces`` and
+    ``dynamic_spaces``. ``static_spaces`` contains subspaces of the space
+    that are explicitly created by the user by the space's ``new_space``
+    method or one of its variants. ``dynamic_spaces`` contains parametrized
+    subspaces that are created dynamically by ``()`` or ``[]`` operation on
+    the space.
 
-    derived_members (ChainMap)
-        derived_cells
-        derived_spaces
-        derived_refs
+    Objects with their associated names are::
 
-    self_members
-        self_cells
-        self_spaces
-        self_refs
+        namespace
 
-        # Operations
-        remove_derived
-        revert_derived
+            cells
+                derived_cells
+                self_cells
+
+            spaces
+                dynamic_spaces
+                static_spaces
+                    derived_spaces
+                    self_spaces
+
+            refs
+                derived_refs
+                self_refs
+                global_refs
+                local_refs
+                arguments
 
     Args:
         parent: SpaceImpl or ModelImpl to contain this.
@@ -1143,49 +1155,6 @@ class SpaceImpl(SpaceContainerImpl):
 
 class Space(SpaceContainer):
     """Container for cells and other objects referred in formulas.
-
-    Space objects have quite a few mapping members. Those are
-    MappyingProxyTypes objects, which are essentially frozen dictionaries.
-
-    ``namespace`` stores all names, with their associated objects,
-    that can be referenced in the form of attribute access to the space.
-    Those names can also be referenced from within the formulas of the
-    cells contained in the space.
-
-    ``namespace`` is broken down into ``cells``, ``spaces`` and ``refs`` maps.
-    ``cells`` is a map of all the cells contained in the space,
-    and ``spaces`` is a map of all the subspaces of the space.
-    ``refs`` contains names and their associated objects that are not
-    part of the space but are accessible from the space.
-
-    ``cells`` is further broken down into ``self_cells`` and ``derived_cells``.
-    ``self_cells`` contains cells that are newly defined or overridden
-    in the class. On the other hand, ``derived_cells`` contains cells
-    derived from the space's base class(s).
-
-    ``space`` is first broken down into ``static_spaces`` and
-    ``dynamic_spaces``. ``static_spaces`` contains subspaces of the space
-    that are explicitly created by the user by the space's ``new_space``
-    method or one of its variants. ``dynamic_spaces`` contains parametrized
-    subspaces that are created dynamically by ``()`` or ``[]`` operation on
-    the space.
-
-    Objects with their associated names are::
-
-        namespace
-            cells
-                self_cells
-                derived_cells
-            spaces
-                static_spaces
-                    self_spaces
-                    derived_spaces
-                dynamic_spaces
-            refs
-                self_refs
-                derived_refs
-                global_refs
-                arguments
     """
     # __slots__ = ('_impl',)
 

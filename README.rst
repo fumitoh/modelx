@@ -104,8 +104,10 @@ form of a Python function) does not affect the result of formula evaluation.
 It is what space the cells belongs to that affects the result.
 
 
-Free software
--------------
+License
+-------
+Copyright 2017, Fumito Hamamura
+
 modelx is free software; you can redistribute it and/or
 modify it under the terms of
 `GNU Lesser General Public License v3 (LGPLv3)

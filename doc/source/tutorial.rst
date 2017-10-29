@@ -52,6 +52,10 @@ It can be saved to a file and loaded again.
 A model contains spaces. In turn, spaces can contain cells and also other
 spaces (subspaces). Each cells ('cells' is singular here)
 belongs to one and only one space.
+We call the object that contains another object, the parent of the contained
+object.
+The parent of a cells is the space that contains the cells,
+and the parent of a space is the model or space that contains the space.
 Spaces also serves as the namespace for contained
 cells but we'll get to this later.
 
@@ -381,69 +385,138 @@ by attribute access(``.``) expression.
 
 Cells
    As we have seen in the previous example, spaces contain cells, and
-   the cells belong to spaces. One cell must belong to one ane only one
+   the cells belong to spaces. One cells must belong to one ane only one
    space.
 
    The :py:meth:`cells <modelx.core.space.Space.cells>` property of Space
    returns a dictionary of all the cells associated with their names.
 
 (Sub)spaces
-   This is a text.
+   As previously mentioned, spaces can be created in another space.
+   Spaces in another space are called subspaces of the containing space.
+   There 2 kinds of subspaces, static subspaces and dynamic subspace.
+
+   Static subspaces are those that are created manually, just like
+   those created in models.
+   There is no difference between spaces created directly under a model
+   and static spaces created under a space, except for their
+   parents being different types.
+
+   You can create a static subspace by calling ``new_space`` method of their
+   parents::
+
+      model, space = new_model(), new_space()
+
+      space.new_space('Subspace1')
+
+      @defcells
+      def foo():
+          return 123
+
+   You can get a subspace as an attribute of the parent space,
+   or by accessing the parent space's
+   :py:meth:`spaces <modelx.core.space.SpaceContainer.spaces>`
+   property::
+
+      >>> space.spaces['Subspace1'].foo()
+      123
+
+      >>> space.Subspace1.foo()
+      123
+
+   The other kind of subspaces, is dynamic subspaces.
+   Unlike static suspaces, dynamic subspaces can only be created
+   in spaces, but not directly in models.
+
+   Dynamic spaces are parametrized spaces that are created on-the-fly when
+   requested through call(``()``) or subscript(``[]``) operation on their
+   parent spaces. We'll explore more on dynamic spaces in the next section,
+   in conjunction with space inheritance by going through an example.
 
 References
-   This is a text.
+   Often times you want access from cells formulas in a space to other objects
+   than cells or subspaces in the same space.
+   References are names bound to arbitrary objects that are accessible from
+   within the same space::
+
+      model, space = new_model(), new_space()
+
+      @defcells
+      def bar():
+          return 2 * n
+
+   ``bar`` cells above refers to ``n``, which has not yet been defined.
+   Without ``n`` being defined, calling ``bar`` will raise an error.
+   To define a reference ``n``, you can simply assign a value
+   to ``n`` attribute of ``space``::
+
+      >>> space.n = 3
+      >>> bar()
+      6
+
+   The :py:meth:`refs <modelx.core.space.Space.refs>`
+   property of space returns a mapping of reference names
+   to their objects::
+
+      >>> list(space.refs.keys())
+      ['__builtins__', 'n', '_self']
+
+   Be default, ``__builtins__`` and ``_self`` are defined
+   in any space. In fact, ``__builtins__`` is defined by default as a "global"
+   reference in the model.
+   Global references are names accessible from any space in a model.
+   Other than the default reference, you can define your own,
+   by simply assigning a value as an attribute of the model::
+
+      >>> model.z = 4
+      >>> list(model.refs.keys())
+      ['z', '__builtins__']
+
+      >>> list(space.refs.keys())
+      ['z', '__builtins__', 'n', '_self']
+
+   ``__builtins__`` points to Python builtin module.
+   It is defined to allow cells formulas to use builtin functions.
+   ``_self`` points to the space itself. This allows cells formulas
+   to get access to its parent space.
 
 
-In addition to serving as containers, spaces have a very important
-role of being the namespaces for the formulas of their contained cells.
-Spaces have ``namespace`` attribute, which is a mapping of names to objects.
+As mentioned earlier, formulas of cells are evaluated in the
+namespace that is associated with their parent spaces.
 
-<Insert sample code here>
+The namespace of a space is a mapping of names to the space members.
+As explained in the previous section,
+space members are either cells of the space, or subspaces of the space
+or references accessible from the space.
 
-Formulas are created from Python's function definitions.
-Python statements and expressions in functions
-are evaluated in the lexical context,
-so it matters to Python functions where in the source code they are defined.
+The table below breaks down all the members in the namespace
+by its types and sub-types.
 
-However, when modelx create formula objects from Python function definitions,
-modelx alters this lexical scoping with dynamic scoping.
++-----------+--------------------+---------------------------------------------------+
+|cells      |self cells          |Cells defined in or overridden in the space        |
+|           +--------------------+---------------------------------------------------+
+|           |derived cells       |Cells inherited from one of the base spaces        |
++-----------+--------------------+---------------------------------------------------+
+|spaces     |self spaces         |Subspace defined in or overridden in the space     |
+|           +--------------------+---------------------------------------------------+
+|           |derived spaces      |Subspace inherited from one of the base spaces     |
++-----------+--------------------+---------------------------------------------------+
+|references |self references     |References defined in or overridden in the space   |
+|(refs)     +--------------------+---------------------------------------------------+
+|           |derived references  |References inherited from one of the base spaces   |
+|           +--------------------+---------------------------------------------------+
+|           |global references   |Global references defined in the parent model      |
+|           +--------------------+---------------------------------------------------+
+|           |local references    |Only ``_self`` that refers to the space itself     |
+|           +--------------------+---------------------------------------------------+
+|           |parameters          |(Only in dynamic spaces) Space parameters          |
++-----------+--------------------+---------------------------------------------------+
 
-When a formula is executed in modelx,
-global names that appear in the formula code are resolved based on the
-parent's namespace mapping object.
+Each type of the members has "self" members and "derived" members.
+Those distinctions stem from space inheritance explained in the next
+section.
 
-The namespace is composed of other mappings. cells, spaces and refs
-
-
-References
-^^^^^^^^^^
-
-Often times you want access from cells formulas in a space to other objects
-than cells in the same space.
-References are names bound to arbitrary objects that are accessible from
-within the same space.
-
-
-Static subspaces
-^^^^^^^^^^^^^^^^
-A subspace of another space is a space contained in the other space.
-
-
-As previously mentioned, spaces can be created in another space.
-Spaces in another space are called subspaces of the containing space.
-
-You can obtain a subspace as an attribute of the parent space,
-or by accessing the parent space's ``spaces``
-attribute::
-
-  >>> parent.a_subspace
-
-  >>> parent['a_subspace']
-
-
-
-
-Space inheritance
+Space Inheritance
 ^^^^^^^^^^^^^^^^^
 Space inheritance is a concept analogous to class inheritance
 in object-oriented programming languages.
@@ -468,7 +541,7 @@ determine the priority of base spaces.
 modelx uses the same algorithm as Python for ordering bases,
 which is, C3 superclass linearization algorithm
 (a.k.a C3 Method Resolution Order or MRO).
-The links below are provided in case you want to know more about C3 MRO, .
+The links below are provided in case you want to know more about C3 MRO.
 
 * https://en.wikipedia.org/wiki/C3_linearization
 * https://www.python.org/download/releases/2.3/mro/
@@ -730,6 +803,7 @@ We'll create this sample data as a nested list::
    data = [[1, 50, 10], [2, 60, 15], [3, 70, 5]]
 
 The diagram shows the design of the model we are going to create.
+The lines with a filled diamond shape on one end indicates that
 ``Policy`` model is the parent space of the 3 dynamic spaces, ``Policy1``,
 ``Policy2``, ``Policy3``, each of which represents
 each of the 3 policies above.
@@ -737,6 +811,8 @@ While ``Policy`` is the parent space of the 3 dynamic space,
 it is also the base space of them.
 ``Policy`` space inherits its members from ``Term`` model, and in turn
 ``Policy`` is inherited by the 3 dynamic spaces.
+This inheritance is represented by the unfilled arrowhead next the
+filled diamond.
 
 .. figure:: images/Inheritance2.png
 
@@ -752,6 +828,8 @@ and the returned dictionary is passed to the ``new_space`` as arguments when
 the dynamic spaces are created.
 ``params`` is called when you create the dynamic subspaces of
 ``Policy``, by calling the n-the element of ``Policy``.
+``params`` is evaluated in the ``Policy``'s namespace. ``_self``
+is a spacial reference that points to ``Policy``.
 
 The parameter ``policy_id`` becomes available within the namespace of each
 dynamic space.
