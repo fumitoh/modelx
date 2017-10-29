@@ -22,9 +22,16 @@ DESCRIPTION = "Spreadsheet alternative for multi-dimensional data."
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    LONG_DESCRIPTION = f.read()
+# with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+#     LONG_DESCRIPTION = f.read()
 
+LONG_DESCRIPTION = """
+modelx is a Python package for performing complex calculations
+by creating models composed of structured data and formulas written
+in the form of Python functions.
+You can think of it as a multidimensional version of spreadsheet,
+but it’s so much more!
+"""
 
 def get_version(version_tuple):
     # additional handling of a,b,rc tags, this can
@@ -69,11 +76,17 @@ setup(
         'Development Status :: 3 - Alpha',
 
         # Indicate who your project is intended for
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
+        'Intended Audience :: Financial and Insurance Industry',
+        'Intended Audience :: Science/Research',
+        'Topic :: Office/Business :: Financial',
+        'Topic :: Office/Business :: Financial :: Accounting',
+        'Topic :: Office/Business :: Financial :: Investment',
+        'Topic :: Office/Business :: Financial :: Spreadsheet',
+        'Topic :: Scientific/Engineering :: Mathematics',
 
         # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
+        'Operating System :: OS Independent',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
