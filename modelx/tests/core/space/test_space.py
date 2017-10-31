@@ -109,6 +109,25 @@ def test_ref(samplespace):
     assert foo(2) == 6
 
 
+def test_setref_derived(samplespace):
+    """Test if base/derived refs are property updated on their assignments"""
+
+    base = new_space()
+    derived = new_space(bases=base)
+
+    @defcells(base)
+    def foo():
+        return x
+
+    check = True
+    base.x = 3
+    check = check and derived.foo == 3
+    derived.x = 5
+    check = check and base.foo == 3
+    check = check and derived.foo == 5
+    assert check
+
+
 def test_del_cells(samplespace):
 
     space = new_space()
