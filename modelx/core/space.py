@@ -26,7 +26,7 @@ from modelx.core.base import (
     Interface,
     LazyEvalDict,
     LazyEvalChainMap,
-    ChainMapWithMappingProxy,
+    ChainMapWithMapProxy,
     InterfaceMixin,
     ImplChainMap)
 from modelx.core.formula import Formula, create_closure
@@ -578,14 +578,14 @@ class SpaceImpl(SpaceContainerImpl):
         namespace
 
             cells
-                derived_cells
-                self_cells
+                derived_cells           DerivedCells
+                self_cells              ImplSelfMembers
 
             spaces
-                dynamic_spaces
-                static_spaces
-                    derived_spaces
-                    self_spaces
+                dynamic_spaces          LazyEvalDict
+                static_spaces           ImplChainMap
+                    derived_spaces      DerivedSpaces
+                    self_spaces         ImplSelfMembers
 
             refs
                 derived_refs
@@ -694,11 +694,11 @@ class SpaceImpl(SpaceContainerImpl):
         self._local_refs = {'get_self': self.get_self_interface,
                             '_self': self.interface}
 
-        self._refs = ChainMapWithMappingProxy([self.model._global_refs,
-                                               self._local_refs,
-                                               self._arguments,
-                                               self._self_refs,
-                                               self._derived_refs])
+        self._refs = ChainMapWithMapProxy([self.model._global_refs,
+                                           self._local_refs,
+                                           self._arguments,
+                                           self._self_refs,
+                                           self._derived_refs])
 
         self._refs._repr = self.get_fullname(omit_model=True) + '._refs'
 
@@ -949,15 +949,26 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             raise ValueError("Derived cells cannot be deleted")
 
+    # ----------------------------------------------------------------------
+    # Attribute access
+
     def set_attr(self, name, value):
+        """Implementation of attribute setting
+
+        ``space.name = value`` by user script
+        Called from ``Space.__setattr__``
+        """
 
         if not is_valid_name(name):
             raise ValueError
 
         if name in self.namespace:
             if name in self.refs:
-                self.refs[name] = value
-                self.refs.set_update(skip_self=False)
+                if name in self.self_refs or name in self.derived_refs:
+                    self.self_refs[name] = value
+                    self.self_refs.set_update(skip_self=False)
+                else:
+                    raise KeyError("Ref '%s' cannot be changed" % name)
 
             elif name in self.cells:
                 if self.cells[name].is_scalar():
@@ -973,7 +984,11 @@ class SpaceImpl(SpaceContainerImpl):
             self._self_refs.set_update(skip_self=True)
 
     def del_attr(self, name):
+        """Implementation of attribute deletion
 
+        ``del space.name`` by user script
+        Called from ``Space.__delattr__``
+        """
         if name in self.namespace:
             if name in self.cells:
                 if name in self.self_cells:
@@ -994,12 +1009,7 @@ class SpaceImpl(SpaceContainerImpl):
                     raise RuntimeError("Must not happen")
 
             elif name in self.refs:
-                if name in self.self_refs:
-                    pass
-                elif name in self.derived_refs:
-                    raise KeyError("Derived refs cannot be removed")
-                else:   # global refs, local refs or arguments
-                    raise KeyError("'%s' cannot be removed" % name)
+                self.del_refs(name)
 
             else:
                 raise RuntimeError("Must not happen")
@@ -1007,8 +1017,17 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             raise KeyError("'%s' not found in Space '%s'" % (name, self.name))
 
-    def del_cells(self, name):
+    # ----------------------------------------------------------------------
+    # Cells operation
 
+    # --- Cells deletion -------------------------------------
+
+    def del_cells(self, name):
+        """Implementation of cells deletion
+
+        ``del space.name`` where name is a cells, or
+        ``del space.cells['name']``
+        """
         if name in self.self_cells:
             # self._self_cells[name].parent = None
             cells = self.self_cells.pop(name)
@@ -1023,17 +1042,10 @@ class SpaceImpl(SpaceContainerImpl):
 
         NullImpl(cells)
 
-        # for base in self.direct_bases:
-        #     if name in base.cells:
-        #         base_cells = base.cells[name]
-        #         self._derived_cells[name] = \
-        #             self.new_cells(name=name, func=base_cells.formula)
-        #     break
-
     def _del_derived_cells(self, name):
 
         if name in self.namespace:
-            if name in self._derived_cells:
+            if name in self.derived_cells:
                 self._derived_cells[name].parent = None
                 del self._derived_cells[name]
 
@@ -1052,14 +1064,7 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             return False
 
-    def revert_derived(self, name):
-        raise NotImplementedError
-
-    def has_bases(self):
-        return len(self.mro) > 1
-
-    def is_dynamic(self):
-        return bool(self._arguments)
+    # --- Cells creation -------------------------------------
 
     def new_cells(self, name=None, func=None):
         cells = CellsImpl(space=self, name=name, func=func)
@@ -1083,10 +1088,10 @@ class SpaceImpl(SpaceContainerImpl):
         return newcells
 
     def new_cells_from_excel(self, book, range_, sheet=None,
-                                names_row=None, param_cols=None,
-                                param_order=None,
-                                transpose=False,
-                                names_col=None, param_rows=None):
+                             names_row=None, param_cols=None,
+                             param_order=None,
+                             transpose=False,
+                             names_col=None, param_rows=None):
         """Create multiple cells from an Excel range.
 
         Args:
@@ -1124,6 +1129,35 @@ class SpaceImpl(SpaceContainerImpl):
             cells = self.new_cells(name=cellsdata.name, func=blank_func)
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
+
+    # ----------------------------------------------------------------------
+    # Reference operation
+
+    def del_refs(self, name):
+
+        if name in self.self_refs:
+            del self.self_refs[name]
+            self.self_refs.set_update()
+        elif name in self.derived_refs:
+            raise KeyError("Derived ref '%s' cannot be deleted" % name)
+        elif name in self._arguments:
+            raise ValueError("Argument cannot be deleted")
+        elif name in self._local_refs:
+            raise ValueError("Ref '%s' cannot be deleted" % name)
+        elif name in self.model._global_refs:
+            raise ValueError(
+                "Global ref '%s' cannot be deleted in space" % name)
+        else:
+            raise KeyError("Ref '%s' does not exist" % name)
+
+    def revert_derived(self, name):
+        raise NotImplementedError
+
+    def has_bases(self):
+        return len(self.mro) > 1
+
+    def is_dynamic(self):
+        return bool(self._arguments)
 
     @property
     def signature(self):

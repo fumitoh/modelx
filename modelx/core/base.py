@@ -328,21 +328,26 @@ class LazyEvalDict(LazyEvalChain, UserDict):
         self.__dict__.update(state)
 
 
-class LazyEvalDictWithMappingProxy(LazyEvalDict):
+class MapProxyMixin:
+
+    def __init__(self, data):
+        self.mproxy = MappingProxyType(data)
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        del state['mproxy']
+        return state
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self.mproxy = MappingProxyType(self)
+
+
+class LazyEvalDictWithMapProxy(MapProxyMixin, LazyEvalDict):
 
     def __init__(self, data=None, observers=None):
         LazyEvalDict.__init__(self, data, observers)
         self.mproxy = MappingProxyType(self.data)
-
-    def __getstate__(self):
-        state = LazyEvalDict.__getstate__(self)
-        del state['mproxy']
-
-        return state
-
-    def __setstate__(self, state):
-        LazyEvalDict.__setstate__(self, state)
-        self.mproxy = MappingProxyType(self)
 
 
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
@@ -378,7 +383,6 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
             return ChainMap.__repr__(self)
 
     def __getstate__(self):
-
         state = LazyEvalChain.__getstate__(self)
         return state
 
@@ -386,7 +390,7 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
         self.__dict__.update(state)
 
 
-class ChainMapWithMappingProxy(LazyEvalChainMap):
+class ChainMapWithMapProxy(MapProxyMixin, LazyEvalChainMap):
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
@@ -394,15 +398,6 @@ class ChainMapWithMappingProxy(LazyEvalChainMap):
 
     def _update_data(self):
         LazyEvalChainMap._update_data(self)
-
-    def __getstate__(self):
-        state = {key: value for key, value in self.__dict__.items()}
-        del state['mproxy']
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.mproxy = MappingProxyType(self)
 
 
 class InterfaceMixin:
@@ -419,12 +414,12 @@ class InterfaceMixin:
         self._interfaces.update(get_interfaces(self))
 
     def __getstate__(self):
-        state = {key: value for key, value in self.__dict__.items()}
+        state = super().__getstate__()
         del state['interfaces']
         return state
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
+        super().__setstate__(state)
         self.interfaces = MappingProxyType(self._interfaces)
 
 
