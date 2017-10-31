@@ -6,9 +6,9 @@ from modelx.core.api import *
 from ..data import testmodule
 
 @pytest.fixture
-def samplespace():
+def testmodel():
 
-    space = new_model(name='samplemodel').new_space(name='samplespace')
+    model, space = new_model(name='testmodel'), new_space(name='testspace')
 
     @defcells(space)
     def foo(x):
@@ -17,42 +17,39 @@ def samplespace():
         else:
             return foo(x - 1)
 
-    return space
+    return model
 
 
-def test_create(samplespace):
-    assert samplespace in cur_model().spaces.values()
+def test_create(testmodel):
+    assert cur_space() in cur_model().spaces.values()
 
 
-def test_get_cells_by_cells(samplespace):
-    assert samplespace.cells["foo"][10] == 123
+def test_get_cells_by_cells(testmodel):
+    assert cur_space().cells["foo"][10] == 123
 
 
-def test_get_cells_by_getattr(samplespace):
-    assert samplespace.foo[10] == 123
+def test_get_cells_by_getattr(testmodel):
+    assert cur_space().foo[10] == 123
 
 
-def test_new_cells_from_module(samplespace):
-
-
-    cells = samplespace.new_cells_from_module(testmodule)
+def test_new_cells_from_module(testmodel):
+    cells = cur_space().new_cells_from_module(testmodule)
     assert set(testmodule.funcs) == set(cells.keys())
 
 
-def test_new_cells_from_modulename(samplespace):
+def test_new_cells_from_modulename(testmodel):
 
     names = __name__.split('.')
     names = names[:-2] + ['data', 'testmodule']
     module_name = '.'.join(names)
 
-    cells = samplespace.new_cells_from_module(module_name)
+    cells = cur_space().new_cells_from_module(module_name)
     assert set(testmodule.funcs) == set(cells.keys())
 
 
-def test_derived_spaces(samplespace):
+def test_derived_spaces(testmodel):
 
-    model = cur_model()
-
+    model = testmodel
     space_a = model.new_space()
 
     @defcells
@@ -69,9 +66,9 @@ def test_derived_spaces(samplespace):
     assert space_a.cells_a[2] == 1 and space_b.cells_a(2) == 2
 
 
-def test_paramfunc(samplespace):
+def test_paramfunc(testmodel):
 
-    model = cur_model()
+    model = testmodel
     base = model.new_space(paramfunc=lambda x, y: {'bases': get_self()})
 
     distance_def = dedent("""\
@@ -84,9 +81,9 @@ def test_paramfunc(samplespace):
     assert base[3, 4].distance == 5
 
 
-def test_dynamic_spaces(samplespace):
+def test_dynamic_spaces(testmodel):
 
-    model = cur_model()
+    model = testmodel
     space = model.new_space(paramfunc=lambda n: {'bases': get_self()})
 
     @defcells
@@ -97,7 +94,7 @@ def test_dynamic_spaces(samplespace):
         and space[2].foo(4) == 8
 
 
-def test_ref(samplespace):
+def test_ref(testmodel):
 
     space = new_space()
 
@@ -109,7 +106,7 @@ def test_ref(samplespace):
     assert foo(2) == 6
 
 
-def test_setref_derived(samplespace):
+def test_setref_derived(testmodel):
     """Test if base/derived refs are property updated on their assignments"""
 
     base = new_space()
@@ -128,7 +125,7 @@ def test_setref_derived(samplespace):
     assert check
 
 
-def test_del_cells(samplespace):
+def test_del_cells(testmodel):
 
     space = new_space()
 
@@ -147,14 +144,14 @@ def test_del_cells(samplespace):
 
 # ----- Testing _impl  ----
 
-def test_mro_root(samplespace):
+def test_mro_root(testmodel):
     space = cur_space()
     assert [space._impl] == space._impl.mro
 
 
-def test_fullname(samplespace):
-    assert samplespace._impl.get_fullname() == "samplemodel.samplespace"
+def test_fullname(testmodel):
+    assert cur_space()._impl.get_fullname() == "testmodel.testspace"
 
 
-def test_fullname_omit_model(samplespace):
-    assert samplespace._impl.get_fullname(omit_model=True) == 'samplespace'
+def test_fullname_omit_model(testmodel):
+    assert cur_space()._impl.get_fullname(omit_model=True) == 'testspace'
