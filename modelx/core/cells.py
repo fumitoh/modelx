@@ -146,10 +146,6 @@ class CellsImpl(Impl):
             data = {}
         self.data.update(data)
 
-    def del_self(self):
-        """Delete content of self. Called from NullImpl(self)"""
-        self.clear_all_values()
-
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
@@ -172,6 +168,9 @@ class CellsImpl(Impl):
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
         self.system = system
+
+    # ----------------------------------------------------------------------
+    # Properties
 
     def __repr__(self):
         return '<CellsImpl: %s>' % self.name
@@ -216,6 +215,9 @@ class CellsImpl(Impl):
     def is_derived(self):
         return self.name in self.space.derived_cells
 
+    # ----------------------------------------------------------------------
+    # Formula operations
+
     def clear_formula(self):
         self.set_formula(NULL_FORMULA)
 
@@ -227,6 +229,9 @@ class CellsImpl(Impl):
             self.space.self_cells_set_update()
         else:
             raise NotImplementedError('Cannot change derived cells formula')
+
+    # ----------------------------------------------------------------------
+    # Value operations
 
     def get_value(self, args, kwargs=None):
 
@@ -286,8 +291,20 @@ class CellsImpl(Impl):
                 raise KeyError("Assignment in cells other than %s" %
                                ptr.argvalues)
 
-    def clear_value(self, args, **kwargs):
+    def _store_value(self, ptr, value, overwrite=False):
 
+        key = ptr.argvalues
+
+        if not ptr.cells.has_cell(key):
+            self.data[key] = value
+        elif overwrite:
+            self.clear_value(key)
+            self.data[key] = value
+        else:
+            raise ValueError("Value already exists for %s" %
+                             ptr.arguments)
+
+    def clear_value(self, args, **kwargs):
         if not args and not kwargs:
             self.clear_all_values()
         else:
@@ -299,20 +316,8 @@ class CellsImpl(Impl):
         for args in list(self.data):
             self.clear_value(args)
 
-    def _store_value(self, ptr, value, overwrite=False):
-
-        key = ptr.argvalues
-
-        if not ptr.cells.has_cell(key):
-            self.data[key] = value
-
-        elif overwrite:
-            self.clear_value(key)
-            self.data[key] = value
-
-        else:
-            raise ValueError("Value already exists for %s" %
-                             ptr.arguments)
+    # ----------------------------------------------------------------------
+    # Pandas I/O
 
     def to_series(self):
         from modelx.io.pandas import cells_to_series
@@ -324,10 +329,6 @@ class CellsImpl(Impl):
         from modelx.io.pandas import cells_to_dataframe
 
         return cells_to_dataframe(self)
-
-
-
-
 
 
 class Cells(Interface, Container, Callable, Sized):
@@ -510,7 +511,6 @@ class Cells(Interface, Container, Callable, Sized):
     @can_return_none.setter
     def can_return_none(self, value):
         self._impl.can_return_none = bool(value)
-
 
     def set_formula(self, func):
         """Set formula from a function."""

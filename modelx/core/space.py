@@ -919,10 +919,6 @@ class SpaceImpl(SpaceContainerImpl):
     def model(self):
         return self.parent.model
 
-    def set_cells(self, name, cells):
-        self._self_cells[name] = cells
-        self._self_cells.set_update(skip_self=True)
-
     def _set_space(self, space):
         if space.is_dynamic():
             self._dynamic_spaces[space.name] = space
@@ -1065,6 +1061,10 @@ class SpaceImpl(SpaceContainerImpl):
             return False
 
     # --- Cells creation -------------------------------------
+
+    def set_cells(self, name, cells):
+        self._self_cells[name] = cells
+        self._self_cells.set_update(skip_self=True)
 
     def new_cells(self, name=None, func=None):
         cells = CellsImpl(space=self, name=name, func=func)
