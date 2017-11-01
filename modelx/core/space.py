@@ -14,7 +14,7 @@
 
 from collections import Sequence
 from textwrap import dedent
-from types import FunctionType
+from types import FunctionType, MappingProxyType
 
 from modelx.core.base import (
     ObjectArgs,
@@ -27,7 +27,8 @@ from modelx.core.base import (
     LazyEvalChainMap,
     ChainMapWithMapProxy,
     InterfaceMixin,
-    ImplChainMap)
+    ImplChainMap,
+    ImmutableMapWrapper)
 from modelx.core.formula import Formula, create_closure
 from modelx.core.cells import Cells, CellsImpl
 from modelx.core.util import AutoNamer, is_valid_name, get_module
@@ -442,7 +443,7 @@ class DerivedMembers(LazyEvalDict):
 class DerivedCells(InterfaceMixin, DerivedMembers):
 
     def __init__(self, space, data=None, observers=None, member=''):
-        InterfaceMixin.__init__(self)
+        InterfaceMixin.__init__(self, MappingProxyType)
         DerivedMembers.__init__(self, space, data, observers, member)
 
     def _update_data(self):
@@ -467,7 +468,7 @@ class DerivedCells(InterfaceMixin, DerivedMembers):
 class DerivedSpaces(InterfaceMixin, DerivedMembers):
 
     def __init__(self, space, data=None, observers=None, member=''):
-        InterfaceMixin.__init__(self)
+        InterfaceMixin.__init__(self, MappingProxyType)
         DerivedMembers.__init__(self, space, data, observers, member)
 
     def _update_data(self):
@@ -508,12 +509,26 @@ class SelfMembers(LazyEvalDict):
 class ImplSelfMembers(InterfaceMixin, SelfMembers):
 
     def __init__(self, space, attr, data=None, observers=None):
-        InterfaceMixin.__init__(self)
+        InterfaceMixin.__init__(self, MappingProxyType)
         SelfMembers.__init__(self, space, attr, data, observers)
         self._repr = self.space.get_fullname(omit_model=True) + '._self_' + attr
 
     def _update_data(self):
         self._update_interfaces()
+
+
+class CellsMapProxy(ImmutableMapWrapper):
+
+    def __delitem__(self, name):
+        cells = self.data[name]._impl
+        cells.space.del_cells(name)
+
+
+class SpaceMapProxy(ImmutableMapWrapper):
+
+    def __delitem__(self, name):
+        space = self.data[name]._impl
+        space.parent.del_space(name)
 
 
 class NameSpaceDict(LazyEvalDict):
@@ -666,7 +681,8 @@ class SpaceImpl(SpaceContainerImpl):
         self._derived_cells._repr = \
             self.get_fullname(omit_model=True) + '._derived_cells'
 
-        self._cells = ImplChainMap([self._self_cells,
+        self._cells = ImplChainMap(CellsMapProxy,
+                                   [self._self_cells,
                                     self._derived_cells])
         self._cells._repr = \
             self.get_fullname(omit_model=True) + '._cells'
@@ -675,12 +691,14 @@ class SpaceImpl(SpaceContainerImpl):
         self._derived_spaces._repr = \
             self.get_fullname(omit_model=True) + '._derived_spaces'
 
-        self._static_spaces = ImplChainMap([self._self_spaces,
+        self._static_spaces = ImplChainMap(MappingProxyType,
+                                           [self._self_spaces,
                                             self._derived_spaces])
         self._static_spaces._repr = \
             self.get_fullname(omit_model=True) + '._static_spaces'
 
-        self._spaces = ImplChainMap([self._static_spaces,
+        self._spaces = ImplChainMap(SpaceMapProxy,
+                                    [self._static_spaces,
                                      self._dynamic_spaces])
         self._spaces._repr = \
             self.get_fullname(omit_model=True) + '._spaces'

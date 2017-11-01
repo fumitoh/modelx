@@ -352,7 +352,7 @@ class LazyEvalDictWithMapProxy(MapProxyMixin, LazyEvalDict):
 
     def __init__(self, data=None, observers=None):
         LazyEvalDict.__init__(self, data, observers)
-        self.mproxy = MappingProxyType(self.data)
+        MapProxyMixin.__init__(self, self.data)
 
 
 class LazyEvalChainMap(LazyEvalChain, ChainMap):
@@ -416,9 +416,10 @@ class InterfaceMixin:
 
     _update_interfaces needs to be manually called from _update_data.
     """
-    def __init__(self):
+    def __init__(self, map_class):
         self._interfaces = {}
-        self.interfaces = MappingProxyType(self._interfaces)
+        self.map_class = map_class
+        self.interfaces = map_class(self._interfaces)
 
     def _update_interfaces(self):
         self._interfaces.clear()
@@ -426,18 +427,22 @@ class InterfaceMixin:
 
     def __getstate__(self):
         state = super().__getstate__()
+        if self.map_class is MappingProxyType:
+            state['map_class'] = 'MappingProxyType'
         del state['interfaces']
         return state
 
     def __setstate__(self, state):
         super().__setstate__(state)
-        self.interfaces = MappingProxyType(self._interfaces)
+        if self.map_class == 'MappingProxyType':
+            self.map_class = MappingProxyType
+        self.interfaces = self.map_class(self._interfaces)
 
 
 class ImplLazyEvalDict(InterfaceMixin, LazyEvalDict):
 
     def __init__(self, data=None, observers=None):
-        InterfaceMixin.__init__(self)
+        InterfaceMixin.__init__(self, MappingProxyType)
         LazyEvalDict.__init__(self, data, observers)
 
     def _update_data(self):
@@ -447,10 +452,45 @@ class ImplLazyEvalDict(InterfaceMixin, LazyEvalDict):
 
 class ImplChainMap(InterfaceMixin, LazyEvalChainMap):
 
-    def __init__(self, maps=None, observers=None, observe_maps=True):
-        InterfaceMixin.__init__(self)
+    def __init__(self, ifmap_class, maps=None,
+                 observers=None, observe_maps=True):
+        InterfaceMixin.__init__(self, ifmap_class)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
     def _update_data(self):
         LazyEvalChainMap._update_data(self)
         self._update_interfaces()
+
+# The code below is modified from UserDict in Python's standard library.
+#
+# The original code was taken from the following URL:
+#   https://github.com/python/cpython/blob/\
+#       7e68790f3db75a893d5dd336e6201a63bc70212b/\
+#       Lib/collections/__init__.py#L968-L1027
+
+
+class ImmutableMapWrapper(Mapping):
+
+    # Start by filling-out the abstract methods
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self): return len(self.data)
+
+    def __getitem__(self, key):
+        if key in self.data:
+            return self.data[key]
+        if hasattr(self.__class__, "__missing__"):
+            return self.__class__.__missing__(self, key)
+        raise KeyError(key)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    # Modify __contains__ to work correctly when __missing__ is present
+    def __contains__(self, key):
+        return key in self.data
+
+    # Now, add the methods in dicts but not in MutableMapping
+    def __repr__(self): return repr(self.data)
+
