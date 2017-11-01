@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import builtins
 from types import MappingProxyType
 from collections import Sequence, ChainMap, Mapping, UserDict
 from inspect import BoundArguments
@@ -323,7 +324,7 @@ class LazyEvalDict(LazyEvalChain, UserDict):
     def __setstate__(self, state):
 
         if '__builtins__' in state['data']:
-            state['data']['__builtins__'] = __builtins__
+            state['data']['__builtins__'] = builtins
 
         self.__dict__.update(state)
 

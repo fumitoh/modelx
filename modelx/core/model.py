@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from types import MappingProxyType
+import builtins
 from textwrap import dedent
 import pickle
 
@@ -84,7 +85,7 @@ class ModelImpl(SpaceContainerImpl):
         Impl.__init__(self, Model)
 
         self._global_refs = LazyEvalDictWithMapProxy(
-            data={'__builtins__': __builtins__})
+            data={'__builtins__': builtins})
         self._spaces = ImplLazyEvalDict()
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
 
