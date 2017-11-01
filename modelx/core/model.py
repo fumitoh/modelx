@@ -116,11 +116,11 @@ class ModelImpl(SpaceContainerImpl):
 
     @property
     def global_refs(self):
-        return self._global_refs.update_data()
+        return self._global_refs.get_updated()
 
     @property
     def namespace(self):
-        return self._namespace.update_data()
+        return self._namespace.get_updated()
 
     def close(self):
         self.system.close_model(self)

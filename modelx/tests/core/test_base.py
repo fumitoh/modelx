@@ -33,15 +33,15 @@ class SampleLazyEval:
 
     @property
     def lazy_eval_dict1(self):
-        return self._lazy_eval_dict1.update_data()
+        return self._lazy_eval_dict1.get_updated()
 
     @property
     def lazy_eval_dict2(self):
-        return self._lazy_eval_dict2.update_data()
+        return self._lazy_eval_dict2.get_updated()
 
     @property
     def lazy_eval_chmap(self):
-        return self._lazy_eval_chmap.update_data()
+        return self._lazy_eval_chmap.get_updated()
 
 
 def test_lazy_eval_dict():

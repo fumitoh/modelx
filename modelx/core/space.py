@@ -112,7 +112,7 @@ class SpaceContainerImpl(Impl):
 
     @property
     def spaces(self):
-        return self._spaces.update_data()
+        return self._spaces.get_updated()
 
     def has_space(self, name):
         return name in self.spaces
@@ -401,7 +401,7 @@ class BaseMembers(LazyEvalDict):
         self._repr = self.space.get_fullname(omit_model=True) + \
             '.BaseMembers(%s)' % self.member
 
-        self.update_data()
+        self.get_updated()
 
     def _update_data(self):
 
@@ -432,11 +432,11 @@ class DerivedMembers(LazyEvalDict):
         self.member = member
         LazyEvalDict.__init__(self, data, observers)
         self._base_members = BaseMembers(self)
-        self.update_data()
+        self.get_updated()
 
     @property
     def base_members(self):
-        return self._base_members.update_data()
+        return self._base_members.get_updated()
 
 
 class DerivedCells(InterfaceMixin, DerivedMembers):
@@ -817,50 +817,50 @@ class SpaceImpl(SpaceContainerImpl):
 
     @property
     def self_members(self):
-        return self._self_members.update_data()
+        return self._self_members.get_updated()
 
     @property
     def cells(self):
-        return self._cells.update_data()
+        return self._cells.get_updated()
 
     @property
     def self_cells(self):
-        return self._self_cells.update_data()
+        return self._self_cells.get_updated()
 
     def self_cells_set_update(self):
         return self._self_cells.set_update(skip_self=False)
 
     @property
     def derived_cells(self):
-        return self._derived_cells.update_data()
+        return self._derived_cells.get_updated()
 
     @property
     def self_spaces(self):
-        return self._self_spaces.update_data()
+        return self._self_spaces.get_updated()
 
     @property
     def derived_spaces(self):
-        return self._derived_spaces.update_data()
+        return self._derived_spaces.get_updated()
 
     @property
     def dynamic_spaces(self):
-        return self._dynamic_spaces.update_data()
+        return self._dynamic_spaces.get_updated()
 
     @property
     def refs(self):
-        return self._refs.update_data()
+        return self._refs.get_updated()
 
     @property
     def self_refs(self):
-        return self._self_refs.update_data()
+        return self._self_refs.get_updated()
 
     @property
     def derived_refs(self):
-        return self._derived_refs.update_data()
+        return self._derived_refs.get_updated()
 
     @property
     def namespace_impl(self):
-        return self._namespace_impl.update_data()
+        return self._namespace_impl.get_updated()
 
     @property
     def namespace(self):

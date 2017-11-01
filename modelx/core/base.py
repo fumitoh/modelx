@@ -216,7 +216,7 @@ class LazyEvalChain:
     An object of a class inherited from LazyEvaluation can have its observers.
     When the data of the object is updated, the users call set_update method,
     to flag the object's observers.
-    When the observers update_data methods are called later, their data
+    When the observers get_updated methods are called later, their data
     contents are updated depending on their update states.
     The updating operation can be customized by overwriting _update_data method.
     """
@@ -240,12 +240,12 @@ class LazyEvalChain:
             if not observer.needs_update:
                 observer.set_update()
 
-    def update_data(self):
+    def get_updated(self):
         if not self.needs_update:
             return self
         else:
             for other in self.observing:
-                other.update_data()
+                other.get_updated()
             self._update_data()
             self._needs_update = False
             return self
@@ -298,7 +298,7 @@ class LazyEvalDict(LazyEvalChain, UserDict):
 
     def get_updated_data(self):
         """Get updated ``data`` instead of self. """
-        self.update_data()
+        self.get_updated()
         return self.data
 
     def _update_data(self):
@@ -369,12 +369,12 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
                 if isinstance(other, LazyEvalChain):
                     other.append_observer(self)
 
-        self.update_data()
+        self.get_updated()
 
     def _update_data(self):
         for map_ in self.maps:
             if isinstance(map_, LazyEvalChain):
-                map_.update_data()
+                map_.get_updated()
 
     def __repr__(self):
 
