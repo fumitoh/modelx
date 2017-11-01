@@ -300,6 +300,14 @@ class LazyEvalDict(LazyEvalChain, UserDict):
     def _update_data(self):
         pass
 
+    def set_item(self, name, value, skip_self=False):
+        UserDict.__setitem__(self, name, value)
+        self.set_update(skip_self)
+
+    def del_item(self, name, skip_self=False):
+        UserDict.__delitem__(self, name)
+        self.set_update(skip_self)
+
     def __repr__(self):
 
         if self._repr:
@@ -371,6 +379,12 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
         for map_ in self.maps:
             if isinstance(map_, LazyEvalChain):
                 map_.get_updated()
+
+    def __setitem__(self, name, value):
+        raise NotImplementedError
+
+    def __delitem__(self, name):
+        raise NotImplementedError
 
     def __repr__(self):
 

@@ -174,8 +174,7 @@ class ModelImpl(SpaceContainerImpl):
         self.cellgraph = nx.relabel_nodes(self.cellgraph, mapping)
 
     def del_space(self, name):
-        del self.spaces[name]
-        self.spaces.set_update()
+        self.spaces.del_item(name)
 
     def _set_space(self, space):
 
@@ -184,12 +183,10 @@ class ModelImpl(SpaceContainerImpl):
         elif space.name in self.global_refs:
             raise KeyError("Name '%s' already already assigned" % self.name)
 
-        self.spaces[space.name] = space
-        self.spaces.set_update()
+        self.spaces.set_item(space.name, space)
 
     def del_ref(self, name):
-        del self.global_refs[name]
-        self.global_refs.set_update()
+        self.global_refs.del_item(name)
 
     def get_attr(self, name):
         if name in self.spaces:

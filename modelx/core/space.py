@@ -919,11 +919,9 @@ class SpaceImpl(SpaceContainerImpl):
 
     def _set_space(self, space):
         if space.is_dynamic():
-            self._dynamic_spaces[space.name] = space
-            self._dynamic_spaces.set_update(skip_self=True)
+            self._dynamic_spaces.set_item(space.name, space, True)
         else:
-            self._self_spaces[space.name] = space
-            self._self_spaces.set_update(skip_self=True)
+            self._self_spaces.set_item(space.name, space, True)
 
     def del_space(self, name):
         if name not in self.spaces:
@@ -932,13 +930,11 @@ class SpaceImpl(SpaceContainerImpl):
         space = self.spaces[name]
         if space.is_dynamic():
             # TODO: Destroy space
-            del self._dynamic_spaces[name]
-            self._dynamic_spaces.set_update(skip_self=True)
+            self._dynamic_spaces.del_item(name, True)
 
         elif name in self._self_spaces[name]:
             # TODO: Destroy space
-            del self._self_spaces[name]
-            self._self_spaces.set_update(skip_self=True)
+            self._self_spaces.del_item(name, True)
 
         else:
             raise ValueError("Derived cells cannot be deleted")
@@ -974,8 +970,7 @@ class SpaceImpl(SpaceContainerImpl):
                 raise ValueError
 
         else:
-            self._self_refs[name] = value
-            self._self_refs.set_update(skip_self=True)
+            self._self_refs.set_item(name, value)
 
     def del_attr(self, name):
         """Implementation of attribute deletion
@@ -1061,8 +1056,7 @@ class SpaceImpl(SpaceContainerImpl):
     # --- Cells creation -------------------------------------
 
     def set_cells(self, name, cells):
-        self._self_cells[name] = cells
-        self._self_cells.set_update(skip_self=True)
+        self._self_cells.set_item(name, cells, True)
 
     def new_cells(self, name=None, func=None):
         cells = CellsImpl(space=self, name=name, func=func)
