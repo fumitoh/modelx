@@ -222,20 +222,16 @@ class LazyEvalChain:
     """
 
     def __init__(self, observers):
-        self._needs_update = False
+        self.needs_update = False # must be read only
         self.observers = []
         self.observing = []
         for observer in observers:
             self.append_observer(observer)
 
-    @property
-    def needs_update(self):
-        return self._needs_update
-
     def set_update(self, skip_self=False):
 
         if not skip_self:
-            self._needs_update = True
+            self.needs_update = True
         for observer in self.observers:
             if not observer.needs_update:
                 observer.set_update()
@@ -247,7 +243,7 @@ class LazyEvalChain:
             for other in self.observing:
                 other.get_updated()
             self._update_data()
-            self._needs_update = False
+            self.needs_update = False
             return self
 
     def _update_data(self):

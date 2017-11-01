@@ -801,11 +801,11 @@ class SpaceImpl(SpaceContainerImpl):
 
         return message % (
             self.name,
-            self._self_cells._needs_update,
+            self._self_cells.needs_update,
             list(self._self_cells.keys()),
-            self._derived_cells._needs_update,
+            self._derived_cells.needs_update,
             list(self._derived_cells.keys()),
-            self._derived_cells._base_members._needs_update,
+            self._derived_cells._base_members.needs_update,
             list(self._derived_cells._base_members.keys()),
             list(self._cells.keys()),
             list(self._spaces.keys()),
