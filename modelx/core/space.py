@@ -14,8 +14,7 @@
 
 from collections import Sequence
 from textwrap import dedent
-from types import (MappingProxyType,
-                   FunctionType)
+from types import FunctionType
 
 from modelx.core.base import (
     ObjectArgs,
@@ -380,7 +379,6 @@ class SpaceContainer(Interface):
     def spaces(self):
         """A mapping of the names of (sub)spaces to the Space objects"""
         # TODO: Reuse a MappingProxy for better performance
-        # return MappingProxyType(get_interfaces(self._impl.spaces))
         return self._impl.spaces.interfaces
 
 
@@ -1189,15 +1187,11 @@ class SpaceImpl(SpaceContainerImpl):
 class Space(SpaceContainer):
     """Container for cells and other objects referred in formulas.
     """
-    # __slots__ = ('_impl',)
 
     @property
     def name(self):
         """The name of the space."""
         return self._impl.name
-
-    # def __repr__(self):
-    #     return self._impl.repr_
 
     # ----------------------------------------------------------------------
     # Manipulating cells

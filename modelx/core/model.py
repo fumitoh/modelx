@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from types import MappingProxyType
 import builtins
 from textwrap import dedent
 import pickle
@@ -151,8 +150,6 @@ class ModelImpl(SpaceContainerImpl):
         state = {key: value for key, value in self.__dict__.items()
                  if key in self.state_attrs}
 
-        # state['_global_refs'] = self._global_refs.data.copy()
-
         mapping = {}
         for node in self.cellgraph:
             name = node.obj_.get_fullname(omit_model=True)
@@ -163,7 +160,6 @@ class ModelImpl(SpaceContainerImpl):
         return state
 
     def __setstate__(self, state):
-        # state['_global_refs']['__builtins__'] = __builtins__
         self.__dict__.update(state)
 
     def restore_state(self, system):

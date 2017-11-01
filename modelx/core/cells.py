@@ -19,7 +19,6 @@ from collections.abc import (
     Container,
     Callable,
     Sized)
-
 from modelx.core.base import (
     ObjectArgs,
     Impl,
@@ -77,9 +76,7 @@ class CellsMaker:
         self.name = name
 
     def __call__(self, func):
-        return self.space.new_cells(func=func,
-                                       name=self.name).interface
-
+        return self.space.new_cells(func=func, name=self.name).interface
 
 class CellsImpl(Impl):
     """
@@ -381,9 +378,6 @@ class Cells(Interface, Container, Callable, Sized):
 
     def __hash__(self):
         return hash(id(self))
-
-    # def __repr__(self):
-    #     return self._impl.repr_
 
     def clear(self, *args, **kwargs):
         """Clear all the values."""
