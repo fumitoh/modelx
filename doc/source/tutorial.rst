@@ -151,7 +151,7 @@ which returns a mapping of the names of all existing models to
 the model objects::
 
    >>> get_models()
-   {'Model1': <modelx.core.model.Model at 0x447f1b0>}
+   {'Model1': <Model Model1>}
 
 To get the current model, use :py:func:`~modelx.core.api.cur_model`
 without arguments.
@@ -163,7 +163,7 @@ To get all spaces in a model mapped to their names,
 you can check ``spaces`` property of the model::
 
    >>> model.spaces
-   mappingproxy({'Space1': <modelx.core.space.Space at 0x4452790>})
+   mappingproxy({'Space1': <Space Space1 in Model1>})
 
 The return MappingProxy objects acts like an immutable dictionary, so you can
 get Space1 by ``model.spaces['Space1']``. You can see the returned space is
@@ -175,7 +175,7 @@ the same object as what is referred as ``space``::
 To get one space, its name is available as an attribute of the containing model::
 
    >>> model.Space1
-   <modelx.core.space.Space at 0x5d088f0>
+   <Space Space1 in Model1>
 
 You can get the current space of the current model by calling
 :py:func:`~modelx.core.api.cur_space` without arguments.
@@ -243,7 +243,7 @@ you can get a cells in a space by accessing the space attribute
 of the cells name with ``.``::
 
    >>> space.fibo
-   <modelx.core.cells.Cells at 0x51ed090>
+   <Cells fibo(n) in Model1.Space1>
    >>> fibo is space.fibo
    True
 
@@ -859,10 +859,9 @@ taken from ``data`` for each policy::
     76.0  NaN   NaN         NaN       NaN            NaN     0.000000    NaN
 
    >>> policy.spaces
-   mappingproxy({'Policy1': <modelx.core.space.Space at 0x3e05230>,
-                 'Policy2': <modelx.core.space.Space at 0x4ee0cd0>,
-                 'Policy3': <modelx.core.space.Space at 0xa29390>})
-
+   {'Policy1': <Space Policy[1] in Model1>,
+    'Policy2': <Space Policy[2] in Model1>,
+    'Policy3': <Space Policy[3] in Model1>}
 
 Dynamic spaces of a base space are not passed on to the derived spaces.
 When a space is derived from a base space that has dynamically created

@@ -16,6 +16,7 @@ Classes
    :toctree: generated/
    :template: mxclass.rst
 
+   ~modelx.core.base.Interface
    ~modelx.core.model.Model
    ~modelx.core.space.SpaceContainer
    ~modelx.core.space.Space

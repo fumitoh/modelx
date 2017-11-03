@@ -176,6 +176,18 @@ class CellsImpl(Impl):
         return self.space.get_fullname(omit_model) + '.' + self.name
 
     @property
+    def fullname(self):
+        return self.space.fullname + '.' + self.name
+
+    @property
+    def _repr_self(self):
+        return "%s(%s)" % (self.name, ', '.join(self.parameters.keys()))
+
+    @property
+    def _repr_parent(self):
+        return self.space._repr_parent + '.' + self.space._repr_self
+
+    @property
     def signature(self):
         return self.formula.signature
 

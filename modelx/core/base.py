@@ -157,6 +157,22 @@ class Impl:
     def __init__(self, interface_class):
         self.interface = interface_class(self)
 
+    @property
+    def repr_string(self):
+        """String to called by Interface.__repr__"""
+        if self._repr_parent:
+            return "%s in %s" % (self._repr_self, self._repr_parent)
+        else:
+            return self._repr_self
+
+    @property
+    def _repr_self(self):
+        raise NotImplementedError
+
+    @property
+    def _repr_parent(self):
+        raise NotImplementedError
+
 
 class NullImpl(Impl):
     """Singleton to represent deleted objects.
@@ -187,6 +203,7 @@ class NullImpl(Impl):
 
 
 class Interface:
+    """Base class of all exposed classes"""
 
     def __new__(cls, _impl):
 
@@ -199,6 +216,18 @@ class Interface:
                 return _impl.interface
         else:
             raise ValueError("Invalid direct constructor call.")
+
+    @property
+    def name(self):
+        return self._impl.name
+
+    @property
+    def fullname(self):
+        return self._impl.fullname
+
+    def __repr__(self):
+        type_ = self.__class__.__name__
+        return "<%s %s>" % (type_, self._impl.repr_string)
 
     def __getnewargs__(self):
         return (self._impl,)

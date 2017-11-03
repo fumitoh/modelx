@@ -111,6 +111,22 @@ class ModelImpl(SpaceContainerImpl):
             len(self.spaces), list(self.spaces.keys()))
 
     @property
+    def __repr__(self):
+        return self.name
+
+    @property
+    def _repr_self(self):
+        return self.name
+
+    @property
+    def _repr_parent(self):
+        return ''
+
+    @property
+    def fullname(self):
+        return self.name
+
+    @property
     def model(self):
         return self
 

@@ -784,6 +784,29 @@ class SpaceImpl(SpaceContainerImpl):
     def __repr__(self):
         return '<SpaceImpl: ' + self.name + '>'
 
+    @property
+    def _repr_self(self):
+
+        if self.is_dynamic():
+            # TODO: make self.arguments ordered to replace this
+            params = self.parent.paramfunc.parameters.keys()
+            args = [repr(self.arguments[param]) for param in params]
+            param = ', '.join(args)
+            return "%s[%s]" % (self.parent.name, param)
+        else:
+            return self.name
+
+    @property
+    def _repr_parent(self):
+
+        if self.is_dynamic():
+            return self.parent._repr_parent
+        else:
+            if self.parent._repr_parent:
+                return self.parent._repr_parent + '.' + self.parent._repr_self
+            else:
+                return self.parent._repr_self
+
     def get_self_interface(self):
         return self.interface
 
@@ -877,6 +900,10 @@ class SpaceImpl(SpaceContainerImpl):
         return self._derived_refs.get_updated()
 
     @property
+    def arguments(self):
+        return self._arguments.get_updated()
+
+    @property
     def namespace_impl(self):
         return self._namespace_impl.get_updated()
 
@@ -930,6 +957,10 @@ class SpaceImpl(SpaceContainerImpl):
                     del seq[0]
 
     # ----------------------------------------------------------------------
+
+    @property
+    def fullname(self):
+        return self.parent.fullname + '.' + self.name
 
     @property
     def model(self):
@@ -1199,11 +1230,6 @@ class SpaceImpl(SpaceContainerImpl):
 class Space(SpaceContainer):
     """Container for cells and other objects referred in formulas.
     """
-
-    @property
-    def name(self):
-        """The name of the space."""
-        return self._impl.name
 
     # ----------------------------------------------------------------------
     # Manipulating cells

@@ -124,6 +124,10 @@ class Formula:
     def name(self):
         return self.func.__name__
 
+    @property
+    def parameters(self):
+        return self.signature.parameters
+
     def __getstate__(self):
         """Specify members to pickle."""
         return {'source': self.source}
