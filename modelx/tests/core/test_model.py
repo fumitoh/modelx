@@ -70,14 +70,16 @@ def test_cellgraph(simplemodel):
         predec = simplemodel._impl.cellgraph.predecessors(fibo)
         succ = simplemodel._impl.cellgraph.successors(fibo)
 
+        check = True
         if x == 0 or x == 1:
-            assert (predec == [] and
-                    fibo_next2 in succ)
+            check = check and (list(predec) == [] and
+                               fibo_next2 in succ)
         elif x < 9:
-            assert (fibo_prev1 in predec and
-                    fibo_prev2 in predec and
-                    fibo_next1 in succ and
-                    fibo_next2 in succ)
+            check = check and (fibo_prev1 in predec and
+                               fibo_prev2 in predec and
+                               fibo_next1 in succ and
+                               fibo_next2 in succ)
+        assert check
 
 
 def test_cellgraph_standalone():
@@ -88,9 +90,8 @@ def test_cellgraph_standalone():
         return x
 
     foo(1)
-    node = model.cellgraph.nodes()
-    assert node == [CellArgs(foo._impl, 1)]
-
+    nodes = model.cellgraph.nodes()
+    assert CellArgs(foo._impl, 1) in nodes
 
 def test_cellgraph_informula_assignment():
     model, space = new_model(), new_space()
@@ -100,8 +101,8 @@ def test_cellgraph_informula_assignment():
         bar[x] = x
 
     bar(1)
-    node = model.cellgraph.nodes()
-    assert node == [CellArgs(bar._impl, 1)]
+    nodes = model.cellgraph.nodes()
+    assert CellArgs(bar._impl, 1) in nodes
 
 
 def test_global_ref_attr():

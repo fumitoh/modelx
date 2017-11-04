@@ -60,7 +60,13 @@ class DependencyGraph(nx.DiGraph):
     def get_nodes_with(self, obj):
         """Return nodes with `obj`."""
         result = set()
-        for node in nx.nodes_iter(self):
+
+        if nx.__version__[0] == '1':
+            nodes = self.nodes_iter()
+        else:
+            nodes = self.nodes
+
+        for node in nodes:
             if node.obj_ == obj:
                 result.add(node)
         return result
