@@ -554,12 +554,6 @@ class NameSpaceDict(LazyEvalDict):
 class SpaceImpl(SpaceContainerImpl):
     """The implementation of Space class.
 
-    The rationales for splitting implementation from its interface are twofold,
-    one is to hide from users attributes used only within the package,
-    and the other is to free referring objects from getting affected by
-    special methods that are meant for changing the behaviour of operations
-    for users.
-
     Space objects have quite a few mapping members. Those are
     MappyingProxyTypes objects, which are essentially frozen dictionaries.
 
@@ -973,6 +967,13 @@ class SpaceImpl(SpaceContainerImpl):
             self._self_spaces.set_item(space.name, space, True)
 
     def del_space(self, name):
+        """Delete a space.
+
+        Derived spaces, base spaces of other spaces are indelible.
+        When a space is deleted, contained cells and spaces are also deleted.
+        Values of the contained cells and dependent cells are deleted.
+
+        """
         if name not in self.spaces:
             raise ValueError("Space '%s' does not exist" % name)
 

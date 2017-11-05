@@ -151,6 +151,13 @@ def get_impls(interfaces):
 
 
 class Impl:
+    """The ultimate base class of *Impl classes.
+
+    The rationales for splitting implementation from its interface are twofold,
+    one is to hide from users attributes used only within the package,
+    and the other is to free referring objects from getting affected by
+    special methods that are meant for changing the behaviour of operations
+    for users."""
 
     state_attrs = ['interface']
 
@@ -203,7 +210,12 @@ class NullImpl(Impl):
 
 
 class Interface:
-    """Base class of all exposed classes"""
+    """The ultimate base class of Model, Space, Cells.
+
+    The subclasses of Interface have only one member, ``_impl``,
+    which is their implementation objects.
+
+    """
 
     def __new__(cls, _impl):
 
@@ -219,10 +231,12 @@ class Interface:
 
     @property
     def name(self):
+        """Name of the interface."""
         return self._impl.name
 
     @property
     def fullname(self):
+        """Dotted name of the interface."""
         return self._impl.fullname
 
     def __repr__(self):
