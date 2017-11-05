@@ -244,11 +244,6 @@ class Model(SpaceContainer):
     A model contains spaces.
     """
 
-    @property
-    def currentspace(self):
-        """The current space of the model."""
-        return self._impl.currentspace.interface
-
     def save(self, filepath):
         """Save the model to a file."""
         self._impl.save(filepath)
@@ -273,19 +268,6 @@ class Model(SpaceContainer):
     def cellgraph(self):
         """A directed graph of cells."""
         return self._impl.cellgraph
-
-    def cur_space(self, name=None):
-        """Set the current space to Space ``name`` and return it.
-
-        If called without arguments, the current space is returned.
-        Otherwise, the current space is set to the space named ``name``
-        and the space is returned.
-        """
-        if name is None:
-            return self._impl.currentspace.interface
-        else:
-            self._impl.currentspace = self._impl.spaces[name]
-            return self.cur_space()
 
     @property
     def refs(self):

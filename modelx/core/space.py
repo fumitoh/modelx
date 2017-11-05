@@ -116,6 +116,10 @@ class SpaceContainerImpl(Impl):
     # Properties
 
     @property
+    def model(self):
+        return NotImplementedError
+
+    @property
     def spaces(self):
         return self._spaces.get_updated()
 
@@ -383,8 +387,23 @@ class SpaceContainer(Interface):
     @property
     def spaces(self):
         """A mapping of the names of (sub)spaces to the Space objects"""
-        # TODO: Reuse a MappingProxy for better performance
         return self._impl.spaces.interfaces
+
+    # ----------------------------------------------------------------------
+    # Current Space method
+
+    def cur_space(self, name=None):
+        """Set the current space to Space ``name`` and return it.
+
+        If called without arguments, the current space is returned.
+        Otherwise, the current space is set to the space named ``name``
+        and the space is returned.
+        """
+        if name is None:
+            return self._impl.model.currentspace.interface
+        else:
+            self._impl.model.currentspace = self._impl.spaces[name]
+            return self.cur_space()
 
 
 class BaseMembers(LazyEvalDict):
