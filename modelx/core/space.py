@@ -894,6 +894,10 @@ class SpaceImpl(SpaceContainerImpl):
         return self._derived_refs.get_updated()
 
     @property
+    def local_refs(self):
+        return self._local_refs
+
+    @property
     def arguments(self):
         return self._arguments.get_updated()
 
@@ -1209,11 +1213,11 @@ class SpaceImpl(SpaceContainerImpl):
             self.self_refs.set_update()
         elif name in self.derived_refs:
             raise KeyError("Derived ref '%s' cannot be deleted" % name)
-        elif name in self._arguments:
+        elif name in self.arguments:
             raise ValueError("Argument cannot be deleted")
-        elif name in self._local_refs:
+        elif name in self.local_refs:
             raise ValueError("Ref '%s' cannot be deleted" % name)
-        elif name in self.model._global_refs:
+        elif name in self.model.global_refs:
             raise ValueError(
                 "Global ref '%s' cannot be deleted in space" % name)
         else:
