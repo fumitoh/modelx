@@ -477,7 +477,7 @@ class DerivedSpaces(InterfaceMixin, DerivedMembers):
         for base_space in self.base_members.values():
 
             space = SpaceImpl(parent=self.space, name=base_space.name,
-                              bases=base_space.direct_bases,
+                              bases=base_space,
                               paramfunc=base_space.paramfunc)
 
             self.data[space.name] = space
