@@ -26,7 +26,8 @@ from modelx.core.base import (
 from modelx.core.cells import CellArgs
 from modelx.core.space import (
     SpaceContainerImpl,
-    SpaceContainer)
+    SpaceContainer,
+    SpaceMapProxy)
 from modelx.core.util import is_valid_name
 
 
@@ -91,7 +92,7 @@ class ModelImpl(SpaceContainerImpl):
 
         self._global_refs = LazyEvalDictWithMapProxy(
             data={'__builtins__': builtins})
-        self._spaces = ImplLazyEvalDict()
+        self._spaces = ImplLazyEvalDict(SpaceMapProxy)
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
 
     def clear_descendants(self, source, clear_source=True):

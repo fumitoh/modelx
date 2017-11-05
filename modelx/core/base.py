@@ -484,8 +484,8 @@ class InterfaceMixin:
 
 class ImplLazyEvalDict(InterfaceMixin, LazyEvalDict):
 
-    def __init__(self, data=None, observers=None):
-        InterfaceMixin.__init__(self, MappingProxyType)
+    def __init__(self, ifmap_class, data=None, observers=None):
+        InterfaceMixin.__init__(self, ifmap_class)
         LazyEvalDict.__init__(self, data, observers)
 
     def _update_data(self):

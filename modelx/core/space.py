@@ -73,7 +73,7 @@ class SpaceContainerImpl(Impl):
 
     """
 
-    state_attrs = ['_spaces',
+    state_attrs = ['_spaces',   # must be defined in subclasses
                    'param_spaces',
                    'spacenamer',
                    'paramfunc'] + Impl.state_attrs
@@ -91,7 +91,8 @@ class SpaceContainerImpl(Impl):
         else:
             self.paramfunc = ParamFunc(paramfunc)
 
-        self._spaces = {}
+    # ----------------------------------------------------------------------
+    # Serialization by pickle
 
     def __getstate__(self):
 
@@ -110,6 +111,9 @@ class SpaceContainerImpl(Impl):
 
         for space in self._spaces.values():
             space.restore_state(system)
+
+    # ----------------------------------------------------------------------
+    # Properties
 
     @property
     def spaces(self):

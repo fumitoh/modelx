@@ -29,6 +29,26 @@ def create_testmodel():
     return model
 
 
+def test_delattr_space_in_model():
+
+    model = create_testmodel()
+
+    check_before = 'base' in model.spaces
+    del model.base
+    check_after = 'base' not in model.spaces
+
+    assert check_before and check_after
+
+
+def test_delitem_space_in_model():
+
+    model = create_testmodel()
+
+    check_before = 'base' in model.spaces
+    del model.spaces['base']
+    check_after = 'base' not in model.spaces
+
+
 def test_new_cells_in_nestedspace():
     """Test creation of cells in derived nested spaces."""
 
@@ -67,8 +87,8 @@ def test_new_space_in_nestedspace():
     assert 'supernested' in model.derived.subspace.nestedsub.spaces
 
 
-def test_del_space_in_nestedspace():
-    """Test deletion of spaces in derived nested space."""
+def test_delattr_space_in_nestedspace():
+    """Test deletion of a space in a derived nested space."""
 
     # base<----------------------------derived
     #  |                                 |
@@ -78,4 +98,16 @@ def test_del_space_in_nestedspace():
 
     model = create_testmodel()
     del model.base.subspace.nestedsub
-    assert 'nestedsub' not in model.base.subspace.spaces
+    check = 'nestedsub' not in model.base.subspace.spaces
+    check = check and 'nestedsub' not in model.derived.subspace.spaces
+    assert check
+
+
+def test_delitem_space_in_nestedspace():
+    """Test deletion of a space in a derived nested space."""
+
+    model = create_testmodel()
+    del model.base.subspace.spaces['nestedsub']
+    check = 'nestedsub' not in model.base.subspace.spaces
+    check = check and 'nestedsub' not in model.derived.subspace.spaces
+    assert check
