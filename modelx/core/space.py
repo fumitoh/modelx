@@ -951,6 +951,33 @@ class SpaceImpl(SpaceContainerImpl):
                     del seq[0]
 
     # ----------------------------------------------------------------------
+    # Properties
+
+    def has_bases(self):
+        return len(self.mro) > 1
+
+    def is_dynamic(self):
+        return bool(self._arguments)
+
+    @property
+    def signature(self):
+        return self.paramfunc.signature
+
+    def get_fullname(self, omit_model=False):
+
+        fullname = self.name
+        parent = self.parent
+        while True:
+            fullname = parent.name + '.' + fullname
+            if hasattr(parent, 'parent'):
+                parent = parent.parent
+            else:
+                if omit_model:
+                    separated = fullname.split('.')
+                    separated.pop(0)
+                    fullname = '.'.join(separated)
+
+                return fullname
 
     @property
     def fullname(self):
@@ -959,35 +986,6 @@ class SpaceImpl(SpaceContainerImpl):
     @property
     def model(self):
         return self.parent.model
-
-    def _set_space(self, space):
-        if space.is_dynamic():
-            self._dynamic_spaces.set_item(space.name, space, True)
-        else:
-            self._self_spaces.set_item(space.name, space, True)
-
-    def del_space(self, name):
-        """Delete a space.
-
-        Derived spaces, base spaces of other spaces are indelible.
-        When a space is deleted, contained cells and spaces are also deleted.
-        Values of the contained cells and dependent cells are deleted.
-
-        """
-        if name not in self.spaces:
-            raise ValueError("Space '%s' does not exist" % name)
-
-        space = self.spaces[name]
-        if space.is_dynamic():
-            # TODO: Destroy space
-            self._dynamic_spaces.del_item(name, True)
-
-        elif name in self._self_spaces[name]:
-            # TODO: Destroy space
-            self._self_spaces.del_item(name, True)
-
-        else:
-            raise ValueError("Derived cells cannot be deleted")
 
     # ----------------------------------------------------------------------
     # Attribute access
@@ -1015,10 +1013,8 @@ class SpaceImpl(SpaceContainerImpl):
                     self.cells[name].set_value((), value)
                 else:
                     raise AttributeError("Cells '%s' is not a scalar." % name)
-
             else:
                 raise ValueError
-
         else:
             self._self_refs.set_item(name, value)
 
@@ -1041,7 +1037,7 @@ class SpaceImpl(SpaceContainerImpl):
 
             elif name in self.spaces:
                 if name in self.self_spaces:
-                    pass
+                    self.del_space(name)
                 elif name in self.derived_cells:
                     raise KeyError("Derived space cannot be removed")
                 else:
@@ -1055,6 +1051,37 @@ class SpaceImpl(SpaceContainerImpl):
 
         else:
             raise KeyError("'%s' not found in Space '%s'" % (name, self.name))
+
+    # ----------------------------------------------------------------------
+    # Space operation
+
+    def _set_space(self, space):
+        if space.is_dynamic():
+            self._dynamic_spaces.set_item(space.name, space, True)
+        else:
+            self._self_spaces.set_item(space.name, space, True)
+
+    def del_space(self, name):
+        """Delete a space.
+
+        Derived spaces are indelible.
+        When a space is deleted, contained cells and spaces are also deleted.
+        Values of the contained cells and dependent cells are deleted.
+
+        """
+        if name not in self.spaces:
+            raise ValueError("Space '%s' does not exist" % name)
+
+        if name in self.self_spaces:
+            # TODO: Destroy space
+            self.self_spaces.del_item(name, True)
+
+        elif name in self.dynamic_spaces:
+            # TODO: Destroy space
+            self.dynamic_spaces.del_item(name, True)
+
+        else:
+            raise ValueError("Derived cells cannot be deleted")
 
     # ----------------------------------------------------------------------
     # Cells operation
@@ -1192,34 +1219,8 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             raise KeyError("Ref '%s' does not exist" % name)
 
-    def revert_derived(self, name):
-        raise NotImplementedError
-
-    def has_bases(self):
-        return len(self.mro) > 1
-
-    def is_dynamic(self):
-        return bool(self._arguments)
-
-    @property
-    def signature(self):
-        return self.paramfunc.signature
-
-    def get_fullname(self, omit_model=False):
-
-        fullname = self.name
-        parent = self.parent
-        while True:
-            fullname = parent.name + '.' + fullname
-            if hasattr(parent, 'parent'):
-                parent = parent.parent
-            else:
-                if omit_model:
-                    separated = fullname.split('.')
-                    separated.pop(0)
-                    fullname = '.'.join(separated)
-
-                return fullname
+    # ----------------------------------------------------------------------
+    # Pandas I/O
 
     def to_frame(self):
 
