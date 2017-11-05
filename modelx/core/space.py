@@ -1395,7 +1395,7 @@ class Space(SpaceContainer):
     def __contains__(self, item):
         """Check if item is in the space.
 
-        item can be wither a cells or space.
+        item can be either a cells or space.
 
         Args:
             item: a cells or space to check.
@@ -1405,10 +1405,10 @@ class Space(SpaceContainer):
         """
 
         if isinstance(item, Cells):
-            return item in self._cells.values()
+            return item._impl in self._impl._cells.values()
 
         elif isinstance(item, Space):
-            return item in self._subspaces.values()
+            return item._impl in self._impl.spaces.values()
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes

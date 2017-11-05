@@ -22,7 +22,6 @@ def simplemodel():
 
 
 def test_autoname_space(simplemodel):
-    #space = simplemodel.new_space()
     assert simplemodel.cur_space().name == 'Space1'
 
 

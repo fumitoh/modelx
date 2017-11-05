@@ -7,6 +7,12 @@ from ..data import testpkg
 @pytest.fixture
 def samplemodel():
 
+    #       samplemodel------------+
+    #        |                     |
+    # base_space<--base_space2    base_space2<--derived_space2
+    #        |                     |
+    #       foo                   bar
+
     model = new_model(name='samplemodel')
     base_space = model.new_space(name='base_space')
     base_space2 = model.new_space(name='base_space2')
@@ -30,6 +36,16 @@ def samplemodel():
     model.new_space(name='derived_space2', bases=[base_space, base_space2])
 
     return model
+
+
+def test_change_cur_model(samplemodel):
+    space = samplemodel.cur_space('base_space2')
+    assert space is samplemodel.spaces['base_space2']
+
+
+def test_new_cur_model(samplemodel):
+    space = samplemodel.base_space.new_space()
+    assert space is samplemodel.cur_space()
 
 
 def test_derived_space(samplemodel):
