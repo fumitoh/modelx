@@ -1,6 +1,5 @@
-modelx
-======
-*Unleash your spreadsheet models!*
+
+
 
 What is modelx?
 ---------------
@@ -24,38 +23,39 @@ demonstrated:
 - and in the space, a new cells is created , which is associated with the
   Fibonacci series.
 
-.. code-block:: python
+```python
+from modelx import *
 
-    from modelx import *
+model, space = new_model(), new_space()
 
-    model, space = new_model(), new_space()
+@defcells
+def fibo(n):
+    if n == 0 or n == 1:
+        return n
+    else:
+        return fibo(n - 1) + fibo(n - 2)
+```
 
-    @defcells
-    def fibo(n):
-        if n == 0 or n == 1:
-            return n
-        else:
-            return fibo(n - 1) + fibo(n - 2)
+To get a Fibonacci number for, say 10, you can do:
 
-To get a Fibonacci number for, say 10, you can do::
-
-    >>> fibo(10)
-    55
-    >>> fibo.series
-    n
-    0      0
-    1      1
-    2      1
-    3      2
-    4      3
-    5      5
-    6      8
-    7     13
-    8     21
-    9     34
-    10    55
-    Name: fibo, dtype: int64
-
+```pycon
+>>> fibo(10)
+55
+>>> fibo.series
+n
+0      0
+1      1
+2      1
+3      2
+4      3
+5      5
+6      8
+7     13
+8     21
+9     34
+10    55
+Name: fibo, dtype: int64
+```
 
 Feature highlights
 ------------------
@@ -110,8 +110,7 @@ Copyright 2017, Fumito Hamamura
 
 modelx is free software; you can redistribute it and/or
 modify it under the terms of
-`GNU Lesser General Public License v3 (LGPLv3)
-<https://github.com/fumitoh/modelx/blob/master/LICENSE.LESSER.txt>`_.
+[GNU Lesser General Public License v3 (LGPLv3)](https://github.com/fumitoh/modelx/blob/master/LICENSE.LESSER.txt).
 
 Contributions, productive comments, requests and feedback from the community
 are always welcome. Information on modelx development is found at Github
