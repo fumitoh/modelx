@@ -81,9 +81,14 @@ class System:
 
     def open_model(self, path):
         with open(path, 'rb') as file:
-            self._currentmodel = pickle.load(file)
+            model = pickle.load(file)
 
-        self._currentmodel._impl.restore_state(self)
+        if model.name not in self.models:
+            model._impl.restore_state(self)
+            self.models[model.name] = model._impl
+            self._currentmodel = model
+        else:
+            raise RuntimeError("Model '%s' already exists" % model.name)
 
         return self._currentmodel
 
