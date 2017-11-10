@@ -126,8 +126,8 @@ class SpaceContainerImpl(Impl):
     def has_space(self, name):
         return name in self.spaces
 
-    def new_space(self, *, name=None, bases=None, paramfunc=None,
-                     arguments=None):
+    def new_space(self, name=None, bases=None, paramfunc=None,
+                  *, refs=None, arguments=None):
         """Create a child space.
 
         Args:
@@ -136,8 +136,8 @@ class SpaceContainerImpl(Impl):
             bases: If specified, the new space becomes a derived space of
                 the `base` space.
             paramfunc: Function whose parameters used to set space parameters.
+            refs: a mapping of refs to be added.
             arguments: ordered dict of space parameter names to their values.
-            base_self: True if subspaces inherit self by default.
 
         """
 
@@ -151,7 +151,7 @@ class SpaceContainerImpl(Impl):
             raise ValueError("Invalid name '%s'." % name)
 
         space = SpaceImpl(parent=self, name=name, bases=bases,
-                          paramfunc=paramfunc, arguments=arguments)
+                          paramfunc=paramfunc, refs=refs, arguments=arguments)
 
         self._set_space(space)
         return space
@@ -279,7 +279,7 @@ class SpaceContainer(Interface):
 
     A base class for implementing (sub)space containment.
     """
-    def new_space(self, name=None, bases=None, paramfunc=None):
+    def new_space(self, name=None, bases=None, paramfunc=None, refs=None):
         """Create a (sub)space.
 
         Args:
@@ -299,7 +299,7 @@ class SpaceContainer(Interface):
         """
         space = self._impl.model.currentspace \
             = self._impl.new_space(name=name, bases=get_impls(bases),
-                                      paramfunc=paramfunc)
+                                   paramfunc=paramfunc, refs=refs)
 
         return space.interface
 
@@ -649,7 +649,8 @@ class SpaceImpl(SpaceContainerImpl):
                 
         _namespace (dict)
     """
-    def __init__(self, parent, name, bases, paramfunc, arguments=None):
+    def __init__(self, parent, name, bases, paramfunc,
+                 refs=None, arguments=None):
 
         SpaceContainerImpl.__init__(self, parent.system, if_class=Space,
                                     paramfunc=paramfunc)
@@ -752,6 +753,13 @@ class SpaceImpl(SpaceContainerImpl):
         self._namespace_impl.append_observer(self._namespace)
         self._namespace._repr = \
             self.get_fullname(omit_model=True) + '._namespace'
+
+        # ------------------------------------------------------------------
+        # Add initial refs members
+
+        if refs is not None:
+            self._self_refs.update(refs)
+            self._self_refs.set_update()
 
     # ----------------------------------------------------------------------
     # Serialization by pickle

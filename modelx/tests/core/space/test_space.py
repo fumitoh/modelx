@@ -94,6 +94,12 @@ def test_dynamic_spaces(testmodel):
         and space[2].foo(4) == 8
 
 
+def test_new_cells_refs(testmodel):
+
+    space = testmodel.new_space(refs={'x': 1})
+    assert space.x == 1
+
+
 def test_ref(testmodel):
 
     space = new_space()
