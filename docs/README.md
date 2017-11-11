@@ -3,10 +3,27 @@
 
 What is modelx?
 ---------------
-modelx is a Python package for performing complex calculations by creating
-models composed of structured data and formulas written in the form of Python
-functions. You can think of it as a multidimensional
+modelx is a Python package for building and running complex models 
+composed of formulas and data. You can think of modelx as a multidimensional
 version of spreadsheet, but it’s so much more!
+
+* [Tutorials and Reference on Read the Docs](https://modelx.readthedocs.io)
+* [Development site on GitHub](https://github.com/fumitoh/modelx)
+
+
+Install modelx
+--------------
+Install modelx by running ``pip`` command from a terminal on Linux, 
+or from a command prompt on Windows.
+
+    $ pip install modelx
+
+If you prefer to install ``modelx`` from files placed locally on your machine
+instead of directly fetching from the Web,
+you can manually download ``modelx`` files from
+[PyPI](http://pypi.python.org/pypi/modelx).
+
+
 
 How modelx works
 ----------------
@@ -113,8 +130,8 @@ modify it under the terms of
 [GNU Lesser General Public License v3 (LGPLv3)](https://github.com/fumitoh/modelx/blob/master/LICENSE.LESSER.txt).
 
 Contributions, productive comments, requests and feedback from the community
-are always welcome. Information on modelx development is found at Github
-https://github.com/fumitoh/modelx
+are always welcome. Information on modelx development is found at 
+Github https://github.com/fumitoh/modelx
 
 
 Development State
