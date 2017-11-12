@@ -17,7 +17,7 @@ AUTHOR = "Fumito Hamamura"
 EMAIL = "fumito.ham@gmail.com"
 URL = "https://github.com/fumitoh/modelx"
 
-DESCRIPTION = "Spreadsheet alternative for multi-dimensional data."
+DESCRIPTION = "Biuld and run complex models composed of formulas and data"
 
 here = path.abspath(path.dirname(__file__))
 
