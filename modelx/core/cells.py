@@ -412,11 +412,11 @@ class Cells(Interface, Container, Callable, Sized):
 
     def __neg__(self):
         """-self"""
-        raise -self._impl.single_value
+        return -self._impl.single_value
 
     def __pos__(self):
         """+self"""
-        raise +self._impl.single_value
+        return +self._impl.single_value
 
     def __sub__(self, other):
         """self - other"""
