@@ -31,24 +31,43 @@ from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 
 
+def cells_to_vals(args, kwargs):
+
+    if isinstance(args, Sequence):
+
+        result = []
+        for arg in args:
+            if isinstance(arg, Cells):
+                if arg._impl.is_scalar():
+                    result.append(arg._impl.single_value)
+                else:
+                    raise ValueError('Cells cannot be an argument')
+            else:
+                result.append(arg)
+
+        args = result
+
+    elif isinstance(args, Cells):
+        args = args._impl.single_value
+
+    if kwargs is not None:
+        for key, arg in kwargs.items():
+            if isinstance(arg, Cells):
+                if arg._impl.is_scalar():
+                    kwargs[key] = arg._impl.single_value
+                else:
+                    raise ValueError('Cells cannot be an argument')
+
+    return args, kwargs
+
+
 class CellArgs(ObjectArgs):
 
     state_attrs = ['cells'] + ObjectArgs.state_attrs
 
     def __init__(self, cells, args, kwargs=None):
 
-        if isinstance(args, Sequence):
-            args = tuple(arg._impl.single_value
-                         if isinstance(arg, Cells) else arg for arg in args)
-
-        elif isinstance(args, Cells):
-            args = args._impl.single_value
-
-        if kwargs is not None:
-            for key, arg in kwargs.items():
-                if isinstance(arg, Cells):
-                    kwargs[key] = arg._impl.single_value
-
+        args, kwargs = cells_to_vals(args, kwargs)
         ObjectArgs.__init__(self, cells, args, kwargs)
         self.cells = self.obj_
 

@@ -30,7 +30,7 @@ from modelx.core.base import (
     ImplChainMap,
     ImmutableMapWrapper)
 from modelx.core.formula import Formula, create_closure
-from modelx.core.cells import Cells, CellsImpl
+from modelx.core.cells import Cells, CellsImpl, cells_to_vals
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
@@ -39,6 +39,7 @@ class SpaceArgs(ObjectArgs):
 
     def __init__(self, space, args, kwargs=None):
 
+        args, kwargs = cells_to_vals(args, kwargs)
         ObjectArgs.__init__(self, space, args, kwargs)
         self.space = self.obj_
 
