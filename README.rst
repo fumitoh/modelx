@@ -1,6 +1,6 @@
 modelx
 ======
-*Unleash your spreadsheet models!*
+*Escape from spreadsheet models!*
 
 What is modelx?
 ---------------

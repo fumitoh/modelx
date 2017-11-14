@@ -2,7 +2,7 @@
 
 Overview
 ========
-*Unleash your spreadsheet models!*
+*Escape from spreadsheet models!*
 
 .. include:: ../../README.rst
    :start-line: 4
