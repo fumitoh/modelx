@@ -1,5 +1,6 @@
 # Include the license file
 include LICENSE.txt
+include LICENSE.LESSER.txt
 
 # Include the data files
 recursive-include data *

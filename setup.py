@@ -17,7 +17,7 @@ AUTHOR = "Fumito Hamamura"
 EMAIL = "fumito.ham@gmail.com"
 URL = "https://github.com/fumitoh/modelx"
 
-DESCRIPTION = "Biuld and run complex models composed of formulas and data"
+DESCRIPTION = "Build and run complex models composed of formulas and data"
 
 here = path.abspath(path.dirname(__file__))
 
