@@ -19,6 +19,8 @@ from collections.abc import (
     Container,
     Callable,
     Sized)
+from itertools import combinations
+
 from modelx.core.base import (
     ObjectArgs,
     Impl,
@@ -305,6 +307,26 @@ class CellsImpl(Impl):
 
         return value
 
+    def find_match(self, args, kwargs):
+
+        if not self.can_return_none:
+            raise ValueError('Cells %s cannot return None' % self.name)
+
+        ptr = CellArgs(self, args, kwargs)
+        args = ptr.argvalues
+        args_len = len(args)
+
+        for match_len in range(args_len, -1, -1):
+            for idxs in combinations(range(args_len), match_len):
+                masked = [None] * args_len
+                for idx in idxs:
+                    masked[idx] = args[idx]
+                value = self.get_value(masked)
+                if value is not None:
+                    return tuple(masked), value
+
+        return None, None
+
     def set_value(self, key, value):
 
         ptr = CellArgs(self, key)
@@ -376,6 +398,19 @@ class Cells(Interface, Container, Callable, Sized):
 
     def __call__(self, *args, **kwargs):
         return self._impl.get_value(args, kwargs)
+
+    def match(self, *args, **kwargs):
+        """Returns the best matching args and their value.
+
+        If the cells returns None for the given arguments,
+        continue to get a value by passing arguments
+        masking the given arguments with ``None``s.
+        The search of non-None value starts from the given arguments
+        to the all ``None`` arguments in the lexicographical order.
+        The masked arguments that returns non-None value
+        first is returned with the value.
+        """
+        return self._impl.find_match(args, kwargs)
 
     def __len__(self):
         return len(self._impl.data)

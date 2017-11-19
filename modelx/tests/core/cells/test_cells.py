@@ -49,6 +49,22 @@ def sample_space():
 
     func1, func2 = defcells(func1, func2)
 
+    @defcells
+    def matchtest(x, y, z):
+        return None
+
+    matchtest.can_return_none = True
+
+    matchtest[1, 2, 3] = 123
+    matchtest[1, 2, None] = 120
+    matchtest[1, None, 3] = 103
+    matchtest[None, 2, 3] = 23
+    matchtest[1, None, None] = 100
+    matchtest[None, 2, None] = 20
+    matchtest[None, None, 3] = 3
+    matchtest[None, None, None] = 0
+
+
     return space
 
 
@@ -67,6 +83,23 @@ def test_getitem(sample_space):
 
 def test_call(sample_space):
     assert sample_space.fibo(10) == 55
+
+@pytest.mark.parametrize("args, masked, value", [
+    ((1, 2, 3), (1, 2, 3), 123),
+    ((1, 2, 4), (1, 2, None), 120),
+    ((1, 3, 3), (1, None, 3), 103),
+    ((2, 2, 3), (None, 2, 3), 23),
+    ((1, 3, 4), (1, None, None), 100),
+    ((2, 2, 4), (None, 2, None), 20),
+    ((2, 3, 3), (None, None, 3), 3),
+    ((2, 3, 4), (None, None, None), 0)
+])
+def test_match(sample_space, args, masked, value):
+
+    cells = sample_space.matchtest
+    retargs, retvalue = cells.match(*args)
+
+    assert retargs == masked and retvalue == value
 
 
 def test_setitem(sample_space):
