@@ -516,24 +516,24 @@ class ImmutableMapWrapper(Mapping):
 
     # Start by filling-out the abstract methods
     def __init__(self, data):
-        self.data = data
+        self._data = data
 
-    def __len__(self): return len(self.data)
+    def __len__(self): return len(self._data)
 
     def __getitem__(self, key):
-        if key in self.data:
-            return self.data[key]
+        if key in self._data:
+            return self._data[key]
         if hasattr(self.__class__, "__missing__"):
             return self.__class__.__missing__(self, key)
         raise KeyError(key)
 
     def __iter__(self):
-        return iter(self.data)
+        return iter(self._data)
 
     # Modify __contains__ to work correctly when __missing__ is present
     def __contains__(self, key):
-        return key in self.data
+        return key in self._data
 
     # Now, add the methods in dicts but not in MutableMapping
-    def __repr__(self): return repr(self.data)
+    def __repr__(self): return repr(self._data)
 

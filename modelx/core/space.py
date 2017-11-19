@@ -544,14 +544,14 @@ class ImplSelfMembers(InterfaceMixin, SelfMembers):
 class CellsMapProxy(ImmutableMapWrapper):
 
     def __delitem__(self, name):
-        cells = self.data[name]._impl
+        cells = self._data[name]._impl
         cells.space.del_cells(name)
 
 
 class SpaceMapProxy(ImmutableMapWrapper):
 
     def __delitem__(self, name):
-        space = self.data[name]._impl
+        space = self._data[name]._impl
         space.parent.del_space(name)
 
 
