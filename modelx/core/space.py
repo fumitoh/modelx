@@ -541,6 +541,12 @@ class ImplSelfMembers(InterfaceMixin, SelfMembers):
         self._update_interfaces()
 
 
+def _map_repr(self):
+    result = [',\n '] * (len(self._data) * 2 -1)
+    result[0::2] = sorted(list(self._data))
+    return '{' + ''.join(result) + '}'
+
+
 class CellsMapProxy(ImmutableMapWrapper):
 
     def __delitem__(self, name):
@@ -548,11 +554,17 @@ class CellsMapProxy(ImmutableMapWrapper):
         cells.space.del_cells(name)
 
 
+CellsMapProxy.__repr__ = _map_repr
+
+
 class SpaceMapProxy(ImmutableMapWrapper):
 
     def __delitem__(self, name):
         space = self._data[name]._impl
         space.parent.del_space(name)
+
+
+SpaceMapProxy.__repr__ = _map_repr
 
 
 class NameSpaceDict(LazyEvalDict):
