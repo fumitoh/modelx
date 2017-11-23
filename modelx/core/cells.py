@@ -14,7 +14,7 @@
 
 from types import FunctionType
 from textwrap import dedent
-from collections import Sequence
+from collections import Sequence, namedtuple
 from collections.abc import (
     Container,
     Callable,
@@ -98,6 +98,8 @@ class CellsMaker:
 
     def __call__(self, func):
         return self.space.new_cells(func=func, name=self.name).interface
+
+ArgsValuePair = namedtuple('ArgsValuePair', ['args', 'value'])
 
 class CellsImpl(Impl):
     """
@@ -323,9 +325,9 @@ class CellsImpl(Impl):
                     masked[idx] = args[idx]
                 value = self.get_value(masked)
                 if value is not None:
-                    return tuple(masked), value
+                    return ArgsValuePair(tuple(masked), value)
 
-        return None, None
+        return ArgsValuePair(None, None)
 
     def set_value(self, key, value):
 
