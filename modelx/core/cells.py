@@ -382,6 +382,57 @@ class CellsImpl(Impl):
 
         return cells_to_dataframe(self)
 
+    # ----------------------------------------------------------------------
+    # Dependency
+
+    def predecessors(self, args, kwargs):
+        node = CellArgs(self, args, kwargs)
+        preds = self.model.cellgraph.predecessors(node)
+        for n in preds:
+            yield CellNode(n)
+
+    def successors(self, args, kwargs):
+        node = CellArgs(self, args, kwargs)
+        succs = self.model.cellgraph.successors(node)
+        for n in succs:
+            yield CellNode(n)
+
+
+class CellNode:
+    """A combination of a cells, its args and its value."""
+
+    def __init__(self, cellargs):
+        self._impl = cellargs
+
+    @property
+    def cells(self):
+        """Return the Cells object"""
+        return self._impl.cells.interface
+
+    @property
+    def args(self):
+        """Return a tuple of the cells' arguments."""
+        return self._impl.argvalues
+
+    @property
+    def has_value(self):
+        """Return ``True`` if the cell has a value."""
+        return self._impl.cells.has_cell(self._impl.argvalues)
+
+    @property
+    def value(self):
+        """Return the value of the cells."""
+        if self.has_value:
+            return self._impl.cells.get_value(self._impl.argvalues)
+        else:
+            raise ValueError('Value not found')
+
+    def __repr__(self):
+        if self.has_value:
+            return self._impl.__repr__() + '=' + str(self.value)
+        else:
+            return self._impl.__repr__()
+
 
 class Cells(Interface, Container, Callable, Sized):
     """Data container with a formula to calculate its own values.
@@ -581,3 +632,24 @@ class Cells(Interface, Container, Callable, Sized):
     def clear_formula(self):
         """Clear the formula."""
         self._impl.clear_formula()
+
+    # ----------------------------------------------------------------------
+    # Dependency
+
+    def preds(self, *args, **kwargs):
+        """Return an iterator over predecessors of a cell.
+
+        This method returns an iterator that yields CellNode objects,
+        each of which is a predecessor of (i.e. referenced in the formula
+        of) the cell specified by the given arguments.
+        """
+        return self._impl.predecessors(args, kwargs)
+
+    def succs(self, *args, **kwargs):
+        """Return an iterator over successors of a cell.
+
+        This method returns an iterator that yields CellNode objects,
+        each of which is a successor of (i.e. referencing in their formula)
+        the cell specified by the given arguments.
+        """
+        return self._impl.successors(args, kwargs)
