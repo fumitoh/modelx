@@ -17,6 +17,23 @@ import itertools
 import pandas as pd
 import numpy as np
 
+_pd_ver = tuple(int(i) for i in pd.__version__.split('.'))[:-1]
+
+if _pd_ver < (0, 20):
+    # To circumvent the BUG: reset_index with NaN in MultiIndex
+    # https://github.com/pandas-dev/pandas/issues/6322
+
+    def _reset_naindex(df):
+        nan_levels = [lv for lv, idx in enumerate(df.index.levels)
+                      if idx.size == 0]
+
+        for i, lv in enumerate(nan_levels):
+            name = df.index.levels[lv - i].name
+            df.index = df.index.droplevel(lv - i)
+            df.insert(0, name, np.nan)
+
+        return df
+
 
 def space_to_dataframe(space):
 
@@ -24,22 +41,24 @@ def space_to_dataframe(space):
     result = None
 
     for cells in space.cells.values():
-        # params += cells.parameters.keys()
+        df = cells_to_dataframe(cells)
 
-        cells = cells_to_dataframe(cells)
+        if df.index.names != [None]:
+            if isinstance(df.index, pd.MultiIndex):
+                if _pd_ver < (0, 20):
+                    df = _reset_naindex(df)
 
-        if cells.index.names != [None]:
-            cells = cells.reset_index()
+            df = df.reset_index()
 
-        missing_params = set(all_params) - set(cells)
+        missing_params = set(all_params) - set(df)
 
         for params in missing_params:
-            cells[params] = np.nan
+            df[params] = np.nan
 
         if result is None:
-            result = cells
+            result = df
         else:
-            result = pd.merge(result, cells, how='outer')
+            result = pd.merge(result, df, how='outer')
 
     return result.set_index(all_params) if all_params else result
 
@@ -66,16 +85,17 @@ def cells_to_series(cells):
         indexes = None
 
     elif len(cells.parameters) == 1:
-        data = {key[0]: value for key, value in cells.data.items()}
-        indexes = list(cells.parameters.keys())
+        items = [(key[0], value) for key, value in cells.data.items()]
+        indexes, data = zip(*items)
 
     else:
-        data = cells.data
-        indexes = list(cells.parameters.keys())
+        keys, data = zip(*cells.data.items())
+        indexes = pd.MultiIndex.from_tuples(keys)
 
-    result = pd.Series(data=data, name=cells.name)
+    result = pd.Series(data=data, name=cells.name,
+                       index=indexes)
 
-    if indexes:
+    if indexes is not None:
         result.index.names = list(cells.parameters.keys())
 
     return result
