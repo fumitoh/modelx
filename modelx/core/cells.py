@@ -388,14 +388,12 @@ class CellsImpl(Impl):
     def predecessors(self, args, kwargs):
         node = CellArgs(self, args, kwargs)
         preds = self.model.cellgraph.predecessors(node)
-        for n in preds:
-            yield CellNode(n)
+        return [CellNode(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = CellArgs(self, args, kwargs)
         succs = self.model.cellgraph.successors(node)
-        for n in succs:
-            yield CellNode(n)
+        return [CellNode(n) for n in succs]
 
 
 class CellNode:
@@ -637,19 +635,19 @@ class Cells(Interface, Container, Callable, Sized):
     # Dependency
 
     def preds(self, *args, **kwargs):
-        """Return an iterator over predecessors of a cell.
+        """Return a list of predecessors of a cell.
 
-        This method returns an iterator that yields CellNode objects,
-        each of which is a predecessor of (i.e. referenced in the formula
+        This method returns a list of CellNode objects, whose elements are
+        predecessors of (i.e. referenced in the formula
         of) the cell specified by the given arguments.
         """
         return self._impl.predecessors(args, kwargs)
 
     def succs(self, *args, **kwargs):
-        """Return an iterator over successors of a cell.
+        """Return a list of successors of a cell.
 
-        This method returns an iterator that yields CellNode objects,
-        each of which is a successor of (i.e. referencing in their formula)
+        This method returns a list of CellNode objects, whose elements are
+        successors of (i.e. referencing in their formulas)
         the cell specified by the given arguments.
         """
         return self._impl.successors(args, kwargs)
