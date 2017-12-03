@@ -798,7 +798,7 @@ class SpaceImpl(SpaceContainerImpl):
         '_namespace',
         'cellsnamer',
         'name',
-        'parent'] + SpaceContainerImpl.state_attrs
+        'can_have_none'] + SpaceContainerImpl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -1017,7 +1017,7 @@ class SpaceImpl(SpaceContainerImpl):
         parent = self.parent
         while True:
             fullname = parent.name + '.' + fullname
-            if hasattr(parent, 'parent'):
+            if parent.parent is not None:
                 parent = parent.parent
             else:
                 if omit_model:
@@ -1438,7 +1438,10 @@ class Space(SpaceContainer):
         return self._impl.namespace[name]
 
     def __setattr__(self, name, value):
-        self._impl.set_attr(name, value)
+        if name in self.properties:
+            object.__setattr__(self, name, value)
+        else:
+            self._impl.set_attr(name, value)
 
     def __delattr__(self, name):
         self._impl.del_attr(name)

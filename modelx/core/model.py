@@ -88,12 +88,13 @@ class ModelImpl(SpaceContainerImpl):
         else:
             raise ValueError("Invalid name '%s'." % name)
 
-        Impl.__init__(self, Model)
+        # Impl.__init__(self, Model)
 
         self._global_refs = LazyEvalDictWithMapProxy(
             data={'__builtins__': builtins})
         self._spaces = ImplLazyEvalDict(SpaceMapProxy)
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
+        self.can_have_none = False
 
     def clear_descendants(self, source, clear_source=True):
         """Clear values and nodes calculated from `source`."""
@@ -259,7 +260,10 @@ class Model(SpaceContainer):
         return self._impl.get_attr(name)
 
     def __setattr__(self, name, value):
-        self._impl.set_attr(name, value)
+        if name in self.properties:
+            object.__setattr__(self, name, value)
+        else:
+            self._impl.set_attr(name, value)
 
     def __delattr__(self, name):
         self._impl.del_attr(name)

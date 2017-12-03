@@ -64,7 +64,6 @@ def sample_space():
     matchtest[None, None, 3] = 3
     matchtest[None, None, None] = 0
 
-
     return space
 
 

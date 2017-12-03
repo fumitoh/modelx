@@ -146,13 +146,11 @@ class CellsImpl(Impl):
 
         self.system = space.system
         self.model = space.model
-        self.space = space
+        self.space = self.parent = space
         if func is None:
             self.formula = NULL_FORMULA
         else:
             self.formula = Formula(func)
-
-        self.can_have_none = False
 
         if is_valid_name(name):
             self.name = name
@@ -173,8 +171,7 @@ class CellsImpl(Impl):
                    'space',
                    'formula',
                    'name',
-                   'data',
-                   'can_have_none'] + Impl.state_attrs
+                   'data'] + Impl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -283,16 +280,13 @@ class CellsImpl(Impl):
                     if value is not None:
                         raise ValueError("Duplicate assignment for %s"
                                          % args)
-                    elif self.data[args] is None and not self.can_have_none:
-                        tracemsg = self.system.callstack.tracemessage()
-                        raise NoneReturnedError(ptr, tracemsg)
                     else:
                         value = self.data[args]
 
                 elif value is not None:
                     self._store_value(ptr, value, False)
 
-                elif self.can_have_none:
+                elif self.get_property('can_have_none'):
                     self._store_value(ptr, value, False)
 
                 else:
@@ -311,12 +305,14 @@ class CellsImpl(Impl):
 
     def find_match(self, args, kwargs):
 
-        if not self.can_have_none:
-            raise ValueError('Cells %s cannot return None' % self.name)
-
         ptr = CellArgs(self, args, kwargs)
         args = ptr.argvalues
         args_len = len(args)
+
+        if not self.get_property('can_have_none'):
+            # raise ValueError('Cells %s cannot return None' % self.name)
+            tracemsg = self.system.callstack.tracemessage()
+            raise NoneReturnedError(ptr, tracemsg)
 
         for match_len in range(args_len, -1, -1):
             for idxs in combinations(range(args_len), match_len):
@@ -347,11 +343,17 @@ class CellsImpl(Impl):
 
         key = ptr.argvalues
 
-        if not ptr.cells.has_cell(key):
-            self.data[key] = value
-        elif overwrite:
-            self.clear_value(key)
-            self.data[key] = value
+        if not ptr.cells.has_cell(key) or overwrite:
+            if overwrite:
+                self.clear_value(key)
+
+            if value is not None:
+                self.data[key] = value
+            elif self.get_property('can_have_none'):
+                self.data[key] = value
+            else:
+                tracemsg = self.system.callstack.tracemessage()
+                raise NoneReturnedError(ptr, tracemsg)
         else:
             raise ValueError("Value already exists for %s" %
                              ptr.arguments)
@@ -612,16 +614,6 @@ class Cells(Interface, Container, Callable, Sized):
 
     # ----------------------------------------------------------------------
     # Attributes
-
-    @property   # TODO: Test can_have_none
-    def can_have_none(self):
-        """bool: If True, the cells can return None, otherwise an error
-        is raised upon returning None. Defaults to False."""
-        return self._impl.can_have_none
-
-    @can_have_none.setter
-    def can_have_none(self, value):
-        self._impl.can_have_none = bool(value)
 
     def set_formula(self, func):
         """Set formula from a function."""
