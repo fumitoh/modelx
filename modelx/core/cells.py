@@ -120,7 +120,7 @@ class CellsImpl(Impl):
     _clear_all_derived
     _set_formula_derived
 
-    **Changing can_return_none**
+    **Changing can_have_none**
 
     **Setting Values**
     clear()
@@ -152,7 +152,7 @@ class CellsImpl(Impl):
         else:
             self.formula = Formula(func)
 
-        self.can_return_none = False
+        self.can_have_none = False
 
         if is_valid_name(name):
             self.name = name
@@ -174,7 +174,7 @@ class CellsImpl(Impl):
                    'formula',
                    'name',
                    'data',
-                   'can_return_none'] + Impl.state_attrs
+                   'can_have_none'] + Impl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -283,7 +283,7 @@ class CellsImpl(Impl):
                     if value is not None:
                         raise ValueError("Duplicate assignment for %s"
                                          % args)
-                    elif self.data[args] is None and not self.can_return_none:
+                    elif self.data[args] is None and not self.can_have_none:
                         tracemsg = self.system.callstack.tracemessage()
                         raise NoneReturnedError(ptr, tracemsg)
                     else:
@@ -292,7 +292,7 @@ class CellsImpl(Impl):
                 elif value is not None:
                     self._store_value(ptr, value, False)
 
-                elif self.can_return_none:
+                elif self.can_have_none:
                     self._store_value(ptr, value, False)
 
                 else:
@@ -311,7 +311,7 @@ class CellsImpl(Impl):
 
     def find_match(self, args, kwargs):
 
-        if not self.can_return_none:
+        if not self.can_have_none:
             raise ValueError('Cells %s cannot return None' % self.name)
 
         ptr = CellArgs(self, args, kwargs)
@@ -613,15 +613,15 @@ class Cells(Interface, Container, Callable, Sized):
     # ----------------------------------------------------------------------
     # Attributes
 
-    @property   # TODO: Test can_return_none
-    def can_return_none(self):
+    @property   # TODO: Test can_have_none
+    def can_have_none(self):
         """bool: If True, the cells can return None, otherwise an error
         is raised upon returning None. Defaults to False."""
-        return self._impl.can_return_none
+        return self._impl.can_have_none
 
-    @can_return_none.setter
-    def can_return_none(self, value):
-        self._impl.can_return_none = bool(value)
+    @can_have_none.setter
+    def can_have_none(self, value):
+        self._impl.can_have_none = bool(value)
 
     def set_formula(self, func):
         """Set formula from a function."""
