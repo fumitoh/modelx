@@ -73,7 +73,7 @@ by talking a closer look at the simple example
 we saw in the overview section.
 
 .. literalinclude:: samples/example_overview.py
-   :lines: 1-13
+   :lines: 1-11
 
 Importing modelx
 ^^^^^^^^^^^^^^^^
