@@ -33,7 +33,7 @@ from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 
 
-def cells_to_vals(args, kwargs):
+def cells_to_argvals(args, kwargs):
 
     if isinstance(args, Sequence):
 
@@ -69,7 +69,7 @@ class CellArgs(ObjectArgs):
 
     def __init__(self, cells, args, kwargs=None):
 
-        args, kwargs = cells_to_vals(args, kwargs)
+        args, kwargs = cells_to_argvals(args, kwargs)
         ObjectArgs.__init__(self, cells, args, kwargs)
         self.cells = self.obj_
 
@@ -282,16 +282,11 @@ class CellsImpl(Impl):
                                          % args)
                     else:
                         value = self.data[args]
-
-                elif value is not None:
-                    self._store_value(ptr, value, False)
-
-                elif self.get_property('can_have_none'):
-                    self._store_value(ptr, value, False)
-
+                        del self.data[args]
+                        value = self._store_value(ptr, value, False)
                 else:
-                    tracemsg = self.system.callstack.tracemessage()
-                    raise NoneReturnedError(ptr, tracemsg)
+                    value = self._store_value(ptr, value, False)
+
             finally:
                 self.system.callstack.pop()
 
@@ -343,7 +338,12 @@ class CellsImpl(Impl):
 
         key = ptr.argvalues
 
+        if isinstance(value, Cells):
+            if value._impl.is_scalar():
+                value = value._impl.single_value
+
         if not ptr.cells.has_cell(key) or overwrite:
+
             if overwrite:
                 self.clear_value(key)
 
@@ -354,9 +354,12 @@ class CellsImpl(Impl):
             else:
                 tracemsg = self.system.callstack.tracemessage()
                 raise NoneReturnedError(ptr, tracemsg)
+
         else:
             raise ValueError("Value already exists for %s" %
                              ptr.arguments)
+
+        return value
 
     def clear_value(self, args, **kwargs):
         if not args and not kwargs:
