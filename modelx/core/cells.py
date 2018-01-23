@@ -486,14 +486,6 @@ class Cells(Interface, Container, Callable, Sized):
 
         return inner()
 
-    def clear_formula(self):
-        """Clear the formula."""
-        self._impl.clear_formula()
-
-    def set_formula(self, func):
-        """Set the formula."""
-        self._impl.set_formula(func)
-
     def copy(self, space=None, name=None):
         """Make a copy of itself and return it."""
         return Cells(space=space, name=name, func=self.formula)
