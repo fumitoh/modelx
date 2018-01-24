@@ -203,7 +203,7 @@ def test_clear_formula(sample_space):
     if not set(source) == {(1,), (2,)}:
         errors.append("error with source")
 
-    source.clear_formula()
+    del source.formula
     if not set(source) == set():
         errors.append("clear error with source")
     if not set(dependant) == set():
@@ -243,7 +243,7 @@ def test_set_formula(sample_space):
     if not set(source) == {(1,), (2,)}:
         errors.append("error with source")
 
-    source.set_formula(f3)
+    source.formula = f3
     result = dependant(2)
     if not set(source) == {(1,), (2,)}:
         errors.append("clear error with source")

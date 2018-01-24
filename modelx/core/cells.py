@@ -609,13 +609,29 @@ class Cells(Interface, Container, Callable, Sized):
 
     # ----------------------------------------------------------------------
     # Attributes
+    @property
+    def formula(self):
+        """Property to get, set, delete formula."""
+        return self._impl.formula.source
+
+    @formula.setter
+    def formula(self, formula):
+        self._impl.set_formula(formula)
+
+    @formula.deleter
+    def formula(self):
+        self._impl.clear_formula()
 
     def set_formula(self, func):
-        """Set formula from a function."""
+        """Set formula from a function.
+        Deprecated since version 0.0.5. Use formula property instead.
+        """
         self._impl.set_formula(func)
 
     def clear_formula(self):
-        """Clear the formula."""
+        """Clear the formula.
+        Deprecated since version 0.0.5. Use formula property instead.
+        """
         self._impl.clear_formula()
 
     # ----------------------------------------------------------------------
