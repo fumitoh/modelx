@@ -238,7 +238,7 @@ class CellsImpl(Impl):
         if self.is_scalar():
             return self.get_value(())
         else:
-            return TypeError
+            raise ValueError("%s not a scalar" % self.name)
 
     @property
     def is_derived(self):
