@@ -345,7 +345,7 @@ class CellsImpl(Impl):
         if not ptr.cells.has_cell(key) or overwrite:
 
             if overwrite:
-                self.clear_value(key)
+                self.clear_value(*key)
 
             if value is not None:
                 self.data[key] = value
@@ -361,8 +361,8 @@ class CellsImpl(Impl):
 
         return value
 
-    def clear_value(self, args, **kwargs):
-        if not args and not kwargs:
+    def clear_value(self, *args, **kwargs):
+        if args == () and kwargs == {} and not self.is_scalar():
             self.clear_all_values()
         else:
             ptr = CellArgs(self, args, kwargs)
@@ -371,7 +371,7 @@ class CellsImpl(Impl):
 
     def clear_all_values(self):
         for args in list(self.data):
-            self.clear_value(args)
+            self.clear_value(*args)
 
     # ----------------------------------------------------------------------
     # Pandas I/O
@@ -495,7 +495,7 @@ class Cells(Interface, Container, Callable, Sized):
 
     def clear(self, *args, **kwargs):
         """Clear all the values."""
-        return self._impl.clear_value(args, **kwargs)
+        return self._impl.clear_value(*args, **kwargs)
 
     # ----------------------------------------------------------------------
     # Coercion to single value
@@ -608,7 +608,8 @@ class Cells(Interface, Container, Callable, Sized):
         return self._impl.to_frame()
 
     # ----------------------------------------------------------------------
-    # Attributes
+    # Properties
+
     @property
     def formula(self):
         """Property to get, set, delete formula."""
@@ -633,6 +634,21 @@ class Cells(Interface, Container, Callable, Sized):
         Deprecated since version 0.0.5. Use formula property instead.
         """
         self._impl.clear_formula()
+
+    @property
+    def value(self):
+        """Get, set, delete the scalar value.
+        The cells must be a scalar cells.
+        """
+        return self._impl.single_value
+
+    @value.setter
+    def value(self, value):
+        self._impl.set_value((), value)
+
+    @value.deleter
+    def value(self):
+        self._impl.clear_value()
 
     # ----------------------------------------------------------------------
     # Dependency

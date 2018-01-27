@@ -120,7 +120,7 @@ def test_duplicate_assignment(sample_space):
         sample_space.quadruple[4]
 
 
-def test_set_value(sample_space):
+def test_setitem(sample_space):
     sample_space.return_last[4] = 5
     assert sample_space.return_last(5) == 5
 
@@ -262,6 +262,24 @@ def test_call_single_value(sample_space):
 def test_single_value(sample_space):
     assert sample_space.single_value == 5
 
+# --------------------------------------------------------------------------
+# Test value property
+
+def test_set_value(sample_space):
+    cells = sample_space.new_cells()
+    cells.value = 5
+    assert cells() == 5
+
+def test_get_value(sample_space):
+    cells = sample_space.new_cells(func="lambda: 3")
+    assert cells.value == 3
+
+def test_del_value(sample_space):
+    cells = sample_space.new_cells()
+    cells.can_have_none = True
+    cells.value = 2
+    del cells.value
+    assert cells.value is None
 
 def x_test_itr(sample_space):
     sample_space(5)
