@@ -63,7 +63,10 @@ class ObjectArgs:
 
     def __init__(self, obj_, args, kwargs=None):
 
-        if not isinstance(args, Sequence):
+        if isinstance(args, str):
+            args = (args,)
+
+        elif not isinstance(args, Sequence):
             args = (args,)
 
         if kwargs is None:

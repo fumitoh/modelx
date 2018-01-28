@@ -106,6 +106,17 @@ def test_setitem(sample_space):
     assert sample_space.fibo[2] == 2
 
 
+def test_setitem2(sample_space):
+    sample_space.return_last[4] = 5
+    assert sample_space.return_last(5) == 5
+
+
+def test_setitem_str(sample_space):
+    cells = sample_space.new_cells(func="lambda s: 2 * s")
+    cells['ABC'] = 'DEF'
+    assert cells['ABC'] == 'DEF'
+
+
 def test_setitem_in_cells(sample_space):
     assert sample_space.double[3] == 6
 
@@ -118,11 +129,6 @@ def test_setitem_in_wrong_cells(sample_space):
 def test_duplicate_assignment(sample_space):
     with pytest.raises(ValueError):
         sample_space.quadruple[4]
-
-
-def test_setitem(sample_space):
-    sample_space.return_last[4] = 5
-    assert sample_space.return_last(5) == 5
 
 
 def test_clear_value(sample_space):

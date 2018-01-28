@@ -34,8 +34,12 @@ from modelx.core.errors import NoneReturnedError
 
 
 def cells_to_argvals(args, kwargs):
+    """If args and kwargs contains Cells, Convert them to their values."""
 
-    if isinstance(args, Sequence):
+    if isinstance(args, str):
+        pass
+
+    elif isinstance(args, Sequence):
 
         result = []
         for arg in args:
