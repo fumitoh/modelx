@@ -518,7 +518,7 @@ class InterfaceMixin:
         self.interfaces = self.map_class(self._interfaces)
 
 
-class ImplLazyEvalDict(InterfaceMixin, LazyEvalDict):
+class ImplDict(InterfaceMixin, LazyEvalDict):
 
     def __init__(self, ifmap_class, data=None, observers=None):
         InterfaceMixin.__init__(self, ifmap_class)
