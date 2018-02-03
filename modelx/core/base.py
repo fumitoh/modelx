@@ -291,7 +291,7 @@ class Interface:
         self._impl.can_have_none = value if value is None else bool(value)
 
 
-class LazyEvalChain:
+class LazyEval:
     """Base class for flagging observers so that they update themselves later.
 
     An object of a class inherited from LazyEvaluation can have its observers.
@@ -360,7 +360,7 @@ class LazyEvalChain:
             observer.debug_print_observers(indent_level + 1)
 
 
-class LazyEvalDict(LazyEvalChain, UserDict):
+class LazyEvalDict(LazyEval, UserDict):
 
     def __init__(self, data=None, observers=None):
 
@@ -370,7 +370,7 @@ class LazyEvalDict(LazyEvalChain, UserDict):
             observers = []
 
         UserDict.__init__(self, data)
-        LazyEvalChain.__init__(self, observers)
+        LazyEval.__init__(self, observers)
         self._repr = ''
 
     def get_updated_data(self):
@@ -436,7 +436,7 @@ class LazyEvalDictWithMapProxy(MapProxyMixin, LazyEvalDict):
         MapProxyMixin.__init__(self, self.data)
 
 
-class LazyEvalChainMap(LazyEvalChain, ChainMap):
+class LazyEvalChainMap(LazyEval, ChainMap):
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
 
@@ -446,19 +446,19 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
             observers = []
 
         ChainMap.__init__(self, *maps)
-        LazyEvalChain.__init__(self, observers)
+        LazyEval.__init__(self, observers)
         self._repr = ''
 
         if observe_maps:
             for other in maps:
-                if isinstance(other, LazyEvalChain):
+                if isinstance(other, LazyEval):
                     other.append_observer(self)
 
         self.get_updated()
 
     def _update_data(self):
         for map_ in self.maps:
-            if isinstance(map_, LazyEvalChain):
+            if isinstance(map_, LazyEval):
                 map_.get_updated()
 
     def __setitem__(self, name, value):
@@ -475,7 +475,7 @@ class LazyEvalChainMap(LazyEvalChain, ChainMap):
             return ChainMap.__repr__(self)
 
     def __getstate__(self):
-        state = LazyEvalChain.__getstate__(self)
+        state = LazyEval.__getstate__(self)
         return state
 
     def __setstate__(self, state):
@@ -493,7 +493,7 @@ class ChainMapWithMapProxy(MapProxyMixin, LazyEvalChainMap):
 
 
 class InterfaceMixin:
-    """Mixin to LazyEvalChain to update interface with impl
+    """Mixin to LazyEval to update interface with impl
 
     _update_interfaces needs to be manually called from _update_data.
     """
