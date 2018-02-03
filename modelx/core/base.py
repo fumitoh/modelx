@@ -318,14 +318,12 @@ class LazyEval:
                 observer.set_update()
 
     def get_updated(self):
-        if not self.needs_update:
-            return self
-        else:
+        if self.needs_update:
             for other in self.observing:
                 other.get_updated()
             self._update_data()
             self.needs_update = False
-            return self
+        return self
 
     def _update_data(self):
         raise NotImplementedError   # To be overwritten in derived classes
