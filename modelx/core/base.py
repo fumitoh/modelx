@@ -484,7 +484,7 @@ class ChainMapWithMapProxy(MapProxyMixin, LazyEvalChainMap):
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
-        self.mproxy = MappingProxyType(self)
+        MapProxyMixin.__init__(self, self)
 
     def _update_data(self):
         LazyEvalChainMap._update_data(self)
