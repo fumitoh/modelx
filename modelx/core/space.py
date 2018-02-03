@@ -722,7 +722,7 @@ class SpaceImpl(SpaceContainerImpl):
         self._derived_spaces._repr = \
             self.get_fullname(omit_model=True) + '._derived_spaces'
 
-        self._static_spaces = ImplChainMap(MappingProxyType,
+        self._static_spaces = ImplChainMap(SpaceMapProxy,
                                            [self._self_spaces,
                                             self._derived_spaces])
         self._static_spaces._repr = \
@@ -920,6 +920,10 @@ class SpaceImpl(SpaceContainerImpl):
     @property
     def derived_spaces(self):
         return self._derived_spaces.get_updated()
+
+    @property
+    def static_spaces(self):
+        return self._static_spaces.get_updated()
 
     @property
     def dynamic_spaces(self):
@@ -1312,6 +1316,11 @@ class Space(SpaceContainer):
     def derived_cells(self):
         """A mapping associating names to derived cells."""
         return self._impl.derived_cells.interfaces
+
+    @property
+    def static_spaces(self):
+        """A mapping associating names to static spaces."""
+        return self._impl.static_spaces.interfaces
 
     @property
     def refs(self):
