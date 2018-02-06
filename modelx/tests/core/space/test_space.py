@@ -163,6 +163,39 @@ def test_del_static_spaces(testmodel):
     del space.SubSpace
     assert space.static_spaces == {}
 
+# ----- Test SpaceMapProxy -----
+space_names = list('ABCDEFGHI')
+
+
+@pytest.fixture
+def spacemap_model():
+    model, parent = new_model(), new_space('Parent')
+    for name in space_names:
+        parent.new_space(name)
+    return model
+
+
+def test_spacemapproxy_order(spacemap_model):
+    parent = spacemap_model.spaces['Parent']
+    assert list(parent.spaces) == space_names
+
+
+def test_spacemapproxy_del(spacemap_model):
+    parent = spacemap_model.spaces['Parent']
+
+    names = space_names.copy()
+    names.remove('C')
+    del parent.spaces['C']
+    assert list(parent.spaces) == names
+
+
+def test_spacemapproxy_add(spacemap_model):
+    parent = spacemap_model.spaces['Parent']
+    names = space_names.copy()
+    names.append('X')
+    parent.new_space('X')
+    assert list(parent.spaces) == names
+
 
 # ----- Testing _impl  ----
 

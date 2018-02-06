@@ -15,7 +15,7 @@
 import sys
 import builtins
 from types import MappingProxyType
-from collections import Sequence, ChainMap, Mapping, UserDict
+from collections import Sequence, ChainMap, Mapping, UserDict, OrderedDict
 from inspect import BoundArguments
 
 
@@ -127,6 +127,12 @@ def get_interfaces(impls):
     """Get interfaces from their implementations."""
     if impls is None:
         return None
+
+    elif isinstance(impls, OrderMixin):
+        result = OrderedDict()
+        for name in impls.order:
+            result[name] = impls[name].interface
+        return result
 
     elif isinstance(impls, Mapping):
         return {name: impls[name].interface for name in impls}
@@ -496,7 +502,7 @@ class InterfaceMixin:
     _update_interfaces needs to be manually called from _update_data.
     """
     def __init__(self, map_class):
-        self._interfaces = {}
+        self._interfaces = OrderedDict()
         self.map_class = map_class
         self.interfaces = map_class(self._interfaces)
 
@@ -518,26 +524,46 @@ class InterfaceMixin:
         self.interfaces = self.map_class(self._interfaces)
 
 
-class ImplDict(InterfaceMixin, LazyEvalDict):
+class OrderMixin:
+
+    def __init__(self):
+        self.order = []     # sorted(list(self))
+
+    def _update_order(self):
+        prev = set(self.order)
+        curr = set(self)
+        deleted = prev - curr
+        added = curr - prev
+        for key in deleted:
+            self.order.remove(key)
+        for key in sorted(list(added)):
+            self.order.append(key)
+
+
+class ImplDict(InterfaceMixin, OrderMixin, LazyEvalDict):
 
     def __init__(self, ifmap_class, data=None, observers=None):
         InterfaceMixin.__init__(self, ifmap_class)
+        OrderMixin.__init__(self)
         LazyEvalDict.__init__(self, data, observers)
 
     def _update_data(self):
         LazyEvalDict._update_data(self)
+        self._update_order()
         self._update_interfaces()
 
 
-class ImplChainMap(InterfaceMixin, LazyEvalChainMap):
+class ImplChainMap(InterfaceMixin, OrderMixin, LazyEvalChainMap):
 
     def __init__(self, ifmap_class, maps=None,
                  observers=None, observe_maps=True):
         InterfaceMixin.__init__(self, ifmap_class)
+        OrderMixin.__init__(self)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
     def _update_data(self):
         LazyEvalChainMap._update_data(self)
+        self._update_order()
         self._update_interfaces()
 
 # The code below is modified from UserDict in Python's standard library.
