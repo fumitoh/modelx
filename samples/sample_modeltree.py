@@ -1,18 +1,19 @@
-
-from modelx.qtgui.modeltree import *
+import sys
 from qtpy.QtWidgets import QApplication, QTreeView
-
+from modelx.qtgui.modeltree import *
 from lifelib.projects.simplelife.build import *
 
-
 def show_modeltree(model):
-    app = QApplication(sys.argv)
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
     treemodel = ModelTreeModel(model)
     view = QTreeView()
     view.setModel(treemodel)
     view.setWindowTitle("Model %s" % model.name)
+    view.setAlternatingRowColors(True)
     view.show()
-    sys.exit(app.exec_())
+    app.exec_()
 
 
 if __name__ == "__main__":
