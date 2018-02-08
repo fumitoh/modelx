@@ -43,6 +43,8 @@
 ##
 #############################################################################
 
+import sys
+import modelx as mx
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 from qtpy.QtWidgets import QApplication, QTreeView
 
@@ -162,24 +164,28 @@ class ModelTreeModel(QAbstractItemModel):
         return parentItem.childCount()
 
 
+def show_modeltree(model):
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
+    treemodel = ModelTreeModel(model)
+    view = QTreeView()
+    view.setModel(treemodel)
+    view.setWindowTitle("Model %s" % model.name)
+    view.setAlternatingRowColors(True)
+    view.show()
+    app.exec_()
+
+
 if __name__ == '__main__':
 
-    import sys
-    from modelx import *
+    model, space = mx.new_model('Fibonacci'), mx.new_space()
 
-    model, space = new_model('Fibonacci'), new_space()
-
-    @defcells()
+    @mx.defcells()
     def fibo(x):
         if x == 0 or x == 1:
             return x
         else:
             return fibo[x - 1] + fibo[x - 2]
 
-    app = QApplication(sys.argv)
-    mtree = ModelTreeModel(model)
-    view = QTreeView()
-    view.setModel(mtree)
-    view.setWindowTitle("Model: %s" % model.name)
-    view.show()
-    sys.exit(app.exec_())
+    show_modeltree(mx.cur_model())
