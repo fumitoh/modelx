@@ -26,6 +26,9 @@ print(fibo(10))
 for i in fibo:
     print(i)
 
+# repr(fibo)
+print(fibo)
+
 
 # Below is an example how to specify the space to create a cells in.
 @defcells(space=space)
@@ -35,10 +38,18 @@ def distance(x, y):
 # Should [print the square root of 2, 5]
 print([space.distance(x, y) for x, y in zip([1, 3], [1, 4])])
 
-# repr(fibo)
-print(fibo)
+
+# Constant cells
+@defcells
+def single_value():
+    return 2310
+
+# Scalar cells are coerced in arithmetic operations
+# Should print 3333
+print(single_value + 1023)
 
 # Conversion to Pandas DataFrame and Series
-print(fibo.to_series())
-print(space.distance.to_series())
-print(space.to_frame())
+print(fibo.series)
+print(space.distance.series)
+print(space.single_value.series)
+print(space.frame)
