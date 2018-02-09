@@ -27,8 +27,11 @@ from modelx.core.base import (
     LazyEval,
     LazyEvalDict,
     LazyEvalChainMap,
-    ChainMapWithMapProxy,
+    ProxyDict,
+    ProxyChainMap,
     InterfaceMixin,
+    ParentMixin,
+    ImplDict,
     ImplChainMap,
     ImmutableMapWrapper)
 from modelx.core.formula import Formula, create_closure
@@ -518,29 +521,18 @@ class DerivedRefs(DerivedMembers):
         self.data.update(self.base_members)
 
 
-class SelfMembers(LazyEvalDict):
+class SelfSpaceDict(ImplDict):
 
-    def __init__(self, space, attr, data=None, observers=None):
-
-        if data is None:
-            data = {}
-        if observers is None:
-            observers = []
-
-        LazyEvalDict.__init__(self, data, observers)
-        self.space = space
-        self.attr = attr
+    def __init__(self, space, data=None, observers=None):
+        ImplDict.__init__(self, space, SpaceMapProxy, data, observers)
+        self._repr = self.parent.get_fullname(omit_model=True) + '._self_space'
 
 
-class ImplSelfMembers(InterfaceMixin, SelfMembers):
+class SelfCellsDict(ImplDict):
 
-    def __init__(self, space, attr, data=None, observers=None):
-        InterfaceMixin.__init__(self, MappingProxyType)
-        SelfMembers.__init__(self, space, attr, data, observers)
-        self._repr = self.space.get_fullname(omit_model=True) + '._self_' + attr
-
-    def _update_data(self):
-        self._update_interfaces()
+    def __init__(self, space, data=None, observers=None):
+        ImplDict.__init__(self, space, CellsMapProxy, data, observers)
+        self._repr = self.parent.get_fullname(omit_model=True) + '._self_cells'
 
 
 def _map_repr(self):
@@ -567,12 +559,6 @@ class SpaceMapProxy(ImmutableMapWrapper):
 
 
 SpaceMapProxy.__repr__ = _map_repr
-
-
-class ParentMixin:
-
-    def __init__(self, parent):
-        self.parent = parent
 
 
 class NamespaceMap(LazyEvalChainMap, ParentMixin):
@@ -717,10 +703,10 @@ class SpaceImpl(SpaceContainerImpl):
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self._self_cells = ImplSelfMembers(self, 'cells')
-        self._self_spaces = ImplSelfMembers(self, 'spaces')
+        self._self_cells = SelfCellsDict(self)
+        self._self_spaces = SelfSpaceDict(self)
         self._dynamic_spaces = LazyEvalDict()
-        self._self_refs = SelfMembers(self, 'refs')
+        self._self_refs = ProxyDict()
 
         self_members = [self._self_cells,
                         self._self_spaces,
@@ -764,11 +750,11 @@ class SpaceImpl(SpaceContainerImpl):
         self._local_refs = {'get_self': self.get_self_interface,
                             '_self': self.interface}
 
-        self._refs = ChainMapWithMapProxy([self.model._global_refs,
-                                           self._local_refs,
-                                           self._arguments,
-                                           self._self_refs,
-                                           self._derived_refs])
+        self._refs = ProxyChainMap([self.model._global_refs,
+                                    self._local_refs,
+                                    self._arguments,
+                                    self._self_refs,
+                                    self._derived_refs])
 
         self._refs._repr = self.get_fullname(omit_model=True) + '._refs'
 

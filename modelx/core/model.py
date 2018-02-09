@@ -21,7 +21,7 @@ import networkx as nx
 from modelx.core.base import (
     Impl,
     ImplDict,
-    LazyEvalDictWithMapProxy,
+    ProxyDict,
     LazyEvalChainMap)
 from modelx.core.cells import CellArgs
 from modelx.core.space import (
@@ -90,9 +90,9 @@ class ModelImpl(SpaceContainerImpl):
 
         # Impl.__init__(self, Model)
 
-        self._global_refs = LazyEvalDictWithMapProxy(
+        self._global_refs = ProxyDict(
             data={'__builtins__': builtins})
-        self._spaces = ImplDict(SpaceMapProxy)
+        self._spaces = ImplDict(self, SpaceMapProxy)
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
         self.can_have_none = False
 

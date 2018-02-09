@@ -418,7 +418,7 @@ class LazyEvalDict(LazyEval, UserDict):
         self.__dict__.update(state)
 
 
-class MapProxyMixin:
+class ProxyMixin:
 
     def __init__(self, data):
         self.mproxy = MappingProxyType(data)
@@ -431,13 +431,6 @@ class MapProxyMixin:
     def __setstate__(self, state):
         super().__setstate__(state)
         self.mproxy = MappingProxyType(self)
-
-
-class LazyEvalDictWithMapProxy(MapProxyMixin, LazyEvalDict):
-
-    def __init__(self, data=None, observers=None):
-        LazyEvalDict.__init__(self, data, observers)
-        MapProxyMixin.__init__(self, self.data)
 
 
 class LazyEvalChainMap(LazyEval, ChainMap):
@@ -486,11 +479,18 @@ class LazyEvalChainMap(LazyEval, ChainMap):
         self.__dict__.update(state)
 
 
-class ChainMapWithMapProxy(MapProxyMixin, LazyEvalChainMap):
+class ProxyDict(ProxyMixin, LazyEvalDict):
+
+    def __init__(self, data=None, observers=None):
+        LazyEvalDict.__init__(self, data, observers)
+        ProxyMixin.__init__(self, self.data)
+
+
+class ProxyChainMap(ProxyMixin, LazyEvalChainMap):
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
-        MapProxyMixin.__init__(self, self)
+        ProxyMixin.__init__(self, self)
 
     def _update_data(self):
         LazyEvalChainMap._update_data(self)
@@ -540,11 +540,18 @@ class OrderMixin:
             self.order.append(key)
 
 
-class ImplDict(InterfaceMixin, OrderMixin, LazyEvalDict):
+class ParentMixin:
 
-    def __init__(self, ifmap_class, data=None, observers=None):
-        InterfaceMixin.__init__(self, ifmap_class)
+    def __init__(self, parent):
+        self.parent = parent
+
+
+class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
+
+    def __init__(self, parent, ifclass, data=None, observers=None):
+        InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
+        ParentMixin.__init__(self, parent)
         LazyEvalDict.__init__(self, data, observers)
 
     def _update_data(self):
