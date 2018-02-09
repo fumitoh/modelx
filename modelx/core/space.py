@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import builtins
 from collections import Sequence
 from textwrap import dedent
 from types import FunctionType, MappingProxyType
@@ -23,6 +24,7 @@ from modelx.core.base import (
     Impl,
     NullImpl,
     Interface,
+    LazyEval,
     LazyEvalDict,
     LazyEvalChainMap,
     ChainMapWithMapProxy,
@@ -567,24 +569,45 @@ class SpaceMapProxy(ImmutableMapWrapper):
 SpaceMapProxy.__repr__ = _map_repr
 
 
-class NameSpaceDict(LazyEvalDict):
+class ParentMixin:
 
-    def __init__(self, space, data=None, observers=None):
+    def __init__(self, parent):
+        self.parent = parent
 
-        if data is None:
-            data = {}
-        if observers is None:
-            observers = []
 
-        LazyEvalDict.__init__(self, data, observers)
-        self.space = space
+class NamespaceMap(LazyEvalChainMap, ParentMixin):
+
+    def __init__(self, space, maps):
+        self.namespace = {}
+        ParentMixin.__init__(self, space)
+        LazyEvalChainMap.__init__(self, maps)
 
     def _update_data(self):
-        _ = self.space.namespace_impl
-        self.data.clear()
-        self.data.update(get_interfaces(self.space.cells))
-        self.data.update(get_interfaces(self.space.spaces))
-        self.data.update(self.space.refs)
+
+        for map_ in self.maps:
+            if isinstance(map_, LazyEval):
+                map_.get_updated()
+        self.namespace.clear()
+        self.namespace.update(get_interfaces(self.parent.cells))
+        self.namespace.update(get_interfaces(self.parent.spaces))
+        self.namespace.update(self.parent.refs)
+
+    def __getstate__(self):
+
+        state = self.__dict__.copy()
+        if '__builtins__' in state['namespace']:
+            ns = state['namespace'].copy()
+            ns['__builtins__'] = '__builtins__'
+            state['namespace'] = ns
+
+        return state
+
+    def __setstate__(self, state):
+
+        if '__builtins__' in state['namespace']:
+            state['namespace']['__builtins__'] = builtins
+
+        self.__dict__.update(state)
 
 
 class SpaceImpl(SpaceContainerImpl):
@@ -756,16 +779,12 @@ class SpaceImpl(SpaceContainerImpl):
         for observer in derived:
             self._self_members.append_observer(observer)
 
-        self._namespace_impl = LazyEvalChainMap([self._cells,
-                                                 self._spaces,
-                                                 self._refs])
+        self._namespace_impl = NamespaceMap(self, [self._cells,
+                                                   self._spaces,
+                                                   self._refs])
         self._namespace_impl._repr = \
             self.get_fullname(omit_model=True) + '._namespace_impl'
 
-        self._namespace = NameSpaceDict(self)
-        self._namespace_impl.append_observer(self._namespace)
-        self._namespace._repr = \
-            self.get_fullname(omit_model=True) + '._namespace'
 
         # ------------------------------------------------------------------
         # Add initial refs members
@@ -795,7 +814,6 @@ class SpaceImpl(SpaceContainerImpl):
         '_self_members',
         '_observed_bases',
         '_namespace_impl',
-        '_namespace',
         'cellsnamer',
         'name',
         'can_have_none'] + SpaceContainerImpl.state_attrs
@@ -955,7 +973,7 @@ class SpaceImpl(SpaceContainerImpl):
 
     @property
     def namespace(self):
-        return self._namespace.get_updated_data()
+        return self._namespace_impl.get_updated().namespace
 
     # ----------------------------------------------------------------------
     # Inheritance
