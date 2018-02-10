@@ -393,13 +393,6 @@ class LazyEvalDict(LazyEval, UserDict):
         UserDict.__delitem__(self, name)
         self.set_update(skip_self)
 
-    def __repr__(self):
-
-        if self._repr:
-            return self._repr
-        else:
-            return UserDict.__repr__(self)
-
     def __getstate__(self):
 
         state = self.__dict__.copy()
@@ -448,13 +441,6 @@ class LazyEvalChainMap(LazyEval, ChainMap):
 
     def __delitem__(self, name):
         raise NotImplementedError
-
-    def __repr__(self):
-
-        if self._repr:
-            return self._repr
-        else:
-            return ChainMap.__repr__(self)
 
     def __getstate__(self):
         state = LazyEval.__getstate__(self)
@@ -547,9 +533,6 @@ class InterfaceMixin:
         self.interfaces = self.map_class(self._interfaces)
 
 
-
-
-
 class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
 
     def __init__(self, parent, ifclass, data=None, observers=None):
@@ -564,12 +547,13 @@ class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
         self._update_interfaces()
 
 
-class ImplChainMap(InterfaceMixin, OrderMixin, LazyEvalChainMap):
+class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
 
-    def __init__(self, ifmap_class, maps=None,
+    def __init__(self, parent, ifclass, maps=None,
                  observers=None, observe_maps=True):
-        InterfaceMixin.__init__(self, ifmap_class)
+        InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
+        ParentMixin.__init__(self, parent)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
     def _update_data(self):

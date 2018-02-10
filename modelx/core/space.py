@@ -465,14 +465,12 @@ class SelfSpaceDict(ImplDict):
 
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, SpaceMapProxy, data, observers)
-        self._repr = self.parent.get_fullname(omit_model=True) + '._self_space'
 
 
 class SelfCellsDict(ImplDict):
 
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, CellsMapProxy, data, observers)
-        self._repr = self.parent.get_fullname(omit_model=True) + '._self_cells'
 
 
 class BaseMixin:
@@ -718,38 +716,21 @@ class SpaceImpl(SpaceContainerImpl):
 
         # Add observers later to avoid circular reference
         self._self_members = LazyEvalChainMap(self_members)
-        self._self_members._repr = \
-            self.get_fullname(omit_model=True) + '._self_members'
 
         self._derived_cells = DerivedCellsDict(self)
-        self._derived_cells._repr = \
-            self.get_fullname(omit_model=True) + '._derived_cells'
-
-        self._cells = ImplChainMap(CellsMapProxy,
+        self._cells = ImplChainMap(self, CellsMapProxy,
                                    [self._self_cells,
                                     self._derived_cells])
-        self._cells._repr = \
-            self.get_fullname(omit_model=True) + '._cells'
 
         self._derived_spaces = DerivedSpaceDict(self)
-        self._derived_spaces._repr = \
-            self.get_fullname(omit_model=True) + '._derived_spaces'
 
-        self._static_spaces = ImplChainMap(SpaceMapProxy,
+        self._static_spaces = ImplChainMap(self, SpaceMapProxy,
                                            [self._self_spaces,
                                             self._derived_spaces])
-        self._static_spaces._repr = \
-            self.get_fullname(omit_model=True) + '._static_spaces'
-
-        self._spaces = ImplChainMap(SpaceMapProxy,
+        self._spaces = ImplChainMap(self, SpaceMapProxy,
                                     [self._static_spaces,
                                      self._dynamic_spaces])
-        self._spaces._repr = \
-            self.get_fullname(omit_model=True) + '._spaces'
-
         self._derived_refs = DerivedRefsDict(self)
-        self._derived_refs._repr = \
-            self.get_fullname(omit_model=True) + '._derived_refs'
 
         self._local_refs = {'get_self': self.get_self_interface,
                             '_self': self.interface}
@@ -761,8 +742,6 @@ class SpaceImpl(SpaceContainerImpl):
                                     self._self_refs,
                                     self._derived_refs])
 
-        self._refs._repr = self.get_fullname(omit_model=True) + '._refs'
-
         derived = [self._derived_cells,
                    self._derived_spaces,
                    self._derived_refs]
@@ -773,9 +752,6 @@ class SpaceImpl(SpaceContainerImpl):
         self._namespace_impl = NamespaceMap(self, [self._cells,
                                                    self._spaces,
                                                    self._refs])
-        self._namespace_impl._repr = \
-            self.get_fullname(omit_model=True) + '._namespace_impl'
-
 
         # ------------------------------------------------------------------
         # Add initial refs members
