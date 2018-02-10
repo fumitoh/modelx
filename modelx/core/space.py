@@ -705,7 +705,7 @@ class SpaceImpl(SpaceContainerImpl):
 
         self._self_cells = SelfCellsDict(self)
         self._self_spaces = SelfSpaceDict(self)
-        self._dynamic_spaces = LazyEvalDict()
+        self._dynamic_spaces = ImplDict(self, SpaceMapProxy)
         self._self_refs = ProxyDict(self)
 
         self_members = [self._self_cells,
@@ -1303,6 +1303,11 @@ class Space(SpaceContainer):
     def static_spaces(self):
         """A mapping associating names to static spaces."""
         return self._impl.static_spaces.interfaces
+
+    @property
+    def dynamic_spaces(self):
+        """A mapping associating names to dynamic spaces."""
+        return self._impl.dynamic_spaces.interfaces
 
     @property
     def refs(self):
