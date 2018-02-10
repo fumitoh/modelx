@@ -90,7 +90,7 @@ class ModelImpl(SpaceContainerImpl):
 
         # Impl.__init__(self, Model)
 
-        self._global_refs = ProxyDict(
+        self._global_refs = ProxyDict(self,
             data={'__builtins__': builtins})
         self._spaces = ImplDict(self, SpaceMapProxy)
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])

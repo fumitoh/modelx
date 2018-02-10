@@ -418,21 +418,6 @@ class LazyEvalDict(LazyEval, UserDict):
         self.__dict__.update(state)
 
 
-class ProxyMixin:
-
-    def __init__(self, data):
-        self.mproxy = MappingProxyType(data)
-
-    def __getstate__(self):
-        state = super().__getstate__()
-        del state['mproxy']
-        return state
-
-    def __setstate__(self, state):
-        super().__setstate__(state)
-        self.mproxy = MappingProxyType(self)
-
-
 class LazyEvalChainMap(LazyEval, ChainMap):
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
@@ -479,18 +464,56 @@ class LazyEvalChainMap(LazyEval, ChainMap):
         self.__dict__.update(state)
 
 
-class ProxyDict(ProxyMixin, LazyEvalDict):
+class ParentMixin:
 
-    def __init__(self, data=None, observers=None):
+    def __init__(self, parent):
+        self.parent = parent
+
+
+class OrderMixin:
+
+    def __init__(self):
+        self.order = []  # sorted(list(self))
+
+    def _update_order(self):
+        prev = set(self.order)
+        curr = set(self)
+        deleted = prev - curr
+        added = curr - prev
+        for key in deleted:
+            self.order.remove(key)
+        for key in sorted(list(added)):
+            self.order.append(key)
+
+class ProxyMixin:
+
+    def __init__(self, data):
+        self.mproxy = MappingProxyType(data)
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        del state['mproxy']
+        return state
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self.mproxy = MappingProxyType(self)
+
+
+class ProxyDict(ParentMixin, ProxyMixin, LazyEvalDict):
+
+    def __init__(self, parent, data=None, observers=None):
         LazyEvalDict.__init__(self, data, observers)
         ProxyMixin.__init__(self, self.data)
+        ParentMixin.__init__(self, parent)
 
 
-class ProxyChainMap(ProxyMixin, LazyEvalChainMap):
+class ProxyChainMap(ParentMixin, ProxyMixin, LazyEvalChainMap):
 
-    def __init__(self, maps=None, observers=None, observe_maps=True):
+    def __init__(self, parent, maps=None, observers=None, observe_maps=True):
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
         ProxyMixin.__init__(self, self)
+        ParentMixin.__init__(self, parent)
 
     def _update_data(self):
         LazyEvalChainMap._update_data(self)
@@ -524,26 +547,7 @@ class InterfaceMixin:
         self.interfaces = self.map_class(self._interfaces)
 
 
-class OrderMixin:
 
-    def __init__(self):
-        self.order = []     # sorted(list(self))
-
-    def _update_order(self):
-        prev = set(self.order)
-        curr = set(self)
-        deleted = prev - curr
-        added = curr - prev
-        for key in deleted:
-            self.order.remove(key)
-        for key in sorted(list(added)):
-            self.order.append(key)
-
-
-class ParentMixin:
-
-    def __init__(self, parent):
-        self.parent = parent
 
 
 class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):

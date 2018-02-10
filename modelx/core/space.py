@@ -15,7 +15,7 @@
 import builtins
 from collections import Sequence
 from textwrap import dedent
-from types import FunctionType, MappingProxyType
+from types import FunctionType
 
 from modelx.core.base import (
     ObjectArgs,
@@ -29,7 +29,6 @@ from modelx.core.base import (
     LazyEvalChainMap,
     ProxyDict,
     ProxyChainMap,
-    InterfaceMixin,
     ParentMixin,
     ImplDict,
     ImplChainMap,
@@ -412,7 +411,7 @@ class SpaceContainer(Interface):
             return self.cur_space()
 
 
-class BaseMembers(LazyEvalDict):
+class BaseDict(LazyEvalDict):
     """Members of bases to be inherited to ``space``"""
 
     def __init__(self, derived):
@@ -420,16 +419,9 @@ class BaseMembers(LazyEvalDict):
         observer = [derived]
         LazyEvalDict.__init__(self, {}, observer)
 
-        self.space = derived.space
-        self.member = derived.member
-
-        attr = 'self_' + self.member
-        observe = []
+        self.space = derived.parent
         for base in self.space.mro[1:]:
             base._self_members.append_observer(self)
-
-        self._repr = self.space.get_fullname(omit_model=True) + \
-            '.BaseMembers(%s)' % self.member
 
         self.get_updated()
 
@@ -440,85 +432,33 @@ class BaseMembers(LazyEvalDict):
 
         for base, base_next in zip(bases, bases[1:]):
 
-            attr = 'self_' + self.member
-            self.data.update(getattr(base, attr))
+            self.data.update(self.get_baseself(base))
             keys = self.data.keys() - base_next.self_members.keys()
 
             for name in list(self.data):
                 if name not in keys:
                     del self.data[name]
 
-
-class DerivedMembers(LazyEvalDict):
-
-    def __init__(self, space, data=None, observers=None, member=''):
-
-        if data is None:
-            data = {}
-        if observers is None:
-            observers = []
-
-        self.space = space
-        self.member = member
-        LazyEvalDict.__init__(self, data, observers)
-        self._base_members = BaseMembers(self)
-        self.get_updated()
-
-    @property
-    def base_members(self):
-        return self._base_members.get_updated()
+    def get_baseself(self, base):
+        raise NotImplementedError
 
 
-class DerivedCells(InterfaceMixin, DerivedMembers):
+class BaseSpaceDict(BaseDict):
 
-    def __init__(self, space, data=None, observers=None, member=''):
-        InterfaceMixin.__init__(self, MappingProxyType)
-        DerivedMembers.__init__(self, space, data, observers, member)
-
-    def _update_data(self):
-        keys = self.data.keys() - self.base_members.keys()
-        for key in keys:
-            del self.data[key]
-
-        for key, base_cell in self.base_members.items():
-            if key in self.data:
-                if self.data[key].formula is base_cell.formula:
-                    return
-                else:
-                    del self.data[key]
-
-            cell = CellsImpl(space=self.space, name=base_cell.name,
-                             func=base_cell.formula)
-            self.data[key] = cell
-
-        self._update_interfaces()
+    def get_baseself(self, base):
+        return base.self_spaces
 
 
-class DerivedSpaces(InterfaceMixin, DerivedMembers):
+class BaseCellsDict(BaseDict):
 
-    def __init__(self, space, data=None, observers=None, member=''):
-        InterfaceMixin.__init__(self, MappingProxyType)
-        DerivedMembers.__init__(self, space, data, observers, member)
-
-    def _update_data(self):
-
-        self.data.clear()
-        for base_space in self.base_members.values():
-
-            space = SpaceImpl(parent=self.space, name=base_space.name,
-                              bases=base_space,
-                              paramfunc=base_space.paramfunc)
-
-            self.data[space.name] = space
-
-        self._update_interfaces()
+    def get_baseself(self, base):
+        return base.self_cells
 
 
-class DerivedRefs(DerivedMembers):
+class BaseRefsDict(BaseDict):
 
-    def _update_data(self):
-        self.data.clear()
-        self.data.update(self.base_members)
+    def get_baseself(self, base):
+        return base.self_refs
 
 
 class SelfSpaceDict(ImplDict):
@@ -534,6 +474,70 @@ class SelfCellsDict(ImplDict):
         ImplDict.__init__(self, space, CellsMapProxy, data, observers)
         self._repr = self.parent.get_fullname(omit_model=True) + '._self_cells'
 
+
+class BaseMixin:
+
+    def __init__(self, basedict_class):
+        self._basedict = basedict_class(self)
+
+    @property
+    def basedict(self):
+        return self._basedict.get_updated()
+
+
+class DerivedSpaceDict(BaseMixin, SelfSpaceDict):
+
+    def __init__(self, space, data=None, observers=None):
+        SelfSpaceDict.__init__(self, space, data, observers)
+        BaseMixin.__init__(self, BaseSpaceDict)
+
+    def _update_data(self):
+        self.data.clear()
+        for base_space in self.basedict.values():
+
+            space = SpaceImpl(parent=self.parent, name=base_space.name,
+                              bases=base_space,
+                              paramfunc=base_space.paramfunc)
+
+            self.data[space.name] = space
+
+        SelfSpaceDict._update_data(self)
+
+
+class DerivedCellsDict(BaseMixin, SelfCellsDict):
+
+    def __init__(self, space, data=None, observers=None):
+        SelfCellsDict.__init__(self, space, data, observers)
+        BaseMixin.__init__(self, BaseCellsDict)
+
+    def _update_data(self):
+        keys = self.data.keys() - self.basedict.keys()
+        for key in keys:
+            del self.data[key]
+
+        for key, base_cell in self.basedict.items():
+            if key in self.data:
+                if self.data[key].formula is base_cell.formula:
+                    return
+                else:
+                    del self.data[key]
+
+            cell = CellsImpl(space=self.parent, name=base_cell.name,
+                             func=base_cell.formula)
+            self.data[key] = cell
+
+        SelfCellsDict._update_data(self)
+
+
+class DerivedRefsDict(BaseMixin, ProxyDict):
+
+    def __init__(self, space, data=None, observers=None):
+        ProxyDict.__init__(self, space, data, observers)
+        BaseMixin.__init__(self, BaseRefsDict)
+
+    def _update_data(self):
+        self.data.clear()
+        self.data.update(self.basedict)
 
 def _map_repr(self):
     result = [',\n '] * (len(self._data) * 2 -1)
@@ -630,14 +634,14 @@ class SpaceImpl(SpaceContainerImpl):
         namespace
 
             cells
-                derived_cells           DerivedCells
-                self_cells              ImplSelfMembers
+                derived_cells
+                self_cells
 
             spaces
-                dynamic_spaces          LazyEvalDict
-                static_spaces           ImplChainMap
-                    derived_spaces      DerivedSpaces
-                    self_spaces         ImplSelfMembers
+                dynamic_spaces
+                static_spaces
+                    derived_spaces
+                    self_spaces
 
             refs
                 derived_refs
@@ -706,7 +710,7 @@ class SpaceImpl(SpaceContainerImpl):
         self._self_cells = SelfCellsDict(self)
         self._self_spaces = SelfSpaceDict(self)
         self._dynamic_spaces = LazyEvalDict()
-        self._self_refs = ProxyDict()
+        self._self_refs = ProxyDict(self)
 
         self_members = [self._self_cells,
                         self._self_spaces,
@@ -717,7 +721,7 @@ class SpaceImpl(SpaceContainerImpl):
         self._self_members._repr = \
             self.get_fullname(omit_model=True) + '._self_members'
 
-        self._derived_cells = DerivedCells(self, member='cells')
+        self._derived_cells = DerivedCellsDict(self)
         self._derived_cells._repr = \
             self.get_fullname(omit_model=True) + '._derived_cells'
 
@@ -727,7 +731,7 @@ class SpaceImpl(SpaceContainerImpl):
         self._cells._repr = \
             self.get_fullname(omit_model=True) + '._cells'
 
-        self._derived_spaces = DerivedSpaces(self, member='spaces')
+        self._derived_spaces = DerivedSpaceDict(self)
         self._derived_spaces._repr = \
             self.get_fullname(omit_model=True) + '._derived_spaces'
 
@@ -743,14 +747,15 @@ class SpaceImpl(SpaceContainerImpl):
         self._spaces._repr = \
             self.get_fullname(omit_model=True) + '._spaces'
 
-        self._derived_refs = DerivedRefs(self, member='refs')
+        self._derived_refs = DerivedRefsDict(self)
         self._derived_refs._repr = \
             self.get_fullname(omit_model=True) + '._derived_refs'
 
         self._local_refs = {'get_self': self.get_self_interface,
                             '_self': self.interface}
 
-        self._refs = ProxyChainMap([self.model._global_refs,
+        self._refs = ProxyChainMap(self,
+                                   [self.model._global_refs,
                                     self._local_refs,
                                     self._arguments,
                                     self._self_refs,
@@ -888,8 +893,8 @@ class SpaceImpl(SpaceContainerImpl):
             list(self._self_cells.keys()),
             self._derived_cells.needs_update,
             list(self._derived_cells.keys()),
-            self._derived_cells._base_members.needs_update,
-            list(self._derived_cells._base_members.keys()),
+            self._derived_cells._basedict.needs_update,
+            list(self._derived_cells._basedict.keys()),
             list(self._cells.keys()),
             list(self._spaces.keys()),
             list(self._refs.keys())
