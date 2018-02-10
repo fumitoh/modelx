@@ -777,7 +777,6 @@ class SpaceImpl(SpaceContainerImpl):
         '_derived_refs',
         '_refs',
         '_self_members',
-        '_observed_bases',
         '_namespace_impl',
         'cellsnamer',
         'name',
