@@ -32,7 +32,7 @@ from modelx.core.base import (
     ParentMixin,
     ImplDict,
     ImplChainMap,
-    ImmutableMapWrapper)
+    BaseMapProxy)
 from modelx.core.formula import Formula, create_closure
 from modelx.core.cells import Cells, CellsImpl, cells_to_argvals
 from modelx.core.util import AutoNamer, is_valid_name, get_module
@@ -543,7 +543,7 @@ def _map_repr(self):
     return '{' + ''.join(result) + '}'
 
 
-class CellsMapProxy(ImmutableMapWrapper):
+class CellsMapProxy(BaseMapProxy):
 
     def __delitem__(self, name):
         cells = self._data[name]._impl
@@ -552,7 +552,7 @@ class CellsMapProxy(ImmutableMapWrapper):
     __repr__ = _map_repr
 
 
-class SpaceMapProxy(ImmutableMapWrapper):
+class SpaceMapProxy(BaseMapProxy):
 
     def __delitem__(self, name):
         space = self._data[name]._impl

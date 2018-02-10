@@ -569,7 +569,7 @@ class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
 #       Lib/collections/__init__.py#L968-L1027
 
 
-class ImmutableMapWrapper(Mapping):
+class BaseMapProxy(Mapping):
 
     # Start by filling-out the abstract methods
     def __init__(self, data):
