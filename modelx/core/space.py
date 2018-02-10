@@ -549,8 +549,7 @@ class CellsMapProxy(ImmutableMapWrapper):
         cells = self._data[name]._impl
         cells.space.del_cells(name)
 
-
-CellsMapProxy.__repr__ = _map_repr
+    __repr__ = _map_repr
 
 
 class SpaceMapProxy(ImmutableMapWrapper):
@@ -559,8 +558,7 @@ class SpaceMapProxy(ImmutableMapWrapper):
         space = self._data[name]._impl
         space.parent.del_space(name)
 
-
-SpaceMapProxy.__repr__ = _map_repr
+    __repr__ = _map_repr
 
 
 class NamespaceMap(LazyEvalChainMap, ParentMixin):
