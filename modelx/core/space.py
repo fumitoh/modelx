@@ -1091,9 +1091,9 @@ class SpaceImpl(SpaceContainerImpl):
 
     def _set_space(self, space):
         if space.is_dynamic():
-            self._dynamic_spaces.set_item(space.name, space, True)
+            self._dynamic_spaces.set_item(space.name, space)
         else:
-            self._self_spaces.set_item(space.name, space, True)
+            self._self_spaces.set_item(space.name, space)
 
     def del_space(self, name):
         """Delete a space.
