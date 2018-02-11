@@ -49,8 +49,8 @@ from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 from qtpy.QtWidgets import QApplication, QTreeView
 
 
-class ModelTreeItem(object):
-
+class BaseItem(object):
+    """Base Item class for all tree item classes."""
     def __init__(self, data, parent=None):
         self.parentItem = parent
         self.itemData = data
@@ -58,9 +58,7 @@ class ModelTreeItem(object):
         self.updateChild()
 
     def updateChild(self):
-        self.childItems.clear()
-        for space in self.itemData.spaces.values():
-            self.childItems.append(ModelTreeItem(space, self))
+        raise NotImplementedError
 
     def appendChild(self, item):
         self.childItems.append(item)
@@ -90,11 +88,52 @@ class ModelTreeItem(object):
         return 0
 
 
+class SpaceContainerItem(BaseItem):
+    """Base Item class for Models and Spaces which inherit SpaceContainer."""
+    def updateChild(self):
+        self.childItems.clear()
+        for space in self.itemData.spaces.values():
+            self.childItems.append(SpaceItem(space, self))
+
+
+class SpaceItem(SpaceContainerItem):
+    """Item class for Space objects."""
+    def updateChild(self):
+        self.childItems.clear()
+        for space in self.itemData.static_spaces.values():
+            self.childItems.append(SpaceItem(space, self))
+
+        dynspaces = self.itemData.dynamic_spaces
+        if len(dynspaces) > 0:
+            self.childItems.append(DynamicSpaceMapItem(dynspaces, self))
+
+        cellsmap = self.itemData.cells
+        for cells in cellsmap.values():
+            self.childItems.append(CellsItem(cells, self))
+
+
+class DynamicSpaceMapItem(BaseItem):
+    """Item class for parent nodes of dynamic spaces of a space."""
+    def updateChild(self):
+        self.childItems.clear()
+        for space in self.itemData.values():
+            self.childItems.append(SpaceItem(space, self))
+
+    def data(self, column):
+        return 'Dynamic Spaces'
+
+
+class CellsItem(BaseItem):
+    """Item class for cells objects."""
+    def updateChild(self):
+        pass
+
+
 class ModelTreeModel(QAbstractItemModel):
 
     def __init__(self, model, parent=None):
         super(ModelTreeModel, self).__init__(parent)
-        self.rootItem = ModelTreeItem(model)
+        self.rootItem = SpaceContainerItem(model)
 
     def columnCount(self, parent):
         if parent.isValid():
@@ -121,7 +160,7 @@ class ModelTreeModel(QAbstractItemModel):
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return 'Space'  # self.rootItem.data(section)
+            return 'Objects'  # self.rootItem.data(section)
 
         return None
 
