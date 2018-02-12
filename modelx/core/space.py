@@ -976,6 +976,10 @@ class SpaceImpl(SpaceContainerImpl):
     def signature(self):
         return self.paramfunc.signature
 
+    @property
+    def parameters(self):
+        return self.paramfunc.signature.parameters
+
     def get_fullname(self, omit_model=False):
 
         fullname = self.name
@@ -1328,6 +1332,12 @@ class Space(SpaceContainer):
     def argvalues(self):
         """A tuple of space arguments."""
         return self._impl.argvalues
+
+    @property
+    def parameters(self):
+        """A tuple of parameter strings."""
+        # TODO: Refactor out parameter methods common between Space and Cells.
+        return tuple(self._impl.parameters.keys())
 
     @property
     def refs(self):

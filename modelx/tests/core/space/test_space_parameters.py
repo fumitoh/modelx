@@ -70,4 +70,8 @@ def test_paramfunc(samplemodel):
     assert check
 
 
+def test_parameters(samplemodel):
+    assert samplemodel.base.parameters == ('x0',)
+
+
 
