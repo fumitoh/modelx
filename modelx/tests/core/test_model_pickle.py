@@ -3,8 +3,7 @@ import pytest
 import pickle
 
 from modelx.core.api import *
-from modelx.core.cells import CellArgs
-from modelx.core.base import get_interfaces
+from modelx.core import system
 
 
 # ---- Test impl ----
@@ -55,15 +54,28 @@ def test_unpickled_model(pickletest):
 
 
 
-def x_test_model_load(simplemodel):
+def test_pickle_dynamic_space():
 
-    simplemodel.save('data\simplemodel')
+    param = dedent("""\
+    def param(x):
+        return {'bases': _self}
+    """)
 
-    model = load_model('data\simplemodel')
+    fibo = dedent("""\
+    def fibo(n):
+        return x * n""")
 
-    # print(model.spaces)
-    # space = simplemodel.currentspace
-    # simplemodel.save('data\simplemodel')
-    # print(space.fibo[10])
+    model, space = new_model(), new_space(name='Space1', paramfunc=param)
+    space.new_cells(func=fibo)
+
+    check = space[2].fibo(3) == 6
+
+    byte_obj = pickle.dumps(model._impl)
+    unpickled = pickle.loads(byte_obj)
+    unpickled.restore_state(system)
+    model = unpickled.interface
+
+    check = check and model.Space1[2].fibo(3) == 6
+    assert check
 
 
