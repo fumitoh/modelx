@@ -786,9 +786,7 @@ class SpaceImpl(SpaceContainerImpl):
     def _repr_self(self):
 
         if self.is_dynamic():
-            # TODO: make self.arguments ordered to replace this
-            params = self.parent.paramfunc.parameters.keys()
-            args = [repr(self.arguments[param]) for param in params]
+            args = [repr(arg) for arg in self.argvalues]
             param = ', '.join(args)
             return "%s[%s]" % (self.parent.name, param)
         else:
