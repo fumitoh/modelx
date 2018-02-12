@@ -75,8 +75,7 @@ class DependencyGraph(nx.DiGraph):
 class ModelImpl(SpaceContainerImpl):
 
     def __init__(self, *, system, name):
-        SpaceContainerImpl.__init__(self, system, if_class=Model,
-                                    paramfunc=None)
+        SpaceContainerImpl.__init__(self, system, if_class=Model)
 
         self.cellgraph = DependencyGraph()
         self.currentspace = None

@@ -79,22 +79,15 @@ class SpaceContainerImpl(Impl):
     """
 
     state_attrs = ['_spaces',   # must be defined in subclasses
-                   'param_spaces',
-                   'spacenamer',
-                   'paramfunc'] + Impl.state_attrs
+                   'spacenamer'] + Impl.state_attrs
 
-    def __init__(self, system, if_class, paramfunc):
+    def __init__(self, system, if_class):
 
         Impl.__init__(self, if_class)
 
         self.system = system
-        self.param_spaces = {}
         self.spacenamer = AutoNamer('Space')
 
-        if paramfunc is None:
-            self.paramfunc = None
-        else:
-            self.paramfunc = ParamFunc(paramfunc)
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
@@ -113,7 +106,6 @@ class SpaceContainerImpl(Impl):
         """Called after unpickling to restore some attributes manually."""
 
         self.system = system
-
         for space in self._spaces.values():
             space.restore_state(system)
 
@@ -243,40 +235,6 @@ class SpaceContainerImpl(Impl):
                 cells.set_value(cells_args, value)
 
         return space
-
-    def get_dyn_space(self, args, kwargs=None):
-
-        ptr = SpaceArgs(self, args, kwargs)
-
-        if ptr.argvalues in self.param_spaces:
-            return self.param_spaces[ptr.argvalues]
-
-        else:
-            last_self = self.system.self
-            self.system.self = self
-
-            try:
-                space_args = ptr.eval_formula()
-
-            finally:
-                self.system.self = last_self
-
-            if space_args is None:
-                space_args = {}
-            else:
-                if 'bases' in space_args:
-                    space_args['bases'] = get_impls(space_args['bases'])
-
-            space_args['arguments'] = ptr.arguments
-            space = self.new_space(**space_args)
-            self.param_spaces[ptr.argvalues] = space
-            return space
-
-    def set_paramfunc(self, paramfunc):
-        if self.paramfunc is None:
-            self.paramfunc = ParamFunc(paramfunc)
-        else:
-            raise ValueError("paramfunc already assigned.")
 
 
 class SpaceContainer(Interface):
@@ -674,12 +632,17 @@ class SpaceImpl(SpaceContainerImpl):
     def __init__(self, parent, name, bases, paramfunc,
                  refs=None, arguments=None):
 
-        SpaceContainerImpl.__init__(self, parent.system, if_class=Space,
-                                    paramfunc=paramfunc)
+        SpaceContainerImpl.__init__(self, parent.system, if_class=Space)
 
         self.name = name
         self.parent = parent
         self.cellsnamer = AutoNamer('Cells')
+
+        self.param_spaces = {}
+        if paramfunc is None:
+            self.paramfunc = None
+        else:
+            self.paramfunc = ParamFunc(paramfunc)
 
         if arguments is None:
             self._arguments = LazyEvalDict()
@@ -778,6 +741,8 @@ class SpaceImpl(SpaceContainerImpl):
         '_refs',
         '_self_members',
         '_namespace_impl',
+        'param_spaces',
+        'paramfunc',
         'cellsnamer',
         'name',
         'can_have_none'] + SpaceContainerImpl.state_attrs
@@ -1163,6 +1128,42 @@ class SpaceImpl(SpaceContainerImpl):
 
         else:
             return False
+
+    # --- Dynamic Space Operation -------------------------------------
+
+    def get_dyn_space(self, args, kwargs=None):
+
+        ptr = SpaceArgs(self, args, kwargs)
+
+        if ptr.argvalues in self.param_spaces:
+            return self.param_spaces[ptr.argvalues]
+
+        else:
+            last_self = self.system.self
+            self.system.self = self
+
+            try:
+                space_args = ptr.eval_formula()
+
+            finally:
+                self.system.self = last_self
+
+            if space_args is None:
+                space_args = {}
+            else:
+                if 'bases' in space_args:
+                    space_args['bases'] = get_impls(space_args['bases'])
+
+            space_args['arguments'] = ptr.arguments
+            space = self.new_space(**space_args)
+            self.param_spaces[ptr.argvalues] = space
+            return space
+
+    def set_paramfunc(self, paramfunc):
+        if self.paramfunc is None:
+            self.paramfunc = ParamFunc(paramfunc)
+        else:
+            raise ValueError("paramfunc already assigned.")
 
     # --- Cells creation -------------------------------------
 
