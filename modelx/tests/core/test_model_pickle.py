@@ -53,8 +53,8 @@ def test_unpickled_model(pickletest):
     assert not errors, "errors:\n{}".format("\n".join(errors))
 
 
-
-def test_pickle_dynamic_space():
+@pytest.fixture(scope='module')
+def pickletest_dynamicspace():
 
     param = dedent("""\
     def param(x):
@@ -68,14 +68,23 @@ def test_pickle_dynamic_space():
     model, space = new_model(), new_space(name='Space1', paramfunc=param)
     space.new_cells(func=fibo)
 
-    check = space[2].fibo(3) == 6
+    check = space[2].fibo(3)
 
     byte_obj = pickle.dumps(model._impl)
     unpickled = pickle.loads(byte_obj)
     unpickled.restore_state(system)
     model = unpickled.interface
 
-    check = check and model.Space1[2].fibo(3) == 6
-    assert check
+    return (model, check)
 
 
+def test_pickle_dynamicspace(pickletest_dynamicspace):
+
+    model, check = pickletest_dynamicspace
+    assert model.Space1[2].fibo(3) == check
+
+
+def test_pickle_argvalues(pickletest_dynamicspace):
+
+    model, check = pickletest_dynamicspace
+    assert model.Space1[2].argvalues == (2,)

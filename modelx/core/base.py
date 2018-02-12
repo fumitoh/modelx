@@ -93,6 +93,8 @@ class ObjectArgs:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        # From Python 3.5, signature is pickable,
+        # pickling logic for this class may be simplified.
         self._bind_args(self.argvalues)
 
         if self.argvalues != state['argvalues']:

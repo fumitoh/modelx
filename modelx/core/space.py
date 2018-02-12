@@ -646,8 +646,11 @@ class SpaceImpl(SpaceContainerImpl):
 
         if arguments is None:
             self._arguments = LazyEvalDict()
+            self.boundargs = None
+            self.argvalues = None
         else:
             self._arguments = LazyEvalDict(arguments)
+            self._bind_args(arguments)
 
         # Set up direct base spaces and mro
         if bases is None:
@@ -747,6 +750,10 @@ class SpaceImpl(SpaceContainerImpl):
         'name',
         'can_have_none'] + SpaceContainerImpl.state_attrs
 
+    def _bind_args(self, args):
+        self.boundargs = self.parent.signature.bind(**args)
+        self.argvalues = tuple(self.boundargs.arguments.values())
+
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
                  if key in self.state_attrs}
@@ -765,6 +772,12 @@ class SpaceImpl(SpaceContainerImpl):
 
         for cells in self._cells.values():
             cells.restore_state(system)
+
+        # From Python 3.5, signature is pickable,
+        # pickling logic involving signature may be simplified.
+        if self.is_dynamic():
+            self._bind_args(self._arguments)
+
 
     def __repr__(self):
         return '<SpaceImpl: ' + self.name + '>'
@@ -1309,6 +1322,11 @@ class Space(SpaceContainer):
     def dynamic_spaces(self):
         """A mapping associating names to dynamic spaces."""
         return self._impl.dynamic_spaces.interfaces
+
+    @property
+    def argvalues(self):
+        """A tuple of space arguments."""
+        return self._impl.argvalues
 
     @property
     def refs(self):
