@@ -627,6 +627,11 @@ class Cells(Interface, Container, Callable, Sized):
     def formula(self):
         self._impl.clear_formula()
 
+    @property
+    def parameters(self):
+        """A tuple of parameter strings."""
+        return tuple(self._impl.parameters.keys())
+
     def set_formula(self, func):
         """Set formula from a function.
         Deprecated since version 0.0.5. Use formula property instead.

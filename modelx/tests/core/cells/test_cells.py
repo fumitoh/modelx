@@ -268,6 +268,15 @@ def test_call_single_value(sample_space):
 def test_single_value(sample_space):
     assert sample_space.single_value == 5
 
+
+def test_parameters(sample_space):
+
+    space = sample_space
+    check = space.fibo.parameters == ('x',)
+    check = check and space.single_value.parameters == ()
+    check = check and space.matchtest.parameters == ('x', 'y', 'z')
+    assert check
+
 # --------------------------------------------------------------------------
 # Test value property
 
