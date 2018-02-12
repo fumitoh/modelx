@@ -52,6 +52,10 @@ from qtpy.QtWidgets import QApplication, QTreeView
 class BaseItem(object):
     """Base Item class for all tree item classes."""
     def __init__(self, data, parent=None):
+
+        self.colType = 1
+        self.colParam = 2
+
         self.parentItem = parent
         self.itemData = data
         self.childItems = []
@@ -70,13 +74,18 @@ class BaseItem(object):
         return len(self.childItems)
 
     def columnCount(self):
-        return 1 # len(self.itemData)
+        return 3
 
     def data(self, column):
-        try:
+
+        if column == 0:
             return self.itemData.name
-        except IndexError:
-            return None
+        elif column == self.colType:
+            return self.getType()
+        elif column == self.colParam:
+            return self.getParams()
+        else:
+            raise IndexError
 
     def parent(self):
         return self.parentItem
@@ -84,9 +93,13 @@ class BaseItem(object):
     def row(self):
         if self.parentItem:
             return self.parentItem.childItems.index(self)
-
         return 0
 
+    def getType(self):
+        raise NotImplementedError
+
+    def getParams(self):
+        raise NotImplementedError
 
 class SpaceContainerItem(BaseItem):
     """Base Item class for Models and Spaces which inherit SpaceContainer."""
@@ -94,6 +107,18 @@ class SpaceContainerItem(BaseItem):
         self.childItems.clear()
         for space in self.itemData.spaces.values():
             self.childItems.append(SpaceItem(space, self))
+
+
+class ModelItem(SpaceContainerItem):
+    """Item class for a Model (root item)"""
+    def __init__(self, model):
+        super(ModelItem, self).__init__(model, parent=None)
+
+    def getType(self):
+        return 'Model'
+
+    def getParams(self):
+        return ''
 
 
 class SpaceItem(SpaceContainerItem):
@@ -111,6 +136,15 @@ class SpaceItem(SpaceContainerItem):
         for cells in cellsmap.values():
             self.childItems.append(CellsItem(cells, self))
 
+    def getType(self):
+        return 'Space'
+
+    def getParams(self):
+        args = self.itemData.argvalues
+        if args is not None:
+            return ', '.join([repr(arg) for arg in args])
+        else:
+            return ''
 
 class DynamicSpaceMapItem(BaseItem):
     """Item class for parent nodes of dynamic spaces of a space."""
@@ -120,7 +154,16 @@ class DynamicSpaceMapItem(BaseItem):
             self.childItems.append(SpaceItem(space, self))
 
     def data(self, column):
-        return 'Dynamic Spaces'
+        if column == 0:
+            return 'Dynamic Spaces'
+        else:
+            return BaseItem.data(self, column)
+
+    def getType(self):
+        return ''
+
+    def getParams(self):
+        return ', '.join(self.parent().itemData.parameters)
 
 
 class CellsItem(BaseItem):
@@ -128,12 +171,17 @@ class CellsItem(BaseItem):
     def updateChild(self):
         pass
 
+    def getType(self):
+        return 'Cells'
+
+    def getParams(self):
+        return ', '.join(self.itemData.parameters)
 
 class ModelTreeModel(QAbstractItemModel):
 
     def __init__(self, model, parent=None):
         super(ModelTreeModel, self).__init__(parent)
-        self.rootItem = SpaceContainerItem(model)
+        self.rootItem = ModelItem(model)
 
     def columnCount(self, parent):
         if parent.isValid():
@@ -160,7 +208,13 @@ class ModelTreeModel(QAbstractItemModel):
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return 'Objects'  # self.rootItem.data(section)
+            # TODO: Refactor hard-coding column indexes
+            if section == 0:
+                return 'Objects'
+            elif section == 1:
+                return 'Type'
+            elif section == 2:
+                return 'Parameters'
 
         return None
 
