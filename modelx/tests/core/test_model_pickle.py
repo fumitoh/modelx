@@ -88,3 +88,9 @@ def test_pickle_argvalues(pickletest_dynamicspace):
 
     model, check = pickletest_dynamicspace
     assert model.Space1[2].argvalues == (2,)
+
+
+def test_pickle_argvalues_none(pickletest_dynamicspace):
+
+    model, check = pickletest_dynamicspace
+    assert model.Space1.argvalues is None

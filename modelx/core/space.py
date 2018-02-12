@@ -645,12 +645,13 @@ class SpaceImpl(SpaceContainerImpl):
             self.paramfunc = ParamFunc(paramfunc)
 
         if arguments is None:
+            self.is_dynamic = False
             self._arguments = LazyEvalDict()
-            self.boundargs = None
-            self.argvalues = None
         else:
+            self.is_dynamic = True
             self._arguments = LazyEvalDict(arguments)
-            self._bind_args(arguments)
+
+        self._bind_args(arguments)
 
         # Set up direct base spaces and mro
         if bases is None:
@@ -744,6 +745,7 @@ class SpaceImpl(SpaceContainerImpl):
         '_refs',
         '_self_members',
         '_namespace_impl',
+        'is_dynamic',
         'param_spaces',
         'paramfunc',
         'cellsnamer',
@@ -751,8 +753,13 @@ class SpaceImpl(SpaceContainerImpl):
         'can_have_none'] + SpaceContainerImpl.state_attrs
 
     def _bind_args(self, args):
-        self.boundargs = self.parent.signature.bind(**args)
-        self.argvalues = tuple(self.boundargs.arguments.values())
+
+        if self.is_dynamic:
+            self.boundargs = self.parent.signature.bind(**args)
+            self.argvalues = tuple(self.boundargs.arguments.values())
+        else:
+            self.boundargs = None
+            self.argvalues = None
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -775,8 +782,7 @@ class SpaceImpl(SpaceContainerImpl):
 
         # From Python 3.5, signature is pickable,
         # pickling logic involving signature may be simplified.
-        if self.is_dynamic():
-            self._bind_args(self._arguments)
+        self._bind_args(self._arguments)
 
 
     def __repr__(self):
@@ -785,7 +791,7 @@ class SpaceImpl(SpaceContainerImpl):
     @property
     def _repr_self(self):
 
-        if self.is_dynamic():
+        if self.is_dynamic:
             args = [repr(arg) for arg in self.argvalues]
             param = ', '.join(args)
             return "%s[%s]" % (self.parent.name, param)
@@ -795,7 +801,7 @@ class SpaceImpl(SpaceContainerImpl):
     @property
     def _repr_parent(self):
 
-        if self.is_dynamic():
+        if self.is_dynamic:
             return self.parent._repr_parent
         else:
             if self.parent._repr_parent:
@@ -966,9 +972,6 @@ class SpaceImpl(SpaceContainerImpl):
     def has_bases(self):
         return len(self.mro) > 1
 
-    def is_dynamic(self):
-        return bool(self._arguments)
-
     @property
     def signature(self):
         return self.paramfunc.signature
@@ -1066,7 +1069,7 @@ class SpaceImpl(SpaceContainerImpl):
     # Space operation
 
     def _set_space(self, space):
-        if space.is_dynamic():
+        if space.is_dynamic:
             self._dynamic_spaces.set_item(space.name, space)
         else:
             self._self_spaces.set_item(space.name, space)
