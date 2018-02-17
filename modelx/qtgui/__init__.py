@@ -1,0 +1,1 @@
+from modelx.qtgui.modeltree import show_modeltree
