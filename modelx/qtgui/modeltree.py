@@ -257,17 +257,13 @@ class ModelTreeModel(QAbstractItemModel):
         return parentItem.childCount()
 
 
-def show_modeltree(model):
-    app = QApplication.instance()
-    if not app:
-        app = QApplication(sys.argv)
+def get_modeltree(model):
     treemodel = ModelTreeModel(model)
     view = QTreeView()
     view.setModel(treemodel)
     view.setWindowTitle("Model %s" % model.name)
     view.setAlternatingRowColors(True)
-    view.show()
-    app.exec_()
+    return view
 
 
 if __name__ == '__main__':
@@ -281,4 +277,11 @@ if __name__ == '__main__':
         else:
             return fibo[x - 1] + fibo[x - 2]
 
-    show_modeltree(mx.cur_model())
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
+
+    view = get_modeltree(mx.cur_model())
+    view.show()
+    app.exec_()
+
