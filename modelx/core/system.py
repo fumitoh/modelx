@@ -86,11 +86,11 @@ class System:
         if model.name not in self.models:
             model._impl.restore_state(self)
             self.models[model.name] = model._impl
-            self._currentmodel = model
+            self._currentmodel = model._impl
         else:
             raise RuntimeError("Model '%s' already exists" % model.name)
 
-        return self._currentmodel
+        return model
 
     def close_model(self, model):
         del self.models[model.name]
