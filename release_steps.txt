@@ -1,0 +1,23 @@
+Steps to follow when releasing a new version
+
+Modified from:
+    https://github.com/pydata/xarray/blob/master/HOW_TO_RELEASE
+Reference:
+    https://packaging.python.org/tutorials/distributing-packages/
+
+ 1. Remove 'dev' from the version in __init__.py.
+ 2. On the master branch, commit the release in git:
+      git commit -a -m 'DIST: Release v0.X.Y'
+      git push
+ 3. Tag the release and push tags:
+      git tag v0.X.Y
+      git push origin --tags
+ 4. Build source and binary wheels for pypi:
+      python setup.py sdist
+      python setup.py bdist_wheel
+ 5. Use twine to register and upload the release on pypi.
+      twine upload dist/modelx-0.X.Y*
+ 6. Increment version number and add 'dev' in __init__.py
+ 7. Commit your changes and push to master again:
+      git commit -a -m "DIST: Bump version back to dev"
+      git push
