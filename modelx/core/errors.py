@@ -35,7 +35,7 @@ class DeepReferenceError(RuntimeError):
 
 class NoneReturnedError(ValueError):
     """
-    Error raised when a cells return None while its can_have_none
+    Error raised when a cells return None while its allow_none
     attribute is set to False.
     """
     message_template = dedent("""

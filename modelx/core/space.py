@@ -750,7 +750,7 @@ class SpaceImpl(SpaceContainerImpl):
         'paramfunc',
         'cellsnamer',
         'name',
-        'can_have_none'] + SpaceContainerImpl.state_attrs
+        'allow_none'] + SpaceContainerImpl.state_attrs
 
     def _bind_args(self, args):
 

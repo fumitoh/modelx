@@ -53,7 +53,7 @@ def sample_space():
     def matchtest(x, y, z):
         return None
 
-    matchtest.can_have_none = True
+    matchtest.allow_none = True
 
     matchtest[1, 2, 3] = 123
     matchtest[1, 2, None] = 120
@@ -291,7 +291,7 @@ def test_get_value(sample_space):
 
 def test_del_value(sample_space):
     cells = sample_space.new_cells()
-    cells.can_have_none = True
+    cells.allow_none = True
     cells.value = 2
     del cells.value
     assert cells.value is None
@@ -327,7 +327,7 @@ def test_none_returned_error():
 
     space = new_model(name='ErrModel').new_space(name='ErrSpace')
     cells = space.new_cells(func=errfunc)
-    cells.can_have_none = False
+    cells.allow_none = False
     with pytest.raises(NoneReturnedError) as errinfo:
         cells(1, 3)
 

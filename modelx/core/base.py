@@ -172,12 +172,12 @@ class Impl:
 
     state_attrs = ['interface',
                    'parent',
-                   'can_have_none']
+                   'allow_none']
 
     def __init__(self, interface_class):
         self.interface = interface_class(self)
         self.parent = None  # To be overwritten in Space and Cells
-        self.can_have_none = None
+        self.allow_none = None
 
     @property
     def repr_string(self):
@@ -239,7 +239,7 @@ class Interface:
 
     """
 
-    properties = ['can_have_none']
+    properties = ['allow_none']
 
     def __new__(cls, _impl):
 
@@ -277,26 +277,26 @@ class Interface:
         object.__setattr__(self, '_impl', state)
 
     @property
-    def can_have_none(self):
+    def allow_none(self):
         """Whether a cells can have None as its value.
 
         This is a property of Model, Space and Cells.
-        If ``can_have_none`` of a cells is False, the cells cannot have Nones
+        If ``allow_none`` of a cells is False, the cells cannot have Nones
         as its values. Assigning None to the cells
         or its formula returning None raises an Error.
         If True, the cells can have Nones as their values.
-        If set to None, ``can_have_none`` of its parent is looked up,
+        If set to None, ``allow_none`` of its parent is looked up,
         and the search continues until True or False is found.
 
         Returns:
             True if the cells can have None, False if it cannot,
             or None if a default value from the parent is to be used.
         """
-        return self._impl.can_have_none
+        return self._impl.allow_none
 
-    @can_have_none.setter
-    def can_have_none(self, value):
-        self._impl.can_have_none = value if value is None else bool(value)
+    @allow_none.setter
+    def allow_none(self, value):
+        self._impl.allow_none = value if value is None else bool(value)
 
 
 class LazyEval:

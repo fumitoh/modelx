@@ -93,7 +93,7 @@ class ModelImpl(SpaceContainerImpl):
             data={'__builtins__': builtins})
         self._spaces = ImplDict(self, SpaceMapProxy)
         self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
-        self.can_have_none = False
+        self.allow_none = False
 
     def clear_descendants(self, source, clear_source=True):
         """Clear values and nodes calculated from `source`."""

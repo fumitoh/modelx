@@ -11,16 +11,16 @@ paramy = ['get', 'set']
 param = [x + [y] for x, y in product(paramx, paramy)]
 
 @pytest.mark.parametrize("model_param, space_param, cells_param, op", param)
-def test_with_sapce_can_have_none_true(model_param,
+def test_with_sapce_allow_none_true(model_param,
                                        space_param,
                                        cells_param,
                                        op):
     model, space = new_model(), new_space()
     cells = space.new_cells(func="def test1(x): return None")
 
-    model.can_have_none = model_param
-    space.can_have_none = space_param
-    cells.can_have_none = cells_param
+    model.allow_none = model_param
+    space.allow_none = space_param
+    cells.allow_none = cells_param
 
     if op == 'get':
         assert cells[1] is None
@@ -36,16 +36,16 @@ paramy = ['get', 'set']
 param = [x + [y] for x, y in product(paramx, paramy)]
 
 @pytest.mark.parametrize("model_param, space_param, cells_param, op", param)
-def test_with_sapce_can_have_none_false(model_param,
+def test_with_sapce_allow_none_false(model_param,
                                         space_param,
                                         cells_param,
                                         op):
     model, space = new_model(), new_space()
     cells = space.new_cells(func="def test1(x): return None")
 
-    model.can_have_none = model_param
-    space.can_have_none = space_param
-    cells.can_have_none = cells_param
+    model.allow_none = model_param
+    space.allow_none = space_param
+    cells.allow_none = cells_param
 
     with pytest.raises(NoneReturnedError) as errinfo:
         if op == 'get':

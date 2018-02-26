@@ -124,7 +124,7 @@ class CellsImpl(Impl):
     _clear_all_derived
     _set_formula_derived
 
-    **Changing can_have_none**
+    **Changing allow_none**
 
     **Setting Values**
     clear()
@@ -308,7 +308,7 @@ class CellsImpl(Impl):
         args = ptr.argvalues
         args_len = len(args)
 
-        if not self.get_property('can_have_none'):
+        if not self.get_property('allow_none'):
             # raise ValueError('Cells %s cannot return None' % self.name)
             tracemsg = self.system.callstack.tracemessage()
             raise NoneReturnedError(ptr, tracemsg)
@@ -353,7 +353,7 @@ class CellsImpl(Impl):
 
             if value is not None:
                 self.data[key] = value
-            elif self.get_property('can_have_none'):
+            elif self.get_property('allow_none'):
                 self.data[key] = value
             else:
                 tracemsg = self.system.callstack.tracemessage()
