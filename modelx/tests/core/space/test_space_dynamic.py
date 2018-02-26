@@ -7,7 +7,7 @@ def test_dynamic_spaces():
     def params(x, y):
         return {'bases': _self}
 
-    space = new_model().new_space(name='base', paramfunc=params)
+    space = new_model().new_space(name='base', formula=params)
 
     @defcells
     def distance():

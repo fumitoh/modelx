@@ -65,7 +65,7 @@ def pickletest_dynamicspace():
     def fibo(n):
         return x * n""")
 
-    model, space = new_model(), new_space(name='Space1', paramfunc=param)
+    model, space = new_model(), new_space(name='Space1', formula=param)
     space.new_cells(func=fibo)
 
     check = space[2].fibo(3)

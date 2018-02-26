@@ -9,7 +9,7 @@ This example demonstrate dynamic spaces.
 from modelx import *
 
 space = new_model().new_space(
-    paramfunc=lambda int_rate: {'bases': _self})
+    formula=lambda int_rate: {'bases': _self})
 
 @defcells
 def discfac():

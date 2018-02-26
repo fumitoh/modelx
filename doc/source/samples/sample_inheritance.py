@@ -73,7 +73,7 @@ def params(policy_id):
     return {'name': 'Policy%s' % policy_id,
             'bases': _self}
 
-policy = model.new_space(name='Policy', bases=term_life, paramfunc=params)
+policy = model.new_space(name='Policy', bases=term_life, formula=params)
 
 policy.data = data
 
@@ -94,7 +94,7 @@ def n():
 #                       Endowment if data[policy_id - 1][0] == 2
 #                       else TermLife]}
 #
-# policy = model.new_space(name='ThePolicy', paramfunc=params)
+# policy = model.new_space(name='ThePolicy', formula=params)
 #
 # policy.data = data
 # policy.Endowment = endowment

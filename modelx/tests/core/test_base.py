@@ -95,7 +95,7 @@ def repr_test():
     def params(m, n):
         return {'bases': _self}
 
-    model.new_space('DynSpace', bases=space, paramfunc=params)
+    model.new_space('DynSpace', bases=space, formula=params)
 
     return model
 

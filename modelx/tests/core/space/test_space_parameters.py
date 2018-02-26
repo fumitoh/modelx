@@ -18,10 +18,10 @@ def samplemodel():
 
     base_space.new_cells(func=foo_def)
 
-    def paramfunc(x0):
+    def formula(x0):
         return {'bases': base_space}
 
-    base_space.set_paramfunc(paramfunc)
+    base_space.set_formula(formula)
 
     return model
 
@@ -34,8 +34,8 @@ def test_space_getitem(samplemodel):
     assert derived.foo(1) == 10
 
 
-def test_paramfunc(samplemodel):
-    """Test if paramfunc passes parameters properly."""
+def test_formula(samplemodel):
+    """Test if formula passes parameters properly."""
 
     # [idx, x, n]
     data = [[0, 50, 10], [1, 60, 15], [2, 70, 5]]
@@ -44,7 +44,7 @@ def test_paramfunc(samplemodel):
         return {'name': 'TestSpace%s' % idx,
                 'bases': _self}
 
-    space = samplemodel.new_space(name='TestSpace', paramfunc=params)
+    space = samplemodel.new_space(name='TestSpace', formula=params)
 
     funcx = dedent("""
     def x():

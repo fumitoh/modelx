@@ -822,7 +822,7 @@ Below is a script to extend the model as we designed above.
    :lines: 72-86
 
 The ``params`` function is passed to the constructor of the ``Policy`` space
-as the argument of ``paramfunc`` parameter. The signature of ``params`` func
+as the argument of ``formula`` parameter. The signature of ``params`` func
 is used to determine the parameter of the dynamic spaces,
 and the returned dictionary is passed to the ``new_space`` as arguments when
 the dynamic spaces are created.

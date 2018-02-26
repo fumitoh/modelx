@@ -66,10 +66,10 @@ def test_derived_spaces(testmodel):
     assert space_a.cells_a[2] == 1 and space_b.cells_a(2) == 2
 
 
-def test_paramfunc(testmodel):
+def test_formula(testmodel):
 
     model = testmodel
-    base = model.new_space(paramfunc=lambda x, y: {'bases': get_self()})
+    base = model.new_space(formula=lambda x, y: {'bases': get_self()})
 
     distance_def = dedent("""\
     def distance():
@@ -84,7 +84,7 @@ def test_paramfunc(testmodel):
 def test_dynamic_spaces(testmodel):
 
     model = testmodel
-    space = model.new_space(paramfunc=lambda n: {'bases': get_self()})
+    space = model.new_space(formula=lambda n: {'bases': get_self()})
 
     @defcells
     def foo(x):

@@ -49,7 +49,7 @@ class SpaceArgs(ObjectArgs):
 
     def eval_formula(self):
 
-        func = self.space.paramfunc.func
+        func = self.space.formula.func
         codeobj = func.__code__
         name = self.space.name
         namespace = self.space.namespace
@@ -123,7 +123,7 @@ class SpaceContainerImpl(Impl):
     def has_space(self, name):
         return name in self.spaces
 
-    def new_space(self, name=None, bases=None, paramfunc=None,
+    def new_space(self, name=None, bases=None, formula=None,
                   *, refs=None, arguments=None):
         """Create a child space.
 
@@ -132,7 +132,7 @@ class SpaceContainerImpl(Impl):
                 created automatically.
             bases: If specified, the new space becomes a derived space of
                 the `base` space.
-            paramfunc: Function whose parameters used to set space parameters.
+            formula: Function whose parameters used to set space parameters.
             refs: a mapping of refs to be added.
             arguments: ordered dict of space parameter names to their values.
 
@@ -148,7 +148,7 @@ class SpaceContainerImpl(Impl):
             raise ValueError("Invalid name '%s'." % name)
 
         space = SpaceImpl(parent=self, name=name, bases=bases,
-                          paramfunc=paramfunc, refs=refs, arguments=arguments)
+                          formula=formula, refs=refs, arguments=arguments)
 
         self._set_space(space)
         return space
@@ -218,7 +218,7 @@ class SpaceContainerImpl(Impl):
         param_func = "def _param_func(" + space_sig + "): pass"
         blank_func = "def _blank_func(" + cells_sig + "): pass"
 
-        space = self.new_space(name=name, paramfunc=param_func)
+        space = self.new_space(name=name, formula=param_func)
 
         for cellsdata in cellstable.items():
             for args, value in cellsdata.items():
@@ -242,7 +242,7 @@ class SpaceContainer(Interface):
 
     A base class for implementing (sub)space containment.
     """
-    def new_space(self, name=None, bases=None, paramfunc=None, refs=None):
+    def new_space(self, name=None, bases=None, formula=None, refs=None):
         """Create a (sub)space.
 
         Args:
@@ -250,7 +250,7 @@ class SpaceContainer(Interface):
                 where ``N`` is a number determined automatically.
             bases (optional): A space or a sequence of spaces to be the base
                 space(s) of the created space.
-            paramfunc (optional): Function to specify the parameters of
+            formula (optional): Function to specify the parameters of
                 dynamic (sub)spaces. The signature of this function is used
                 for setting parameters for dynamic (sub)spaces.
                 This function should return a mapping of keyword arguments
@@ -262,7 +262,7 @@ class SpaceContainer(Interface):
         """
         space = self._impl.model.currentspace \
             = self._impl.new_space(name=name, bases=get_impls(bases),
-                                   paramfunc=paramfunc, refs=refs)
+                                   formula=formula, refs=refs)
 
         return space.interface
 
@@ -453,7 +453,7 @@ class DerivedSpaceDict(BaseMixin, SelfSpaceDict):
 
             space = SpaceImpl(parent=self.parent, name=base_space.name,
                               bases=base_space,
-                              paramfunc=base_space.paramfunc)
+                              formula=base_space.formula)
 
             self.data[space.name] = space
 
@@ -629,7 +629,7 @@ class SpaceImpl(SpaceContainerImpl):
                 
         _namespace (dict)
     """
-    def __init__(self, parent, name, bases, paramfunc,
+    def __init__(self, parent, name, bases, formula,
                  refs=None, arguments=None):
 
         SpaceContainerImpl.__init__(self, parent.system, if_class=Space)
@@ -639,10 +639,10 @@ class SpaceImpl(SpaceContainerImpl):
         self.cellsnamer = AutoNamer('Cells')
 
         self.param_spaces = {}
-        if paramfunc is None:
-            self.paramfunc = None
+        if formula is None:
+            self.formula = None
         else:
-            self.paramfunc = ParamFunc(paramfunc)
+            self.formula = ParamFunc(formula)
 
         if arguments is None:
             self.is_dynamic = False
@@ -747,7 +747,7 @@ class SpaceImpl(SpaceContainerImpl):
         '_namespace_impl',
         'is_dynamic',
         'param_spaces',
-        'paramfunc',
+        'formula',
         'cellsnamer',
         'name',
         'allow_none'] + SpaceContainerImpl.state_attrs
@@ -974,11 +974,11 @@ class SpaceImpl(SpaceContainerImpl):
 
     @property
     def signature(self):
-        return self.paramfunc.signature
+        return self.formula.signature
 
     @property
     def parameters(self):
-        return self.paramfunc.signature.parameters
+        return self.formula.signature.parameters
 
     def get_fullname(self, omit_model=False):
 
@@ -1177,11 +1177,11 @@ class SpaceImpl(SpaceContainerImpl):
             self.param_spaces[ptr.argvalues] = space
             return space
 
-    def set_paramfunc(self, paramfunc):
-        if self.paramfunc is None:
-            self.paramfunc = ParamFunc(paramfunc)
+    def set_formula(self, formula):
+        if self.formula is None:
+            self.formula = ParamFunc(formula)
         else:
-            raise ValueError("paramfunc already assigned.")
+            raise ValueError("formula already assigned.")
 
     # --- Cells creation -------------------------------------
 
@@ -1486,9 +1486,9 @@ class Space(SpaceContainer):
     def __call__(self, *args, **kwargs):
         return self._impl.get_dyn_space(args, kwargs).interface
 
-    def set_paramfunc(self, paramfunc):
+    def set_formula(self, formula):
         """Set if the parameter function."""
-        self._impl.set_paramfunc(paramfunc)
+        self._impl.set_formula(formula)
 
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
