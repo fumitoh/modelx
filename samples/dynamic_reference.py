@@ -4,9 +4,9 @@ from modelx import *
 model = new_model()
 
 def paramfunc(n):
-    names = {'space_a': SpaceA[n]}
-    return {'bases': get_self(),
-            'names': names}
+    names = {'SpaceA': SpaceA[n]}
+    return {'bases': _self,
+            'refs': names}
 
 space_a = model.new_space(name='SpaceA', paramfunc=lambda n: None)
 space_b = model.new_space(name='SpaceB', paramfunc=paramfunc)
