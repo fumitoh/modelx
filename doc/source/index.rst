@@ -14,6 +14,7 @@ Welcome to modelx's documentation!
    installation
    tutorial
    reference/index
+   whats-new
 
 * :ref:`genindex`
 * :ref:`search`
