@@ -7,7 +7,7 @@ Reference:
 
  1. Remove 'dev' from the version in __init__.py.
  2. On the master branch, commit the release in git:
-      git commit -a -m 'DIST: Release v0.X.Y'
+      git commit -a -m "DIST: Release v0.X.Y"
       git push
  3. Tag the release and push tags:
       git tag v0.X.Y
