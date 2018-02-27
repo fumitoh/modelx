@@ -16,7 +16,7 @@ def samplemodel():
             return foo(x - 1)
     """)
 
-    base_space.new_cells(func=foo_def)
+    base_space.new_cells(formula=foo_def)
 
     def formula(x0):
         return {'bases': base_space}
@@ -56,8 +56,8 @@ def test_formula(samplemodel):
         return data[idx][2]
     """)
 
-    space.new_cells(func=funcx)
-    space.new_cells(func=funcn)
+    space.new_cells(formula=funcx)
+    space.new_cells(formula=funcn)
 
     space.data = data
 

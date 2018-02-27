@@ -76,7 +76,7 @@ def test_formula(testmodel):
         return (x ** 2 + y ** 2) ** 0.5
     """)
 
-    base.new_cells(func=distance_def)
+    base.new_cells(formula=distance_def)
 
     assert base[3, 4].distance == 5
 

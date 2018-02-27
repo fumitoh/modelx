@@ -222,7 +222,7 @@ Another way to create a cells is to use Space's
 the command below doesn't work in the current context as we've
 already defined ``fibo``::
 
-   >> space.new_cells(func=fibo)
+   >> space.new_cells(formula=fibo)
 
 The ``func`` parameter can either be a function object, or a string
 of function definition.

@@ -101,7 +101,7 @@ class CellsMaker:
         self.name = name
 
     def __call__(self, func):
-        return self.space.new_cells(func=func, name=self.name).interface
+        return self.space.new_cells(formula=func, name=self.name).interface
 
 ArgsValuePair = namedtuple('ArgsValuePair', ['args', 'value'])
 
@@ -144,17 +144,17 @@ class CellsImpl(Impl):
         data: array-like, dict, pandas.DataSeries or scalar values.
     """
 
-    def __init__(self, *, space, name=None, func=None, data=None):
+    def __init__(self, *, space, name=None, formula=None, data=None):
 
         Impl.__init__(self, Cells)
 
         self.system = space.system
         self.model = space.model
         self.space = self.parent = space
-        if func is None:
+        if formula is None:
             self.formula = NULL_FORMULA
         else:
-            self.formula = Formula(func)
+            self.formula = Formula(formula)
 
         if is_valid_name(name):
             self.name = name
@@ -492,7 +492,7 @@ class Cells(Interface, Container, Callable, Sized):
 
     def copy(self, space=None, name=None):
         """Make a copy of itself and return it."""
-        return Cells(space=space, name=name, func=self.formula)
+        return Cells(space=space, name=name, formula=self.formula)
 
     def __hash__(self):
         return hash(id(self))

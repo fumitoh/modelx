@@ -30,9 +30,9 @@ def samplemodel():
         return foo(x)
     """)
 
-    base_space.new_cells(func=foo_def)
+    base_space.new_cells(formula=foo_def)
     model.new_space(name='derived_space', bases=base_space)
-    base_space2.new_cells(func=bar_def)
+    base_space2.new_cells(formula=bar_def)
     model.new_space(name='derived_space2', bases=[base_space, base_space2])
 
     return model

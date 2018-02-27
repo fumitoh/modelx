@@ -41,7 +41,7 @@ def test_defcells_lambda_object():
 def test_decells_lambda_source():
 
     src = "lambda x: x if x == 0 or x == 1 else fibo2[x - 1] + fibo2[x - 2]"
-    fibo2 = cur_space().new_cells(name='fibo2', func=src)
+    fibo2 = cur_space().new_cells(name='fibo2', formula=src)
 
     assert fibo2(10) == 55
 
@@ -57,7 +57,7 @@ def test_deep_reference_error():
         return erronerous(x + 1, y - 1)""")
 
     space = new_model(name='ErrModel').new_space(name='ErrSpace')
-    cells = space.new_cells(func=errfunc)
+    cells = space.new_cells(formula=errfunc)
     with pytest.raises(DeepReferenceError) as errinfo:
         cells(1, 3)
 

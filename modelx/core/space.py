@@ -231,7 +231,7 @@ class SpaceContainerImpl(Impl):
                     cells = subspace.cells[cellsdata.name]
                 else:
                     cells = subspace.new_cells(name=cellsdata.name,
-                                                  func=blank_func)
+                                                  formula=blank_func)
                 cells.set_value(cells_args, value)
 
         return space
@@ -479,7 +479,7 @@ class DerivedCellsDict(BaseMixin, SelfCellsDict):
                     del self.data[key]
 
             cell = CellsImpl(space=self.parent, name=base_cell.name,
-                             func=base_cell.formula)
+                             formula=base_cell.formula)
             self.data[key] = cell
 
         SelfCellsDict._update_data(self)
@@ -1188,8 +1188,8 @@ class SpaceImpl(SpaceContainerImpl):
     def set_cells(self, name, cells):
         self._self_cells.set_item(name, cells, True)
 
-    def new_cells(self, name=None, func=None):
-        cells = CellsImpl(space=self, name=name, func=func)
+    def new_cells(self, name=None, formula=None):
+        cells = CellsImpl(space=self, name=name, formula=formula)
         self.set_cells(cells.name, cells)
         return cells
 
@@ -1248,7 +1248,7 @@ class SpaceImpl(SpaceContainerImpl):
         blank_func = "def _blank_func(" + sig + "): pass"
 
         for cellsdata in cellstable.items():
-            cells = self.new_cells(name=cellsdata.name, func=blank_func)
+            cells = self.new_cells(name=cellsdata.name, formula=blank_func)
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
 
@@ -1289,7 +1289,7 @@ class Space(SpaceContainer):
     # ----------------------------------------------------------------------
     # Manipulating cells
 
-    def new_cells(self, name=None, func=None):
+    def new_cells(self, name=None, formula=None):
         """Create a cells in the space.
 
         Args:
@@ -1301,7 +1301,7 @@ class Space(SpaceContainer):
             The new cells.
         """
         # Outside formulas only
-        return self._impl.new_cells(name, func).interface
+        return self._impl.new_cells(name, formula).interface
 
     @property
     def cells(self):

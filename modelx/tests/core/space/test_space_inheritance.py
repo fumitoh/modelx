@@ -23,8 +23,8 @@ def create_testmodel():
         else:
             return fibo(x - 1) + fibo(x - 2)
 
-    subspace.new_cells(func=fibo)
-    nestedsub.new_cells(func=fibo)
+    subspace.new_cells(formula=fibo)
+    nestedsub.new_cells(formula=fibo)
 
     return model
 

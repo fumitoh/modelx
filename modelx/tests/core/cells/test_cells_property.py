@@ -16,7 +16,7 @@ def test_with_sapce_allow_none_true(model_param,
                                        cells_param,
                                        op):
     model, space = new_model(), new_space()
-    cells = space.new_cells(func="def test1(x): return None")
+    cells = space.new_cells(formula="def test1(x): return None")
 
     model.allow_none = model_param
     space.allow_none = space_param
@@ -41,7 +41,7 @@ def test_with_sapce_allow_none_false(model_param,
                                         cells_param,
                                         op):
     model, space = new_model(), new_space()
-    cells = space.new_cells(func="def test1(x): return None")
+    cells = space.new_cells(formula="def test1(x): return None")
 
     model.allow_none = model_param
     space.allow_none = space_param

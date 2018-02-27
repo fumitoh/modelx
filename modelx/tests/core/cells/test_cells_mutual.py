@@ -20,7 +20,7 @@ def test_cells_mutual():
         return 2 * single_value(x)
     """)
 
-    f1 = space.new_cells(func=func1)
-    f2 = space.new_cells(func=func2)
+    f1 = space.new_cells(formula=func1)
+    f2 = space.new_cells(formula=func2)
 
     assert f2(5) == 50

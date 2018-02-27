@@ -11,7 +11,7 @@ def sample_space():
 
     funcdef = """def func(x): return 2 * x"""
 
-    space.new_cells(func=funcdef)
+    space.new_cells(formula=funcdef)
 
     @defcells
     def fibo(x):
@@ -112,7 +112,7 @@ def test_setitem2(sample_space):
 
 
 def test_setitem_str(sample_space):
-    cells = sample_space.new_cells(func="lambda s: 2 * s")
+    cells = sample_space.new_cells(formula="lambda s: 2 * s")
     cells['ABC'] = 'DEF'
     assert cells['ABC'] == 'DEF'
 
@@ -166,8 +166,8 @@ def test_clear_value_source(sample_space):
         def dependant(x):
             return 2 * source(x)""")
 
-    space.new_cells(func=f1)
-    space.new_cells(func=f2)
+    space.new_cells(formula=f1)
+    space.new_cells(formula=f2)
 
     errors = []
     space.dependant(2)
@@ -199,8 +199,8 @@ def test_clear_formula(sample_space):
         def clear_dependant(x):
             return 2 * clear_source(x)""")
 
-    source = space.new_cells(func=f1)
-    dependant = space.new_cells(func=f2)
+    source = space.new_cells(formula=f1)
+    dependant = space.new_cells(formula=f2)
 
     errors = []
     dependant(2)
@@ -239,8 +239,8 @@ def test_set_formula(sample_space):
             else:
                 return clear_source(x - 1) + 1""")
 
-    source = space.new_cells(func=f1)
-    dependant = space.new_cells(func=f2)
+    source = space.new_cells(formula=f1)
+    dependant = space.new_cells(formula=f2)
 
     errors = []
     dependant(2)
@@ -286,7 +286,7 @@ def test_set_value(sample_space):
     assert cells() == 5
 
 def test_get_value(sample_space):
-    cells = sample_space.new_cells(func="lambda: 3")
+    cells = sample_space.new_cells(formula="lambda: 3")
     assert cells.value == 3
 
 def test_del_value(sample_space):
@@ -326,7 +326,7 @@ def test_none_returned_error():
             return None""")
 
     space = new_model(name='ErrModel').new_space(name='ErrSpace')
-    cells = space.new_cells(func=errfunc)
+    cells = space.new_cells(formula=errfunc)
     cells.allow_none = False
     with pytest.raises(NoneReturnedError) as errinfo:
         cells(1, 3)

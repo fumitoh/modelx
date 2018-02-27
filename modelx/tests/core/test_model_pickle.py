@@ -24,8 +24,8 @@ def pickletest():
         return 2 * single_value(x)
     """)
 
-    func1 = space.new_cells(func=func1)
-    func2 = space.new_cells(func=func2)
+    func1 = space.new_cells(formula=func1)
+    func2 = space.new_cells(formula=func2)
 
     func2(5)
 
@@ -66,7 +66,7 @@ def pickletest_dynamicspace():
         return x * n""")
 
     model, space = new_model(), new_space(name='Space1', formula=param)
-    space.new_cells(func=fibo)
+    space.new_cells(formula=fibo)
 
     check = space[2].fibo(3)
 

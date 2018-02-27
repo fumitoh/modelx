@@ -120,7 +120,7 @@ def defcells(space=None, name=None, *funcs):
     if isinstance(space, _FunctionType) and name is None:
         # called as a function decorator
         func = space
-        return _system.currentspace.new_cells(func=func).interface
+        return _system.currentspace.new_cells(formula=func).interface
 
     elif (isinstance(space, _Space) or space is None) \
             and (isinstance(name, str) or name is None):
