@@ -7,6 +7,14 @@ What's New
 Change Log
 ==========
 
+v0.0.8.dev (XX March 2018)
+--------------------------
+
+Enhancements
+~~~~~~~~~~~~
+- Add :py:attr:`~base.Interface.parent` property.
+
+
 v0.0.7 (27 February 2018)
 -------------------------
 

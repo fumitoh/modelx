@@ -66,6 +66,8 @@ def sample_space():
 
     return space
 
+def test_parent(sample_space):
+    assert sample_space.func1.parent == sample_space
 
 def test_defcells_funcs(sample_space):
     assert sample_space.func1[2] == 10 \

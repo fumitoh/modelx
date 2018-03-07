@@ -19,6 +19,9 @@ def testmodel():
 
     return model
 
+def test_parent(testmodel):
+    assert cur_space().parent == testmodel
+
 
 def test_create(testmodel):
     assert cur_space() in cur_model().spaces.values()

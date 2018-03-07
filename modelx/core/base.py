@@ -263,6 +263,14 @@ class Interface:
         """Dotted name of the interface."""
         return self._impl.fullname
 
+    @property
+    def parent(self):
+        """Return the containing object. ``None`` for models."""
+        if self._impl.parent is None:
+            return None
+        else:
+            return self._impl.parent.interface
+
     def __repr__(self):
         type_ = self.__class__.__name__
         return "<%s %s>" % (type_, self._impl.repr_string)

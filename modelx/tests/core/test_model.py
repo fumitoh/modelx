@@ -20,6 +20,8 @@ def simplemodel():
 
     return model
 
+def test_parent(simplemodel):
+    assert simplemodel.parent == None
 
 def test_autoname_space(simplemodel):
     assert simplemodel.cur_space().name == 'Space1'
