@@ -18,6 +18,10 @@ from modelx.core.system import System
 
 
 sys.setrecursionlimit(100000)
-system = System()
+
+# Limit max_depth to 500 to avoid stack overflow on Python 64-bit anaconda
+# Ref: https://bugs.python.org/issue32570
+# TODO: Need more robust approach
+system = System(max_depth=500)
 
 
