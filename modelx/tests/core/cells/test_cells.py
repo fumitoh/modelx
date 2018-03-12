@@ -342,6 +342,23 @@ def test_none_returned_error():
     assert errinfo.value.args[0] == errmsg
 
 
+def test_zerodiv():
+
+    from modelx.core.errors import RewindStackError
+
+    zerodiv = dedent("""\
+        def zerodiv(x):
+            if x == 3:
+                return x / 0
+            else:
+                return zerodiv(x + 1)""")
+
+    space = new_model().new_space(name='ZeroDiv')
+    cells = space.new_cells(formula=zerodiv)
+
+    with pytest.raises(RewindStackError):
+        cells(0)
+
 # --------------------------------------------------------------------------
 # Test comparison
 

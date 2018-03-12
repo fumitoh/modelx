@@ -30,7 +30,9 @@ from modelx.core.formula import (
     create_closure,
     NULL_FORMULA)
 from modelx.core.util import is_valid_name
-from modelx.core.errors import NoneReturnedError
+from modelx.core.errors import (
+    NoneReturnedError,
+    RewindStackError)
 
 
 def cells_to_argvals(args, kwargs):
@@ -290,6 +292,15 @@ class CellsImpl(Impl):
                         value = self._store_value(ptr, value, False)
                 else:
                     value = self._store_value(ptr, value, False)
+
+            except ZeroDivisionError:
+                # msg = dedent("""\
+                #     Zero division occurred in {0}.
+                #     Call stack traceback:
+                #     {1}""")
+                # print(msg.format(ptr, self.system.callstack.tracemessage()))
+                tracemsg = self.system.callstack.tracemessage()
+                raise RewindStackError(ptr, tracemsg)
 
             finally:
                 self.system.callstack.pop()

@@ -46,3 +46,19 @@ class NoneReturnedError(ValueError):
     def __init__(self, last_call, trace_msg):
         msg = self.message_template.format(last_call, trace_msg)
         ValueError.__init__(self, msg)
+
+
+class RewindStackError(RuntimeError):
+    """
+    Error re-raised in exception handling clauses to rewind call stack
+    due to the original error such as zero-division caused by
+    erroneous operations.
+    """
+    message_template = dedent("""\
+        Zero division occurred in {0}.
+        Call stack traceback:
+        {1}""")
+
+    def __init__(self, last_call, trace_msg):
+        msg = self.message_template.format(last_call, trace_msg)
+        RuntimeError.__init__(self, msg)
