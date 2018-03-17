@@ -1472,6 +1472,9 @@ class Space(SpaceContainer):
     def __delattr__(self, name):
         self._impl.del_attr(name)
 
+    def __dir__(self):
+        return self._impl.namespace
+
     # ----------------------------------------------------------------------
     # Manipulating subspaces
 

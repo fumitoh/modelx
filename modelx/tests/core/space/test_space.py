@@ -17,7 +17,14 @@ def testmodel():
         else:
             return foo(x - 1)
 
+    space.bar = 3
+
     return model
+
+def test_dir(testmodel):
+    print(dir(testmodel.testspace))
+    assert {'foo', 'bar', '_self',
+            'get_self', '__builtins__'} == set(dir(testmodel.testspace))
 
 def test_parent(testmodel):
     assert cur_space().parent == testmodel
