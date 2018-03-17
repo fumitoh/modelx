@@ -519,7 +519,7 @@ class SpaceMapProxy(BaseMapProxy):
     __repr__ = _map_repr
 
 
-class NamespaceMap(LazyEvalChainMap, ParentMixin):
+class SpaceNamespaceChainMap(LazyEvalChainMap, ParentMixin):
 
     def __init__(self, space, maps):
         self.namespace = {}
@@ -714,9 +714,9 @@ class SpaceImpl(SpaceContainerImpl):
         for observer in derived:
             self._self_members.append_observer(observer)
 
-        self._namespace_impl = NamespaceMap(self, [self._cells,
-                                                   self._spaces,
-                                                   self._refs])
+        self._namespace_impl = SpaceNamespaceChainMap(self, [self._cells,
+                                                             self._spaces,
+                                                             self._refs])
 
         # ------------------------------------------------------------------
         # Add initial refs members

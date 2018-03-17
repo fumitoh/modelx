@@ -13,6 +13,8 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import builtins
+from types import MappingProxyType
+from collections import OrderedDict
 from textwrap import dedent
 import pickle
 
@@ -20,8 +22,11 @@ import networkx as nx
 
 from modelx.core.base import (
     Impl,
+    get_interfaces,
     ImplDict,
     ProxyDict,
+    LazyEval,
+    ParentMixin,
     LazyEvalChainMap)
 from modelx.core.cells import CellArgs
 from modelx.core.space import (
@@ -72,6 +77,46 @@ class DependencyGraph(nx.DiGraph):
                 result.add(node)
         return result
 
+
+class ModelNamespaceChainMap(LazyEvalChainMap, ParentMixin):
+
+    def __init__(self, model, maps):
+        self._namespace = OrderedDict()
+        self.namespace = MappingProxyType(self._namespace)
+        ParentMixin.__init__(self, model)
+        LazyEvalChainMap.__init__(self, maps)
+
+    def _update_data(self):
+
+        for map_ in self.maps:
+            if isinstance(map_, LazyEval):
+                map_.get_updated()
+        self._namespace.clear()
+        self._namespace.update(get_interfaces(self.parent.spaces))
+        self._namespace.update(self.parent.global_refs)
+
+    def __getstate__(self):
+
+        state = super().__getstate__()
+        # state = self.__dict__.copy()
+        if '__builtins__' in state['_namespace']:
+            ns = state['_namespace'].copy()
+            ns['__builtins__'] = '__builtins__'
+            state['_namespace'] = ns
+
+        del state['namespace']
+
+        return state
+
+    def __setstate__(self, state):
+
+        if '__builtins__' in state['_namespace']:
+            state['_namespace']['__builtins__'] = builtins
+
+        super().__setstate__(state)
+        self.namespace = MappingProxyType(self._namespace)
+
+
 class ModelImpl(SpaceContainerImpl):
 
     def __init__(self, *, system, name):
@@ -92,7 +137,8 @@ class ModelImpl(SpaceContainerImpl):
         self._global_refs = ProxyDict(self,
             data={'__builtins__': builtins})
         self._spaces = ImplDict(self, SpaceMapProxy)
-        self._namespace = LazyEvalChainMap([self._spaces, self._global_refs])
+        self._namespace = ModelNamespaceChainMap(
+            self, [self._spaces, self._global_refs])
         self.allow_none = False
 
     def clear_descendants(self, source, clear_source=True):
@@ -165,6 +211,7 @@ class ModelImpl(SpaceContainerImpl):
 
     state_attrs = ['name',
                    'cellgraph',
+                   '_namespace',
                    '_global_refs'] + SpaceContainerImpl.state_attrs
 
     def __getstate__(self):
@@ -265,6 +312,9 @@ class Model(SpaceContainer):
 
     def __delattr__(self, name):
         self._impl.del_attr(name)
+
+    def __dir__(self):
+        return self._impl.namespace.namespace
 
     @property
     def cellgraph(self):

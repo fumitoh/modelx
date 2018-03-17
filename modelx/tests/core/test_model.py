@@ -18,6 +18,8 @@ def simplemodel():
         else:
             return fibo(x - 1) + fibo(x - 2)
 
+    model.bar = 3
+
     return model
 
 def test_parent(simplemodel):
@@ -26,6 +28,11 @@ def test_parent(simplemodel):
 def test_autoname_space(simplemodel):
     assert simplemodel.cur_space().name == 'Space1'
 
+def test_dir(simplemodel):
+    names = dir(simplemodel)
+    assert ('Space1' in names) \
+        and ('__builtins__' in names) \
+        and ('bar' in names)
 
 def test_new_space(simplemodel):
     space = simplemodel.new_space()
