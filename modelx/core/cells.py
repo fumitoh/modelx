@@ -250,8 +250,19 @@ class CellsImpl(Impl):
     def is_derived(self):
         return self.name in self.space.derived_cells
 
+    @property
+    def module_(self):
+        return self.formula.module_
+
     # ----------------------------------------------------------------------
     # Formula operations
+
+    def reload(self, module_=None):
+        oldsrc = self.formula.source
+        newsrc = self.formula._reload(module_).source
+        if oldsrc != newsrc:
+            self.model.clear_obj(self)
+            self.space.self_cells_set_update()
 
     def clear_formula(self):
         self.set_formula(NULL_FORMULA)

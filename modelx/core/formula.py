@@ -15,8 +15,9 @@
 import ast
 import os
 from types import FunctionType
-from inspect import signature, getsource
+from inspect import signature, getsource, getsourcefile
 
+from modelx.core.util import get_module
 
 def create_closure(new_value):
     # Used to prevent pytest from failing.
@@ -56,11 +57,56 @@ def _dummy_defcells(space=None, name=None):
         return _dummy_decorator
 
 
+class ModuleSource:
+    """A class to hold function objects defined in a module.
+
+    In Python, when a module is reloaded by ``importlib.reload`` function,
+    formula objects created from function definitions in that module
+    before reloading still remain accessible through their names in
+    the module's global namespace, unless the names are rebound
+    to renewed formula objects.
+
+    This class checks function objects in the global namespace of a module
+    against function definitions in the module by looking at the module's
+    source code, and filter out old functions and only hold new functions
+    in its ``funcs`` attribute.
+    """
+
+    def __init__(self, module_):
+        import types
+
+        self.name = module_.__name__
+        file = module_.__file__
+        with open(file, 'r') as srcfile:
+            self.source = srcfile.read()
+
+        codeobj = compile(self.source, file, mode='exec')
+        namespace = {}
+        eval(codeobj, namespace)
+
+        srcfuncs = {}
+        for name in namespace:
+            obj = namespace[name]
+            if isinstance(obj, types.FunctionType) \
+                    and getsourcefile(obj) == file:
+                srcfuncs[name] = obj
+
+        self.funcs = {}
+        for name in dir(module_):
+            obj = getattr(module_, name)
+            if isinstance(obj, types.FunctionType) \
+                    and obj.__module__ == self.name \
+                    and name in srcfuncs \
+                    and getsource(obj) == getsource(srcfuncs[name]):
+
+                self.funcs[name] = obj
+
+
 class Formula:
 
-    __slots__ = ('func', 'signature', 'source')
+    __slots__ = ('func', 'signature', 'source', 'module_')
 
-    def __init__(self, func):
+    def __init__(self, func, module_=None):
 
         if isinstance(func, Formula):
             self._copy_other(func)
@@ -75,13 +121,13 @@ class Formula:
 
         elif isinstance(func, str):
 
-            module_ = compile(func, '<string>', mode='exec',
-                              flags=ast.PyCF_ONLY_AST)
+            module_node = compile(func, '<string>', mode='exec',
+                                  flags=ast.PyCF_ONLY_AST)
 
-            if len(module_.body) == 1 and \
-                    isinstance(module_.body[0], ast.FunctionDef):
+            if len(module_node.body) == 1 and \
+                    isinstance(module_node.body[0], ast.FunctionDef):
 
-                funcdef = module_.body[0]
+                funcdef = module_node.body[0]
                 funcname = funcdef.name
                 namespace = {}
 
@@ -93,10 +139,10 @@ class Formula:
                 self.func = namespace[funcname]
                 self.signature = signature(self.func)
 
-            elif len(module_.body) == 1 and \
-                    isinstance(module_.body[0].value, ast.Lambda):
+            elif len(module_node.body) == 1 and \
+                    isinstance(module_node.body[0].value, ast.Lambda):
 
-                funcdef = module_.body[0].value
+                funcdef = module_node.body[0].value
                 namespace = {}
 
                 # Assign the lambda to a temporary name to extract its object.
@@ -116,6 +162,11 @@ class Formula:
         else:
             raise ValueError("Invalid argument func: %s" % func)
 
+        if module_ is not None:
+            self.module_ = module_
+        else:
+            self.module_ = self.func.__module__
+
     def _copy_other(self, other):
         for attr in self.__slots__:
             setattr(self, attr, getattr(other, attr))
@@ -130,10 +181,51 @@ class Formula:
 
     def __getstate__(self):
         """Specify members to pickle."""
-        return {'source': self.source}
+        return {'source': self.source,
+                'module_': self.module_}
 
     def __setstate__(self, state):
-        self.__init__(state['source'])
+        self.__init__(func=state['source'],
+                      module_=state['module_'])
+
+    def _reload(self, module_=None):
+        """Reload the source function from the source module.
+
+        **Internal use only**
+        Update the source function of the formula.
+        This method is used to updated the underlying formula
+        when the source code of the module in which the source function
+        is read from is modified.
+
+        If the formula was not created from a module, an error is raised.
+        If ``module_`` is not given, the source module of the formula is
+        reloaded. If ``module_`` is given and matches the source module,
+        then the module_ is used without being reloaded.
+        If ``module_`` is given and does not match the source module of
+        the formula, an error is raised.
+
+        Args:
+            module_: A ``ModuleSource`` object
+
+        Returns:
+            self
+        """
+        if self.module_ is None:
+            raise RuntimeError
+        elif module_ is None:
+            import importlib
+            module_ = ModuleSource(importlib.reload(module_))
+        elif module_.name != self.module_:
+            raise RuntimeError
+
+        if self.name in module_.funcs:
+            func = module_.funcs[self.name]
+            self.__init__(func=func)
+        else:
+            self.__init__(func=NULL_FORMULA)
+
+        return self
+
 
 NULL_FORMULA = Formula('lambda: None')
 

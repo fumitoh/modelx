@@ -13,9 +13,10 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import builtins
+import importlib
 from collections import Sequence
 from textwrap import dedent
-from types import FunctionType
+from types import FunctionType, ModuleType
 
 from modelx.core.base import (
     ObjectArgs,
@@ -33,7 +34,7 @@ from modelx.core.base import (
     ImplDict,
     ImplChainMap,
     BaseMapProxy)
-from modelx.core.formula import Formula, create_closure
+from modelx.core.formula import Formula, create_closure, ModuleSource
 from modelx.core.cells import Cells, CellsImpl, cells_to_argvals
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
@@ -65,8 +66,8 @@ class SpaceArgs(ObjectArgs):
 
 
 class ParamFunc(Formula):
-    def __init__(self, func):
-        Formula.__init__(self, func)
+    def __init__(self, func, module_=None):
+        Formula.__init__(self, func, module_)
 
 
 class SpaceContainerImpl(Impl):
@@ -124,7 +125,7 @@ class SpaceContainerImpl(Impl):
         return name in self.spaces
 
     def new_space(self, name=None, bases=None, formula=None,
-                  *, refs=None, arguments=None):
+                  *, refs=None, arguments=None, source=None):
         """Create a child space.
 
         Args:
@@ -135,7 +136,7 @@ class SpaceContainerImpl(Impl):
             formula: Function whose parameters used to set space parameters.
             refs: a mapping of refs to be added.
             arguments: ordered dict of space parameter names to their values.
-
+            source: A source module from which cell definitions are read.
         """
 
         if name is None:
@@ -148,7 +149,8 @@ class SpaceContainerImpl(Impl):
             raise ValueError("Invalid name '%s'." % name)
 
         space = SpaceImpl(parent=self, name=name, bases=bases,
-                          formula=formula, refs=refs, arguments=arguments)
+                          formula=formula, refs=refs, arguments=arguments,
+                          source=source)
 
         self._set_space(space)
         return space
@@ -166,7 +168,7 @@ class SpaceContainerImpl(Impl):
 
     def new_space_from_module(self, module_, recursive=False, **params):
 
-        module_ = get_module(module_)
+        params['source'] = module_ = get_module(module_)
 
         if 'name' not in params or params['name'] is None:
             # xxx.yyy.zzz -> zzz
@@ -630,7 +632,7 @@ class SpaceImpl(SpaceContainerImpl):
         _namespace (dict)
     """
     def __init__(self, parent, name, bases, formula,
-                 refs=None, arguments=None):
+                 refs=None, arguments=None, source=None):
 
         SpaceContainerImpl.__init__(self, parent.system, if_class=Space)
 
@@ -650,6 +652,11 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             self.is_dynamic = True
             self._arguments = LazyEvalDict(arguments)
+
+        if isinstance(source, ModuleType):
+            self.source = source.__name__
+        else:
+            self.source = None
 
         self._bind_args(arguments)
 
@@ -750,7 +757,8 @@ class SpaceImpl(SpaceContainerImpl):
         'formula',
         'cellsnamer',
         'name',
-        'allow_none'] + SpaceContainerImpl.state_attrs
+        'allow_none',
+        'source'] + SpaceContainerImpl.state_attrs
 
     def _bind_args(self, args):
 
@@ -1183,7 +1191,7 @@ class SpaceImpl(SpaceContainerImpl):
         else:
             raise ValueError("formula already assigned.")
 
-    # --- Cells creation -------------------------------------
+    # --- Cells creation and update -------------------------------------
 
     def set_cells(self, name, cells):
         self._self_cells.set_item(name, cells, True)
@@ -1204,10 +1212,33 @@ class SpaceImpl(SpaceContainerImpl):
             if isinstance(func, FunctionType):
                 # Choose only the functions defined in the module.
                 if func.__module__ == module_.__name__:
-                    newcells[name] = \
-                        self.new_cells(name, func)
+                    newcells[name] = self.new_cells(name, func)
 
         return newcells
+
+    def reload(self):
+        if self.source is None:
+            return
+
+        module_ = importlib.reload(get_module(self.source))
+        modsrc = ModuleSource(module_)
+        funcs = modsrc.funcs
+        newfuncs = set(funcs)
+        oldfuncs = {cells.formula.name for cells in self.self_cells.values()
+                    if cells.formula.module_ == module_.__name__}
+
+        cells_to_add = newfuncs - oldfuncs
+        cells_to_clear = oldfuncs - newfuncs
+        cells_to_update = oldfuncs & newfuncs
+
+        for name in cells_to_clear:
+            self.self_cells[name].reload(module_=modsrc)
+
+        for name in cells_to_add:
+            self.new_cells(name=name, formula=funcs[name])
+
+        for name in cells_to_update:
+            self.self_cells[name].reload(module_=modsrc)
 
     def new_cells_from_excel(self, book, range_, sheet=None,
                              names_row=None, param_cols=None,
@@ -1350,6 +1381,31 @@ class Space(SpaceContainer):
 
         newcells = self._impl.new_cells_from_module(module_)
         return get_interfaces(newcells)
+
+    def reload(self):
+        """Reload the source module and update formulas of the space's cells.
+
+        If the space was created from a module, reload the module and
+        update the formulas of its cells.
+
+        If a cell in the space is not created from a function definition
+        in the source module of the space, it is not updated.
+
+        If the formula of a cell in the space was created from a function
+        definition in the source module of the space and the definition is
+        missing from the updated module, the formula is cleared and
+        values calculated directly or indirectly depending the cells
+        are cleared.
+
+        If the formula of a cell in the space has not been changed
+        before and after reloading the source module, the values held
+        in the cell and relevant cells are retained.
+
+        Returns:
+            This method returns the space itself.
+        """
+        self._impl.reload()
+        return self
 
     def new_cells_from_excel(self, book, range_, sheet=None,
                                 names_row=None, param_cols=None,
