@@ -73,7 +73,6 @@ class ModuleSource:
     """
 
     def __init__(self, module_):
-        import types
 
         self.name = module_.__name__
         file = module_.__file__
@@ -87,14 +86,14 @@ class ModuleSource:
         srcfuncs = {}
         for name in namespace:
             obj = namespace[name]
-            if isinstance(obj, types.FunctionType) \
+            if isinstance(obj, FunctionType) \
                     and getsourcefile(obj) == file:
                 srcfuncs[name] = obj
 
         self.funcs = {}
-        for name in dir(module_):
+        for name in module_.__dict__:
             obj = getattr(module_, name)
-            if isinstance(obj, types.FunctionType) \
+            if isinstance(obj, FunctionType) \
                     and obj.__module__ == self.name \
                     and name in srcfuncs \
                     and getsource(obj) == getsource(srcfuncs[name]):
