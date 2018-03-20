@@ -12,8 +12,9 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import pickle
-from collections import deque
+from collections import deque, namedtuple
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer
 from modelx.core.errors import DeepReferenceError
@@ -52,11 +53,36 @@ class CallStack(deque):
 class System:
 
     def __init__(self, max_depth=1000):
+        self.orig_settings = {}
+        self.configure_python()
         self.callstack = CallStack(self, max_depth)
         self._modelnamer = AutoNamer("Model")
         self._currentmodel = None
         self._models = {}
         self.self = None
+
+    def configure_python(self):
+        """Configure Python settings for modelx"""
+        orig = self.orig_settings
+
+        orig['sys.recursionlimit'] = sys.getrecursionlimit()
+        sys.setrecursionlimit(10000)
+
+        if hasattr(sys, 'tracebacklimit'):
+            orig['sys.tracebacklimit'] = sys.tracebacklimit
+        sys.tracebacklimit = 0
+
+    def restore_python(self):
+        """Restore Python settings to the original states"""
+        orig = self.orig_settings
+        sys.setrecursionlimit(orig['sys.recursionlimit'])
+
+        if 'sys.tracebacklimit' in orig:
+            sys.tracebacklimit = orig['sys.tracebacklimit']
+        else:
+            del sys.tracebacklimit
+        orig.clear()
+
 
     def new_model(self, name=None):
         self._currentmodel = ModelImpl(system=self, name=name)

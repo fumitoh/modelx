@@ -33,6 +33,22 @@ from modelx.core.space import Space as _Space
 from modelx.core.base import get_interfaces as _get_interfaces
 
 
+def configure_python():
+    """Configure Python ``sys`` settings for modelx.
+
+    This function is called implicitly when importing modelx.
+    To restore the Python settings, call :py:func:``restore_python``
+    """
+    _system.configure_python()
+
+def restore_python():
+    """Restore Python ``sys`` settings for modelx.
+
+    Restore ``sys`` settings to the original states before
+    importing ``modelx``.
+    """
+    _system.restore_python()
+
 def new_model(name=None):
     """Create and return a new model.
 

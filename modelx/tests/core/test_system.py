@@ -72,3 +72,21 @@ def test_deep_reference_error():
 
     system.callstack.max_depth = last_max_depth
     assert errinfo.value.args[0] == errmsg
+
+
+def test_configure_python():
+    import sys
+
+    assert sys.getrecursionlimit() == 10000
+    assert sys.tracebacklimit == 0
+
+
+def test_restore_python():
+    import sys
+
+    restore_python()
+
+    assert sys.getrecursionlimit() == 1000
+    assert not hasattr(sys, 'tracebacklimit')
+
+    configure_python()
