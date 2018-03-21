@@ -4,8 +4,20 @@
 What's New
 ==========
 
-Change Log
-==========
+modelx is in its early alpha-release stage, and its specifications are
+subject to changes without consideration on backward compatibility.
+The source files of you models may need be modified manually,
+if there are updates that break backward compatibility in newer versions
+of modelx.
+
+Likewise, model files saved with one version may not load with a newer version.
+When updating modelx to a newer version,
+make sure you rebuild model files saved using older versions of modelx
+from their source code.
+
+
+Releases
+========
 
 v0.0.8.dev (XX March 2018)
 --------------------------

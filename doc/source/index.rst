@@ -10,11 +10,11 @@ Welcome to modelx's documentation!
    :maxdepth: 2
    :caption: Contents
 
+   whatsnew
    overview
    installation
    tutorial
    reference/index
-   whats-new
 
 * :ref:`genindex`
 * :ref:`search`
