@@ -242,10 +242,15 @@ class SpaceContainerImpl(Impl):
 class SpaceContainer(Interface):
     """A common base class shared by Model and Space.
 
-    A base class for implementing (sub)space containment.
+    This base class defines methods to serve as child space container,
+    which are common between Model and Space.
+    The methods defined in this class are available both in
+    :py:class:`Model <modelx.core.model.Model>` and
+    :py:class:`Space <modelx.core.space.Space>`.
+
     """
     def new_space(self, name=None, bases=None, formula=None, refs=None):
-        """Create a (sub)space.
+        """Create a child space.
 
         Args:
             name (str, optional): Name of the space. Defaults to ``SpaceN``,
@@ -253,14 +258,14 @@ class SpaceContainer(Interface):
             bases (optional): A space or a sequence of spaces to be the base
                 space(s) of the created space.
             formula (optional): Function to specify the parameters of
-                dynamic (sub)spaces. The signature of this function is used
-                for setting parameters for dynamic (sub)spaces.
+                dynamic child spaces. The signature of this function is used
+                for setting parameters for dynamic child spaces.
                 This function should return a mapping of keyword arguments
-                to be passed to this method when the dynamic (sub)spaces
+                to be passed to this method when the dynamic child spaces
                 are created.
 
         Returns:
-            The new (sub)space.
+            The new child space.
         """
         space = self._impl.model.currentspace \
             = self._impl.new_space(name=name, bases=get_impls(bases),
@@ -269,7 +274,7 @@ class SpaceContainer(Interface):
         return space.interface
 
     def new_space_from_module(self, module_, recursive=False, **params):
-        """Create a (sub)space from an module.
+        """Create a child space from an module.
 
         Args:
             module_: a module object or name of the module object.
@@ -277,7 +282,7 @@ class SpaceContainer(Interface):
             **params: arguments to pass to ``new_space``
 
         Returns:
-            The new (sub)space created from the module.
+            The new child space created from the module.
         """
 
         space = self._impl.model.currentspace \
@@ -294,7 +299,7 @@ class SpaceContainer(Interface):
                                 cells_param_order=None,
                                 transpose=False,
                                 names_col=None, param_rows=None):
-        """Create a (sub)space from an Excel range.
+        """Create a child space from an Excel range.
 
         To use this method, ``openpyxl`` package must be installed.
 
@@ -336,7 +341,7 @@ class SpaceContainer(Interface):
                 ``cell_space_order`` must not overlap.
 
         Returns:
-            The new (sub)space created from the Excel range.
+            The new child space created from the Excel range.
         """
 
         space = self._impl.new_space_from_excel(
@@ -351,7 +356,7 @@ class SpaceContainer(Interface):
 
     @property
     def spaces(self):
-        """A mapping of the names of (sub)spaces to the Space objects"""
+        """A mapping of the names of child spaces to the Space objects"""
         return self._impl.spaces.interfaces
 
     # ----------------------------------------------------------------------
@@ -1314,7 +1319,11 @@ class SpaceImpl(SpaceContainerImpl):
 
 
 class Space(SpaceContainer):
-    """Container for cells and other objects referred in formulas.
+    """Container of cells, other spaces, and cells namespace.
+
+    Space objects can contain cells and other spaces.
+    Spaces have mappings of names to objects that serve as global namespaces
+    of the formulas of the cells in the spaces.
     """
 
     # ----------------------------------------------------------------------
@@ -1383,7 +1392,7 @@ class Space(SpaceContainer):
         return get_interfaces(newcells)
 
     def reload(self):
-        """Reload the source module and update formulas of the space's cells.
+        """Reload the source module and update the formulas.
 
         If the space was created from a module, reload the module and
         update the formulas of its cells.

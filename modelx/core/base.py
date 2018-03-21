@@ -234,9 +234,8 @@ class NullImpl(Impl):
 class Interface:
     """The ultimate base class of Model, Space, Cells.
 
-    The subclasses of Interface have only one member, ``_impl``,
-    which is their implementation objects.
-
+    All the properties defined in this class are available in Model,
+    Space and Cells objects.
     """
 
     properties = ['allow_none']
@@ -255,17 +254,28 @@ class Interface:
 
     @property
     def name(self):
-        """Name of the interface."""
+        """Name of the object."""
         return self._impl.name
 
     @property
     def fullname(self):
-        """Dotted name of the interface."""
+        """Dotted name of the object.
+
+        Names joined by dots, such as 'Model1.Space1.Cells1',
+        each element in the string is the name of the parent object
+        of the next one joined by a dot.
+        """
         return self._impl.fullname
 
     @property
     def parent(self):
-        """Return the containing object. ``None`` for models."""
+        """The parent of this object. None for models.
+
+        The parent object of a cells is a space that contains the cells.
+        The parent object of a space is either a model or another space
+        that contains the space.
+        """
+
         if self._impl.parent is None:
             return None
         else:
@@ -289,10 +299,11 @@ class Interface:
         """Whether a cells can have None as its value.
 
         This is a property of Model, Space and Cells.
-        If ``allow_none`` of a cells is False, the cells cannot have Nones
-        as its values. Assigning None to the cells
+        If ``allow_none`` of a cells is False,
+        the cells cannot have None as its value.
+        Assigning None to the cells
         or its formula returning None raises an Error.
-        If True, the cells can have Nones as their values.
+        If True, the cells can have None as their value.
         If set to None, ``allow_none`` of its parent is looked up,
         and the search continues until True or False is found.
 

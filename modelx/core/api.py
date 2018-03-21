@@ -14,7 +14,7 @@
 
 """modelx API functions.
 
-Functions listed here are directly available in ``modelx`` package,
+Functions listed here are available directly in ``modelx`` module,
 either by::
 
     import modelx as mx
@@ -37,7 +37,7 @@ def configure_python():
     """Configure Python ``sys`` settings for modelx.
 
     This function is called implicitly when importing modelx.
-    To restore the Python settings, call :py:func:``restore_python``
+    To restore the Python settings, call :py:func:`restore_python`
     """
     _system.configure_python()
 
@@ -45,7 +45,7 @@ def restore_python():
     """Restore Python ``sys`` settings for modelx.
 
     Restore ``sys`` settings to the original states before
-    importing ``modelx``.
+    importing modelx.
     """
     _system.restore_python()
 
@@ -86,11 +86,12 @@ def defcells(space=None, name=None, *funcs):
 
     Convenience decorator/function to create new cells directly from function
     definitions or function objects substituting for calling
-    ``new_cells`` method of the parent space.
+    :py:meth:`new_cells <modelx.core.space.Space.new_cells>`
+    method of the parent space.
 
     There are 3 ways to use ``defcells`` to define cells from functions.
 
-    **#1. As a decorator without arguments**
+    **1. As a decorator without arguments**
 
     To create a cells from a function definition in the current space of the
     current model with the same name as the function's::
@@ -99,7 +100,7 @@ def defcells(space=None, name=None, *funcs):
         def foo(x):
             return x
 
-    **#2. As a decorator with arguments**
+    **2. As a decorator with arguments**
 
     To create a cells from a function definition in a given space and/or with
     a given name::
@@ -108,7 +109,7 @@ def defcells(space=None, name=None, *funcs):
         def foo(x):
             return x
 
-    **#3. As a function**
+    **3. As a function**
 
     To create a multiple cells from a multiple function definitions::
 

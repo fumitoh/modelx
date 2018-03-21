@@ -284,10 +284,15 @@ class ModelImpl(SpaceContainerImpl):
 
 
 class Model(SpaceContainer):
-    """Unit of work that contains spaces.
+    """Top-level container in modelx object hierarchy.
 
-    A model is a unit of work. It can be saved to a file and loaded again.
-    A model contains spaces.
+    Model instances are the top-level objects and directly contain
+    :py:class:`Space <modelx.core.space.Space>` objects, which in turn
+    contain other spaces or
+    :py:class:`Cells <modelx.core.cells.Cells>` objects.
+
+    A model can be created by
+    :py:func:`new_model <modelx.core.model.Model>` API function.
     """
 
     def save(self, filepath):
