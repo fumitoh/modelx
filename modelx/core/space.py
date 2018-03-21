@@ -1199,7 +1199,7 @@ class SpaceImpl(SpaceContainerImpl):
     # --- Cells creation and update -------------------------------------
 
     def set_cells(self, name, cells):
-        self._self_cells.set_item(name, cells, True)
+        self._self_cells.set_item(name, cells)
 
     def new_cells(self, name=None, formula=None):
         cells = CellsImpl(space=self, name=name, formula=formula)
