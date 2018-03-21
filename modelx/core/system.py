@@ -70,7 +70,8 @@ class System:
 
         if hasattr(sys, 'tracebacklimit'):
             orig['sys.tracebacklimit'] = sys.tracebacklimit
-        sys.tracebacklimit = 0
+        if False:   # Print traceback for the time being
+            sys.tracebacklimit = 0
 
     def restore_python(self):
         """Restore Python settings to the original states"""
@@ -80,7 +81,8 @@ class System:
         if 'sys.tracebacklimit' in orig:
             sys.tracebacklimit = orig['sys.tracebacklimit']
         else:
-            del sys.tracebacklimit
+            if hasattr(sys, 'tracebacklimit'):
+                del sys.tracebacklimit
         orig.clear()
 
 
