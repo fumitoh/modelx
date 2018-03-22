@@ -34,12 +34,12 @@ def test_space_reload(reloadtest):
     src = importlib.import_module(samplename)
 
     space = model.new_space_from_module(module_=src)
-    check = space.foo(3) == 0
-    check = check and 'baz' in space.cells
+    assert space.foo(3) == 0
+    assert 'baz' in space.cells
 
     shutil.copy(sample_after, sample)
     space.reload()
 
-    check = check and (space.foo(3) == 1)
-    check = check and (space.bar(3) == 1)
-    assert check and (len(space.baz) == 0)
+    assert (space.foo(3) == 1)
+    assert (space.bar(3) == 1)
+    assert (len(space.baz) == 0)

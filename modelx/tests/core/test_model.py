@@ -30,9 +30,9 @@ def test_autoname_space(simplemodel):
 
 def test_dir(simplemodel):
     names = dir(simplemodel)
-    assert ('Space1' in names) \
-        and ('__builtins__' in names) \
-        and ('bar' in names)
+    assert 'Space1' in names
+    assert '__builtins__' in names
+    assert 'bar' in names
 
 def test_new_space(simplemodel):
     space = simplemodel.new_space()
@@ -78,16 +78,14 @@ def test_cellgraph(simplemodel):
         predec = simplemodel._impl.cellgraph.predecessors(fibo)
         succ = simplemodel._impl.cellgraph.successors(fibo)
 
-        check = True
         if x == 0 or x == 1:
-            check = check and (list(predec) == [] and
-                               fibo_next2 in succ)
+            assert list(predec) == []
+            assert fibo_next2 in succ
         elif x < 9:
-            check = check and (fibo_prev1 in predec and
-                               fibo_prev2 in predec and
-                               fibo_next1 in succ and
-                               fibo_next2 in succ)
-        assert check
+            assert fibo_prev1 in predec
+            assert fibo_prev2 in predec
+            assert fibo_next1 in succ
+            assert fibo_next2 in succ
 
 
 def test_cellgraph_standalone():

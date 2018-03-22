@@ -33,31 +33,24 @@ def test_delattr_space_in_model():
 
     model = create_testmodel()
 
-    check_before = 'base' in model.spaces
+    assert 'base' in model.spaces
     del model.base
-    check_after = 'base' not in model.spaces
-
-    assert check_before and check_after
+    assert 'base' not in model.spaces
 
 
 def test_delitem_space_in_model():
 
     model = create_testmodel()
-
-    check_before = 'base' in model.spaces
+    assert 'base' in model.spaces
     del model.spaces['base']
-    check_after = 'base' not in model.spaces
-
+    assert 'base' not in model.spaces
 
 def test_new_cells_in_nestedspace():
     """Test creation of cells in derived nested spaces."""
 
     model = create_testmodel()
-    check = 'fibo' in model.derived.subspace.cells
-    check = check and 'fibo' in model.derived.subspace.nestedsub.cells
-
-    assert check
-
+    assert 'fibo' in model.derived.subspace.cells
+    assert 'fibo' in model.derived.subspace.nestedsub.cells
 
 def test_del_cells_in_nestedspace():
     """Test deletion of cells in derived nested spaces."""
@@ -66,9 +59,8 @@ def test_del_cells_in_nestedspace():
     del model.base.subspace.fibo
     del model.base.subspace.nestedsub.fibo
 
-    check = 'fibo' not in model.derived.subspace
-    check = check and 'fibo' not in model.derived.subspace.nestedsub
-    assert check
+    assert 'fibo' not in model.derived.subspace
+    assert 'fibo' not in model.derived.subspace.nestedsub
 
 def test_new_space_in_nestedspace():
     """Test creation of spaces in derived nested space."""
@@ -98,9 +90,8 @@ def test_delattr_space_in_nestedspace():
 
     model = create_testmodel()
     del model.base.subspace.nestedsub
-    check = 'nestedsub' not in model.base.subspace.spaces
-    check = check and 'nestedsub' not in model.derived.subspace.spaces
-    assert check
+    assert 'nestedsub' not in model.base.subspace.spaces
+    assert 'nestedsub' not in model.derived.subspace.spaces
 
 
 def test_delitem_space_in_nestedspace():
@@ -108,9 +99,8 @@ def test_delitem_space_in_nestedspace():
 
     model = create_testmodel()
     del model.base.subspace.spaces['nestedsub']
-    check = 'nestedsub' not in model.base.subspace.spaces
-    check = check and 'nestedsub' not in model.derived.subspace.spaces
-    assert check
+    assert 'nestedsub' not in model.base.subspace.spaces
+    assert 'nestedsub' not in model.derived.subspace.spaces
 
 
 def test_override_cells():

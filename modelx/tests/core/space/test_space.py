@@ -22,7 +22,6 @@ def testmodel():
     return model
 
 def test_dir(testmodel):
-    print(dir(testmodel.testspace))
     assert {'foo', 'bar', '_self',
             'get_self', '__builtins__'} == set(dir(testmodel.testspace))
 
@@ -73,7 +72,8 @@ def test_derived_spaces(testmodel):
 
     space_b.cells_a[0] = 2
 
-    assert space_a.cells_a[2] == 1 and space_b.cells_a(2) == 2
+    assert space_a.cells_a[2] == 1
+    assert space_b.cells_a(2) == 2
 
 
 def test_formula(testmodel):
@@ -100,8 +100,8 @@ def test_dynamic_spaces(testmodel):
     def foo(x):
         return x * n
 
-    assert space[1].foo(2) == 2 \
-        and space[2].foo(4) == 8
+    assert space[1].foo(2) == 2
+    assert space[2].foo(4) == 8
 
 
 def test_new_cells_refs(testmodel):
@@ -132,13 +132,11 @@ def test_setref_derived(testmodel):
     def foo():
         return x
 
-    check = True
     base.x = 3
-    check = check and derived.foo == 3
+    assert derived.foo == 3
     derived.x = 5
-    check = check and base.foo == 3
-    check = check and derived.foo == 5
-    assert check
+    assert base.foo == 3
+    assert derived.foo == 5
 
 
 def test_del_cells(testmodel):

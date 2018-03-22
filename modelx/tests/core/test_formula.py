@@ -8,7 +8,7 @@ funcdef = """def foo(x):
 
 def test_init_from_str():
     f = Formula(funcdef)
-    assert (f.name == 'foo' and
-            f.func(1) == 2 and
-            f.source == funcdef)
+    assert f.name == 'foo'
+    assert f.func(1) == 2
+    assert f.source == funcdef
 

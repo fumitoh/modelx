@@ -274,10 +274,9 @@ def test_single_value(sample_space):
 def test_parameters(sample_space):
 
     space = sample_space
-    check = space.fibo.parameters == ('x',)
-    check = check and space.single_value.parameters == ()
-    check = check and space.matchtest.parameters == ('x', 'y', 'z')
-    assert check
+    assert space.fibo.parameters == ('x',)
+    assert space.single_value.parameters == ()
+    assert space.matchtest.parameters == ('x', 'y', 'z')
 
 # --------------------------------------------------------------------------
 # Test value property
@@ -378,37 +377,28 @@ def testcomp():
     return space
 
 def test_lt(testcomp):
+    assert testcomp.bar < testcomp.baz
+    assert not testcomp.baz < testcomp.bar
+    assert 3 < testcomp.baz
+    assert testcomp.bar < 4
 
-    check = True
-    check = check and testcomp.bar < testcomp.baz
-    check = check and not testcomp.baz < testcomp.bar
-    check = check and 3 < testcomp.baz
-    check = check and testcomp.bar < 4
-    assert check
 
 def test_le(testcomp):
-
-    check = True
-    check = check and testcomp.bar <= testcomp.baz
-    check = check and not testcomp.baz <= testcomp.bar
-    check = check and 3 <= testcomp.baz
-    check = check and testcomp.bar <= 4
-    assert check
+    assert testcomp.bar <= testcomp.baz
+    assert not testcomp.baz <= testcomp.bar
+    assert 3 <= testcomp.baz
+    assert testcomp.bar <= 4
 
 def test_gt(testcomp):
+    assert not testcomp.bar > testcomp.baz
+    assert testcomp.baz > testcomp.bar
+    assert not 3 > testcomp.baz
+    assert not testcomp.bar > 4
 
-    check = True
-    check = check and not testcomp.bar > testcomp.baz
-    check = check and testcomp.baz > testcomp.bar
-    check = check and not 3 > testcomp.baz
-    check = check and not testcomp.bar > 4
-    assert check
 
 def test_ge(testcomp):
+    assert not testcomp.bar >= testcomp.baz
+    assert testcomp.baz >= testcomp.bar
+    assert not 3 >= testcomp.baz
+    assert not testcomp.bar >= 4
 
-    check = True
-    check = check and not testcomp.bar >= testcomp.baz
-    check = check and testcomp.baz >= testcomp.bar
-    check = check and not 3 >= testcomp.baz
-    check = check and not testcomp.bar >= 4
-    assert check

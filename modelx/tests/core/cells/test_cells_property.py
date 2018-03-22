@@ -26,7 +26,6 @@ def test_with_sapce_allow_none_true(model_param,
         assert cells[1] is None
     else:
         cells[0] = None # Check no error is raised
-        assert True
 
 
 paramx = [[False, False, False],

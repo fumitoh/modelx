@@ -58,16 +58,12 @@ def test_formula(samplemodel):
 
     space.new_cells(formula=funcx)
     space.new_cells(formula=funcn)
-
     space.data = data
 
-    check = True
     for idx, x, n in data:
-        check = check and space[idx].name == 'TestSpace' + str(idx)
-        check = check and space[idx].x == x
-        check = check and space[idx].n == n
-
-    assert check
+        assert space[idx].name == 'TestSpace' + str(idx)
+        assert space[idx].x == x
+        assert space[idx].n == n
 
 
 def test_parameters(samplemodel):

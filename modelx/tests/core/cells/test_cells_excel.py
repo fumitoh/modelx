@@ -28,16 +28,11 @@ def test_new_cells_from_excel(testmodel, range_, orientation):
                                   param_order=[0],
                                   transpose=orientation)
 
-    check = True
     for cells, offset in zip(['Cells1', 'Cells2'], [1000, 2000]):
-
-        check = check and \
-                list(space.cells[cells]._impl.parameters.keys()) == ['Param']
-
+        assert list(space.cells[cells]._impl.parameters.keys()) == ['Param']
         for param in range(16):
-            check = check and space.cells[cells](param) == offset + param
+            assert space.cells[cells](param) == offset + param
 
-    assert check
 
 
 @pytest.mark.parametrize("range_, orientation", [
@@ -54,17 +49,14 @@ def test_new_cells_from_excel_multparams(testmodel, range_, orientation):
                                   param_order=[0, 1],
                                   transpose=orientation)
 
-    check = True
+
     for cells, offset in zip(['Cells1', 'Cells2'], [1000, 2000]):
 
-        check = check and \
-                list(space.cells[cells]._impl.parameters.keys()) == ['Param1',
+        assert list(space.cells[cells]._impl.parameters.keys()) == ['Param1',
                                                                      'Param2']
         for param in range(16):
-            check = check and \
-                    space.cells[cells](param, param + 100) == offset + param
+            assert space.cells[cells](param, param + 100) == offset + param
 
-    assert check
 
 
 @pytest.mark.parametrize("range_, orientation", [
@@ -82,18 +74,14 @@ def test_new_cells_from_excel_extparams(testmodel, range_, orientation):
                                   param_order=[1, 0],
                                   transpose=orientation)
 
-    check = True
-    for cells, offset in zip(['Cells1', 'Cells2'], [1000, 2000]):
-        check = check and \
-                list(space.cells[cells]._impl.parameters.keys()) == ['Sex',
-                                                                     'Param']
-        for param in range(16):
-            check = check and \
-                space.cells[cells]('M', param) == offset + param
-            check = check and \
-                space.cells[cells]('F', param) == offset + param + 1000
 
-    assert check
+    for cells, offset in zip(['Cells1', 'Cells2'], [1000, 2000]):
+        assert list(space.cells[cells]._impl.parameters.keys()) == ['Sex',
+                                                                    'Param']
+        for param in range(16):
+            assert space.cells[cells]('M', param) == offset + param
+            assert space.cells[cells]('F', param) == offset + param + 1000
+
 
 
 @pytest.mark.parametrize("range_, orientation", [
@@ -111,20 +99,17 @@ def test_new_cells_from_excel_multextparams(testmodel, range_, orientation):
                                   param_order=[1, 2, 0],
                                   transpose=orientation)
 
-    check = True
     for cells, offset1 in zip(['Cells1', 'Cells2'], [1000, 2000]):
-        check = check and \
-                list(space.cells[cells]._impl.parameters.keys()) == ['Product',
-                                                                     'Sex',
-                                                                     'Year']
+
+        assert list(space.cells[cells]._impl.parameters.keys()) == ['Product',
+                                                                    'Sex',
+                                                                    'Year']
         for product, offset2 in zip(['A', 'B'], [0, 1000]):
             for sex, offset3 in zip(['M', 'F'], [0, 1000]):
                 for year in range(10):
-                    check = check and \
-                        space.cells[cells](product, sex, year) \
+                    assert space.cells[cells](product, sex, year) \
                         == year + offset1 + offset2 + offset3
 
-    assert check
 
 
 @pytest.mark.parametrize("range_, transpose", [
@@ -142,11 +127,8 @@ def test_new_cells_from_excel_const(testmodel, range_, transpose):
         param_order=[],
         transpose=transpose)
 
-    check = True
     for cells, value in zip(['Cells1', 'Cells2'], [1, 2]):
-        check = check and space.cells[cells]() == value
-
-    assert check
+        assert space.cells[cells]() == value
 
 
 @pytest.mark.parametrize("range_, transpose", [
@@ -165,14 +147,10 @@ def test_new_cells_from_excel_empty_prams(testmodel, range_, transpose):
         transpose=transpose
     )
 
-    check = True
     for cells, offset in zip(['Cells1', 'Cells2'], [0, 1]):
-        check = check and \
-            space.cells[cells]() == 0 + offset and \
-            space.cells[cells](1) == 1 + offset and \
-            space.cells[cells](None, 2) == 2 + offset
-
-    assert check
+        assert space.cells[cells]() == 0 + offset
+        assert space.cells[cells](1) == 1 + offset
+        assert space.cells[cells](None, 2) == 2 + offset
 
 
 # -- SpaceContainer --
@@ -193,24 +171,19 @@ def test_new_space_from_excel(testmodel, range_, transpose):
         cells_param_order=[2, 0],
         transpose=transpose)
 
-    check = True
     for product, offset1 in zip(['A', 'B'], [0, 1000]):
 
         subspace = space[product]
-        check = check and subspace.Product == product
+        assert subspace.Product == product
 
         for cells, offset2 in zip(['Cells1', 'Cells2'], [1000, 2000]):
-
-            check = check and \
-                    list(subspace.cells[cells]._impl.parameters.keys()) \
+            assert list(subspace.cells[cells]._impl.parameters.keys()) \
                     == ['Sex', 'Year']
 
             for sex, offset3 in zip(['M', 'F'], [0, 1000]):
                 for year in range(10):
-                    check = check and \
-                        subspace.cells[cells](sex, year) \
-                        == year + offset1 + offset2 + offset3
-    assert check
+                    assert subspace.cells[cells](sex, year) \
+                            == year + offset1 + offset2 + offset3
 
 
 @pytest.mark.parametrize("range_, transpose", [
@@ -228,10 +201,7 @@ def test_new_space_from_excel_const(testmodel, range_, transpose):
         cells_param_order=[],
         transpose=transpose)
 
-    check = True
     for product, offset in zip(['A', 'B'], [0, 1]):
         for cells, value in zip(['Cells1', 'Cells2'], [1, 2]):
-            check = check and \
-                space[product].cells[cells]() == value + offset
+            assert space[product].cells[cells]() == value + offset
 
-    assert check
