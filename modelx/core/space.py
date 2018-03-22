@@ -385,7 +385,7 @@ class BaseDict(LazyEvalDict):
         LazyEvalDict.__init__(self, {}, observer)
 
         self.space = derived.parent
-        for base in self.space.mro[1:]:
+        for base in self.space.mro:
             base._self_members.append_observer(self)
 
         self.get_updated()

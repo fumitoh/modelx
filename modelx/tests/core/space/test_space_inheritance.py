@@ -111,3 +111,22 @@ def test_delitem_space_in_nestedspace():
     check = 'nestedsub' not in model.base.subspace.spaces
     check = check and 'nestedsub' not in model.derived.subspace.spaces
     assert check
+
+
+def test_override_cells():
+    """Test overriding a cells in derived space."""
+
+    model = create_testmodel()
+    assert 'fibo' in model.derived.subspace.derived_cells
+
+    def fibo_new(x):
+        if x == 0 or x == 1:
+            return x + 1
+        else:
+            return fibo(x - 1) + fibo(x - 2)
+
+    cells = model.derived.subspace.new_cells(name='fibo', formula=fibo_new)
+
+    assert 'fibo' not in model.derived.subspace.derived_cells
+    assert model.derived.subspace.self_cells['fibo'] is cells
+    assert cells(2) == 3
