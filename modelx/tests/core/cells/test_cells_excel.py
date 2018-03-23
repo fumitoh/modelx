@@ -173,16 +173,16 @@ def test_new_space_from_excel(testmodel, range_, transpose):
 
     for product, offset1 in zip(['A', 'B'], [0, 1000]):
 
-        subspace = space[product]
-        assert subspace.Product == product
+        child = space[product]
+        assert child.Product == product
 
         for cells, offset2 in zip(['Cells1', 'Cells2'], [1000, 2000]):
-            assert list(subspace.cells[cells]._impl.parameters.keys()) \
+            assert list(child.cells[cells]._impl.parameters.keys()) \
                     == ['Sex', 'Year']
 
             for sex, offset3 in zip(['M', 'F'], [0, 1000]):
                 for year in range(10):
-                    assert subspace.cells[cells](sex, year) \
+                    assert child.cells[cells](sex, year) \
                             == year + offset1 + offset2 + offset3
 
 

@@ -9,7 +9,7 @@ def samplemodel():
 
     #       samplemodel------------+
     #        |                     |
-    # base_space<--base_space2    base_space2<--derived_space2
+    # base_space->derived_space2  base_space2->derived_space2
     #        |                     |
     #       foo                   bar
 
@@ -79,17 +79,8 @@ def test_new_space_from_module_by_name(samplemodel):
 
 
 def test_create_sapce_recursive(samplemodel):
-
-    space = samplemodel.new_space_from_module(testpkg.__name__,
-                                                 recursive=True)
-    errors = []
-    if not space.pkgfibo(10) == 55:
-        errors.append("error with pkgfibo")
-
-    if not space.testmod.modfibo(10) == 55:
-        errors.append("error with testmod.modfibo")
-
-    if not space.nestedpkg.nestedfibo(10) == 55:
-        errors.append("error with nestedpkg.nestedfibo")
-
-    assert not errors, "errors:\n{}".format("\n".join(errors))
+    space = samplemodel.new_space_from_module(module_=testpkg.__name__,
+                                              recursive=True)
+    assert space.pkgfibo(10) == 55
+    assert space.testmod.modfibo(10) == 55
+    assert space.nestedpkg.nestedfibo(10) == 55

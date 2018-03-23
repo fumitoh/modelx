@@ -4,17 +4,17 @@ from modelx import *
 
 def create_testmodel():
 
-    # base<------------derived
+    # derived<-----------base
     #  |                  |
-    # subspace          subspace
+    # child--+          child--+
     #  |     |            |    |
-    # fibo  nestedsub    fibo  nestedsub
-    #        |                  |
-    #       fibo               fibo
+    # fibo  nested      fibo  nested
+    #        |                 |
+    #       fibo              fibo
 
     model, base = new_model(), new_space('base')
-    subspace = base.new_space('subspace')
-    nestedsub = subspace.new_space('nestedsub')
+    child = base.new_space('child')
+    nested = child.new_space('nested')
     derived = model.new_space('derived', bases=base)
 
     def fibo(x):
@@ -23,8 +23,8 @@ def create_testmodel():
         else:
             return fibo(x - 1) + fibo(x - 2)
 
-    subspace.new_cells(formula=fibo)
-    nestedsub.new_cells(formula=fibo)
+    child.new_cells(formula=fibo)
+    nested.new_cells(formula=fibo)
 
     return model
 
@@ -49,34 +49,34 @@ def test_new_cells_in_nestedspace():
     """Test creation of cells in derived nested spaces."""
 
     model = create_testmodel()
-    assert 'fibo' in model.derived.subspace.cells
-    assert 'fibo' in model.derived.subspace.nestedsub.cells
+    assert 'fibo' in model.derived.child.cells
+    assert 'fibo' in model.derived.child.nested.cells
 
 def test_del_cells_in_nestedspace():
     """Test deletion of cells in derived nested spaces."""
 
     model = create_testmodel()
-    del model.base.subspace.fibo
-    del model.base.subspace.nestedsub.fibo
+    del model.base.child.fibo
+    del model.base.child.nested.fibo
 
-    assert 'fibo' not in model.derived.subspace
-    assert 'fibo' not in model.derived.subspace.nestedsub
+    assert 'fibo' not in model.derived.child
+    assert 'fibo' not in model.derived.child.nested
 
 def test_new_space_in_nestedspace():
     """Test creation of spaces in derived nested space."""
 
     # base<----------------------------derived
     #  |                                 |
-    # subspace                         subspace
+    # child                            child
     #  |                                 |
-    # nestedsub                        nestedsub
+    # nested                           nested
     #  |                                 |
     # supernested<-Create this         supernested<-Test this if created!
 
     model = create_testmodel()
-    model.base.subspace.nestedsub.new_space('supernested')
+    model.base.child.nested.new_space('supernested')
 
-    assert 'supernested' in model.derived.subspace.nestedsub.spaces
+    assert 'supernested' in model.derived.child.nested.spaces
 
 
 def test_delattr_space_in_nestedspace():
@@ -84,30 +84,30 @@ def test_delattr_space_in_nestedspace():
 
     # base<----------------------------derived
     #  |                                 |
-    # subspace                         subspace
+    # child                            child
     #  |                                 |
-    # nestedsub<-Delete this          nestedsub<-Test this if deleted!
+    # nested<-Delete this          nested<-Test this if deleted!
 
     model = create_testmodel()
-    del model.base.subspace.nestedsub
-    assert 'nestedsub' not in model.base.subspace.spaces
-    assert 'nestedsub' not in model.derived.subspace.spaces
+    del model.base.child.nested
+    assert 'nested' not in model.base.child.spaces
+    assert 'nested' not in model.derived.child.spaces
 
 
 def test_delitem_space_in_nestedspace():
     """Test deletion of a space in a derived nested space."""
 
     model = create_testmodel()
-    del model.base.subspace.spaces['nestedsub']
-    assert 'nestedsub' not in model.base.subspace.spaces
-    assert 'nestedsub' not in model.derived.subspace.spaces
+    del model.base.child.spaces['nested']
+    assert 'nested' not in model.base.child.spaces
+    assert 'nested' not in model.derived.child.spaces
 
 
 def test_override_cells():
     """Test overriding a cells in derived space."""
 
     model = create_testmodel()
-    assert 'fibo' in model.derived.subspace.derived_cells
+    assert 'fibo' in model.derived.child.derived_cells
 
     def fibo_new(x):
         if x == 0 or x == 1:
@@ -115,8 +115,8 @@ def test_override_cells():
         else:
             return fibo(x - 1) + fibo(x - 2)
 
-    cells = model.derived.subspace.new_cells(name='fibo', formula=fibo_new)
+    cells = model.derived.child.new_cells(name='fibo', formula=fibo_new)
 
-    assert 'fibo' not in model.derived.subspace.derived_cells
-    assert model.derived.subspace.self_cells['fibo'] is cells
+    assert 'fibo' not in model.derived.child.derived_cells
+    assert model.derived.child.self_cells['fibo'] is cells
     assert cells(2) == 3

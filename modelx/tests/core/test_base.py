@@ -86,7 +86,7 @@ def repr_test():
     def Foo(x, y):
         return x * y
 
-    subspace = space.new_space('ReprSubspace')
+    child = space.new_space('ReprChild')
 
     @defcells
     def Bar(x, y):
@@ -106,16 +106,16 @@ def test_repr_space(repr_test):
     assert repr(repr_test.ReprSpace) == "<Space ReprSpace in ReprModel>"
 
 def test_repr_suspace(repr_test):
-    assert repr(repr_test.ReprSpace.ReprSubspace) \
-        == "<Space ReprSubspace in ReprModel.ReprSpace>"
+    assert repr(repr_test.ReprSpace.ReprChild) \
+        == "<Space ReprChild in ReprModel.ReprSpace>"
 
 def test_repr_cells(repr_test):
     cells = repr_test.ReprSpace.Foo
     assert repr(cells) == "<Cells Foo(x, y) in ReprModel.ReprSpace>"
 
-def test_repr_cells_in_subspace(repr_test):
-    cells = repr_test.ReprSpace.ReprSubspace.Bar
-    repr_ = "<Cells Bar(x, y) in ReprModel.ReprSpace.ReprSubspace>"
+def test_repr_cells_in_child(repr_test):
+    cells = repr_test.ReprSpace.ReprChild.Bar
+    repr_ = "<Cells Bar(x, y) in ReprModel.ReprSpace.ReprChild>"
     assert repr(cells) == repr_
 
 def test_repr_dynspace(repr_test):

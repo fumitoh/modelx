@@ -160,15 +160,15 @@ def test_del_cells(testmodel):
 def test_static_spaces(testmodel):
 
     space = new_space()
-    subspace = space.new_space('SubSpace')
-    assert space.static_spaces == {'SubSpace': subspace}
+    child = space.new_space('Child')
+    assert space.static_spaces == {'Child': child}
 
 
 def test_del_static_spaces(testmodel):
 
     space = new_space()
-    subspace = space.new_space('SubSpace')
-    del space.SubSpace
+    child = space.new_space('Child')
+    del space.Child
     assert space.static_spaces == {}
 
 # ----- Test SpaceMapProxy -----
