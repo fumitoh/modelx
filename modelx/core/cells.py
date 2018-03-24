@@ -486,9 +486,9 @@ class Cells(Interface, Container, Callable, Sized):
 
         If the cells returns None for the given arguments,
         continue to get a value by passing arguments
-        masking the given arguments with ``None``s.
+        masking the given arguments with Nones.
         The search of non-None value starts from the given arguments
-        to the all ``None`` arguments in the lexicographical order.
+        to the all None arguments in the lexicographical order.
         The masked arguments that returns non-None value
         first is returned with the value.
         """
