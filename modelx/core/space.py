@@ -1359,8 +1359,21 @@ class Space(SpaceContainer):
         return self._impl.derived_cells.interfaces
 
     @property
-    def static_spaces(self):
+    def all_spaces(self):
+        """A mapping associating names to all(static and dynamic) spaces."""
+        return self._impl.spaces.interfaces
+
+    @property
+    def spaces(self):
         """A mapping associating names to static spaces."""
+        return self._impl.static_spaces.interfaces
+
+    @property
+    def static_spaces(self):
+        """A mapping associating names to static spaces.
+
+        Alias to :py:meth:`spaces`
+        """
         return self._impl.static_spaces.interfaces
 
     @property
