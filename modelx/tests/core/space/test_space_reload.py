@@ -33,7 +33,7 @@ def test_space_reload(reloadtest):
     import importlib
     src = importlib.import_module(samplename)
 
-    space = model.new_space_from_module(module_=src)
+    space = model.import_module(module_=src)
     assert space.foo(3) == 0
     assert 'baz' in space.cells
 

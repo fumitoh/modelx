@@ -45,6 +45,9 @@ def test_new_cells_from_module(testmodel):
     cells = cur_space().new_cells_from_module(testmodule)
     assert set(testmodule.funcs) == set(cells.keys())
 
+def test_import_funcs(testmodel):
+    cells = cur_space().import_funcs(testmodule)
+    assert set(testmodule.funcs) == set(cells.keys())
 
 def test_new_cells_from_modulename(testmodel):
 
@@ -52,7 +55,7 @@ def test_new_cells_from_modulename(testmodel):
     names = names[:-2] + ['data', 'testmodule']
     module_name = '.'.join(names)
 
-    cells = cur_space().new_cells_from_module(module_name)
+    cells = cur_space().import_funcs(module_name)
     assert set(testmodule.funcs) == set(cells.keys())
 
 

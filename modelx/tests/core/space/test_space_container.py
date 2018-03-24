@@ -68,18 +68,18 @@ def test_fullname(samplemodel):
 
 def test_new_space_from_module(samplemodel):
 
-    space = samplemodel.new_space_from_module(testmodule, name='sample_module')
+    space = samplemodel.import_module(testmodule, name='sample_module')
     assert set(testmodule.funcs) == set(space.cells.keys())
 
 
 def test_new_space_from_module_by_name(samplemodel):
 
-    space = samplemodel.new_space_from_module(testmodule.__name__)
+    space = samplemodel.import_module(testmodule.__name__)
     assert set(testmodule.funcs) == set(space.cells.keys())
 
 
 def test_create_sapce_recursive(samplemodel):
-    space = samplemodel.new_space_from_module(module_=testpkg.__name__,
+    space = samplemodel.import_module(module_=testpkg.__name__,
                                               recursive=True)
     assert space.pkgfibo(10) == 55
     assert space.testmod.modfibo(10) == 55

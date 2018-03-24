@@ -273,7 +273,7 @@ class SpaceContainer(Interface):
 
         return space.interface
 
-    def new_space_from_module(self, module_, recursive=False, **params):
+    def import_module(self, module_, recursive=False, **params):
         """Create a child space from an module.
 
         Args:
@@ -284,12 +284,29 @@ class SpaceContainer(Interface):
         Returns:
             The new child space created from the module.
         """
+        space = self._impl.model.currentspace \
+            = self._impl.new_space_from_module(module_,
+                                               recursive=recursive,
+                                               **params)
+        return get_interfaces(space)
 
+    def new_space_from_module(self, module_, recursive=False, **params):
+        """Create a child space from an module.
+
+        Alias to :py:meth:`import_module`.
+
+        Args:
+            module_: a module object or name of the module object.
+            recursive: Not yet implemented.
+            **params: arguments to pass to ``new_space``
+
+        Returns:
+            The new child space created from the module.
+        """
         space = self._impl.model.currentspace \
             = self._impl.new_space_from_module(module_,
                                                   recursive=recursive,
                                                   **params)
-
         return get_interfaces(space)
 
     def new_space_from_excel(self, book, range_, sheet=None,
@@ -1407,10 +1424,18 @@ class Space(SpaceContainer):
         """A map associating names to objects accessible by the names."""
         return self._impl.refs.mproxy
 
-    def new_cells_from_module(self, module_):
+    def import_funcs(self, module_):
         """Create a cells from a module."""
         # Outside formulas only
+        newcells = self._impl.new_cells_from_module(module_)
+        return get_interfaces(newcells)
 
+    def new_cells_from_module(self, module_):
+        """Create a cells from a module.
+
+        Alias to :py:meth:`import_funcs`.
+        """
+        # Outside formulas only
         newcells = self._impl.new_cells_from_module(module_)
         return get_interfaces(newcells)
 
