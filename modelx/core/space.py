@@ -1019,6 +1019,25 @@ class SpaceImpl(SpaceContainerImpl):
     def has_bases(self):
         return len(self.mro) > 1
 
+    def has_inherited(self):
+        return len(self.get_inherited())
+
+    def get_inherited(self):
+        observers = self.self_members.observers
+        bases = set()
+        for obs in observers:
+            if isinstance(obs, BaseMixin):
+                space = obs.space
+                if space is not self:
+                    # Check if space.parent is Model or Space
+                    if hasattr(space.parent, 'self_spaces'):
+                        if space in space.parent.self_spaces:
+                            bases.add(space)
+                    else:
+                        bases.add(space)
+        return bases
+
+
     @property
     def signature(self):
         return self.formula.signature
@@ -1137,8 +1156,13 @@ class SpaceImpl(SpaceContainerImpl):
             raise ValueError("Space '%s' does not exist" % name)
 
         if name in self.self_spaces:
-            # TODO: Destroy space
-            self.self_spaces.del_item(name, True)
+            space = self.self_spaces[name]
+            if space.has_inherited():
+                raise ValueError("%s has derived spaces"
+                                 % repr(space.interface))
+            else:
+                # TODO: Destroy space
+                self.self_spaces.del_item(name, True)
 
         elif name in self.dynamic_spaces:
             # TODO: Destroy space

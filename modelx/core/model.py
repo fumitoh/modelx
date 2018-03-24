@@ -243,7 +243,11 @@ class ModelImpl(SpaceContainerImpl):
         self.cellgraph = nx.relabel_nodes(self.cellgraph, mapping)
 
     def del_space(self, name):
-        self.spaces.del_item(name)
+        space = self.spaces[name]
+        if space.has_inherited():
+            raise ValueError("%s has derived spaces" % repr(space.interface))
+        else:
+            self.spaces.del_item(name)
 
     def _set_space(self, space):
 

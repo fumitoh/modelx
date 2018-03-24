@@ -28,23 +28,6 @@ def create_testmodel():
 
     return model
 
-
-def test_delattr_space_in_model():
-
-    model = create_testmodel()
-
-    assert 'base' in model.spaces
-    del model.base
-    assert 'base' not in model.spaces
-
-
-def test_delitem_space_in_model():
-
-    model = create_testmodel()
-    assert 'base' in model.spaces
-    del model.spaces['base']
-    assert 'base' not in model.spaces
-
 def test_new_cells_in_nestedspace():
     """Test creation of cells in derived nested spaces."""
 
