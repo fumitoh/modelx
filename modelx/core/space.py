@@ -393,19 +393,28 @@ class SpaceContainer(Interface):
             return self.cur_space()
 
 
-class BaseDict(LazyEvalDict):
+class SpaceDict(ImplDict):
+
+    def __init__(self, space, data=None, observers=None):
+        ImplDict.__init__(self, space, SpaceMapProxy, data, observers)
+
+
+class CellsDict(ImplDict):
+
+    def __init__(self, space, data=None, observers=None):
+        ImplDict.__init__(self, space, CellsMapProxy, data, observers)
+
+
+class BaseMixin:
     """Members of bases to be inherited to ``space``"""
 
     def __init__(self, derived):
 
         observer = [derived]
-        LazyEvalDict.__init__(self, {}, observer)
-
+        self.append_observer(derived)
         self.space = derived.parent
         for base in self.space.mro:
             base._self_members.append_observer(self)
-
-        self.get_updated()
 
     def _update_data(self):
 
@@ -425,37 +434,45 @@ class BaseDict(LazyEvalDict):
         raise NotImplementedError
 
 
-class BaseSpaceDict(BaseDict):
+class BaseSpaceDict(BaseMixin, SpaceDict):
+
+    def __init__(self, derived):
+        SpaceDict.__init__(self, derived.parent)
+        BaseMixin.__init__(self, derived)
+
+    def _update_data(self):
+        BaseMixin._update_data(self)
+        SpaceDict._update_data(self)
 
     def get_baseself(self, base):
         return base.self_spaces
 
 
-class BaseCellsDict(BaseDict):
+class BaseCellsDict(BaseMixin, CellsDict):
+
+    def __init__(self, derived):
+        CellsDict.__init__(self, derived.parent)
+        BaseMixin.__init__(self, derived)
+
+    def _update_data(self):
+        BaseMixin._update_data(self)
+        CellsDict._update_data(self)
 
     def get_baseself(self, base):
         return base.self_cells
 
 
-class BaseRefsDict(BaseDict):
+class BaseRefsDict(BaseMixin, ProxyDict):
+
+    def __init__(self, derived):
+        ProxyDict.__init__(self, derived.parent)
+        BaseMixin.__init__(self, derived)
 
     def get_baseself(self, base):
         return base.self_refs
 
 
-class SelfSpaceDict(ImplDict):
-
-    def __init__(self, space, data=None, observers=None):
-        ImplDict.__init__(self, space, SpaceMapProxy, data, observers)
-
-
-class SelfCellsDict(ImplDict):
-
-    def __init__(self, space, data=None, observers=None):
-        ImplDict.__init__(self, space, CellsMapProxy, data, observers)
-
-
-class BaseMixin:
+class BaseDictMixin:
 
     def __init__(self, basedict_class):
         self._basedict = basedict_class(self)
@@ -465,11 +482,11 @@ class BaseMixin:
         return self._basedict.get_updated()
 
 
-class DerivedSpaceDict(BaseMixin, SelfSpaceDict):
+class DerivedSpaceDict(BaseDictMixin, SpaceDict):
 
     def __init__(self, space, data=None, observers=None):
-        SelfSpaceDict.__init__(self, space, data, observers)
-        BaseMixin.__init__(self, BaseSpaceDict)
+        SpaceDict.__init__(self, space, data, observers)
+        BaseDictMixin.__init__(self, BaseSpaceDict)
 
     def _update_data(self):
         self.data.clear()
@@ -481,14 +498,14 @@ class DerivedSpaceDict(BaseMixin, SelfSpaceDict):
 
             self.data[space.name] = space
 
-        SelfSpaceDict._update_data(self)
+        SpaceDict._update_data(self)
 
 
-class DerivedCellsDict(BaseMixin, SelfCellsDict):
+class DerivedCellsDict(BaseDictMixin, CellsDict):
 
     def __init__(self, space, data=None, observers=None):
-        SelfCellsDict.__init__(self, space, data, observers)
-        BaseMixin.__init__(self, BaseCellsDict)
+        CellsDict.__init__(self, space, data, observers)
+        BaseDictMixin.__init__(self, BaseCellsDict)
 
     def _update_data(self):
         keys = self.data.keys() - self.basedict.keys()
@@ -506,14 +523,14 @@ class DerivedCellsDict(BaseMixin, SelfCellsDict):
                              formula=base_cell.formula)
             self.data[key] = cell
 
-        SelfCellsDict._update_data(self)
+        CellsDict._update_data(self)
 
 
-class DerivedRefsDict(BaseMixin, ProxyDict):
+class DerivedRefsDict(BaseDictMixin, ProxyDict):
 
     def __init__(self, space, data=None, observers=None):
         ProxyDict.__init__(self, space, data, observers)
-        BaseMixin.__init__(self, BaseRefsDict)
+        BaseDictMixin.__init__(self, BaseRefsDict)
 
     def _update_data(self):
         self.data.clear()
@@ -699,8 +716,8 @@ class SpaceImpl(SpaceContainerImpl):
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self._self_cells = SelfCellsDict(self)
-        self._self_spaces = SelfSpaceDict(self)
+        self._self_cells = CellsDict(self)
+        self._self_spaces = SpaceDict(self)
         self._dynamic_spaces = ImplDict(self, SpaceMapProxy)
         self._self_refs = ProxyDict(self)
 
