@@ -1,96 +1,150 @@
+
+
+"""
+Test patterns
+    test_cellsmapproxy_contains
+    test_space_delattr_cells
+    test_space_new_cells_override_derived_cells
+"""
+
+import modelx as mx
 import pytest
 
-from modelx import *
 
-def create_testmodel():
+def fibo(x):
+    if x == 0 or x == 1:
+        return x
+    else:
+        return fibo(x - 1) + fibo(x - 2)
 
-    # derived<-----------base
-    #  |                  |
-    # child--+          child--+
-    #  |     |            |    |
-    # fibo  nested      fibo  nested
-    #        |                 |
-    #       fibo              fibo
-
-    model, base = new_model(), new_space('base')
+@pytest.fixture
+def testmodel():
+    """
+        derived<-----------base
+         |  +---fibo       | +----fibo
+        child---fibo      child---fibo
+         |                 |
+        nested--fibo      nested--fibo
+    """
+    model, base = mx.new_model(), mx.new_space('base')
     child = base.new_space('child')
     nested = child.new_space('nested')
     derived = model.new_space('derived', bases=base)
-
-    def fibo(x):
-        if x == 0 or x == 1:
-            return x
-        else:
-            return fibo(x - 1) + fibo(x - 2)
-
+    base.new_cells(formula=fibo)
     child.new_cells(formula=fibo)
     nested.new_cells(formula=fibo)
-
     return model
 
-def test_new_cells_in_nestedspace():
-    """Test creation of cells in derived nested spaces."""
+pickleparam = [False, True]
+@pytest.fixture(params=pickleparam)
+def unpickled_model(request, testmodel, tmpdir_factory):
 
-    model = create_testmodel()
-    assert 'fibo' in model.derived.child.cells
-    assert 'fibo' in model.derived.child.nested.cells
+    model = testmodel
+    if request.param:
+        file = str(tmpdir_factory.mktemp('data').join('testmodel.mx'))
+        model.save(file)
+        model.close()
+        model = mx.open_model(file)
 
-def test_del_cells_in_nestedspace():
-    """Test deletion of cells in derived nested spaces."""
-
-    model = create_testmodel()
-    del model.base.child.fibo
-    del model.base.child.nested.fibo
-
-    assert 'fibo' not in model.derived.child
-    assert 'fibo' not in model.derived.child.nested
-
-def test_new_space_in_nestedspace():
-    """Test creation of spaces in derived nested space."""
-
-    # base<----------------------------derived
-    #  |                                 |
-    # child                            child
-    #  |                                 |
-    # nested                           nested
-    #  |                                 |
-    # supernested<-Create this         supernested<-Test this if created!
-
-    model = create_testmodel()
-    model.base.child.nested.new_space('supernested')
-
-    assert 'supernested' in model.derived.child.nested.spaces
+    yield model
+    model.close()
 
 
-def test_delattr_space_in_nestedspace():
+@pytest.fixture(params=['derived',
+                        'derived.child',
+                        'derived.child.nested'])
+def testspaces(request, unpickled_model):
+    trgname = request.param.split('.')
+    srcname = trgname.copy()
+    srcname[0] = 'base'
+    target = source = unpickled_model
+    for space in trgname:
+        target = target.spaces[space]
+    for space in srcname:
+        source = source.spaces[space]
+
+    return target, source
+
+
+def test_model_delattr_basespace(unpickled_model):
+    model = unpickled_model
+
+    assert 'base' in model.spaces
+    with pytest.raises(ValueError):
+        del model.base
+
+
+def test_model_delitem_basespace(unpickled_model):
+    model = unpickled_model
+
+    assert 'base' in model.spaces
+    with pytest.raises(ValueError):
+        del model.spaces['base']
+
+
+def test_space_delattr_space(unpickled_model):
     """Test deletion of a space in a derived nested space."""
-
-    # base<----------------------------derived
-    #  |                                 |
-    # child                            child
-    #  |                                 |
-    # nested<-Delete this          nested<-Test this if deleted!
-
-    model = create_testmodel()
+    model = unpickled_model
+    assert 'nested' in model.derived.child.spaces
     del model.base.child.nested
     assert 'nested' not in model.base.child.spaces
     assert 'nested' not in model.derived.child.spaces
 
 
-def test_delitem_space_in_nestedspace():
-    """Test deletion of a space in a derived nested space."""
-
-    model = create_testmodel()
+def test_space_delitem_space(unpickled_model):
+    model = unpickled_model
+    assert 'nested' in model.derived.child.spaces
     del model.base.child.spaces['nested']
     assert 'nested' not in model.base.child.spaces
     assert 'nested' not in model.derived.child.spaces
 
 
-def test_override_cells():
+def test_spacemapproxy_contains(unpickled_model):
+    """Test spaces, self_spaces, derived_spaces """
+    model = unpickled_model
+    assert 'child' in model.derived.spaces
+    assert 'child' not in model.derived.self_spaces
+    assert 'child' in model.derived.derived_spaces
+
+
+def test_cellsmapproxy_contains(testspaces):
+    """Test creation of cells in derived nested spaces."""
+    target, _ = testspaces
+
+    assert 'fibo' in target.cells
+    assert 'fibo' in target.derived_cells
+    assert 'fibo' not in target.self_cells
+
+
+def test_space_delattr_cells(testspaces):
+    """Test deletion of cells in derived nested spaces."""
+
+    target, source = testspaces
+
+    del source.fibo
+    assert 'fibo' not in target.cells
+    assert 'fibo' not in target.derived_cells
+    assert 'fibo' not in target.self_cells
+
+
+def test_space_new_space(testspaces):
+    target, source = testspaces
+    space = source.new_cells(name='tempspace')
+    assert space is source.tempspace
+    assert space is not target.tempspace
+
+
+def test_space_new_cells(testspaces):
+    target, source = testspaces
+    cells = source.new_cells(name='tempcells')
+    assert cells is source.tempcells
+    assert cells is not target.tempcells
+
+
+def test_space_new_cells_override(testspaces):
     """Test overriding a cells in derived space."""
 
-    model = create_testmodel()
-    assert 'fibo' in model.derived.child.derived_cells
+    target, source = testspaces
 
     def fibo_new(x):
         if x == 0 or x == 1:
@@ -98,8 +152,13 @@ def test_override_cells():
         else:
             return fibo(x - 1) + fibo(x - 2)
 
-    cells = model.derived.child.new_cells(name='fibo', formula=fibo_new)
+    cells = target.new_cells(name='fibo', formula=fibo_new)
 
-    assert 'fibo' not in model.derived.child.derived_cells
-    assert model.derived.child.self_cells['fibo'] is cells
+    assert 'fibo' not in target.derived_cells
+    assert target.self_cells['fibo'] is cells
     assert cells(2) == 3
+
+
+
+
+
