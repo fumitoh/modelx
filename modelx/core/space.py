@@ -1369,6 +1369,16 @@ class Space(SpaceContainer):
         return self._impl.dynamic_spaces.interfaces
 
     @property
+    def self_spaces(self):
+        """A mapping associating names to self spaces."""
+        return self._impl.self_spaces.interfaces
+
+    @property
+    def derived_spaces(self):
+        """A mapping associating names to derived spaces."""
+        return self._impl.derived_spaces.interfaces
+
+    @property
     def argvalues(self):
         """A tuple of space arguments."""
         return self._impl.argvalues
