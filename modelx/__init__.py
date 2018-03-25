@@ -14,7 +14,7 @@
 
 import warnings
 
-VERSION = (0, 0, 8, 'dev')
+VERSION = (0, 0, 8)
 __version__ = '.'.join([str(x) for x in VERSION])
 from modelx.core.api import *  # must come after __version__ assignment.
 

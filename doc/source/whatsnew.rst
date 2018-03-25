@@ -6,7 +6,7 @@ What's New
 
 modelx is in its early alpha-release stage, and its specifications are
 subject to changes without consideration on backward compatibility.
-The source files of you models may need be modified manually,
+The source files of you models may need to be modified manually,
 if there are updates that break backward compatibility in newer versions
 of modelx.
 
@@ -19,8 +19,8 @@ from their source code.
 Releases
 ========
 
-v0.0.8.dev (XX March 2018)
---------------------------
+v0.0.8 (25 March 2018)
+----------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -44,6 +44,10 @@ Bug fixes
 - Remove overridden cells from :py:attr:`~space.Space.derived_cells`
 - Update :py:attr:`~space.Space.self_cells` when new cells are added.
 - Fix stack overflow with Anaconda 64-bit Python on Windows.
+
+Thanks
+------
+- Stanley Ng
 
 v0.0.7 (27 February 2018)
 -------------------------

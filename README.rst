@@ -122,7 +122,7 @@ Development State
 -----------------
 modelx is in its early alpha-release stage, and its specifications are
 subject to changes without consideration on backward compatibility.
-The source files of you models may need be modified manually,
+The source files of you models may need to be modified manually,
 if there are updates that break backward compatibility in newer versions
 of modelx.
 
