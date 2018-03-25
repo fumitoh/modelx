@@ -17,7 +17,8 @@ Reference:
       python setup.py bdist_wheel
  5. Use twine to register and upload the release on pypi.
       twine upload dist/modelx-0.X.Y*
- 6. Increment version number and add 'dev' in __init__.py
+ 6. Increment version number and add 'dev' in __init__.py.
  7. Commit your changes and push to master again:
       git commit -a -m "DIST: Bump version back to dev"
       git push
+ 8. Build the docs on https://readthedocs.org/projects/modelx/.
