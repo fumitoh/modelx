@@ -266,6 +266,17 @@ def get_modeltree(model):
     return view
 
 
+def show_tree(model=None):
+    if model is None:
+        model = mx.cur_model()
+    view = get_modeltree(model)
+    app = QApplication.instance()
+    if not app:
+        raise RuntimeError("QApplication does not exist.")
+    view.show()
+    app.exec_()
+
+
 if __name__ == '__main__':
 
     model, space = mx.new_model('Fibonacci'), mx.new_space()
@@ -281,7 +292,5 @@ if __name__ == '__main__':
     if not app:
         app = QApplication(sys.argv)
 
-    view = get_modeltree(mx.cur_model())
-    view.show()
-    app.exec_()
+    show_tree()
 
