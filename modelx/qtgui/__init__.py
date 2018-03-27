@@ -7,6 +7,4 @@ app = QApplication.instance()
 if not app:
     app = QApplication(sys.argv)
 
-from modelx.qtgui.modeltree import get_modeltree, show_tree
-
 del sys, QApplication

@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-"""modelx API functions.
+"""modelx core API functions.
 
 Functions listed here are available directly in ``modelx`` module,
 either by::

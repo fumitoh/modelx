@@ -61,6 +61,9 @@ import modelx as mx
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 from qtpy.QtWidgets import QApplication, QTreeView
 
+__all__ = ['get_modeltree',
+           'get_tree',
+           'show_tree']
 
 class BaseItem(object):
     """Base Item class for all tree item classes."""

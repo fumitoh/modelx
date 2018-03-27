@@ -19,7 +19,7 @@ __version__ = '.'.join([str(x) for x in VERSION])
 from modelx.core.api import *  # must come after __version__ assignment.
 
 try:
-    from modelx.qtgui import *
+    from modelx.qtgui.modeltree import *
 except ImportError:
     warnings.warn("QtPy package not found."
                   "GUI will not be available.", ImportWarning)

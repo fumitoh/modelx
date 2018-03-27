@@ -7,9 +7,8 @@ Functions
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.core.api
-   ~modelx.qtgui.modeltree.get_tree
-   ~modelx.qtgui.modeltree.show_tree
+   modelx.core.api
+   modelx.qtgui.modeltree
 
 Classes
 -------
