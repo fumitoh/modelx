@@ -43,27 +43,7 @@
 ##
 #############################################################################
 
-"""modelx Qt GUI functions.
-
-Functions listed here are available directly in ``modelx`` module,
-either by::
-
-    import modelx as mx
-
-or by::
-
-    from modelx import *
-
-"""
-
-import sys
-import modelx as mx
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
-from qtpy.QtWidgets import QApplication, QTreeView
-
-__all__ = ['get_modeltree',
-           'get_tree',
-           'show_tree']
 
 class BaseItem(object):
     """Base Item class for all tree item classes."""
@@ -273,70 +253,5 @@ class ModelTreeModel(QAbstractItemModel):
         return parentItem.childCount()
 
 
-def get_modeltree(model=None):
-    """Alias to :func:`get_tree`."""
-    if model is None:
-        model = mx.cur_model()
-    treemodel = ModelTreeModel(model)
-    view = QTreeView()
-    view.setModel(treemodel)
-    view.setWindowTitle("Model %s" % model.name)
-    view.setAlternatingRowColors(True)
-    return view
 
-
-def get_tree(model=None):
-    """Get QTreeView object containing the model tree.
-
-    Args:
-        model: :class:`Model <modelx.core.model.Model>` object.
-            Defaults to the current model.
-    """
-    if model is None:
-        model = mx.cur_model()
-    treemodel = ModelTreeModel(model)
-    view = QTreeView()
-    view.setModel(treemodel)
-    view.setWindowTitle("Model %s" % model.name)
-    view.setAlternatingRowColors(True)
-    return view
-
-
-def show_tree(model=None):
-    """Display the model tree window.
-
-    Args:
-        model: :class:`Model <modelx.core.model.Model>` object.
-            Defaults to the current model.
-
-    Warnings:
-        For this function to work with Spyder, *Graphics backend* option
-        of Spyder must be set to *inline*.
-    """
-    if model is None:
-        model = mx.cur_model()
-    view = get_modeltree(model)
-    app = QApplication.instance()
-    if not app:
-        raise RuntimeError("QApplication does not exist.")
-    view.show()
-    app.exec_()
-
-
-if __name__ == '__main__':
-
-    model, space = mx.new_model('Fibonacci'), mx.new_space()
-
-    @mx.defcells()
-    def fibo(x):
-        if x == 0 or x == 1:
-            return x
-        else:
-            return fibo[x - 1] + fibo[x - 2]
-
-    app = QApplication.instance()
-    if not app:
-        app = QApplication(sys.argv)
-
-    show_tree()
 

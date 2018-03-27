@@ -8,7 +8,8 @@ Functions
    :toctree: generated/
 
    modelx.core.api
-   modelx.qtgui.modeltree
+   modelx.qtgui.api
+
 
 Classes
 -------

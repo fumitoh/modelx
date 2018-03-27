@@ -12,16 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-import warnings
+
 
 VERSION = (0, 0, 9, 'dev')
 __version__ = '.'.join([str(x) for x in VERSION])
 from modelx.core.api import *  # must come after __version__ assignment.
+from modelx.qtgui.api import *
 
-try:
-    from modelx.qtgui.modeltree import *
-except ImportError:
-    warnings.warn("QtPy package not found."
-                  "GUI will not be available.", ImportWarning)
-
-del warnings

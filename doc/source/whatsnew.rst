@@ -24,7 +24,7 @@ v0.0.8 (25 March 2018)
 
 Enhancements
 ~~~~~~~~~~~~
-- Make :func:`get_modeltree <modelx.qtqui.modeltree.get_modeltree>` available directly under ``modelx``.
+- Make :func:`get_modeltree <modelx.qtgui.modeltree.get_modeltree>` available directly under ``modelx``.
 - Add :meth:`~space.SpaceContainer.import_module` and :meth:`~space.Space.import_funcs` properties.
 - Add :attr:`~space.Space.all_spaces` to contain all child spaces, including dynamic spaces.
 - Add :py:attr:`~space.Space.self_spaces` and :py:attr:`~space.Space.derived_spaces` properties.

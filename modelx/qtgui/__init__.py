@@ -1,10 +1,13 @@
 
-import sys
-from qtpy.QtWidgets import QApplication
+try:
+    import sys, warnings
+    from qtpy.QtWidgets import QApplication
 
-# Start QApplication if not running yet.
-app = QApplication.instance()
-if not app:
-    app = QApplication(sys.argv)
+    # Start QApplication if not running yet.
+    app = QApplication.instance()
+    if not app:
+        app = QApplication(sys.argv)
 
-del sys, QApplication
+except ImportError:
+    warnings.warn("QtPy package not found."
+                  "GUI will not be available.", ImportWarning)
