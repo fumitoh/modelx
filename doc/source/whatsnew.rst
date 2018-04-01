@@ -19,12 +19,25 @@ from their source code.
 Releases
 ========
 
+v0.0.9 (1 April 2018)
+---------------------
+
+Enhancements
+~~~~~~~~~~~~
+- Add :func:`show_tree<modelx.qtgui.api.show_tree>` to show model tree in inline mode.
+- Add :func:`get_tree<modelx.qtgui.api.get_tree>` to get model tree in automatic mode.
+
+Bug fixes
+~~~~~~~~~
+- Make :func:`get_modeltree <modelx.qtgui.api.get_modeltree>` available directly under ``modelx``.
+
+
 v0.0.8 (25 March 2018)
 ----------------------
 
 Enhancements
 ~~~~~~~~~~~~
-- Make :func:`get_modeltree <modelx.qtgui.modeltree.get_modeltree>` available directly under ``modelx``.
+- Make :func:`get_modeltree <modelx.qtgui.modeltree.api>` available directly under ``modelx``.
 - Add :meth:`~space.SpaceContainer.import_module` and :meth:`~space.Space.import_funcs` properties.
 - Add :attr:`~space.Space.all_spaces` to contain all child spaces, including dynamic spaces.
 - Add :py:attr:`~space.Space.self_spaces` and :py:attr:`~space.Space.derived_spaces` properties.
