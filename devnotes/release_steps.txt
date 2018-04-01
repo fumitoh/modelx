@@ -5,6 +5,7 @@ Modified from:
 Reference:
     https://packaging.python.org/tutorials/distributing-packages/
 
+ 0. Update whatsnew.rst.
  1. Remove 'dev' from the version in __init__.py.
  2. On the master branch, commit the release in git:
       git commit -a -m "DIST: Release v0.X.Y"
