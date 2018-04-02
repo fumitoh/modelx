@@ -5,21 +5,23 @@ Modified from:
 Reference:
     https://packaging.python.org/tutorials/distributing-packages/
 
- 0. Update whatsnew.rst.
- 1. Remove 'dev' from the version in __init__.py.
- 2. On the master branch, commit the release in git:
+ 1. Update whatsnew.rst.
+ 2. Remove 'dev' from the version in __init__.py.
+ 3. On the master branch, commit the release in git:
       git commit -a -m "DIST: Release v0.X.Y"
       git push
- 3. Tag the release and push tags:
+ 4. Tag the release and push tags:
       git tag v0.X.Y
       git push origin --tags
- 4. Build source and binary wheels for pypi:
+ 5. Build source and binary wheels for pypi:
       python setup.py sdist
       python setup.py bdist_wheel
- 5. Use twine to register and upload the release on pypi.
+ 6. Use twine to register and upload the release on pypi.
       twine upload dist/modelx-0.X.Y*
- 6. Increment version number and add 'dev' in __init__.py.
- 7. Commit your changes and push to master again:
+ 7. Clean up build dir.
+      python setup.py clean --all
+ 8. Increment version number and add 'dev' in __init__.py.
+ 9. Commit your changes and push to master again:
       git commit -a -m "DIST: Bump version back to dev"
       git push
- 8. Build the docs on https://readthedocs.org/projects/modelx/.
+ 10. Build the docs on https://readthedocs.org/projects/modelx/.
