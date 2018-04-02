@@ -189,16 +189,6 @@ def cur_space(name=None):
         return cur_space()
 
 
-def get_self():
-    """Return self space during its dynamic creation in formula.
-
-    Warning:
-        This function is depreciated and subject to be removed
-        in future releases.
-    """
-    return _system.self.interface
-
-
 def open_model(path):
     """Load a model saved from a file and return it.
 

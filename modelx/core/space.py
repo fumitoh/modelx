@@ -743,8 +743,7 @@ class SpaceImpl(SpaceContainerImpl):
                                      self._dynamic_spaces])
         self._derived_refs = DerivedRefsDict(self)
 
-        self._local_refs = {'get_self': self.get_self_interface,
-                            '_self': self.interface}
+        self._local_refs = {'_self': self.interface}
 
         self._refs = ProxyChainMap(self,
                                    [self.model._global_refs,
@@ -855,9 +854,6 @@ class SpaceImpl(SpaceContainerImpl):
                 return self.parent._repr_parent + '.' + self.parent._repr_self
             else:
                 return self.parent._repr_self
-
-    def get_self_interface(self):
-        return self.interface
 
     def get_object(self, name):
         """Retrieve an object by a dotted name relative to the space."""

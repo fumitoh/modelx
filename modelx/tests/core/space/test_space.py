@@ -23,7 +23,7 @@ def testmodel():
 
 def test_dir(testmodel):
     assert {'foo', 'bar', '_self',
-            'get_self', '__builtins__'} == set(dir(testmodel.testspace))
+            '__builtins__'} == set(dir(testmodel.testspace))
 
 def test_parent(testmodel):
     assert cur_space().parent == testmodel
@@ -82,7 +82,7 @@ def test_derived_spaces(testmodel):
 def test_formula(testmodel):
 
     model = testmodel
-    base = model.new_space(formula=lambda x, y: {'bases': get_self()})
+    base = model.new_space(formula=lambda x, y: {'bases': _self})
 
     distance_def = dedent("""\
     def distance():
@@ -97,7 +97,7 @@ def test_formula(testmodel):
 def test_dynamic_spaces(testmodel):
 
     model = testmodel
-    space = model.new_space(formula=lambda n: {'bases': get_self()})
+    space = model.new_space(formula=lambda n: {'bases': _self})
 
     @defcells
     def foo(x):
