@@ -743,7 +743,8 @@ class SpaceImpl(SpaceContainerImpl):
                                      self._dynamic_spaces])
         self._derived_refs = DerivedRefsDict(self)
 
-        self._local_refs = {'_self': self.interface}
+        self._local_refs = {'_self': self.interface,
+                            '_space': self.interface}
 
         self._refs = ProxyChainMap(self,
                                    [self.model._global_refs,

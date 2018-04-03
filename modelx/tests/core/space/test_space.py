@@ -22,7 +22,7 @@ def testmodel():
     return model
 
 def test_dir(testmodel):
-    assert {'foo', 'bar', '_self',
+    assert {'foo', 'bar', '_self', '_space',
             '__builtins__'} == set(dir(testmodel.testspace))
 
 def test_parent(testmodel):
