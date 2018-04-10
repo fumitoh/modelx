@@ -1016,6 +1016,12 @@ class SpaceImpl(SpaceContainerImpl):
     def has_bases(self):
         return len(self.mro) > 1
 
+    def is_derived(self):
+        if self.parent.parent is None:
+            return False
+        else:
+            return self in self.parent.derived_spaces.values()
+
     def has_inherited(self):
         return len(self.get_inherited())
 
@@ -1135,11 +1141,43 @@ class SpaceImpl(SpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Space operation
 
+    def new_space(self, name=None, bases=None, formula=None,
+                  *, refs=None, arguments=None, source=None):
+
+        if self.is_derived():
+            self.parent._define_space(self.name)
+
+        return SpaceContainerImpl.new_space(
+            self, name=name, bases=bases,
+            formula=formula, refs=refs,
+            arguments=arguments, source=source)
+
+
     def _set_space(self, space):
         if space.is_dynamic:
             self._dynamic_spaces.set_item(space.name, space)
         else:
             self._self_spaces.set_item(space.name, space)
+
+    def _define_space(self, name):
+        if name not in self.derived_spaces:
+            raise ValueError("No derived space named '%s'" % name)
+
+        if self.is_derived():
+            self.parent._define_space(self.name)
+
+        space = self.derived_spaces.pop(name)
+        self.self_spaces[name] = space
+        self.self_spaces.set_update()
+        self.derived_spaces.set_update()
+
+    def _derive_space(self, name):
+        pass
+        # TODO: To replace derived space creation in DerivedSpaceDict?
+        # if name not in self.self_spaces:
+        #     raise ValueError("No derived space named '%s'" % name)
+        # raise NotImplementedError
+
 
     def del_space(self, name):
         """Delete a space.
@@ -1397,6 +1435,9 @@ class Space(SpaceContainer):
         """
         # Outside formulas only
         return self._impl.new_cells(name, formula).interface
+
+    def is_derived(self):
+        return self._impl.is_derived()
 
     @property
     def cells(self):
