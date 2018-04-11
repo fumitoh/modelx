@@ -1076,6 +1076,14 @@ class SpaceImpl(SpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Attribute access
 
+    def set_ref(self, name, value):
+
+        if self.is_derived():
+            self.parent._define_space(self.name)
+
+        self.self_refs.set_item(name, value)
+
+
     def set_attr(self, name, value):
         """Implementation of attribute setting
 
@@ -1084,13 +1092,12 @@ class SpaceImpl(SpaceContainerImpl):
         """
 
         if not is_valid_name(name):
-            raise ValueError
+            raise ValueError("Invalid name '%s'" % name)
 
         if name in self.namespace:
             if name in self.refs:
                 if name in self.self_refs or name in self.derived_refs:
-                    self.self_refs[name] = value
-                    self.self_refs.set_update(skip_self=False)
+                    self.set_ref(name, value)
                 else:
                     raise KeyError("Ref '%s' cannot be changed" % name)
 
@@ -1102,7 +1109,7 @@ class SpaceImpl(SpaceContainerImpl):
             else:
                 raise ValueError
         else:
-            self._self_refs.set_item(name, value)
+            self.set_ref(name, value)
 
     def del_attr(self, name):
         """Implementation of attribute deletion
@@ -1295,6 +1302,9 @@ class SpaceImpl(SpaceContainerImpl):
         self._self_cells.set_item(name, cells)
 
     def new_cells(self, name=None, formula=None):
+        if self.is_derived():
+            self.parent._define_space(self.name)
+
         cells = CellsImpl(space=self, name=name, formula=formula)
         self.set_cells(cells.name, cells)
         return cells
