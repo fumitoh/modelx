@@ -1652,12 +1652,17 @@ class Space(SpaceContainer):
         Returns:
             True if item is a direct child of the space, False otherwise.
         """
+        if isinstance(item, str):
+            return item in self._impl.namespace
 
-        if isinstance(item, Cells):
-            return item._impl in self._impl._cells.values()
+        elif isinstance(item, Cells):
+            return item._impl in self._impl.cells.values()
 
         elif isinstance(item, Space):
             return item._impl in self._impl.spaces.values()
+
+        else:
+            return False
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes
