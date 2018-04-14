@@ -146,19 +146,25 @@ class CellsImpl(Impl):
         data: array-like, dict, pandas.DataSeries or scalar values.
     """
 
-    def __init__(self, *, space, name=None, formula=None, data=None):
+    def __init__(self, *, space, name=None, formula=None, data=None,
+                 base=None):
 
         Impl.__init__(self, Cells)
 
         self.system = space.system
         self.model = space.model
         self.space = self.parent = space
-        if formula is None:
+
+        if base is not None:
+            self.formula = base.formula
+        elif formula is None:
             self.formula = NULL_FORMULA
         else:
             self.formula = Formula(formula)
 
-        if is_valid_name(name):
+        if base is not None:
+            self.name = base.name
+        elif is_valid_name(name):
             self.name = name
         elif is_valid_name(self.formula.name):
             self.name = self.formula.name
@@ -170,6 +176,11 @@ class CellsImpl(Impl):
             data = {}
         self.data.update(data)
 
+        self.base = base
+        if base is not None:
+            base.derived.append(self)
+        self.derived = []
+
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
@@ -177,7 +188,9 @@ class CellsImpl(Impl):
                    'space',
                    'formula',
                    'name',
-                   'data'] + Impl.state_attrs
+                   'data',
+                   'base',
+                   'derived'] + Impl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -268,13 +281,19 @@ class CellsImpl(Impl):
         self.set_formula(NULL_FORMULA)
 
     def set_formula(self, func):
+
+        def set_formula_single_cells(cells, formula):
+            cells.model.clear_obj(cells)
+            cells.formula = formula
+            cells.space.self_cells_set_update()
+
         if not self.is_derived:
             formula = Formula(func)
-            self.model.clear_obj(self)
-            self.formula = formula
-            self.space.self_cells_set_update()
+            set_formula_single_cells(self, formula)
+            for derived in self.derived:
+                set_formula_single_cells(derived, formula)
         else:
-            raise NotImplementedError('Cannot change derived cells formula')
+            raise NotImplementedError('Cannot set derived cells formula')
 
     # ----------------------------------------------------------------------
     # Value operations

@@ -514,13 +514,12 @@ class DerivedCellsDict(BaseDictMixin, CellsDict):
 
         for key, base_cell in self.basedict.items():
             if key in self.data:
-                if self.data[key].formula is base_cell.formula:
-                    return
+                if self.data[key].base is base_cell:
+                    continue
                 else:
                     del self.data[key]
 
-            cell = CellsImpl(space=self.parent, name=base_cell.name,
-                             formula=base_cell.formula)
+            cell = CellsImpl(space=self.parent, base=base_cell)
             self.data[key] = cell
 
         CellsDict._update_data(self)
@@ -1080,6 +1079,9 @@ class SpaceImpl(SpaceContainerImpl):
 
         if self.is_derived():
             self.parent._define_space(self.name)
+
+        if name in self.derived_refs:
+            self.derived_refs.del_item(name)
 
         self.self_refs.set_item(name, value)
 

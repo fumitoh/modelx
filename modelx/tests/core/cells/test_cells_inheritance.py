@@ -19,11 +19,10 @@ def test_set_formula_base(testmodel):
         return 2 * x
 
     derived = new_space(name='derived', bases=base)
-    before_set = derived.f1(3)
+    assert derived.f1(3) == 3
     base.f1.set_formula(f2)
-    after_set = derived.f1(3)
+    assert derived.f1(3) == 6
 
-    assert before_set == 3 and after_set == 6
 
 
 
