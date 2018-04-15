@@ -489,14 +489,31 @@ class DerivedSpaceDict(BaseDictMixin, SpaceDict):
         BaseDictMixin.__init__(self, BaseSpaceDict)
 
     def _update_data(self):
-        self.data.clear()
-        for base_space in self.basedict.values():
 
-            space = SpaceImpl(parent=self.parent, name=base_space.name,
-                              bases=base_space,
-                              formula=base_space.formula)
+        keys = self.data.keys() - self.basedict.keys()
+        for key in keys:    # TODO: Destroy deleted space
+            del self.data[key]
 
-            self.data[space.name] = space
+        for name, base_space in self.basedict.items():
+
+            if name in self.data:
+                derived = self.data[name]
+                if derived.direct_bases[0] is base_space:
+                    continue
+                else:
+                    space = SpaceImpl(parent=self.parent,
+                                      name=base_space.name,
+                                      bases=base_space,
+                                      formula=base_space.formula)
+
+                    del self.data[name]
+                    self.data[name] = space
+
+            else:
+                self.data[name] = SpaceImpl(parent=self.parent,
+                                            name=base_space.name,
+                                            bases=base_space,
+                                            formula=base_space.formula)
 
         SpaceDict._update_data(self)
 
@@ -510,7 +527,7 @@ class DerivedCellsDict(BaseDictMixin, CellsDict):
     def _update_data(self):
         keys = self.data.keys() - self.basedict.keys()
         for key in keys:
-            del self.data[key]
+            del self.data[key]  # TODO: Destroy deleted cells
 
         for key, base_cell in self.basedict.items():
             if key in self.data:
@@ -681,6 +698,8 @@ class SpaceImpl(SpaceContainerImpl):
         self.param_spaces = {}
         if formula is None:
             self.formula = None
+        elif isinstance(formula, ParamFunc):
+            self.formula = formula
         else:
             self.formula = ParamFunc(formula)
 
@@ -978,7 +997,7 @@ class SpaceImpl(SpaceContainerImpl):
 
         """
         seqs = [base.mro.copy() for base
-                in self.direct_bases] + [self.direct_bases]
+                in self.direct_bases] + [self.direct_bases.copy()]
         res = []
         while True:
             non_empty = list(filter(None, seqs))

@@ -450,8 +450,6 @@ class LazyEvalChainMap(LazyEval, ChainMap):
                 if isinstance(other, LazyEval):
                     other.append_observer(self)
 
-        self.get_updated()
-
     def _update_data(self):
         for map_ in self.maps:
             if isinstance(map_, LazyEval):
