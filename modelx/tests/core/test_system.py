@@ -3,10 +3,13 @@ from modelx.core.api import *
 from modelx.core.errors import DeepReferenceError
 import pytest
 
+@pytest.fixture
+def testmodel():
+    m, s = new_model(), new_space()
+    return m
 
-def test_defcells_withname():
 
-    new_model().new_space()
+def test_defcells_withname(testmodel):
 
     @defcells(name="bar")
     def foo(x):
@@ -18,7 +21,7 @@ def test_defcells_withname():
     assert foo[10] == 123
 
 
-def test_defcells_withspace():
+def test_defcells_withspace(testmodel):
 
     @defcells(space=cur_space())
     def foo(x):
@@ -30,7 +33,7 @@ def test_defcells_withspace():
     assert foo[10] == 123
 
 
-def test_defcells_lambda_object():
+def test_defcells_lambda_object(testmodel):
 
     fibo = defcells(space=cur_space(), name='fibo')(
         lambda x: x if x == 0 or x == 1 else fibo[x - 1] + fibo[x - 2])
@@ -38,7 +41,7 @@ def test_defcells_lambda_object():
     assert fibo(10) == 55
 
 
-def test_decells_lambda_source():
+def test_decells_lambda_source(testmodel):
 
     src = "lambda x: x if x == 0 or x == 1 else fibo2[x - 1] + fibo2[x - 2]"
     fibo2 = cur_space().new_cells(name='fibo2', formula=src)
