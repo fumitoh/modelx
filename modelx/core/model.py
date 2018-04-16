@@ -141,6 +141,17 @@ class ModelImpl(SpaceContainerImpl):
             self, [self._spaces, self._global_refs])
         self.allow_none = False
 
+    def rename(self, name):
+        """Rename self. Must be called only by its system."""
+        if is_valid_name(name):
+            if name not in self.system.models:
+                self.name = name
+                return True     # Rename success
+            else:               # Model name already exists
+                return False
+        else:
+            raise ValueError("Invalid name '%s'." % name)
+
     def clear_descendants(self, source, clear_source=True):
         """Clear values and nodes calculated from `source`."""
         removed = self.cellgraph.clear_descendants(source, clear_source)
@@ -298,6 +309,10 @@ class Model(SpaceContainer):
     A model can be created by
     :py:func:`new_model <modelx.core.model.Model>` API function.
     """
+
+    def rename(self, name):
+        """Rename the model itself"""
+        self._impl.system.rename_model(new_name=name, old_name=self.name)
 
     def save(self, filepath):
         """Save the model to a file."""

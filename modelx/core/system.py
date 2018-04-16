@@ -57,6 +57,7 @@ class System:
         self.configure_python()
         self.callstack = CallStack(self, max_depth)
         self._modelnamer = AutoNamer("Model")
+        # self._backupnamer = AutoNamer("_BAK")
         self._currentmodel = None
         self._models = {}
         self.self = None
@@ -90,6 +91,14 @@ class System:
         self._currentmodel = ModelImpl(system=self, name=name)
         self.models[self._currentmodel.name] = self._currentmodel
         return self._currentmodel
+
+    def rename_model(self, new_name, old_name):
+        result = self.models[old_name].rename(new_name)
+        if result:
+            self.models[new_name] = self.models.pop(old_name)
+            return True
+        else:
+            return False
 
     @property
     def models(self):

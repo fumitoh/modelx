@@ -135,6 +135,15 @@ def test_global_ref_delattr():
     with pytest.raises(NameError):
         func1(4)
 
+def test_rename():
+
+    model = new_model(name='oldname')
+    model.rename('newname')
+
+    assert get_models()['newname'] == model
+    assert model.name == 'newname'
+
+
 # ---- Test impl ----
 
 def test_get_object(simplemodel):
