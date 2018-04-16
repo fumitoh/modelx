@@ -26,15 +26,15 @@ class AutoNamer:
         self.__basename = basename
         self.__last_postfix = 0
 
-    def get_next(self, existing_names):
+    def get_next(self, existing_names, prefix=''):
 
         self.__last_postfix += 1
-        result = self.__basename + str(self.__last_postfix)
+        result = prefix + self.__basename + str(self.__last_postfix)
 
         if result in existing_names:
             # Increment postfix until no name
             # exists with that postfix.
-            return self.get_next(existing_names)
+            return self.get_next(existing_names, prefix)
         else:
             return result
 

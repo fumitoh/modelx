@@ -52,3 +52,14 @@ def test_get_next_skip_existing(simplenamer):
     assert simplenamer.get_next(existing_names) == "Cells14"
 
 
+def test_get_next_with_prefix():
+    existing_names = ["model_BAK1",
+                      "model_BAK2",
+                      "model_BAK3"]
+
+    autonamer = AutoNamer('_BAK')
+
+    assert autonamer.get_next(existing_names, 'model') == "model_BAK4"
+
+
+
