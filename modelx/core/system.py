@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import warnings
 import pickle
 from collections import deque, namedtuple
 from modelx.core.model import ModelImpl
@@ -57,7 +58,7 @@ class System:
         self.configure_python()
         self.callstack = CallStack(self, max_depth)
         self._modelnamer = AutoNamer("Model")
-        # self._backupnamer = AutoNamer("_BAK")
+        self._backupnamer = AutoNamer("_BAK")
         self._currentmodel = None
         self._models = {}
         self.self = None
@@ -88,6 +89,16 @@ class System:
 
 
     def new_model(self, name=None):
+
+        if name in self.models:
+            backupname = self._backupnamer.get_next(self.models, prefix=name)
+            if self.rename_model(backupname, name):
+                warnings.warn(
+                    "Existing model '%s' renamed to '%s'" % (
+                        name, backupname))
+            else:
+                raise ValueError("Failed to create %s", name)
+
         self._currentmodel = ModelImpl(system=self, name=name)
         self.models[self._currentmodel.name] = self._currentmodel
         return self._currentmodel
