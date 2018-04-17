@@ -50,6 +50,25 @@ class CallStack(deque):
             result += "{0}: {1}\n".format(i, value)
         return result
 
+def custom_showwarning(message, category,
+                       filename='', lineno=-1, file=None, line=None):
+    """Hook to override default showwarning.
+
+    https://stackoverflow.com/questions/2187269/python-print-only-the-message-on-warnings
+    """
+
+    if file is None:
+        file = sys.stderr
+        if file is None:
+            # sys.stderr is None when run with pythonw.exe:
+            # warnings get lost
+            return
+    text = "%s: %s\n" % (category.__name__, message)
+    try:
+        file.write(text)
+    except OSError:
+        # the file (probably stderr) is invalid - this warning gets lost.
+        pass
 
 class System:
 
@@ -75,6 +94,9 @@ class System:
         if False:   # Print traceback for the time being
             sys.tracebacklimit = 0
 
+        orig['showwarning'] = warnings.showwarning
+        warnings.showwarning = custom_showwarning
+
     def restore_python(self):
         """Restore Python settings to the original states"""
         orig = self.orig_settings
@@ -85,6 +107,10 @@ class System:
         else:
             if hasattr(sys, 'tracebacklimit'):
                 del sys.tracebacklimit
+
+        if 'showwarning' in orig:
+            warnings.showwarning = orig['showwarning']
+
         orig.clear()
 
 

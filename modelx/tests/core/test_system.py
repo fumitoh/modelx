@@ -93,3 +93,14 @@ def test_restore_python():
     assert not hasattr(sys, 'tracebacklimit')
 
     configure_python()
+
+
+def test_rename_same_name():
+
+    m1 = new_model('dupname')
+    with pytest.warns(UserWarning):
+        m2 = new_model('dupname')
+
+    print(get_models())
+    assert 'dupname_BAK' in m1.name
+    assert m1.name in get_models()
