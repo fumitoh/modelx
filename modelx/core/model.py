@@ -77,6 +77,9 @@ class DependencyGraph(nx.DiGraph):
                 result.add(node)
         return result
 
+    def fresh_copy(self):
+        """Overriding Graph.fresh_copy"""
+        return DependencyGraph()
 
 class ModelNamespaceChainMap(LazyEvalChainMap, ParentMixin):
 

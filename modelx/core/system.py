@@ -117,13 +117,7 @@ class System:
     def new_model(self, name=None):
 
         if name in self.models:
-            backupname = self._backupnamer.get_next(self.models, prefix=name)
-            if self.rename_model(backupname, name):
-                warnings.warn(
-                    "Existing model '%s' renamed to '%s'" % (
-                        name, backupname))
-            else:
-                raise ValueError("Failed to create %s", name)
+            self._rename_samename(name)
 
         self._currentmodel = ModelImpl(system=self, name=name)
         self.models[self._currentmodel.name] = self._currentmodel
@@ -136,6 +130,14 @@ class System:
             return True
         else:
             return False
+
+    def _rename_samename(self, name):
+        backupname = self._backupnamer.get_next(self.models, prefix=name)
+        if self.rename_model(backupname, name):
+            warnings.warn("Existing model '%s' renamed to '%s'" %
+                          (name, backupname))
+        else:
+            raise ValueError("Failed to create %s", name)
 
     @property
     def models(self):
@@ -157,12 +159,12 @@ class System:
         with open(path, 'rb') as file:
             model = pickle.load(file)
 
-        if model.name not in self.models:
-            model._impl.restore_state(self)
-            self.models[model.name] = model._impl
-            self._currentmodel = model._impl
-        else:
-            raise RuntimeError("Model '%s' already exists" % model.name)
+        if model.name in self.models:
+            self._rename_samename(model.name)
+
+        model._impl.restore_state(self)
+        self.models[model.name] = model._impl
+        self._currentmodel = model._impl
 
         return model
 
