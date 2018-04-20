@@ -1,8 +1,14 @@
 Reference
 =========
 
-Functions
----------
+
+.. toctree::
+   :caption: Concept Description
+
+   concepts
+
+Function Reference
+------------------
 
 .. autosummary::
    :toctree: generated/
@@ -11,8 +17,8 @@ Functions
    modelx.qtgui.api
 
 
-Classes
--------
+Class Reference
+---------------
 
 .. autosummary::
    :toctree: generated/
