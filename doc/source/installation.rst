@@ -1,6 +1,14 @@
 Installation
 ============
 
+.. note::
+
+   For `lifelib`_ users, when installing `lifelib`_ using
+   ``pip``, modelx is automatically installed due to its dependency, so
+   no need to install modelx separately.
+
+.. _lifelib: http://lifelib.io
+
 Python version
 --------------
 modelx requires Python 3.4 or newer. modelx does not work with Python 3 older
@@ -62,4 +70,3 @@ Unpack the downloaded files and run the following command
 at the top of the source directory::
 
     $ pip install .
-

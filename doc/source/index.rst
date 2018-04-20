@@ -6,6 +6,15 @@
 Welcome to modelx's documentation!
 ==================================
 
+Latest Updates
+--------------
+
+.. include:: updates.rst
+   :start-after: Latest Updates Begin
+   :end-before: Latest Updates End
+
+:doc:`... See more updates<updates>`
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents

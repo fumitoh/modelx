@@ -15,6 +15,10 @@ When updating modelx to a newer version,
 make sure you rebuild model files saved using older versions of modelx
 from their source code.
 
+.. toctree::
+   :caption: Updates
+
+   updates
 
 Releases
 ========
@@ -37,7 +41,7 @@ v0.0.8 (25 March 2018)
 
 Enhancements
 ~~~~~~~~~~~~
-- Make :func:`get_modeltree <modelx.qtgui.modeltree.api>` available directly under ``modelx``.
+- Make :func:`get_modeltree <modelx.qtgui.api.get_modeltree>` available directly under ``modelx``.
 - Add :meth:`~space.SpaceContainer.import_module` and :meth:`~space.Space.import_funcs` properties.
 - Add :attr:`~space.Space.all_spaces` to contain all child spaces, including dynamic spaces.
 - Add :py:attr:`~space.Space.self_spaces` and :py:attr:`~space.Space.derived_spaces` properties.

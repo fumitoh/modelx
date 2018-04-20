@@ -26,13 +26,13 @@ As mentioned above, spaces can contain other spaces. A space that contains other
 
 By recursively creating child spaces in another space's child spaces, you can create a tree of spaces. A tree of spaces originating a space are called *descendant* spaces of the space. In turn *ascendant* spaces of a space are those that have the space as their descendant space.
 
-Child spaces can not 'outlive' their parent space. In other words, a parent space owns its child spaces i.e. when the parent space is deleted, its child spaces, if there is any, are deleted too.
+Child spaces can not 'outlive' their parent space. In other words, a parent space owns its child spaces i.e. when the parent space is deleted, its child spaces, if there are any, are deleted too.
 
 .. note::
 
    In OOP contexts, the terms 'parent' and 'child' are sometimes used interchangeably with 'base' and 'sub' respectively.
    The readers should be aware that here in this reference for modelx, we use the terms 'parent' and 'child' in
-   composition contexts exclusively, and the terms 'sub' and 'base' exclusively in inheritance context.
+   composition contexts exclusively, and the terms 'sub' and 'base' exclusively in inheritance contexts.
 
 Space Inheritance
 -----------------
@@ -82,16 +82,15 @@ Static and Dynamic spaces
 
 Every space is either a static space or a dynamic space.
 
-Static spaces are those that are explicitly created by calling their parents' methods, or automatically by the space inheritance mechanism.
+Static spaces are those that are created explicitly by calling their parents' methods, or automatically by the space inheritance mechanism. Spaces that are directly contained in a model, i.e. spaces that are not child spaces of any other spaces, are always static spaces. Since they are always defined, they are always defined and static spaces.
 
-Dynamic spaces, a.k.a parametrized spaces, are those that are created upon the first call or subscription operations on their parent spaces.
+Dynamic spaces, a.k.a parametrized spaces, are those that are created upon the first call or subscription operations on their parent spaces. Such parent spaces must have associated formulas that define parameters of the dynamic spaces and return arguments to be passed to the dynamic spaces for their initialization.
 
-Dynamic spaces can have child spaces just like static spaces, either by their parents' methods, or automatically by inheriting base spaces. A dynamic space and its descendants are collectively called dynamic space tree.
+Dynamic spaces can have child spaces just like static spaces, either by calling their methods, or automatically by inheriting base spaces. A dynamic space and its descendants are collectively called a dynamic space tree.
 
 A dynamic space can also have dynamic spaces in its dynamic space tree.
 
-Dynamic spaces are created by parametrized spaces.
-A parametrized space is a space that has an associated formula that defines parameters of the space and returns arguments to create dynamic spaces.
-
-Spaces that are directly contained in a model, i.e. spaces that are not child spaces of any other spaces, are always static spaces. Since they are always defined, they are always defined and static spaces.
 Spaces that are in dynamic space trees cannot be base spaces of other spaces.
+
+Dynamic spaces are not inherited, i.e. if a static ascendant space of dynamic spaces are inherited,
+no derived spaces in the sub space are created, that correspond to the dynamic spaces in the base space.
