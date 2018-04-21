@@ -50,22 +50,6 @@ def unpickled_model(request, testmodel, tmpdir_factory):
     model.close()
 
 
-@pytest.fixture(params=['derived',
-                        'derived.child',
-                        'derived.child.nested'])
-def testspaces(request, unpickled_model):
-    trgname = request.param.split('.')
-    srcname = trgname.copy()
-    srcname[0] = 'base'
-    target = source = unpickled_model
-    for space in trgname:
-        target = target.spaces[space]
-    for space in srcname:
-        source = source.spaces[space]
-
-    return target, source
-
-
 def test_model_delattr_basespace(unpickled_model):
     model = unpickled_model
 
@@ -105,6 +89,51 @@ def test_spacemapproxy_contains(unpickled_model):
     assert 'child' in model.derived.spaces
     assert 'child' not in model.derived.self_spaces
     assert 'child' in model.derived.derived_spaces
+
+
+@pytest.fixture(params=['derived',
+                        'derived.child',
+                        'derived.child.nested'])
+def testspaces(request, unpickled_model):
+    trgname = request.param.split('.')
+    srcname = trgname.copy()
+    srcname[0] = 'base'
+    target = source = unpickled_model
+    for space in trgname:
+        target = target.spaces[space]
+    for space in srcname:
+        source = source.spaces[space]
+
+    return target, source
+
+
+def test_inheritance(testspaces):
+
+    target, source = testspaces
+
+    assert source.is_base(target)
+    assert target.is_sub(source)
+
+
+def test_properties(testspaces):
+
+    target, source = testspaces
+
+    assert target.is_static()
+    assert source.is_static()
+
+    assert not source.is_dynamic()
+    assert not target.is_dynamic()
+
+    assert source.is_defined()
+    assert not source.is_derived()
+
+    if source.name == 'base':
+        assert target.is_defined()
+        assert not target.is_derived()
+    else:
+        assert not target.is_defined()
+        assert target.is_derived()
 
 
 def test_cellsmapproxy_contains(testspaces):

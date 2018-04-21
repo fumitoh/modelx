@@ -112,6 +112,11 @@ class SpaceContainerImpl(Impl):
 
     # ----------------------------------------------------------------------
     # Properties
+    def is_model(self):
+        return self.parent is None
+
+    def is_space(self):
+        return not self.is_model()
 
     @property
     def model(self):
@@ -1034,11 +1039,46 @@ class SpaceImpl(SpaceContainerImpl):
     def has_bases(self):
         return len(self.mro) > 1
 
+    def is_base(self, other):
+        if self is other:
+            return False
+        else:
+            return self in other.mro
+
+    def is_sub(self, other):
+        if self is other:
+            return False
+        else:
+            return other in self.mro
+
+    def is_static(self):
+        if self.parent.is_model():
+            return True
+        elif self in self.parent.static_spaces.values():
+            return True
+        else:
+            return False
+
+    def is_defined(self):
+        if self.is_static():
+            if not self.is_derived():
+                return True
+
+        return False
+
     def is_derived(self):
-        if self.parent.parent is None:
+        if self.parent.is_model():
             return False
         else:
             return self in self.parent.derived_spaces.values()
+
+    def in_dynamic(self):
+        if self.parent.is_model():
+            return False
+        elif self.parent.is_dynamic:
+            return True
+        else:
+            return self.parent.in_dynamic()
 
     def has_inherited(self):
         return len(self.get_inherited())
@@ -1051,8 +1091,8 @@ class SpaceImpl(SpaceContainerImpl):
                 space = obs.space
                 if space is not self:
                     # Check if space.parent is Model or Space
-                    if hasattr(space.parent, 'self_spaces'):
-                        if space in space.parent.self_spaces:
+                    if space.parent.is_space():
+                        if space.is_defined():
                             bases.add(space)
                     else:
                         bases.add(space)
@@ -1073,7 +1113,7 @@ class SpaceImpl(SpaceContainerImpl):
         parent = self.parent
         while True:
             fullname = parent.name + '.' + fullname
-            if parent.parent is not None:
+            if parent.is_space():
                 parent = parent.parent
             else:
                 if omit_model:
@@ -1467,8 +1507,33 @@ class Space(SpaceContainer):
         # Outside formulas only
         return self._impl.new_cells(name, formula).interface
 
+    def is_base(self, other):
+        """True if the space is a base space of ``other``, False otherwise."""
+        return self._impl.is_base(other._impl)
+
+    def is_sub(self, other):
+        """True if the space is a sub space of ``other``, False otherwise."""
+        return self._impl.is_sub(other._impl)
+
+    def is_static(self):
+        """True if the space is a static space, False if dynamic."""
+        return self._impl.is_static()
+
     def is_derived(self):
+        """True if the space is a derived space, False otherwise."""
         return self._impl.is_derived()
+
+    def is_defined(self):
+        """True if the space is a defined space, False otherwise."""
+        return self._impl.is_defined()
+
+    def is_dynamic(self):
+        """True if ths space is a dynamic space, False otherwise."""
+        return self._impl.is_dynamic
+
+    def in_dynamic(self):
+        """True if the space is in a dynamic space, False otherwise."""
+        return self._impl.in_dynamic()
 
     @property
     def cells(self):
