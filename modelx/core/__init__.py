@@ -17,9 +17,9 @@ import sys
 from modelx.core.system import System
 
 
-# Limit max_depth to 500 to avoid stack overflow on Python 64-bit anaconda
+# Limit max_depth to 500 if stack overflows on Python 64-bit anaconda
 # Ref: https://bugs.python.org/issue32570
 # TODO: Need more robust approach
-system = System(max_depth=500)
+system = System(max_depth=1000)
 
 
