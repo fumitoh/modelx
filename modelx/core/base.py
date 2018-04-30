@@ -16,7 +16,7 @@ import sys
 import builtins
 from types import MappingProxyType
 from collections import Sequence, ChainMap, Mapping, UserDict, OrderedDict
-from inspect import BoundArguments
+from inspect import isclass, BoundArguments
 
 
 # To add new method apply_defaults to BoundArguments.
@@ -172,12 +172,21 @@ class Impl:
 
     state_attrs = ['interface',
                    'parent',
-                   'allow_none']
+                   'allow_none',
+                   'lazy_evals']
 
     def __init__(self, interface_class):
-        self.interface = interface_class(self)
+
+        if not isclass(interface_class):
+            self.interface = interface_class
+        elif issubclass(interface_class, Interface):
+            self.interface = interface_class(self)
+        else:
+            raise TypeError('%s not value or interface', interface_class)
+
         self.parent = None  # To be overwritten in Space and Cells
         self.allow_none = None
+        self.lazy_evals = None
 
     @property
     def repr_string(self):
@@ -201,6 +210,43 @@ class Impl:
             return self.parent.get_property(name)
         else:
             return prop
+
+    def update_lazyevals(self):
+        """Update all LazyEvals in self
+
+        self.lzy_evals must be set to LazyEval object(s) enough to
+        update all owned LazyEval objects.
+        """
+        if self.lazy_evals is None:
+            return
+        elif isinstance(self.lazy_evals, LazyEval):
+            self.lazy_evals.get_updated()
+        else:
+            for lz in self.lazy_evals:
+                lz.get_updated()
+
+
+class _DummyBuiltins:
+    pass
+
+
+class ReferenceImpl(Impl):
+
+    def __getstate__(self):
+        state = {key: value for key, value in self.__dict__.items()
+                 if key in self.state_attrs}
+
+        if state['interface'] is builtins:
+            state['interface'] = _DummyBuiltins()
+
+        return state
+
+    def __setstate__(self, state):
+
+        if isinstance(state['interface'], _DummyBuiltins):
+            state['interface'] = builtins
+
+        self.__dict__.update(state)
 
 
 class NullImpl(Impl):
@@ -415,20 +461,10 @@ class LazyEvalDict(LazyEval, UserDict):
         self.set_update(skip_self)
 
     def __getstate__(self):
-
         state = self.__dict__.copy()
-        if '__builtins__' in state['data']:
-            data = state['data'].copy()
-            data['__builtins__'] = '__builtins__'
-            state['data'] = data
-
         return state
 
     def __setstate__(self, state):
-
-        if '__builtins__' in state['data']:
-            state['data']['__builtins__'] = builtins
-
         self.__dict__.update(state)
 
 
@@ -540,17 +576,16 @@ class InterfaceMixin:
 
     def __getstate__(self):
         state = super().__getstate__()
-        if self.map_class is MappingProxyType:
-            state['map_class'] = 'MappingProxyType'
+        state['_interfaces'] = OrderedDict()
         del state['interfaces']
         return state
 
     def __setstate__(self, state):
         super().__setstate__(state)
-        if self.map_class == 'MappingProxyType':
-            self.map_class = MappingProxyType
+        if self.map_class == 'BaseMapProxy':
+            self.map_class = BaseMapProxy
         self.interfaces = self.map_class(self._interfaces)
-
+        self.needs_update = True
 
 class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
 
@@ -564,6 +599,9 @@ class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
         LazyEvalDict._update_data(self)
         self._update_order()
         self._update_interfaces()
+
+    def __repr__(self):
+        return repr(self.parent.fullname) + ':' + repr(self.__class__)
 
 
 class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
@@ -579,6 +617,9 @@ class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
         LazyEvalChainMap._update_data(self)
         self._update_order()
         self._update_interfaces()
+
+    def __repr__(self):
+        return repr(self.parent.fullname) + ':' + repr(self.__class__)
 
 # The code below is modified from UserDict in Python's standard library.
 #

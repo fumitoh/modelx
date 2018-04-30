@@ -21,10 +21,8 @@ import pickle
 import networkx as nx
 
 from modelx.core.base import (
-    Impl,
     get_interfaces,
     ImplDict,
-    ProxyDict,
     LazyEval,
     ParentMixin,
     LazyEvalChainMap)
@@ -32,7 +30,8 @@ from modelx.core.cells import CellArgs
 from modelx.core.space import (
     SpaceContainerImpl,
     SpaceContainer,
-    SpaceMapProxy)
+    SpaceMapProxy,
+    RefDict)
 from modelx.core.util import is_valid_name
 
 
@@ -101,11 +100,7 @@ class ModelNamespaceChainMap(LazyEvalChainMap, ParentMixin):
     def __getstate__(self):
 
         state = super().__getstate__()
-        # state = self.__dict__.copy()
-        if '__builtins__' in state['_namespace']:
-            ns = state['_namespace'].copy()
-            ns['__builtins__'] = '__builtins__'
-            state['_namespace'] = ns
+        state['_namespace'] = OrderedDict()
 
         del state['namespace']
 
@@ -113,11 +108,9 @@ class ModelNamespaceChainMap(LazyEvalChainMap, ParentMixin):
 
     def __setstate__(self, state):
 
-        if '__builtins__' in state['_namespace']:
-            state['_namespace']['__builtins__'] = builtins
-
         super().__setstate__(state)
         self.namespace = MappingProxyType(self._namespace)
+        self.needs_update = True
 
 
 class ModelImpl(SpaceContainerImpl):
@@ -135,14 +128,13 @@ class ModelImpl(SpaceContainerImpl):
         else:
             raise ValueError("Invalid name '%s'." % name)
 
-        # Impl.__init__(self, Model)
-
-        self._global_refs = ProxyDict(self,
-            data={'__builtins__': builtins})
+        data = {'__builtins__': builtins}
+        self._global_refs = RefDict(self, data=data)
         self._spaces = ImplDict(self, SpaceMapProxy)
         self._namespace = ModelNamespaceChainMap(
             self, [self._spaces, self._global_refs])
         self.allow_none = False
+        self.lazy_evals = self._namespace
 
     def rename(self, name):
         """Rename self. Must be called only by its system."""
@@ -208,6 +200,7 @@ class ModelImpl(SpaceContainerImpl):
         self.system.close_model(self)
 
     def save(self, filepath):
+        self.update_lazyevals()
         with open(filepath, 'wb') as file:
             pickle.dump(self.interface, file, protocol=4)
 
@@ -279,7 +272,7 @@ class ModelImpl(SpaceContainerImpl):
         if name in self.spaces:
             return self.spaces[name].interface
         elif name in self.global_refs:
-            return self.global_refs[name]
+            return get_interfaces(self.global_refs[name])
         else:
             raise KeyError("Model '{0}' does not have '{1}'".\
                            format(self.name, name))
@@ -288,8 +281,7 @@ class ModelImpl(SpaceContainerImpl):
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
 
-        self.global_refs[name] = value
-        self.global_refs.set_update()
+        self.global_refs.set_item(name, value)
 
     def del_attr(self, name):
 

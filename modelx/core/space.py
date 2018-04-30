@@ -23,13 +23,11 @@ from modelx.core.base import (
     get_impls,
     get_interfaces,
     Impl,
+    ReferenceImpl,
     NullImpl,
     Interface,
     LazyEval,
-    LazyEvalDict,
     LazyEvalChainMap,
-    ProxyDict,
-    ProxyChainMap,
     ParentMixin,
     ImplDict,
     ImplChainMap,
@@ -410,6 +408,28 @@ class CellsDict(ImplDict):
         ImplDict.__init__(self, space, CellsMapProxy, data, observers)
 
 
+class RefDict(ImplDict):
+
+    def __init__(self, space, data=None, observers=None):
+
+        if data is not None:
+            for name, value in data.items():
+                data[name] = self.get_ref(value)
+
+        ImplDict.__init__(self, space, BaseMapProxy, data, observers)
+
+    def set_item(self, name, value, skip_self=False):
+        ImplDict.set_item(self, name, self.get_ref(value), skip_self)
+
+    @staticmethod
+    def get_ref(value):
+        if isinstance(value, Impl):
+            return value
+        else:
+            return ReferenceImpl(value)
+
+
+
 class BaseMixin:
     """Members of bases to be inherited to ``space``"""
 
@@ -467,10 +487,10 @@ class BaseCellsDict(BaseMixin, CellsDict):
         return base.self_cells
 
 
-class BaseRefsDict(BaseMixin, ProxyDict):
+class BaseRefDict(BaseMixin, RefDict):
 
     def __init__(self, derived):
-        ProxyDict.__init__(self, derived.parent)
+        RefDict.__init__(self, derived.parent)
         BaseMixin.__init__(self, derived)
 
     def get_baseself(self, base):
@@ -547,11 +567,11 @@ class DerivedCellsDict(BaseDictMixin, CellsDict):
         CellsDict._update_data(self)
 
 
-class DerivedRefsDict(BaseDictMixin, ProxyDict):
+class DerivedRefDict(BaseDictMixin, RefDict):
 
     def __init__(self, space, data=None, observers=None):
-        ProxyDict.__init__(self, space, data, observers)
-        BaseDictMixin.__init__(self, BaseRefsDict)
+        RefDict.__init__(self, space,data, observers)
+        BaseDictMixin.__init__(self, BaseRefDict)
 
     def _update_data(self):
         self.data.clear()
@@ -596,24 +616,17 @@ class SpaceNamespaceChainMap(LazyEvalChainMap, ParentMixin):
         self.namespace.clear()
         self.namespace.update(get_interfaces(self.parent.cells))
         self.namespace.update(get_interfaces(self.parent.spaces))
-        self.namespace.update(self.parent.refs)
+        self.namespace.update(get_interfaces(self.parent.refs))
 
     def __getstate__(self):
-
         state = self.__dict__.copy()
-        if '__builtins__' in state['namespace']:
-            ns = state['namespace'].copy()
-            ns['__builtins__'] = '__builtins__'
-            state['namespace'] = ns
+        state['namespace'] = {}
 
         return state
 
     def __setstate__(self, state):
-
-        if '__builtins__' in state['namespace']:
-            state['namespace']['__builtins__'] = builtins
-
         self.__dict__.update(state)
+        self.needs_update = True
 
 
 class SpaceImpl(SpaceContainerImpl):
@@ -710,10 +723,10 @@ class SpaceImpl(SpaceContainerImpl):
 
         if arguments is None:
             self.is_dynamic = False
-            self._arguments = LazyEvalDict()
+            self._arguments = RefDict(self)
         else:
             self.is_dynamic = True
-            self._arguments = LazyEvalDict(arguments)
+            self._arguments = RefDict(self, data=arguments)
 
         if isinstance(source, ModuleType):
             self.source = source.__name__
@@ -742,7 +755,7 @@ class SpaceImpl(SpaceContainerImpl):
         self._self_cells = CellsDict(self)
         self._self_spaces = SpaceDict(self)
         self._dynamic_spaces = ImplDict(self, SpaceMapProxy)
-        self._self_refs = ProxyDict(self)
+        self._self_refs = RefDict(self)
 
         self_members = [self._self_cells,
                         self._self_spaces,
@@ -764,12 +777,12 @@ class SpaceImpl(SpaceContainerImpl):
         self._spaces = ImplChainMap(self, SpaceMapProxy,
                                     [self._static_spaces,
                                      self._dynamic_spaces])
-        self._derived_refs = DerivedRefsDict(self)
+        self._derived_refs = DerivedRefDict(self)
 
-        self._local_refs = {'_self': self.interface,
-                            '_space': self.interface}
+        self._local_refs = {'_self': self,
+                            '_space': self}
 
-        self._refs = ProxyChainMap(self,
+        self._refs = ImplChainMap(self, BaseMapProxy,
                                    [self.model._global_refs,
                                     self._local_refs,
                                     self._arguments,
@@ -787,11 +800,15 @@ class SpaceImpl(SpaceContainerImpl):
                                                              self._spaces,
                                                              self._refs])
 
+        self.lazy_evals = self._namespace_impl
+
         # ------------------------------------------------------------------
         # Add initial refs members
 
         if refs is not None:
-            self._self_refs.update(refs)
+            refsimpl = {name: ReferenceImpl(value)
+                        for name, value in refs.items()}
+            self._self_refs.update(refsimpl)
             self._self_refs.set_update()
 
     # ----------------------------------------------------------------------
@@ -827,9 +844,11 @@ class SpaceImpl(SpaceContainerImpl):
         if self.is_dynamic:
             self.boundargs = self.parent.signature.bind(**args)
             self.argvalues = tuple(self.boundargs.arguments.values())
+            self.argvalues_if = tuple(get_interfaces(self.argvalues))
         else:
             self.boundargs = None
             self.argvalues = None
+            self.argvalues_if = None
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -856,13 +875,13 @@ class SpaceImpl(SpaceContainerImpl):
 
 
     def __repr__(self):
-        return '<SpaceImpl: ' + self.name + '>'
+        return '<SpaceImpl: ' + self.fullname + '>'
 
     @property
     def _repr_self(self):
 
         if self.is_dynamic:
-            args = [repr(arg) for arg in self.argvalues]
+            args = [repr(arg) for arg in get_interfaces(self.argvalues)]
             param = ', '.join(args)
             return "%s[%s]" % (self.parent.name, param)
         else:
@@ -1586,7 +1605,7 @@ class Space(SpaceContainer):
     @property
     def argvalues(self):
         """A tuple of space arguments."""
-        return self._impl.argvalues
+        return self._impl.argvalues_if
 
     @property
     def parameters(self):
