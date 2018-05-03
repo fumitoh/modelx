@@ -23,9 +23,8 @@ import networkx as nx
 from modelx.core.base import (
     get_interfaces,
     ImplDict,
-    LazyEval,
-    ParentMixin,
-    LazyEvalChainMap)
+    ImplChainMap,
+    BaseMapProxy)
 from modelx.core.cells import CellArgs
 from modelx.core.space import (
     SpaceContainerImpl,
@@ -80,38 +79,6 @@ class DependencyGraph(nx.DiGraph):
         """Overriding Graph.fresh_copy"""
         return DependencyGraph()
 
-class ModelNamespaceChainMap(LazyEvalChainMap, ParentMixin):
-
-    def __init__(self, model, maps):
-        self._namespace = OrderedDict()
-        self.namespace = MappingProxyType(self._namespace)
-        ParentMixin.__init__(self, model)
-        LazyEvalChainMap.__init__(self, maps)
-
-    def _update_data(self):
-
-        for map_ in self.maps:
-            if isinstance(map_, LazyEval):
-                map_.get_updated()
-        self._namespace.clear()
-        self._namespace.update(get_interfaces(self.parent.spaces))
-        self._namespace.update(self.parent.global_refs)
-
-    def __getstate__(self):
-
-        state = super().__getstate__()
-        state['_namespace'] = OrderedDict()
-
-        del state['namespace']
-
-        return state
-
-    def __setstate__(self, state):
-
-        super().__setstate__(state)
-        self.namespace = MappingProxyType(self._namespace)
-        self.needs_update = True
-
 
 class ModelImpl(SpaceContainerImpl):
 
@@ -131,8 +98,8 @@ class ModelImpl(SpaceContainerImpl):
         data = {'__builtins__': builtins}
         self._global_refs = RefDict(self, data=data)
         self._spaces = ImplDict(self, SpaceMapProxy)
-        self._namespace = ModelNamespaceChainMap(
-            self, [self._spaces, self._global_refs])
+        self._namespace = ImplChainMap(
+            self, BaseMapProxy, [self._spaces, self._global_refs])
         self.allow_none = False
         self.lazy_evals = self._namespace
 
@@ -333,7 +300,7 @@ class Model(SpaceContainer):
         self._impl.del_attr(name)
 
     def __dir__(self):
-        return self._impl.namespace.namespace
+        return self._impl.namespace.interfaces
 
     @property
     def cellgraph(self):

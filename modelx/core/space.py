@@ -26,9 +26,7 @@ from modelx.core.base import (
     ReferenceImpl,
     NullImpl,
     Interface,
-    LazyEval,
     LazyEvalChainMap,
-    ParentMixin,
     ImplDict,
     ImplChainMap,
     BaseMapProxy)
@@ -601,34 +599,6 @@ class SpaceMapProxy(BaseMapProxy):
     __repr__ = _map_repr
 
 
-class SpaceNamespaceChainMap(LazyEvalChainMap, ParentMixin):
-
-    def __init__(self, space, maps):
-        self.namespace = {}
-        ParentMixin.__init__(self, space)
-        LazyEvalChainMap.__init__(self, maps)
-
-    def _update_data(self):
-
-        for map_ in self.maps:
-            if isinstance(map_, LazyEval):
-                map_.get_updated()
-        self.namespace.clear()
-        self.namespace.update(get_interfaces(self.parent.cells))
-        self.namespace.update(get_interfaces(self.parent.spaces))
-        self.namespace.update(get_interfaces(self.parent.refs))
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        state['namespace'] = {}
-
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.needs_update = True
-
-
 class SpaceImpl(SpaceContainerImpl):
     """The implementation of Space class.
 
@@ -796,9 +766,10 @@ class SpaceImpl(SpaceContainerImpl):
         for observer in derived:
             self._self_members.append_observer(observer)
 
-        self._namespace_impl = SpaceNamespaceChainMap(self, [self._cells,
-                                                             self._spaces,
-                                                             self._refs])
+        self._namespace_impl = ImplChainMap(self, dict,
+                                            [self._cells,
+                                             self._spaces,
+                                             self._refs])
 
         self.lazy_evals = self._namespace_impl
 
@@ -1005,7 +976,7 @@ class SpaceImpl(SpaceContainerImpl):
 
     @property
     def namespace(self):
-        return self._namespace_impl.get_updated().namespace
+        return self._namespace_impl.get_updated().interfaces
 
     # ----------------------------------------------------------------------
     # Inheritance

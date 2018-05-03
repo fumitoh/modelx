@@ -533,9 +533,15 @@ class InterfaceMixin:
     _update_interfaces needs to be manually called from _update_data.
     """
     def __init__(self, map_class):
-        self._interfaces = OrderedDict()
+        self._interfaces = dict()
         self.map_class = map_class
-        self.interfaces = map_class(self._interfaces)
+        self._set_interfaces(map_class)
+
+    def _set_interfaces(self, map_class):
+        if map_class == dict:
+            self.interfaces = self._interfaces
+        else:
+            self.interfaces = map_class(self._interfaces)
 
     def _update_interfaces(self):
         self._interfaces.clear()
@@ -543,7 +549,7 @@ class InterfaceMixin:
 
     def __getstate__(self):
         state = super().__getstate__()
-        state['_interfaces'] = OrderedDict()
+        state['_interfaces'] = dict()
         del state['interfaces']
         return state
 
@@ -551,7 +557,7 @@ class InterfaceMixin:
         super().__setstate__(state)
         if self.map_class == 'BaseMapProxy':
             self.map_class = BaseMapProxy
-        self.interfaces = self.map_class(self._interfaces)
+        self._set_interfaces(self.map_class)
         self.needs_update = True
 
 class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
