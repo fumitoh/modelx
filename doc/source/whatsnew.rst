@@ -23,6 +23,28 @@ from their source code.
 Releases
 ========
 
+v0.0.10 (6 May 2018)
+--------------------
+
+Enhancements
+~~~~~~~~~~~~
+- Add ``is_*`` methods to Space.
+- Rename a model by adding ``_BAKn`` to its original name
+  when another model with the same name is created.
+- Add :meth:`~model.Model.rename`.
+- ``name in space`` expression is allowed where ``name`` is a string.
+- ``_space`` local reference is available to refer to the parent space from its child cells.
+
+Backwards Incompatible Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- ``get_self`` function is removed.
+
+Bug Fixes
+~~~~~~~~~
+- Call stack max depth is set to 1000 to run all lifelib samples successfully.
+- Fix an error around graph unpickling.
+- Keep the same derived objects after they are updated.
+
 v0.0.9 (1 April 2018)
 ---------------------
 
@@ -31,7 +53,7 @@ Enhancements
 - Add :func:`show_tree<modelx.qtgui.api.show_tree>` to show model tree in inline mode.
 - Add :func:`get_tree<modelx.qtgui.api.get_tree>` to get model tree in automatic mode.
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 - Make :func:`get_modeltree <modelx.qtgui.api.get_modeltree>` available directly under ``modelx``.
 
@@ -56,14 +78,14 @@ Backwards Incompatible Changes
 - Base spaces are now indelible.
 - :attr:`~space.Space.spaces` now contains only statics spaces. Now :attr:`~space.Space.static_spaces` is an alias to  :attr:`~space.Space.spaces`.
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 - Remove overridden cells from :py:attr:`~space.Space.derived_cells`
 - Update :py:attr:`~space.Space.self_cells` when new cells are added.
 - Fix stack overflow with Anaconda 64-bit Python on Windows.
 
 Thanks
-------
+~~~~~~
 - Stanley Ng
 
 v0.0.7 (27 February 2018)
@@ -75,7 +97,7 @@ Backwards Incompatible Changes
 - Renamed :py:meth:`~space.Space.new_cells` parameter ``func`` to ``formula``.
 - Renamed :py:class:`~base.Interface` ``can_have_none`` to ``allow_none``.
 
-Bug fixes
+Bug Fixes
 ~~~~~~~~~
 
 - Fix :py:func:`~api.open_model` to make :py:func:`~api.cur_model`
