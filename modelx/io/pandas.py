@@ -15,6 +15,7 @@
 import itertools
 
 import pandas as pd
+from pandas.core.reshape.merge import MergeError
 import numpy as np
 
 _pd_ver = tuple(int(i) for i in pd.__version__.split('.'))[:-1]
@@ -58,7 +59,10 @@ def space_to_dataframe(space):
         if result is None:
             result = df
         else:
-            result = pd.merge(result, df, how='outer')
+            try:
+                result = pd.merge(result, df, how='outer')
+            except MergeError:
+                result = pd.concat([result, df], axis=1)
 
     return result.set_index(all_params) if all_params else result
 
