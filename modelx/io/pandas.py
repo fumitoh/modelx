@@ -48,7 +48,7 @@ def space_to_dataframe(space):
                 if _pd_ver < (0, 20):
                     df = _reset_naindex(df)
 
-            df = df.reset_index()
+            df = df.reset_index()   # TODO: consider inplace=True instead
 
         missing_params = set(all_params) - set(df)
 
@@ -82,7 +82,7 @@ def cells_to_series(cells):
 
     elif len(cells.parameters) == 0:    # Const Cells
         data = list(cells.data.values())
-        indexes = None
+        indexes = [np.nan]
 
     elif len(cells.parameters) == 1:
         items = [(key[0], value) for key, value in cells.data.items()]
@@ -95,7 +95,7 @@ def cells_to_series(cells):
     result = pd.Series(data=data, name=cells.name,
                        index=indexes)
 
-    if indexes is not None:
+    if indexes is not None and any(i is not np.nan for i in indexes):
         result.index.names = list(cells.parameters.keys())
 
     return result
