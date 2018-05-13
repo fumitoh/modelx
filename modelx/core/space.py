@@ -1587,7 +1587,7 @@ class Space(SpaceContainer):
     @property
     def refs(self):
         """A map associating names to objects accessible by the names."""
-        return self._impl.refs.mproxy
+        return self._impl.refs.interfaces
 
     def import_funcs(self, module_):
         """Create a cells from a module."""

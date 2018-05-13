@@ -21,6 +21,9 @@ def testmodel():
 
     return model
 
+def test_refs(testmodel):
+    assert 'bar' in testmodel.testspace.refs
+
 def test_dir(testmodel):
     assert {'foo', 'bar', '_self', '_space',
             '__builtins__'} == set(dir(testmodel.testspace))
