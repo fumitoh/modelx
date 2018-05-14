@@ -15,15 +15,15 @@
 import itertools
 
 import pandas as pd
-from pandas.core.reshape.merge import MergeError
 import numpy as np
 
 _pd_ver = tuple(int(i) for i in pd.__version__.split('.'))[:-1]
 
 if _pd_ver < (0, 20):
+    from pandas.tools.merge import MergeError
+
     # To circumvent the BUG: reset_index with NaN in MultiIndex
     # https://github.com/pandas-dev/pandas/issues/6322
-
     def _reset_naindex(df):
         nan_levels = [lv for lv, idx in enumerate(df.index.levels)
                       if idx.size == 0]
@@ -34,7 +34,8 @@ if _pd_ver < (0, 20):
             df.insert(0, name, np.nan)
 
         return df
-
+else:
+    from pandas.core.reshape.merge import MergeError
 
 def space_to_dataframe(space):
 
