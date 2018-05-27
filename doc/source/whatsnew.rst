@@ -32,6 +32,15 @@ Updates
 Releases
 ========
 
+v0.0.11 (27 May 2018)
+---------------------
+
+Bug Fixes
+~~~~~~~~~
+- Fix Space.refs
+- Fix conversion of scalar cells to Pandas objects
+
+
 v0.0.10 (6 May 2018)
 --------------------
 

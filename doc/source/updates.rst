@@ -4,6 +4,9 @@ Updates
 
 .. Latest Updates Begin
 
+* *27 May 2018:*
+  modelx v0.0.11 is released.
+
 * *6 May 2018:*
   modelx v0.0.10 is released.
 
