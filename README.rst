@@ -2,6 +2,8 @@ modelx
 ======
 *Escape from spreadsheet models!*
 
+.. Overview Begin
+
 What is modelx?
 ---------------
 modelx is a Python package for performing complex calculations by creating
@@ -136,6 +138,8 @@ History
 -------
 modelx was originally conceived and written by Fumito Hamamura
 and it was first released in October 2017.
+
+.. Overview End
 
 
 Requirements

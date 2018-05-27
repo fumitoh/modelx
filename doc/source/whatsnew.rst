@@ -15,8 +15,17 @@ When updating modelx to a newer version,
 make sure you rebuild model files saved using older versions of modelx
 from their source code.
 
+Updates
+=======
+
+.. include:: updates.rst
+   :start-after: Latest Updates Begin
+   :end-before: Latest Updates End
+
+:doc:`... See more updates<updates>`
+
 .. toctree::
-   :caption: Updates
+   :hidden:
 
    updates
 

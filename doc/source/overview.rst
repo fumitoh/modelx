@@ -5,8 +5,8 @@ Overview
 *Escape from spreadsheet models!*
 
 .. include:: ../../README.rst
-   :start-line: 4
-   :end-line: 139
+   :start-after: Overview Begin
+   :end-before: Overview End
 
 
 What Next
