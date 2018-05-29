@@ -285,6 +285,9 @@ class SpaceContainer(Interface):
         Returns:
             The new child space created from the module.
         """
+        if 'bases' in params:
+            params['bases'] = get_impls(params['bases'])
+
         space = self._impl.model.currentspace \
             = self._impl.new_space_from_module(module_,
                                                recursive=recursive,
@@ -304,6 +307,9 @@ class SpaceContainer(Interface):
         Returns:
             The new child space created from the module.
         """
+        if 'bases' in params:
+            params['bases'] = get_impls(params['bases'])
+
         space = self._impl.model.currentspace \
             = self._impl.new_space_from_module(module_,
                                                   recursive=recursive,
