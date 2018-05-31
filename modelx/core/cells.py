@@ -324,11 +324,6 @@ class CellsImpl(Impl):
                     value = self._store_value(ptr, value, False)
 
             except ZeroDivisionError:
-                # msg = dedent("""\
-                #     Zero division occurred in {0}.
-                #     Call stack traceback:
-                #     {1}""")
-                # print(msg.format(ptr, self.system.callstack.tracemessage()))
                 tracemsg = self.system.callstack.tracemessage()
                 raise RewindStackError(ptr, tracemsg)
 
