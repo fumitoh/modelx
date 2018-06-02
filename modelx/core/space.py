@@ -29,7 +29,8 @@ from modelx.core.base import (
     LazyEvalChainMap,
     ImplDict,
     ImplChainMap,
-    BaseMapProxy)
+    BaseMapProxy,
+    AlteredFunction)
 from modelx.core.formula import Formula, create_closure, ModuleSource
 from modelx.core.cells import Cells, CellsImpl, cells_to_argvals
 from modelx.core.util import AutoNamer, is_valid_name, get_module
@@ -45,21 +46,7 @@ class SpaceArgs(ObjectArgs):
         self.space = self.obj_
 
     def eval_formula(self):
-
-        func = self.space.formula.func
-        codeobj = func.__code__
-        name = self.space.name
-        namespace = self.space.namespace
-
-        closure = func.__closure__  # None normally.
-        if closure is not None:     # pytest fails without this.
-            closure = create_closure(self.space.interface)
-
-        altfunc = FunctionType(codeobj, namespace,
-                               name=name, closure=closure)
-
-        return altfunc(**self.arguments)
-
+        return self.space.altfunc.get_updated().altfunc(**self.arguments)
 
 class ParamFunc(Formula):
     def __init__(self, func, module_=None):
@@ -689,13 +676,7 @@ class SpaceImpl(SpaceContainerImpl):
         self.parent = parent
         self.cellsnamer = AutoNamer('Cells')
 
-        self.param_spaces = {}
-        if formula is None:
-            self.formula = None
-        elif isinstance(formula, ParamFunc):
-            self.formula = formula
-        else:
-            self.formula = ParamFunc(formula)
+
 
         if arguments is None:
             self.is_dynamic = False
@@ -789,6 +770,14 @@ class SpaceImpl(SpaceContainerImpl):
             self._self_refs.set_update()
 
         # ------------------------------------------------------------------
+        # Construct altfunc after space members are crated
+
+        self.param_spaces = {}
+        self.formula = None
+        if formula is not None:
+            self.set_formula(formula)
+
+        # ------------------------------------------------------------------
         # For repr of LazyEvalDict, LazyEvalImpl
         self._self_cells.debug_name = '_self_cells'
         self._derived_cells.debug_name = '_derived_cells'
@@ -831,7 +820,8 @@ class SpaceImpl(SpaceContainerImpl):
         'cellsnamer',
         'name',
         'allow_none',
-        'source'] + SpaceContainerImpl.state_attrs
+        'source',
+        'altfunc'] + SpaceContainerImpl.state_attrs
 
     def _bind_args(self, args):
 
@@ -1366,7 +1356,11 @@ class SpaceImpl(SpaceContainerImpl):
 
     def set_formula(self, formula):
         if self.formula is None:
-            self.formula = ParamFunc(formula)
+            if isinstance(formula, ParamFunc):
+                self.formula = formula
+            else:
+                self.formula = ParamFunc(formula)
+            self.altfunc = AlteredFunction(self)
         else:
             raise ValueError("formula already assigned.")
 
