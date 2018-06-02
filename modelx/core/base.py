@@ -14,10 +14,13 @@
 
 import sys
 import builtins
-from types import MappingProxyType
+from types import MappingProxyType, FunctionType
 from collections import Sequence, ChainMap, Mapping, UserDict, OrderedDict
 from inspect import isclass, BoundArguments
-
+from modelx.core.formula import (
+    Formula,
+    create_closure,
+    NULL_FORMULA)
 
 # To add new method apply_defaults to BoundArguments.
 if sys.version_info < (3, 5, 0):
@@ -637,3 +640,42 @@ class BaseMapProxy(Mapping):
     # Now, add the methods in dicts but not in MutableMapping
     def __repr__(self): return repr(self._data)
 
+
+class AlteredFunction(LazyEval):
+    """Return function with updated namespace"""
+
+    def __init__(self, owner):
+        """Create altered function from owner's formula.
+
+        owner is a SpaceImpl or CellsImpl, which has formula, and
+        namespace_impl as its members.
+        """
+        LazyEval.__init__(self, [])
+        self.owner = owner
+
+        # Must not update owner's namespace to avoid circular updates.
+        self.namespace_impl = owner._namespace_impl
+        self.observe(self.namespace_impl)
+        self.altfunc = None
+        self.set_update()
+
+    def _update_data(self):
+        """Update altfunc"""
+
+        func = self.owner.formula.func
+        codeobj = func.__code__
+        name = func.__name__  # self.cells.name   # func.__name__
+        namespace = self.owner._namespace_impl.get_updated().interfaces
+
+        closure = func.__closure__  # None normally.
+        if closure is not None:     # pytest fails without this.
+            closure = create_closure(self.owner.interface)
+
+        self.altfunc = FunctionType(codeobj, namespace,
+                                    name=name, closure=closure)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['altfunc']
+        self.set_update()     # Reconstruct altfunc after unpickling
+        return state

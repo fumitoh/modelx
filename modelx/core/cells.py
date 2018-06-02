@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from types import FunctionType
 from textwrap import dedent
 from collections import Sequence, namedtuple
 from collections.abc import (
@@ -24,10 +23,10 @@ from itertools import combinations
 from modelx.core.base import (
     ObjectArgs,
     Impl,
-    Interface)
+    Interface,
+    AlteredFunction)
 from modelx.core.formula import (
     Formula,
-    create_closure,
     NULL_FORMULA)
 from modelx.core.util import is_valid_name
 from modelx.core.errors import (
@@ -80,20 +79,7 @@ class CellArgs(ObjectArgs):
         self.cells = self.obj_
 
     def eval_formula(self):
-
-        func = self.cells.formula.func
-        codeobj = func.__code__
-        name = self.cells.name   # func.__name__
-        namespace = self.cells.space.namespace
-
-        closure = func.__closure__  # None normally.
-        if closure is not None:     # pytest fails without this.
-            closure = create_closure(self.cells.interface)
-
-        altfunc = FunctionType(codeobj, namespace,
-                               name=name, closure=closure)
-
-        return altfunc(**self.arguments)
+        return self.cells.altfunc.get_updated().altfunc(**self.arguments)
 
 
 class CellsMaker:
@@ -181,6 +167,9 @@ class CellsImpl(Impl):
             base.derived.append(self)
         self.derived = []
 
+        self._namespace_impl = self.space._namespace_impl
+        self.altfunc = AlteredFunction(self)
+
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
@@ -190,7 +179,9 @@ class CellsImpl(Impl):
                    'name',
                    'data',
                    'base',
-                   'derived'] + Impl.state_attrs
+                   'derived',
+                   '_namespace_impl',
+                   'altfunc'] + Impl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
