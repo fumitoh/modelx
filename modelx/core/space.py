@@ -788,6 +788,23 @@ class SpaceImpl(SpaceContainerImpl):
             self._self_refs.update(refsimpl)
             self._self_refs.set_update()
 
+        # ------------------------------------------------------------------
+        # For repr of LazyEvalDict, LazyEvalImpl
+        self._self_cells.debug_name = '_self_cells'
+        self._derived_cells.debug_name = '_derived_cells'
+        self._cells.debug_name = '_cells'
+        self._self_spaces.debug_name = '_derived_cells'
+        self._derived_spaces.debug_name = '_derived_spaces'
+        self._static_spaces.debug_name = '_static_spaces'
+        self._dynamic_spaces.debug_name = '_dynamic_spaces'
+        # self._local_refs.debug_name = '_local_refs' # _local_res is dict
+        self._arguments.debug_name = '_arguments'
+        self._self_refs.debug_name = '_self_refs'
+        self._derived_refs.debug_name = '_derived_refs'
+        self._refs.debug_name = '_refs'
+        self._self_members.debug_name = '_self_members'
+        self._namespace_impl.debug_name = '_namespace_impl'
+
     # ----------------------------------------------------------------------
     # Serialization by pickle
 

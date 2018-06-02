@@ -574,7 +574,12 @@ class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
         self._update_interfaces()
 
     def __repr__(self):
-        return repr(self.parent.fullname) + ':' + repr(self.__class__)
+        if hasattr(self, 'debug_name'):
+            name = self.debug_name
+        else:
+            name = ''
+        return repr(self.parent.fullname) + ':' + repr(self.__class__) \
+            + ':' + name
 
 
 class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
@@ -592,7 +597,12 @@ class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
         self._update_interfaces()
 
     def __repr__(self):
-        return repr(self.parent.fullname) + ':' + repr(self.__class__)
+        if hasattr(self, 'debug_name'):
+            name = self.debug_name
+        else:
+            name = ''
+        return repr(self.parent.fullname) + ':' + repr(self.__class__) \
+            + ':' + name
 
 # The code below is modified from UserDict in Python's standard library.
 #
