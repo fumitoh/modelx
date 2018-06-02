@@ -78,10 +78,6 @@ class CellArgs(ObjectArgs):
         ObjectArgs.__init__(self, cells, args, kwargs)
         self.cells = self.obj_
 
-    def eval_formula(self):
-        return self.cells.altfunc.get_updated().altfunc(**self.arguments)
-
-
 class CellsMaker:
 
     def __init__(self, *, space, name):
@@ -289,6 +285,9 @@ class CellsImpl(Impl):
     # ----------------------------------------------------------------------
     # Value operations
 
+    def eval_formula(self, cellargs):
+        return self.altfunc.get_updated().altfunc(**cellargs.arguments)
+
     def get_value(self, args, kwargs=None):
 
         ptr = CellArgs(self, args, kwargs)
@@ -300,7 +299,7 @@ class CellsImpl(Impl):
         else:
             self.system.callstack.append(ptr)
             try:
-                value = ptr.eval_formula()
+                value = self.eval_formula(ptr)
 
                 if self.has_cell(args):
                     # Assignment took place inside the cell.

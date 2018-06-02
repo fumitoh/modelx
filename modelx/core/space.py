@@ -45,8 +45,6 @@ class SpaceArgs(ObjectArgs):
         ObjectArgs.__init__(self, space, args, kwargs)
         self.space = self.obj_
 
-    def eval_formula(self):
-        return self.space.altfunc.get_updated().altfunc(**self.arguments)
 
 class ParamFunc(Formula):
     def __init__(self, func, module_=None):
@@ -1338,7 +1336,7 @@ class SpaceImpl(SpaceContainerImpl):
             self.system.self = self
 
             try:
-                space_args = ptr.eval_formula()
+                space_args = self.eval_formula(ptr)
 
             finally:
                 self.system.self = last_self
@@ -1363,6 +1361,10 @@ class SpaceImpl(SpaceContainerImpl):
             self.altfunc = AlteredFunction(self)
         else:
             raise ValueError("formula already assigned.")
+
+    def eval_formula(self, spaceargs):
+        return self.altfunc.get_updated().altfunc(**spaceargs.arguments)
+
 
     # --- Cells creation and update -------------------------------------
 
