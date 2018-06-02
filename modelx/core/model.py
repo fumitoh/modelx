@@ -79,6 +79,9 @@ class DependencyGraph(nx.DiGraph):
         """Overriding Graph.fresh_copy"""
         return DependencyGraph()
 
+    def add_path(self, nodes, **attr):
+        """In replacement for Deprecated add_path method"""
+        return nx.add_path(self, nodes, **attr)
 
 class ModelImpl(SpaceContainerImpl):
 

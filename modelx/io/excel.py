@@ -209,7 +209,7 @@ def _get_namedrange(book, rangename, sheetname=None):
 
                     yield sheet_name, m.group('cells')
 
-    namedef = next((item for item in book.get_named_ranges()
+    namedef = next((item for item in book.defined_names.definedName
                     if cond(item)), None)
 
     if namedef is None:
