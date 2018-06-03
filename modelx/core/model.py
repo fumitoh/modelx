@@ -24,7 +24,8 @@ from modelx.core.base import (
     get_interfaces,
     ImplDict,
     ImplChainMap,
-    BaseMapProxy)
+    BaseMapProxy,
+    ReferenceImpl)
 from modelx.core.cells import CellArgs
 from modelx.core.space import (
     SpaceContainerImpl,
@@ -89,6 +90,7 @@ class ModelImpl(SpaceContainerImpl):
         SpaceContainerImpl.__init__(self, system, if_class=Model)
 
         self.cellgraph = DependencyGraph()
+        self.lexdep = DependencyGraph()     # Lexical dependency
         self.currentspace = None
 
         if not name:
@@ -122,6 +124,11 @@ class ModelImpl(SpaceContainerImpl):
         removed = self.cellgraph.clear_descendants(source, clear_source)
         for cell in removed:
             del cell.cells.data[cell.argvalues]
+
+    # TODO
+    # def clear_lexdescendants(self, refnode):
+    #     """Clear values of cells that refer to `ref`."""
+
 
     def clear_obj(self, obj):
         """Clear values and nodes of `obj` and their dependants."""
@@ -188,6 +195,7 @@ class ModelImpl(SpaceContainerImpl):
 
     state_attrs = ['name',
                    'cellgraph',
+                   'lexdep',
                    '_namespace',
                    '_global_refs'] + SpaceContainerImpl.state_attrs
 
@@ -196,12 +204,15 @@ class ModelImpl(SpaceContainerImpl):
         state = {key: value for key, value in self.__dict__.items()
                  if key in self.state_attrs}
 
-        mapping = {}
-        for node in self.cellgraph:
-            name = node.obj_.get_fullname(omit_model=True)
-            mapping[node] = (name, node.argvalues)
+        graphs = {name: graph for name, graph in state.items()
+                  if isinstance(graph, DependencyGraph)}
 
-        state['cellgraph'] = nx.relabel_nodes(self.cellgraph, mapping)
+        for gname, graph in graphs.items():
+            mapping = {}
+            for node in graph:
+                name = node.obj_.get_fullname(omit_model=True)
+                mapping[node] = (name, node.argvalues)
+            state[gname] = nx.relabel_nodes(graph, mapping)
 
         return state
 
@@ -251,7 +262,7 @@ class ModelImpl(SpaceContainerImpl):
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
 
-        self.global_refs.set_item(name, value)
+        self.global_refs.set_item(name, ReferenceImpl(self, name, value))
 
     def del_attr(self, name):
 

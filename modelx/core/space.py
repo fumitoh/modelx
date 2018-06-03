@@ -403,20 +403,20 @@ class RefDict(ImplDict):
 
         if data is not None:
             for name, value in data.items():
-                data[name] = self.get_ref(value)
+                data[name] = self.get_ref(space, name, value)
 
         ImplDict.__init__(self, space, BaseMapProxy, data, observers)
 
-    def set_item(self, name, value, skip_self=False):
-        ImplDict.set_item(self, name, self.get_ref(value), skip_self)
+    def set_item(self, name, ref, skip_self=False):
+        ImplDict.set_item(self, name, ref, skip_self)
 
+    # TODO: Should remove this to force refs created outside RefDict?
     @staticmethod
-    def get_ref(value):
-        if isinstance(value, Impl):
+    def get_ref(space, name, value):
+        if isinstance(value, Impl):   # TODO: Probably not correct.
             return value
         else:
-            return ReferenceImpl(value)
-
+            return ReferenceImpl(space, name, value)
 
 
 class BaseMixin:
@@ -665,6 +665,9 @@ class SpaceImpl(SpaceContainerImpl):
                 
         _namespace (dict)
     """
+
+    node_class = SpaceArgs
+
     def __init__(self, parent, name, bases, formula,
                  refs=None, arguments=None, source=None):
 
@@ -762,7 +765,7 @@ class SpaceImpl(SpaceContainerImpl):
         # Add initial refs members
 
         if refs is not None:
-            refsimpl = {name: ReferenceImpl(value)
+            refsimpl = {name: ReferenceImpl(self, name, value)
                         for name, value in refs.items()}
             self._self_refs.update(refsimpl)
             self._self_refs.set_update()
@@ -1108,22 +1111,6 @@ class SpaceImpl(SpaceContainerImpl):
     def parameters(self):
         return self.formula.signature.parameters
 
-    def get_fullname(self, omit_model=False):
-
-        fullname = self.name
-        parent = self.parent
-        while True:
-            fullname = parent.name + '.' + fullname
-            if parent.is_space():
-                parent = parent.parent
-            else:
-                if omit_model:
-                    separated = fullname.split('.')
-                    separated.pop(0)
-                    fullname = '.'.join(separated)
-
-                return fullname
-
     @property
     def fullname(self):
         return self.parent.fullname + '.' + self.name
@@ -1143,8 +1130,12 @@ class SpaceImpl(SpaceContainerImpl):
         if name in self.derived_refs:
             self.derived_refs.del_item(name)
 
-        self.self_refs.set_item(name, value)
+        ref = ReferenceImpl(self.parent, name, value)
 
+        # TODO
+        # self.model.clear_lexdescendants()
+
+        self.self_refs.set_item(name, ref)
 
     def set_attr(self, name, value):
         """Implementation of attribute setting
@@ -1300,7 +1291,7 @@ class SpaceImpl(SpaceContainerImpl):
 
         NullImpl(cells)
 
-    def _del_derived_cells(self, name):
+    def _del_derived_cells(self, name):  # TODO: Not Used?
 
         if name in self.namespace:
             if name in self.derived_cells:

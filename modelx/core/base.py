@@ -65,27 +65,32 @@ class ObjectArgs:
     state_attrs = ['obj_', 'argvalues']
 
     def __init__(self, obj_, args, kwargs=None):
+        self.obj_ = obj_
 
-        if isinstance(args, str):
+        if args is None and kwargs is None:
+            # Object-only node
+            pass
+
+        elif isinstance(args, str):
             args = (args,)
 
         elif not isinstance(args, Sequence):
             args = (args,)
 
-        if kwargs is None:
-            kwargs = {}
-
-        self.obj_ = obj_
         self._bind_args(args, kwargs)
-
 
     def _bind_args(self, args, kwargs=None):
 
-        if kwargs is None:
-            kwargs = {}
-        self.boundargs = self.obj_.signature.bind(*args, **kwargs)
-        self.boundargs.apply_defaults()
-        self.argvalues = tuple(self.boundargs.arguments.values())
+        if args is None and kwargs is None:
+            # Object-only node
+            self.argvalues = self.boundargs = None
+        else:
+            if kwargs is None:
+                kwargs = {}
+            self.boundargs = self.obj_.signature.bind(*args, **kwargs)
+            self.boundargs.apply_defaults()
+            self.argvalues = tuple(self.boundargs.arguments.values())
+
         self.id_ = (self.obj_, self.argvalues)
 
     def __getstate__(self):
@@ -228,12 +233,34 @@ class Impl:
             for lz in self.lazy_evals:
                 lz.get_updated()
 
+    def get_fullname(self, omit_model=False):
+
+        fullname = self.name
+        parent = self.parent
+        while True:
+            fullname = parent.name + '.' + fullname
+            if parent.is_space():
+                parent = parent.parent
+            else:
+                if omit_model:
+                    separated = fullname.split('.')
+                    separated.pop(0)
+                    fullname = '.'.join(separated)
+
+                return fullname
+
 
 class _DummyBuiltins:
     pass
 
 
 class ReferenceImpl(Impl):
+
+    def __init__(self, parent, name, value):
+        Impl.__init__(self, value)
+
+        self.parent = parent
+        self.name = name
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -642,7 +669,7 @@ class BaseMapProxy(Mapping):
 
 
 class AlteredFunction(LazyEval):
-    """Return function with updated namespace"""
+    """Hold function with updated namespace"""
 
     def __init__(self, owner):
         """Create altered function from owner's formula.
@@ -654,7 +681,7 @@ class AlteredFunction(LazyEval):
         self.owner = owner
 
         # Must not update owner's namespace to avoid circular updates.
-        self.namespace_impl = owner._namespace_impl
+        self.namespace_impl = owner._namespace_impl # No need to hold this
         self.observe(self.namespace_impl)
         self.altfunc = None
         self.set_update()
@@ -665,7 +692,15 @@ class AlteredFunction(LazyEval):
         func = self.owner.formula.func
         codeobj = func.__code__
         name = func.__name__  # self.cells.name   # func.__name__
-        namespace = self.owner._namespace_impl.get_updated().interfaces
+        namespace_impl = self.owner._namespace_impl.get_updated()
+        namespace = namespace_impl.interfaces
+        selfnode = self.owner.node_class(self.owner, None)
+
+        for name in self.owner.formula.srcnames:
+            if name in namespace_impl and \
+              isinstance(namespace_impl[name], ReferenceImpl):
+                refnode = ObjectArgs(namespace_impl[name], None)
+                self.owner.model.lexdep.add_path([selfnode, refnode])
 
         closure = func.__closure__  # None normally.
         if closure is not None:     # pytest fails without this.

@@ -128,6 +128,8 @@ class CellsImpl(Impl):
         data: array-like, dict, pandas.DataSeries or scalar values.
     """
 
+    node_class = CellArgs
+
     def __init__(self, *, space, name=None, formula=None, data=None,
                  base=None):
 
@@ -197,9 +199,6 @@ class CellsImpl(Impl):
 
     def __repr__(self):
         return '<CellsImpl: %s>' % self.name
-
-    def get_fullname(self, omit_model=False):
-        return self.space.get_fullname(omit_model) + '.' + self.name
 
     @property
     def fullname(self):
