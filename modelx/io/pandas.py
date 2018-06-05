@@ -37,13 +37,17 @@ if _pd_ver < (0, 20):
 else:
     from pandas.core.reshape.merge import MergeError
 
-def space_to_dataframe(space):
+
+def space_to_dataframe(space, drop_allna=True):
 
     all_params = get_all_params(space.cells.values())
     result = None
 
     for cells in space.cells.values():
         df = cells_to_dataframe(cells)
+
+        if drop_allna and df.isnull().all().all():
+            continue  #  Ignore all NA or empty
 
         if df.index.names != [None]:
             if isinstance(df.index, pd.MultiIndex):
