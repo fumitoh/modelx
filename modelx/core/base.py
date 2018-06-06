@@ -568,8 +568,10 @@ class InterfaceMixin:
         self._set_interfaces(map_class)
 
     def _set_interfaces(self, map_class):
-        if map_class == dict:
+        if map_class is None:
             self.interfaces = self._interfaces
+        elif map_class is dict:
+            raise RuntimeError
         else:
             self.interfaces = map_class(self._interfaces)
 

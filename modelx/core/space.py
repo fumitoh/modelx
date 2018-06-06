@@ -754,7 +754,7 @@ class SpaceImpl(SpaceContainerImpl):
         for observer in derived:
             self._self_members.append_observer(observer)
 
-        self._namespace_impl = ImplChainMap(self, dict,
+        self._namespace_impl = ImplChainMap(self, None,
                                             [self._cells,
                                              self._spaces,
                                              self._refs])
