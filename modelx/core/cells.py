@@ -15,7 +15,7 @@
 from textwrap import dedent
 from collections import Sequence, namedtuple
 from collections.abc import (
-    Container,
+    Mapping,
     Callable,
     Sized)
 from itertools import combinations
@@ -466,7 +466,7 @@ class CellNode:
             return self._impl.__repr__()
 
 
-class Cells(Interface, Container, Callable, Sized):
+class Cells(Interface, Mapping, Callable, Sized):
     """Data container with a formula to calculate its own values.
 
     Cells are created by ``new_cells`` method or its variant methods of
