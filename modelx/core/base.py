@@ -653,11 +653,16 @@ class BaseMapProxy(Mapping):
     def __len__(self): return len(self._data)
 
     def __getitem__(self, key):
-        if key in self._data:
-            return self._data[key]
-        if hasattr(self.__class__, "__missing__"):
-            return self.__class__.__missing__(self, key)
-        raise KeyError(key)
+        if isinstance(key, str):
+            if key in self._data:
+                return self._data[key]
+            if hasattr(self.__class__, "__missing__"):
+                return self.__class__.__missing__(self, key)
+            raise KeyError(key)
+        if isinstance(key, Sequence):
+            return SelectedView(self, key)
+        else:
+            raise KeyError
 
     def __iter__(self):
         return iter(self._data)
@@ -668,6 +673,44 @@ class BaseMapProxy(Mapping):
 
     # Now, add the methods in dicts but not in MutableMapping
     def __repr__(self): return repr(self._data)
+
+
+def _map_repr(self):
+    result = [',\n '] * (len(self) * 2 -1)
+    result[0::2] = sorted(list(self))
+    return '{' + ''.join(result) + '}'
+
+
+class SelectedView(BaseMapProxy):
+    """View to the original view but has only selected items.
+
+    Args:
+        view: The original view
+        keys: Iterable of selected keys.
+    """
+    def __init__(self, view, keys):
+        BaseMapProxy.__init__(self, view._data)
+        self.set_keys(keys)
+
+    def set_keys(self, keys):
+        self.__keys = list(keys)
+
+    def __len__(self):
+        return len(list(iter(self)))
+
+    def __iter__(self):
+
+        def newiter():
+            for key in self.__keys:
+                if key in self._data:
+                    yield key
+
+        return newiter()
+
+    def __contains__(self, key):
+        return key in self.keys()
+
+    __repr__ = _map_repr
 
 
 class AlteredFunction(LazyEval):
