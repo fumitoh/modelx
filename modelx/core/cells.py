@@ -17,7 +17,8 @@ from collections import Sequence, namedtuple
 from collections.abc import (
     Mapping,
     Callable,
-    Sized)
+    Sized,
+    Sequence)
 from itertools import combinations
 
 from modelx.core.base import (
@@ -287,7 +288,7 @@ class CellsImpl(Impl):
     def eval_formula(self, cellargs):
         return self.altfunc.get_updated().altfunc(**cellargs.arguments)
 
-    def get_value(self, args, kwargs=None):
+    def get_value(self, args=None, kwargs=None):
 
         ptr = CellArgs(self, args, kwargs)
         args = ptr.argvalues
@@ -405,16 +406,30 @@ class CellsImpl(Impl):
     # ----------------------------------------------------------------------
     # Pandas I/O
 
-    def to_series(self):
+    def _pandas_shared_logic(self, args):
+
+        if len(args) == 1:
+            if isinstance(args[0], Sequence) and len(args[0]) == 0:
+                pass    # Empty sequence
+            else:
+                args = args[0]
+
+        for arg in args:
+            self.get_value(arg)
+
+        return tuple(CellArgs(self, arg).argvalues for arg in args)
+
+    def to_series(self, args):
+
         from modelx.io.pandas import cells_to_series
+        args = self._pandas_shared_logic(args)
+        return cells_to_series(self, args)
 
-        return cells_to_series(self)
-
-    def to_frame(self):
+    def to_frame(self, args):
 
         from modelx.io.pandas import cells_to_dataframe
-
-        return cells_to_dataframe(self)
+        args = self._pandas_shared_logic(args)
+        return cells_to_dataframe(self, args)
 
     # ----------------------------------------------------------------------
     # Dependency
@@ -618,23 +633,38 @@ class Cells(Interface, Mapping, Callable, Sized):
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
 
-    def to_series(self):
+    def to_series(self, *args):
         """Convert the cells itself into a Pandas Series and return it."""
-        return self._impl.to_series()
+        return self._impl.to_series(args)
 
     @property
     def series(self):
         """Alias of ``to_series()``."""
-        return self._impl.to_series()
+        return self._impl.to_series(())
 
-    def to_frame(self):
-        """Convert the cells itself into a Pandas DataFrame and return it."""
-        return self._impl.to_frame()
+    def to_frame(self, *args):
+        """Convert the cells itself into a Pandas DataFrame and return it.
+
+        if no `args` are passed, the returned DataFrame contains as many
+        values as the cells have.
+
+        if A sequence of arguments to the cells is passed as `args`,
+        the returned DataFrame contains values only for the specified `args`.
+
+        Args:
+            args: A sequence or iterable of arguments to the cells.
+
+        Returns:
+            a DataFrame with a column named after the cells,
+            with indexes named after the parameters of the cells.
+        """
+
+        return self._impl.to_frame(args)
 
     @property
     def frame(self):
         """Alias of ``to_frame()``."""
-        return self._impl.to_frame()
+        return self._impl.to_frame(())
 
     # ----------------------------------------------------------------------
     # Properties
@@ -704,3 +734,35 @@ class Cells(Interface, Mapping, Callable, Sized):
         the cell specified by the given arguments.
         """
         return self._impl.successors(args, kwargs)
+
+
+def shareable_parameters(cells):
+    """Return parameter names if the parameters are shareable among cells.
+
+    Parameters are shareable among multiple cells when all the cells
+    have the parameters in the same order if they ever have any.
+
+    For example, if cells are foo(), bar(x), baz(x, y), then
+    ('x', 'y') are shareable parameters amounts them, as 'x' and 'y'
+    appear in the same order in the parameter list if they ever appear.
+
+    Args:
+        cells: An iterator yielding cells.
+
+    Returns:
+        None if parameters are not share,
+        tuple of shareable parameter names,
+        () if cells are all scalars.
+    """
+    result = []
+    for c in cells.values():
+        params = tuple(c.parameters.keys())
+
+        for i in range(min(len(result), len(params))):
+            if params[i] != result[i]:
+                return None
+
+        for i in range(len(result), len(params)):
+            result.append(params[i])
+
+    return result

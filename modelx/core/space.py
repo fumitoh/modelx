@@ -32,7 +32,12 @@ from modelx.core.base import (
     BaseMapProxy,
     AlteredFunction)
 from modelx.core.formula import Formula, create_closure, ModuleSource
-from modelx.core.cells import Cells, CellsImpl, cells_to_argvals
+from modelx.core.cells import (
+    Cells,
+    CellsImpl,
+    CellArgs,
+    cells_to_argvals,
+    shareable_parameters)
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
@@ -1119,6 +1124,20 @@ class SpaceImpl(SpaceContainerImpl):
     def model(self):
         return self.parent.model
 
+    @property
+    def cellsparams(self):
+        """Ordered parameters of child cells.
+
+        The order is determined by self.cells.order.
+        """
+        result = []
+        for cells in self.cells.values():
+            for param in cells.parameters:
+                if param not in result:
+                    result.append(param)
+
+        return tuple(result)
+
     # ----------------------------------------------------------------------
     # Attribute access
 
@@ -1475,11 +1494,35 @@ class SpaceImpl(SpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Pandas I/O
 
-    def to_frame(self):
+    def to_frame(self, args):
 
-        from modelx.io.pandas import space_to_dataframe
+        from modelx.io.pandas import cellsiter_to_dataframe
 
-        return space_to_dataframe(self)
+        if len(args) == 1:
+            if isinstance(args[0], Sequence) and len(args[0]) == 0:
+                pass  # Empty sequence
+            else:
+                args = args[0]
+
+        if len(args) and shareable_parameters(self.cells) is None:
+            raise RuntimeError("Parameters not shared")
+
+        argkeys = []
+        for arg in args:
+            for cells in self.cells.values():
+
+                newarg = CellArgs.normalize_args(
+                    cells.signature, arg, remove_extra=True)
+
+                cells.get_value(newarg)
+
+                arg = CellArgs.normalize_args(
+                    cells.signature, arg, remove_extra=False)
+
+                if arg not in argkeys:
+                    argkeys.append(arg)
+
+        return cellsiter_to_dataframe(self.cells, argkeys)
 
 
 class Space(SpaceContainer):
@@ -1789,13 +1832,14 @@ class Space(SpaceContainer):
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
 
-    def to_frame(self):
+    def to_frame(self, *args):
         """Convert the space itself into a Pandas DataFrame object."""
-        return self._impl.to_frame()
+        return self._impl.to_frame(args)
 
     @property
     def frame(self):
         """Alias of ``to_frame()``."""
-        return self._impl.to_frame()
+        return self._impl.to_frame(())
+
 
 

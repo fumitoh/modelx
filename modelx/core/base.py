@@ -71,13 +71,30 @@ class ObjectArgs:
             # Object-only node
             pass
 
-        elif isinstance(args, str):
+        else:
+            args = self.normalize_args(obj_.signature, args)
+
+        self._bind_args(args, kwargs)
+
+    @staticmethod
+    def normalize_args(sig, args, remove_extra=False):
+
+        if isinstance(args, str):
             args = (args,)
 
         elif not isinstance(args, Sequence):
             args = (args,)
 
-        self._bind_args(args, kwargs)
+        # TODO: If a single arg is a sequence, can be misinterpreted.
+
+        if not remove_extra:
+            return args
+        else:
+            if len(args):
+                paramlen = len(sig.parameters.keys())
+                return args[:min(len(args), paramlen)]
+            else:
+                return args
 
     def _bind_args(self, args, kwargs=None):
 
