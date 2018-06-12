@@ -1124,20 +1124,6 @@ class SpaceImpl(SpaceContainerImpl):
     def model(self):
         return self.parent.model
 
-    @property
-    def cellsparams(self):
-        """Ordered parameters of child cells.
-
-        The order is determined by self.cells.order.
-        """
-        result = []
-        for cells in self.cells.values():
-            for param in cells.parameters:
-                if param not in result:
-                    result.append(param)
-
-        return tuple(result)
-
     # ----------------------------------------------------------------------
     # Attribute access
 
