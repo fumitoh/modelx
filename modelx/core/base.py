@@ -670,16 +670,12 @@ class BaseMapProxy(Mapping):
     def __len__(self): return len(self._data)
 
     def __getitem__(self, key):
-        if isinstance(key, str):
-            if key in self._data:
-                return self._data[key]
-            if hasattr(self.__class__, "__missing__"):
-                return self.__class__.__missing__(self, key)
-            raise KeyError(key)
-        if isinstance(key, Sequence):
-            return SelectedView(self, key)
-        else:
-            raise KeyError
+        if key in self._data:
+            return self._data[key]
+        if hasattr(self.__class__, "__missing__"):
+            return self.__class__.__missing__(self, key)
+        raise KeyError(key)
+
 
     def __iter__(self):
         return iter(self._data)
@@ -705,12 +701,24 @@ class SelectedView(BaseMapProxy):
         view: The original view
         keys: Iterable of selected keys.
     """
-    def __init__(self, view, keys):
-        BaseMapProxy.__init__(self, view._data)
+    def __init__(self, data, keys=None):
+        BaseMapProxy.__init__(self, data)
         self.set_keys(keys)
 
-    def set_keys(self, keys):
-        self.__keys = list(keys)
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return BaseMapProxy.__getitem__(self, key)
+        if isinstance(key, Sequence):
+            return SelectedView(self._data, key)
+        else:
+            raise KeyError
+
+    def set_keys(self, keys=None):
+
+        if keys is None:
+            self.__keys = None
+        else:
+            self.__keys = list(keys)
 
     def __len__(self):
         return len(list(iter(self)))
@@ -722,10 +730,13 @@ class SelectedView(BaseMapProxy):
                 if key in self._data:
                     yield key
 
-        return newiter()
+        if self.__keys is None:
+            return BaseMapProxy.__iter__(self)
+        else:
+            return newiter()
 
     def __contains__(self, key):
-        return key in self.keys()
+        return key in iter(self)
 
     __repr__ = _map_repr
 

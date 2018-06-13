@@ -24,8 +24,16 @@ def viewtest():
 def test_view(viewtest):
 
     selected = viewtest.cells['foo', 'bar']
-
     assert len(selected) == 2
 
     for name, cells in selected.items():
         assert viewtest.cells[name] is cells
+
+    for i, name in enumerate(selected.keys()):
+        assert viewtest.cells[name] is getattr(viewtest, name)
+    assert i == 1
+
+    for i, value in enumerate(selected.values()):
+        pass
+    assert i == 1
+

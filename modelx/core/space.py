@@ -30,6 +30,7 @@ from modelx.core.base import (
     ImplDict,
     ImplChainMap,
     BaseMapProxy,
+    SelectedView,
     AlteredFunction)
 from modelx.core.formula import Formula, create_closure, ModuleSource
 from modelx.core.cells import (
@@ -577,7 +578,7 @@ def _map_repr(self):
     return '{' + ''.join(result) + '}'
 
 
-class CellsMapProxy(BaseMapProxy):
+class CellsMapProxy(SelectedView):
 
     def __delitem__(self, name):
         cells = self._data[name]._impl
