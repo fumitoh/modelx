@@ -177,7 +177,7 @@ def test_del_static_spaces(testmodel):
     del space.Child
     assert space.static_spaces == {}
 
-# ----- Test SpaceMapProxy -----
+# ----- Test SpaceView -----
 space_names = list('ABCDEFGHI')
 
 

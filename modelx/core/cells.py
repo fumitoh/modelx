@@ -25,7 +25,7 @@ from modelx.core.base import (
     ObjectArgs,
     Impl,
     Interface,
-    AlteredFunction)
+    BoundFunction)
 from modelx.core.formula import (
     Formula,
     NULL_FORMULA)
@@ -167,7 +167,7 @@ class CellsImpl(Impl):
         self.derived = []
 
         self._namespace_impl = self.space._namespace_impl
-        self.altfunc = AlteredFunction(self)
+        self.altfunc = BoundFunction(self)
 
     # ----------------------------------------------------------------------
     # Serialization by pickle

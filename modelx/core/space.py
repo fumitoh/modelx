@@ -29,9 +29,9 @@ from modelx.core.base import (
     LazyEvalChainMap,
     ImplDict,
     ImplChainMap,
-    BaseMapProxy,
+    BaseView,
     SelectedView,
-    AlteredFunction)
+    BoundFunction)
 from modelx.core.formula import Formula, create_closure, ModuleSource
 from modelx.core.cells import (
     Cells,
@@ -394,13 +394,13 @@ class SpaceContainer(Interface):
 class SpaceDict(ImplDict):
 
     def __init__(self, space, data=None, observers=None):
-        ImplDict.__init__(self, space, SpaceMapProxy, data, observers)
+        ImplDict.__init__(self, space, SpaceView, data, observers)
 
 
 class CellsDict(ImplDict):
 
     def __init__(self, space, data=None, observers=None):
-        ImplDict.__init__(self, space, CellsMapProxy, data, observers)
+        ImplDict.__init__(self, space, CellsView, data, observers)
 
 
 class RefDict(ImplDict):
@@ -411,7 +411,7 @@ class RefDict(ImplDict):
             for name, value in data.items():
                 data[name] = self.get_ref(space, name, value)
 
-        ImplDict.__init__(self, space, BaseMapProxy, data, observers)
+        ImplDict.__init__(self, space, BaseView, data, observers)
 
     def set_item(self, name, ref, skip_self=False):
         ImplDict.set_item(self, name, ref, skip_self)
@@ -609,7 +609,7 @@ def _to_frame_inner(cellsiter, args):
     return cellsiter_to_dataframe(cellsiter, argkeys)
 
 
-class CellsMapProxy(SelectedView):
+class CellsView(SelectedView):
 
     def __delitem__(self, name):
         cells = self._data[name]._impl
@@ -621,7 +621,7 @@ class CellsMapProxy(SelectedView):
     __repr__ = _map_repr
 
 
-class SpaceMapProxy(BaseMapProxy):
+class SpaceView(BaseView):
 
     def __delitem__(self, name):
         space = self._data[name]._impl
@@ -752,7 +752,7 @@ class SpaceImpl(SpaceContainerImpl):
 
         self._self_cells = CellsDict(self)
         self._self_spaces = SpaceDict(self)
-        self._dynamic_spaces = ImplDict(self, SpaceMapProxy)
+        self._dynamic_spaces = ImplDict(self, SpaceView)
         self._self_refs = RefDict(self)
 
         self_members = [self._self_cells,
@@ -763,16 +763,16 @@ class SpaceImpl(SpaceContainerImpl):
         self._self_members = LazyEvalChainMap(self_members)
 
         self._derived_cells = DerivedCellsDict(self)
-        self._cells = ImplChainMap(self, CellsMapProxy,
+        self._cells = ImplChainMap(self, CellsView,
                                    [self._self_cells,
                                     self._derived_cells])
 
         self._derived_spaces = DerivedSpaceDict(self)
 
-        self._static_spaces = ImplChainMap(self, SpaceMapProxy,
+        self._static_spaces = ImplChainMap(self, SpaceView,
                                            [self._self_spaces,
                                             self._derived_spaces])
-        self._spaces = ImplChainMap(self, SpaceMapProxy,
+        self._spaces = ImplChainMap(self, SpaceView,
                                     [self._static_spaces,
                                      self._dynamic_spaces])
         self._derived_refs = DerivedRefDict(self)
@@ -780,8 +780,8 @@ class SpaceImpl(SpaceContainerImpl):
         self._local_refs = {'_self': self,
                             '_space': self}
 
-        self._refs = ImplChainMap(self, BaseMapProxy,
-                                   [self.model._global_refs,
+        self._refs = ImplChainMap(self, BaseView,
+                                  [self.model._global_refs,
                                     self._local_refs,
                                     self._arguments,
                                     self._self_refs,
@@ -1389,7 +1389,7 @@ class SpaceImpl(SpaceContainerImpl):
                 self.formula = formula
             else:
                 self.formula = ParamFunc(formula)
-            self.altfunc = AlteredFunction(self)
+            self.altfunc = BoundFunction(self)
         else:
             raise ValueError("formula already assigned.")
 

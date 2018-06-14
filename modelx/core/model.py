@@ -24,13 +24,13 @@ from modelx.core.base import (
     get_interfaces,
     ImplDict,
     ImplChainMap,
-    BaseMapProxy,
+    BaseView,
     ReferenceImpl)
 from modelx.core.cells import CellArgs
 from modelx.core.space import (
     SpaceContainerImpl,
     SpaceContainer,
-    SpaceMapProxy,
+    SpaceView,
     RefDict)
 from modelx.core.util import is_valid_name
 
@@ -102,9 +102,9 @@ class ModelImpl(SpaceContainerImpl):
 
         data = {'__builtins__': builtins}
         self._global_refs = RefDict(self, data=data)
-        self._spaces = ImplDict(self, SpaceMapProxy)
+        self._spaces = ImplDict(self, SpaceView)
         self._namespace = ImplChainMap(
-            self, BaseMapProxy, [self._spaces, self._global_refs])
+            self, BaseView, [self._spaces, self._global_refs])
         self.allow_none = False
         self.lazy_evals = self._namespace
 

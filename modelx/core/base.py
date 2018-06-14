@@ -604,8 +604,8 @@ class InterfaceMixin:
 
     def __setstate__(self, state):
         super().__setstate__(state)
-        if self.map_class == 'BaseMapProxy':
-            self.map_class = BaseMapProxy
+        if self.map_class == 'BaseView':
+            self.map_class = BaseView
         self._set_interfaces(self.map_class)
         self.needs_update = True
 
@@ -661,7 +661,7 @@ class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
 #       Lib/collections/__init__.py#L968-L1027
 
 
-class BaseMapProxy(Mapping):
+class BaseView(Mapping):
 
     # Start by filling-out the abstract methods
     def __init__(self, data):
@@ -694,7 +694,7 @@ def _map_repr(self):
     return '{' + ''.join(result) + '}'
 
 
-class SelectedView(BaseMapProxy):
+class SelectedView(BaseView):
     """View to the original view but has only selected items.
 
     Args:
@@ -702,12 +702,12 @@ class SelectedView(BaseMapProxy):
         keys: Iterable of selected keys.
     """
     def __init__(self, data, keys=None):
-        BaseMapProxy.__init__(self, data)
+        BaseView.__init__(self, data)
         self.set_keys(keys)
 
     def __getitem__(self, key):
         if isinstance(key, str):
-            return BaseMapProxy.__getitem__(self, key)
+            return BaseView.__getitem__(self, key)
         if isinstance(key, Sequence):
             return type(self)(self._data, key)
         else:
@@ -731,7 +731,7 @@ class SelectedView(BaseMapProxy):
                     yield key
 
         if self.__keys is None:
-            return BaseMapProxy.__iter__(self)
+            return BaseView.__iter__(self)
         else:
             return newiter()
 
@@ -741,7 +741,7 @@ class SelectedView(BaseMapProxy):
     __repr__ = _map_repr
 
 
-class AlteredFunction(LazyEval):
+class BoundFunction(LazyEval):
     """Hold function with updated namespace"""
 
     def __init__(self, owner):
