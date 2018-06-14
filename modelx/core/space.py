@@ -431,7 +431,7 @@ class BaseMixin:
 
         observer = [derived]
         self.append_observer(derived)
-        self.space = derived.parent
+        self.space = derived.owner
         for base in self.space.mro:
             base._self_members.append_observer(self)
 
@@ -456,7 +456,7 @@ class BaseMixin:
 class BaseSpaceDict(BaseMixin, SpaceDict):
 
     def __init__(self, derived):
-        SpaceDict.__init__(self, derived.parent)
+        SpaceDict.__init__(self, derived.owner)
         BaseMixin.__init__(self, derived)
 
     def _update_data(self):
@@ -470,7 +470,7 @@ class BaseSpaceDict(BaseMixin, SpaceDict):
 class BaseCellsDict(BaseMixin, CellsDict):
 
     def __init__(self, derived):
-        CellsDict.__init__(self, derived.parent)
+        CellsDict.__init__(self, derived.owner)
         BaseMixin.__init__(self, derived)
 
     def _update_data(self):
@@ -484,7 +484,7 @@ class BaseCellsDict(BaseMixin, CellsDict):
 class BaseRefDict(BaseMixin, RefDict):
 
     def __init__(self, derived):
-        RefDict.__init__(self, derived.parent)
+        RefDict.__init__(self, derived.owner)
         BaseMixin.__init__(self, derived)
 
     def get_baseself(self, base):
@@ -520,7 +520,7 @@ class DerivedSpaceDict(BaseDictMixin, SpaceDict):
                 if derived.direct_bases[0] is base_space:
                     continue
                 else:
-                    space = SpaceImpl(parent=self.parent,
+                    space = SpaceImpl(parent=self.owner,
                                       name=base_space.name,
                                       bases=base_space,
                                       formula=base_space.formula)
@@ -529,7 +529,7 @@ class DerivedSpaceDict(BaseDictMixin, SpaceDict):
                     self.data[name] = space
 
             else:
-                self.data[name] = SpaceImpl(parent=self.parent,
+                self.data[name] = SpaceImpl(parent=self.owner,
                                             name=base_space.name,
                                             bases=base_space,
                                             formula=base_space.formula)
@@ -555,7 +555,7 @@ class DerivedCellsDict(BaseDictMixin, CellsDict):
                 else:
                     del self.data[key]
 
-            cell = CellsImpl(space=self.parent, base=base_cell)
+            cell = CellsImpl(space=self.owner, base=base_cell)
             self.data[key] = cell
 
         CellsDict._update_data(self)
@@ -1334,11 +1334,11 @@ class SpaceImpl(SpaceContainerImpl):
 
         if name in self.namespace:
             if name in self.derived_cells:
-                self._derived_cells[name].parent = None
+                self._derived_cells[name].owner = None
                 del self._derived_cells[name]
 
             elif name in self._derived_spaces:
-                self._derived_spaces[name].parent = None
+                self._derived_spaces[name].owner = None
                 del self._derived_spaces[name]
 
             elif name in self._derived_refs:

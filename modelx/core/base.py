@@ -549,10 +549,10 @@ class LazyEvalChainMap(LazyEval, ChainMap):
         self.__dict__.update(state)
 
 
-class ParentMixin:
+class OwnerMixin:
 
-    def __init__(self, parent):
-        self.parent = parent
+    def __init__(self, owner):
+        self.owner = owner
 
 
 class OrderMixin:
@@ -606,12 +606,12 @@ class InterfaceMixin:
         self._set_interfaces(self.map_class)
         self.needs_update = True
 
-class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
+class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
 
-    def __init__(self, parent, ifclass, data=None, observers=None):
+    def __init__(self, owner, ifclass, data=None, observers=None):
         InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
-        ParentMixin.__init__(self, parent)
+        OwnerMixin.__init__(self, owner)
         LazyEvalDict.__init__(self, data, observers)
 
     def _update_data(self):
@@ -624,17 +624,17 @@ class ImplDict(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
             name = self.debug_name
         else:
             name = ''
-        return repr(self.parent.fullname) + ':' + repr(self.__class__) \
+        return repr(self.owner.fullname) + ':' + repr(self.__class__) \
             + ':' + name
 
 
-class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
+class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
 
-    def __init__(self, parent, ifclass, maps=None,
+    def __init__(self, owner, ifclass, maps=None,
                  observers=None, observe_maps=True):
         InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
-        ParentMixin.__init__(self, parent)
+        OwnerMixin.__init__(self, owner)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
     def _update_data(self):
@@ -647,7 +647,7 @@ class ImplChainMap(ParentMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
             name = self.debug_name
         else:
             name = ''
-        return repr(self.parent.fullname) + ':' + repr(self.__class__) \
+        return repr(self.owner.fullname) + ':' + repr(self.__class__) \
             + ':' + name
 
 # The code below is modified from UserDict in Python's standard library.
