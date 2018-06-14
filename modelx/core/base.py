@@ -709,7 +709,7 @@ class SelectedView(BaseMapProxy):
         if isinstance(key, str):
             return BaseMapProxy.__getitem__(self, key)
         if isinstance(key, Sequence):
-            return SelectedView(self._data, key)
+            return type(self)(self._data, key)
         else:
             raise KeyError
 

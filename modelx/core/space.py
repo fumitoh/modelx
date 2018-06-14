@@ -578,11 +578,45 @@ def _map_repr(self):
     return '{' + ''.join(result) + '}'
 
 
+def _to_frame_inner(cellsiter, args):
+
+    from modelx.io.pandas import cellsiter_to_dataframe
+
+    if len(args) == 1:
+        if isinstance(args[0], Sequence) and len(args[0]) == 0:
+            pass  # Empty sequence
+        else:
+            args = args[0]
+
+    if len(args) and shareable_parameters(cellsiter) is None:
+        raise RuntimeError("Parameters not shared")
+
+    argkeys = []
+    for arg in args:
+        for cells in cellsiter.values():
+
+            newarg = CellArgs.normalize_args(
+                cells.signature, arg, remove_extra=True)
+
+            cells.get_value(newarg)
+
+            arg = CellArgs.normalize_args(
+                cells.signature, arg, remove_extra=False)
+
+            if arg not in argkeys:
+                argkeys.append(arg)
+
+    return cellsiter_to_dataframe(cellsiter, argkeys)
+
+
 class CellsMapProxy(SelectedView):
 
     def __delitem__(self, name):
         cells = self._data[name]._impl
         cells.space.del_cells(name)
+
+    def to_frame(self, *args):
+        return _to_frame_inner(get_impls(self), args)
 
     __repr__ = _map_repr
 
@@ -1482,35 +1516,7 @@ class SpaceImpl(SpaceContainerImpl):
     # Pandas I/O
 
     def to_frame(self, args):
-
-        from modelx.io.pandas import cellsiter_to_dataframe
-
-        if len(args) == 1:
-            if isinstance(args[0], Sequence) and len(args[0]) == 0:
-                pass  # Empty sequence
-            else:
-                args = args[0]
-
-        if len(args) and shareable_parameters(self.cells) is None:
-            raise RuntimeError("Parameters not shared")
-
-        argkeys = []
-        for arg in args:
-            for cells in self.cells.values():
-
-                newarg = CellArgs.normalize_args(
-                    cells.signature, arg, remove_extra=True)
-
-                cells.get_value(newarg)
-
-                arg = CellArgs.normalize_args(
-                    cells.signature, arg, remove_extra=False)
-
-                if arg not in argkeys:
-                    argkeys.append(arg)
-
-        return cellsiter_to_dataframe(self.cells, argkeys)
-
+        return _to_frame_inner(self.cells, args)
 
 class Space(SpaceContainer):
     """Container of cells, other spaces, and cells namespace.

@@ -102,3 +102,38 @@ def test_space_to_frame_args_defaults(testspace, args, idxlen, cols):
         args = args[0]
     for arg in args:
         assert df.loc[(arg, 1), 'f2'] == testspace.f2(arg, 1)
+
+
+# -------------------------------------------------------------------------
+# Test Conversion from CellsView to DataFrame
+
+@pytest.mark.parametrize('args, idxlen, cols', [
+    [((1, 2), (3, 4), (5, 6)), 7, ['f0', 'f1', 'f2']],
+    [(((1, 2), (3, 4), (5, 6)),), 7, ['f0', 'f1', 'f2']]
+])
+def test_cellsview_to_frame_args(testspace, args, idxlen, cols):
+    assert testspace.cells[cols].to_frame().empty
+    df = testspace.cells[cols].to_frame(*args)
+    assert set(df.columns) == set(cols)
+    assert len(df.index) == idxlen
+    if len(args) == 1:
+        args = args[0]
+    for arg in args:
+        dfx = df.xs(arg[0], level='x')
+        assert int(dfx.loc[dfx.index.isnull(), 'f1']) == testspace.f1(arg[0])
+        assert df.loc[arg, 'f2'] == testspace.f2(*arg)
+
+
+@pytest.mark.parametrize('args, idxlen, cols', [
+    [(1, 2, 3), 7, ['f0', 'f1', 'f2']],
+    [((1, 2, 3),), 7, ['f0', 'f1', 'f2']],
+])
+def test_cellsview_to_frame_args_defaults(testspace, args, idxlen, cols):
+    assert testspace.cells[cols].to_frame().empty
+    df = testspace.cells[cols].to_frame(*args)
+    assert set(df.columns) == set(cols)
+    assert len(df.index) == idxlen
+    if isinstance(args[0], tuple):
+        args = args[0]
+    for arg in args:
+        assert df.loc[(arg, 1), 'f2'] == testspace.f2(arg, 1)
