@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-import builtins
 import importlib
 from collections import Sequence
 from textwrap import dedent
@@ -32,7 +31,7 @@ from modelx.core.base import (
     BaseView,
     SelectedView,
     BoundFunction)
-from modelx.core.formula import Formula, create_closure, ModuleSource
+from modelx.core.formula import Formula, ModuleSource
 from modelx.core.cells import (
     Cells,
     CellsImpl,

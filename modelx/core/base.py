@@ -14,13 +14,10 @@
 
 import sys
 import builtins
-from types import MappingProxyType, FunctionType
+from types import FunctionType
 from collections import Sequence, ChainMap, Mapping, UserDict, OrderedDict
 from inspect import isclass, BoundArguments
-from modelx.core.formula import (
-    Formula,
-    create_closure,
-    NULL_FORMULA)
+from modelx.core.formula import create_closure
 
 # To add new method apply_defaults to BoundArguments.
 if sys.version_info < (3, 5, 0):

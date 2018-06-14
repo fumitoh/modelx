@@ -15,7 +15,7 @@
 import sys
 import warnings
 import pickle
-from collections import deque, namedtuple
+from collections import deque
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer
 from modelx.core.errors import DeepReferenceError

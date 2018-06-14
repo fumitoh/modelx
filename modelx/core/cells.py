@@ -13,7 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from textwrap import dedent
-from collections import Sequence, namedtuple
+from collections import namedtuple
 from collections.abc import (
     Mapping,
     Callable,
