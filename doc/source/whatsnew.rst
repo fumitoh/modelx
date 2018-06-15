@@ -34,18 +34,22 @@ Updates
 Releases
 ========
 
+.. _release-v0.0.12:
+
 v0.0.12 (16 June 2018)
 ----------------------
 
 Enhancements
 ~~~~~~~~~~~~
 - :meth:`~core.space.Space.cells` returns an immutable mapping of cells named
-  :class:`~core.space.CellsView` supporting ``to_frame(arg)`` method,
+  :class:`~core.space.CellsView` supporting
+  :meth:`~core.space.CellsView.to_frame` method,
   which returns a DataFrame
   object containing cells values. If an iterator of
   arguments are given as ``arg``, values of the cells for the arguments
   are calculated and only the given arguments
   are included in the DataFrame index(es).
+  For more, see :class:`the reference page<core.space.CellsView>`
 
 - Cells are now of a Mapping type, which implements ``keys()``, ``values()``,
   ``items()`` methods to get their arguments and values.
@@ -53,7 +57,7 @@ Enhancements
 - Subscription(``[]``) operator on :attr:`~core.space.Space.cells` now
   accepts multiple args of cell names and a sequence of cell names,
   such as ``['foo', 'bar']`` and ``[['foo', 'bar']]``, which returns
-  a immutable mapping (view) including only specified cells.
+  an immutable mapping (view) that includes only specified cells.
 
 Backwards Incompatible Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

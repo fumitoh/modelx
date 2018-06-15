@@ -4,6 +4,9 @@ Updates
 
 .. Latest Updates Begin
 
+* *16 June 2018:*
+  :ref:`modelx v0.0.12 <release-v0.0.12>` is released.
+
 * *27 May 2018:*
   modelx v0.0.11 is released.
 
