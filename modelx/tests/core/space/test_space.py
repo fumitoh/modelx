@@ -1,3 +1,4 @@
+import sys
 from textwrap import dedent
 
 import pytest
@@ -189,26 +190,27 @@ def spacemap_model():
     return model
 
 
-def test_spacemapproxy_order(spacemap_model):
-    parent = spacemap_model.spaces['Parent']
-    assert list(parent.spaces) == space_names
+if sys.version_info >= (3, 6, 0):
+    def test_spacemapproxy_order(spacemap_model):
+        parent = spacemap_model.spaces['Parent']
+        assert list(parent.spaces) == space_names
 
 
-def test_spacemapproxy_del(spacemap_model):
-    parent = spacemap_model.spaces['Parent']
+    def test_spacemapproxy_del(spacemap_model):
+        parent = spacemap_model.spaces['Parent']
 
-    names = space_names.copy()
-    names.remove('C')
-    del parent.spaces['C']
-    assert list(parent.spaces) == names
+        names = space_names.copy()
+        names.remove('C')
+        del parent.spaces['C']
+        assert list(parent.spaces) == names
 
 
-def test_spacemapproxy_add(spacemap_model):
-    parent = spacemap_model.spaces['Parent']
-    names = space_names.copy()
-    names.append('X')
-    parent.new_space('X')
-    assert list(parent.spaces) == names
+    def test_spacemapproxy_add(spacemap_model):
+        parent = spacemap_model.spaces['Parent']
+        names = space_names.copy()
+        names.append('X')
+        parent.new_space('X')
+        assert list(parent.spaces) == names
 
 
 # ----- Testing _impl  ----

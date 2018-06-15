@@ -122,7 +122,6 @@ def cells_to_series(cells, args):
         indexes = [np.nan]
 
     else:
-        items = [(key, value) for key, value in cells.data.items()]
 
         if len(args) > 0:
             defaults = tuple(param.default for param
@@ -137,7 +136,10 @@ def cells_to_series(cells, args):
 
                 updated_args.append(arg)
 
-            items = [item for item in items if item[0] in updated_args]
+            items = [(arg, cells.data[arg]) for arg in updated_args
+                     if arg in cells.data]
+        else:
+            items = [(key, value) for key, value in cells.data.items()]
 
         if not is_multidx: # Peel 1-element tuple
             items = [(key[0], value) for key, value in items]
