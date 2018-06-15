@@ -28,5 +28,7 @@ Class Reference
    ~modelx.core.model.Model
    ~modelx.core.space.SpaceContainer
    ~modelx.core.space.Space
+   ~modelx.core.base.SelectedView
+   ~modelx.core.space.CellsView
    ~modelx.core.cells.Cells
    ~modelx.core.cells.CellNode

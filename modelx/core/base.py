@@ -692,10 +692,12 @@ def _map_repr(self):
 
 
 class SelectedView(BaseView):
-    """View to the original view but has only selected items.
+    """View to the original mapping but has only selected items.
+
+    A base class for :class:`modelx.core.space.CellsView`.
 
     Args:
-        view: The original view
+        data: The original mapping object.
         keys: Iterable of selected keys.
     """
     def __init__(self, data, keys=None):
