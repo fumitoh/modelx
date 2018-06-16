@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import importlib
 from collections import Sequence
 from textwrap import dedent
@@ -663,7 +664,15 @@ class CellsView(SelectedView):
             args(optional): multiple arguments,
                or an iterator of arguments to the cells.
         """
-        return _to_frame_inner(get_impls(self), args)
+        if sys.version_info < (3, 6, 0):
+            from collections import OrderedDict
+            impls = OrderedDict()
+            for name, obj in self.items():
+                impls[name] = obj._impl
+        else:
+            impls = get_impls(self)
+
+        return _to_frame_inner(impls, args)
 
     __repr__ = _map_repr
 
