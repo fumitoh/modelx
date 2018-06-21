@@ -306,6 +306,9 @@ class Formula:
         self.__init__(func=state['source'],
                       module_=state['module_'])
 
+    def __repr__(self):
+        return self.source
+
     def _reload(self, module_=None):
         """Reload the source function from the source module.
 

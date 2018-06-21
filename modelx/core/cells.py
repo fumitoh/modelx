@@ -672,7 +672,7 @@ class Cells(Interface, Mapping, Callable, Sized):
     @property
     def formula(self):
         """Property to get, set, delete formula."""
-        return self._impl.formula.source
+        return self._impl.formula
 
     @formula.setter
     def formula(self, formula):
