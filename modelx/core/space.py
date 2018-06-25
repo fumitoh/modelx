@@ -1429,10 +1429,22 @@ class SpaceImpl(SpaceContainerImpl):
                 self.system.self = last_self
 
             if space_args is None:
-                space_args = {}
+                space_args = {'bases': self}
             else:
                 if 'bases' in space_args:
-                    space_args['bases'] = get_impls(space_args['bases'])
+                    bases = get_impls(space_args['bases'])
+                    if isinstance(bases, SpaceImpl):
+                        if bases is self:
+                            bases = self
+                        else:
+                            bases = [bases, self]
+                    else:
+                        if self not in bases:
+                            bases.append(self)
+
+                    space_args['bases'] = bases
+                else:
+                    space_args['bases'] = self
 
             space_args['arguments'] = ptr.arguments
             space = self.new_space(**space_args)
