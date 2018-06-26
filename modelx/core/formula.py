@@ -14,6 +14,7 @@
 
 import ast
 import os
+import warnings
 from types import FunctionType
 from inspect import signature, getsource, getsourcefile
 from textwrap import dedent
@@ -115,6 +116,9 @@ def extract_names(source):
          a list names(identifiers) used in the body of the function
          excluding function parameters.
     """
+    if source is None:
+        return None
+
     source = dedent(source)
     funcdef = find_funcdef(source)
     params = extract_params(source)
@@ -233,7 +237,10 @@ class Formula:
             try:
                 self.source = getsource(func)
             except:
-                print("Cannot retrieve source code for %s", func.__name__)
+                warnings.warn(
+                    "Cannot retrieve source code for function '%s'. "
+                    "%s.source set to None." % (func.__name__, func.__name__))
+                self.source = None
 
         elif isinstance(func, str):
 
