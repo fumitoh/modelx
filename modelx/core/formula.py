@@ -12,16 +12,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-import ast
 import os
+import ast
 import warnings
 from types import FunctionType
 from inspect import signature, getsource, getsourcefile
 from textwrap import dedent
 import tokenize
 import io
-
-from modelx.core.util import get_module
 
 
 def fix_lamdaline(source):
