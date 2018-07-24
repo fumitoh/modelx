@@ -14,28 +14,37 @@ class SpaceGraph(nx.DiGraph):
             self.remove_edge(basespace, subspace)
             raise ValueError("Loop detected in inheritance")
 
-        # Check no two descendants have prent-child relationship
-        descs = nx.descendants(self, basespace)
-        for i, j in itertools.combinations(descs, 2):
-            if i.has_linealrel(j):
-                self.remove_edge(basespace, subspace)
-                raise ValueError("%s and %s have parent-child relationship"
-                                 % (i, j))
+        undirected = self.to_undirected()
 
-        for desc in descs:
-            ascs = nx.ancestors(self, desc)
+        for space in self.nodes:   # add composition edges
+            undirected.add_edges_from(space.descendant_edge_iter())
+
+        # Include all spaces reachable from basespace
+        reachable = nx.shortest_path(undirected, source=basespace).keys()
+
+        for space in reachable:
+
+            # Check no two descendants have composition relationship
+            descs = nx.descendants(self, space)
+            for i, j in itertools.combinations(descs, 2):
+                if i.has_linealrel(j):
+                    self.remove_edge(basespace, subspace)
+                    raise ValueError("%s has descendants %s and %s, "
+                                     "which are in parent-child relationship"
+                                     % (space, i, j))
+
+            # Check no two ancestors have composition relationship
+            ascs = nx.ancestors(self, space)
             for i, j in itertools.combinations(ascs, 2):
                 if i.has_linealrel(j):
                     self.remove_edge(basespace, subspace)
                     raise ValueError("%s has ancestors %s and %s, "
                                      "which are in parent-child"
-                                     "relationship" % (desc, i, j))
+                                     "relationship" % (space, i, j))
 
     def get_bases(self, node):
-        """Direct Bases"""
-        pred = list(self.predecessors(node))
-        # pred.sort(key=lambda base: self[base][node]['index'])
-        return pred
+        """Direct Bases iterator"""
+        return self.predecessors(node)
 
     def get_mro(self, space):
         """Calculate the Method Resolution Order of bases using the C3 algorithm.
@@ -50,7 +59,7 @@ class SpaceGraph(nx.DiGraph):
             mro as a list of bases including node itself
         """
         seqs = [self.get_mro(base) for base
-                in self.get_bases(space)] + [self.get_bases(space)]
+                in self.get_bases(space)] + [list(self.get_bases(space))]
         res = []
         while True:
             non_empty = list(filter(None, seqs))
@@ -118,27 +127,28 @@ class SpaceContainer:
         for space in self.spaces.values():
             space.inherit()
 
+    def descendant_edge_iter(self):
+        iter = self._nested_spaces_iter_helper()
+        prev = self
+        for space in iter:
+            yield (prev, space)
+            prev = space
+
+    def _nested_spaces_iter_helper(self):
+        for space in self.spaces.values():
+            for nested in space._nested_spaces_iter_helper():
+                yield nested
+            yield space
+
 
 class MiniModel(SpaceContainer):
-    """
-      # - spaces
-      # - new_child
-    """
     def __init__(self):
         self.spaces = {}
         self.parent = None
 
 
 class MiniDerivable:
-    """
-      # - parent_bases
-      # - bases = parent_bases + direct_bases
-      # - initialize()
-      # - inherit()
-      # - derive()
-    """
     def __init__(self, parent):
-        # self.parent_bases = []
         self.parent = parent
 
     def has_ascendant(self, other):
@@ -266,7 +276,6 @@ class MiniSpace(MiniDerivable, SpaceContainer):
                     self.del_member(attr[:-1], name)
                 else:
                     selfmap[name].inherit()
-                # selfmap.pop(name)   # TODO: delete removed item
 
 
 class MiniItem(MiniDerivable):
@@ -295,15 +304,5 @@ class MiniItem(MiniDerivable):
 
 graph = SpaceGraph()
 
-if __name__ == '__main__':
-    """
-    A <-B
-    |   |
-    C   C      
-    """
-    model = MiniModel()
-    A = MiniSpace(model, 'A')
-    B = MiniSpace(model, 'B')
-    C = B.new_item('C')
-    A.add_base(B)
+
 
