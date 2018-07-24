@@ -115,7 +115,8 @@ class SpaceContainer:
     def del_space(self, name):
         space = self.spaces.pop(name)
         graph.remove_node(space)
-        graph.update_subspaces(self)
+        for space in self.spaces.values():
+            space.inherit()
 
 
 class MiniModel(SpaceContainer):
@@ -157,7 +158,7 @@ class MiniDerivable:
         if isinstance(self.parent, MiniModel):
             return []
         else:
-            parent_bases = graph.get_mro(self.parent)[1:]
+            parent_bases = self.parent.bases # graph.get_mro(self.parent)[1:]
             result = []
             for space in parent_bases:
                 if self.name in space.children:
@@ -202,8 +203,15 @@ class MiniSpace(MiniDerivable, SpaceContainer):
         elif type_ == 'item':
             return self.new_item(name, is_derived)
 
+    def del_space(self, name):
+        space = self.spaces.pop(name)
+        graph.remove_node(space)
+        self.inherit()
+        graph.update_subspaces(self)
+
     def del_item(self, name):
         self.items.pop(name)
+        self.inherit()
         graph.update_subspaces(self)
 
     def del_member(self, type_, name):
@@ -247,15 +255,17 @@ class MiniSpace(MiniDerivable, SpaceContainer):
             selfmap = getattr(self, attr)
             basemap = ChainMap(*[getattr(base, attr) for base in bases])
             for name in basemap:
-                if name in selfmap:
-                    selfmap[name].inherit()
-                else:
+                if name not in selfmap:
                     selfmap[name] = self.new_member(attr[:-1], name,
                                                     is_derived=True)
+                selfmap[name].inherit()
+
             names = set(selfmap) - set(basemap)
             for name in names:
                 if selfmap[name].is_derived:
                     self.del_member(attr[:-1], name)
+                else:
+                    selfmap[name].inherit()
                 # selfmap.pop(name)   # TODO: delete removed item
 
 

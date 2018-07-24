@@ -68,8 +68,56 @@ def test_new_del_basemember_lv2ly2(new_member):
         assert 'C' not in A.children
 
 
-@pytest.mark.parametrize("new_member",
-                         ['item', 'space'])
+@pytest.mark.parametrize("new_descents", [True, False])
+def test_add_remove_base_lv4ly2(new_descents):
+    """
+    A <--B
+    |    |
+    C(*) C
+    |    |
+    D(*) D
+    |    |
+    E*   E
+    """
+    model = MiniModel()
+    B = model.new_space('B')
+    E = B.new_space('C').new_space('D').new_space('E')
+    A = model.new_space('A')
+    if new_descents:
+        D = A.new_space('C').new_space('D')
+    A.add_base(B)
+    assert 'E' in A.spaces['C'].spaces['D'].spaces
+    A.remove_base(B)
+    if new_descents:
+        assert 'E' not in A.spaces['C'].spaces['D'].spaces
+    else:
+        assert 'C' not in A.spaces
+
+
+@pytest.mark.parametrize("new_descents", [True, False])
+def test_new_del_basemember_lv4ly2(new_descents):
+    """
+    A <--B
+    |    |
+    C(*) C
+    |    |
+    D(*) D
+    |    |
+    E*   E
+    """
+    model = MiniModel()
+    B = model.new_space('B')
+    E = B.new_space('C').new_space('D').new_space('E')
+    A = model.new_space('A')
+    if new_descents:
+        D = A.new_space('C').new_space('D')
+    A.add_base(B)
+    assert 'E' in A.spaces['C'].spaces['D'].spaces
+    B.spaces['C'].spaces['D'].del_member('space', 'E')
+    assert 'E' not in A.spaces['C'].spaces['D'].spaces
+
+
+@pytest.mark.parametrize("new_member", ['item', 'space'])
 def test_add_remove_base(new_member):
     """
         A   B   C
@@ -207,7 +255,8 @@ def test_base_parent_child_error():
     C = model.new_space('C')
     C.add_base(B)
     C.add_base(A)
-    B.add_base(D)
+    with pytest.raises(ValueError):
+        B.add_base(D)
 
 
 def test_sub_parent_child_error():
