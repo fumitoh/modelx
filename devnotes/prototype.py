@@ -8,6 +8,10 @@ class SpaceGraph(nx.DiGraph):
 
     def add_edge(self, basespace, subspace):
 
+        if basespace.has_linealrel(subspace):
+            raise ValueError("%s and %s have parent-child relationship"
+                             % (basespace, subspace))
+
         nx.DiGraph.add_edge(self, basespace, subspace)
 
         if not nx.is_directed_acyclic_graph(self):
