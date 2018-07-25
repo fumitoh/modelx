@@ -572,11 +572,6 @@ class DerivedRefDict(BaseDictMixin, RefDict):
         self.data.clear()
         self.data.update(self.basedict)
 
-def _map_repr(self):
-    result = [',\n '] * (len(self._data) * 2 -1)
-    result[0::2] = sorted(list(self._data))
-    return '{' + ''.join(result) + '}'
-
 
 def _to_frame_inner(cellsiter, args):
 
@@ -674,16 +669,12 @@ class CellsView(SelectedView):
 
         return _to_frame_inner(impls, args)
 
-    __repr__ = _map_repr
-
 
 class SpaceView(BaseView):
 
     def __delitem__(self, name):
         space = self._data[name]._impl
         space.parent.del_space(name)
-
-    __repr__ = _map_repr
 
 
 class SpaceImpl(SpaceContainerImpl):
