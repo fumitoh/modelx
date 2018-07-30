@@ -217,27 +217,33 @@ def test_new_del_basemember_lv3ly3(new_member):
                          ['item', 'space'])
 def test_new_del_basemember_lv32ly3(new_member):
     """
-           C <-A
-           |   |
-       D <-B   B
-       |   |   |
-       E*  E*  E
+       G <-F   C <-A
+       |   |   |   |
+       D*  D <-B   B
+       |   |   |   |
+       E*  E*  E*  E
     """
     model = MiniModel()
     A = model.new_space('A')
     AB = A.new_space('B')
     C = model.new_space('C')
     CB = C.new_space('B')
-    D = model.new_space('D')
+    F = model.new_space('F')
+    D = F.new_space('D')
     D.add_base(CB)
     C.add_base(A)
+    G = model.new_space('G')
+    G.add_base(F)
 
-    AB.new_member(new_member, 'E')
-    assert 'E' in getattr(CB, new_member + 's')
-    assert 'E' in getattr(D, new_member + 's')
-    AB.del_member(new_member, 'E')
-    assert 'E' not in getattr(CB, new_member + 's')
-    assert 'E' not in getattr(D, new_member + 's')
+    for _ in range(2):
+        AB.new_member(new_member, 'E')
+        assert 'E' in getattr(CB, new_member + 's')
+        assert 'E' in getattr(D, new_member + 's')
+        assert 'E' in getattr(G.spaces['D'], new_member + 's')
+        AB.del_member(new_member, 'E')
+        assert 'E' not in getattr(CB, new_member + 's')
+        assert 'E' not in getattr(D, new_member + 's')
+        assert 'E' not in getattr(G.spaces['D'], new_member + 's')
 
 
 def test_base_parent_child_error():

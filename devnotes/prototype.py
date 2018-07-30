@@ -93,8 +93,8 @@ class SpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def update_subspaces(self, space):
-        self.update_subspaces_downward(space)
+    def update_subspaces(self, space, skip=True):
+        self.update_subspaces_downward(space, skip)
         self.update_subspaces_upward(space)
 
     def update_subspaces_upward(self, space):
@@ -103,7 +103,7 @@ class SpaceGraph(nx.DiGraph):
         else:
             succ = self.successors(space.parent)
             for subspace in succ:
-                self.update_subspaces_downward(subspace, False)
+                self.update_subspaces(subspace, False)
             self.update_subspaces_upward(space.parent)
 
     def update_subspaces_downward(self, space, skip=True):
@@ -113,7 +113,7 @@ class SpaceGraph(nx.DiGraph):
             space.inherit()
         succ = self.successors(space)
         for subspace in succ:
-            self.update_subspaces_downward(subspace, False)
+            self.update_subspaces(subspace, False)
 
 
 class SpaceContainer:
