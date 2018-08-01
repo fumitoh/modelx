@@ -24,6 +24,7 @@ from itertools import combinations
 from modelx.core.base import (
     ObjectArgs,
     Impl,
+    Derivable,
     Interface,
     BoundFunction)
 from modelx.core.formula import (
@@ -90,7 +91,8 @@ class CellsMaker:
 
 ArgsValuePair = namedtuple('ArgsValuePair', ['args', 'value'])
 
-class CellsImpl(Impl):
+
+class CellsImpl(Derivable, Impl):
     """
     Data container optionally with a formula to set its own values.
 
@@ -135,6 +137,7 @@ class CellsImpl(Impl):
                  base=None):
 
         Impl.__init__(self, Cells)
+        Derivable.__init__(self)
 
         self.system = space.system
         self.model = space.model
@@ -161,11 +164,6 @@ class CellsImpl(Impl):
             data = {}
         self.data.update(data)
 
-        self.base = base
-        if base is not None:
-            base.derived.append(self)
-        self.derived = []
-
         self._namespace_impl = self.space._namespace_impl
         self.altfunc = BoundFunction(self)
 
@@ -177,10 +175,8 @@ class CellsImpl(Impl):
                    'formula',
                    'name',
                    'data',
-                   'base',
-                   'derived',
                    '_namespace_impl',
-                   'altfunc'] + Impl.state_attrs
+                   'altfunc'] + Derivable.state_attrs + Impl.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -246,13 +242,26 @@ class CellsImpl(Impl):
         else:
             raise ValueError("%s not a scalar" % self.name)
 
-    @property
-    def is_derived(self):
-        return self.name in self.space.derived_cells
+    def inherit(self, **kwargs):
+
+        if 'clear_value' in kwargs:
+            clear_value = kwargs['clear_value']
+        else:
+            clear_value = True
+
+        if self.bases:
+            if clear_value:
+                self.model.clear_obj(self)
+            self.formula = self.bases[0].formula
+            self.altfunc.set_update()
 
     @property
     def module_(self):
         return self.formula.module_
+
+    @property
+    def self_bases(self):
+        return []
 
     # ----------------------------------------------------------------------
     # Formula operations
@@ -262,26 +271,20 @@ class CellsImpl(Impl):
         newsrc = self.formula._reload(module_).source
         if oldsrc != newsrc:
             self.model.clear_obj(self)
-            self.space.self_cells_set_update()
 
     def clear_formula(self):
         self.set_formula(NULL_FORMULA)
 
     def set_formula(self, func):
-
-        def set_formula_single_cells(cells, formula):
-            cells.model.clear_obj(cells)
-            cells.formula = formula
-            cells.space.self_cells_set_update()
-
-        if not self.is_derived:
-            formula = Formula(func)
-            set_formula_single_cells(self, formula)
-            for derived in self.derived:
-                set_formula_single_cells(derived, formula)
-        else:
-            raise NotImplementedError('Cannot set derived cells formula')
-
+        self.model.clear_obj(self)
+        formula = Formula(func)
+        self.formula = formula
+        self.altfunc.set_update()
+        if not self.parent.in_dynamic():
+            self.model.spacegraph.update_subspaces_upward(
+                self.parent,
+                from_parent=False,
+                event='cells_set_formula')
     # ----------------------------------------------------------------------
     # Value operations
 

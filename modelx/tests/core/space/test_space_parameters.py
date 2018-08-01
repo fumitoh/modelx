@@ -41,8 +41,8 @@ def test_formula(samplemodel):
     data = [[0, 50, 10], [1, 60, 15], [2, 70, 5]]
 
     def params(idx):
-        return {'name': 'TestSpace%s' % idx,
-                'bases': _self}
+        return {'name': 'TestSpace%s' % idx}
+                # 'bases': _self}
 
     space = samplemodel.new_space(name='TestSpace', formula=params)
 

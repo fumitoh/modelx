@@ -3,7 +3,7 @@ import pytest
 from modelx.core.api import *
 from modelx.core.cells import CellArgs
 from modelx.core.base import get_interfaces
-
+from modelx.core.model import SpaceGraph
 
 @pytest.fixture
 def simplemodel():
@@ -154,8 +154,6 @@ def test_get_object(simplemodel):
 
     assert simplemodel._impl.get_object('Space1.fibo') is \
         simplemodel._impl.spaces['Space1'].cells['fibo']
-
-
 
 
 

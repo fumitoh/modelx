@@ -7,9 +7,9 @@ import pytest
               |    |    |
               A--->C--->E
               |　  |    |
-              B--->B2-->B3
+              B--->CB-->EC*
                    |    |
-                   D--->D2
+                  CBD-->ECD*
 
 """
 

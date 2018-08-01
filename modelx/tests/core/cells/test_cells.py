@@ -204,20 +204,13 @@ def test_clear_formula(sample_space):
     source = space.new_cells(formula=f1)
     dependant = space.new_cells(formula=f2)
 
-    errors = []
     dependant(2)
-    if not set(dependant) == {(2,)}:
-        errors.append("error with dependant")
-    if not set(source) == {(1,), (2,)}:
-        errors.append("error with source")
+    assert set(dependant) == {(2,)}
+    assert set(source) == {(1,), (2,)}
 
     del source.formula
-    if not set(source) == set():
-        errors.append("clear error with source")
-    if not set(dependant) == set():
-        errors.append("clear error with dependant")
-
-    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+    assert set(source) == set()
+    assert set(dependant) == set()
 
 
 def test_set_formula(sample_space):
@@ -244,23 +237,16 @@ def test_set_formula(sample_space):
     source = space.new_cells(formula=f1)
     dependant = space.new_cells(formula=f2)
 
-    errors = []
-    dependant(2)
-    if not set(dependant) == {(2,)}:
-        errors.append("error with dependant")
-    if not set(source) == {(1,), (2,)}:
-        errors.append("error with source")
+    result = dependant(2)
+    assert set(dependant) == {(2,)}
+    assert set(source) == {(1,), (2,)}
+    assert result == 4
 
     source.formula = f3
     result = dependant(2)
-    if not set(source) == {(1,), (2,)}:
-        errors.append("clear error with source")
-    if not set(dependant) == {(2,)}:
-        errors.append("clear error with dependant")
-    if not result == 6:
-        errors.append("invalid result")
-
-    assert not errors, "errors occured:\n{}".format("\n".join(errors))
+    assert set(source) == {(1,), (2,)}
+    assert set(dependant) == {(2,)}
+    assert result == 6
 
 
 def test_call_single_value(sample_space):

@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import builtins
+import itertools
 from textwrap import dedent
 import pickle
 
@@ -92,6 +93,7 @@ class ModelImpl(SpaceContainerImpl):
 
         self.cellgraph = DependencyGraph()
         self.lexdep = DependencyGraph()     # Lexical dependency
+        self.spacegraph = SpaceGraph()
         self.currentspace = None
 
         if not name:
@@ -198,7 +200,8 @@ class ModelImpl(SpaceContainerImpl):
                    'cellgraph',
                    'lexdep',
                    '_namespace',
-                   '_global_refs'] + SpaceContainerImpl.state_attrs
+                   '_global_refs',
+                   'spacegraph'] + SpaceContainerImpl.state_attrs
 
     def __getstate__(self):
 
@@ -233,10 +236,7 @@ class ModelImpl(SpaceContainerImpl):
 
     def del_space(self, name):
         space = self.spaces[name]
-        if space.has_inherited():
-            raise ValueError("%s has derived spaces" % repr(space.interface))
-        else:
-            self.spaces.del_item(name)
+        self.spaces.del_item(name)
 
     def _set_space(self, space):
 
@@ -327,6 +327,103 @@ class Model(SpaceContainer):
         """Return a mapping of global references."""
         return self._impl.global_refs.mproxy
 
+
+class SpaceGraph(nx.DiGraph):
+
+    def add_edge(self, basespace, subspace):
+
+        if basespace.has_linealrel(subspace):
+            if not subspace.is_dynamic:
+                raise ValueError("%s and %s have parent-child relationship"
+                                 % (basespace, subspace))
+
+        nx.DiGraph.add_edge(self, basespace, subspace)
+
+        if not nx.is_directed_acyclic_graph(self):
+            self.remove_edge(basespace, subspace)
+            raise ValueError("Loop detected in inheritance")
+
+        # Flag update MRO cache
+        for desc in nx.descendants(self, basespace):
+            desc.update_mro = True
+
+    def get_bases(self, node):
+        """Direct Bases iterator"""
+        return self.predecessors(node)
+
+    def get_mro(self, space):
+        """Calculate the Method Resolution Order of bases using the C3 algorithm.
+
+        Code modified from
+        http://code.activestate.com/recipes/577748-calculate-the-mro-of-a-class/
+
+        Args:
+            bases: sequence of direct base spaces.
+
+        Returns:
+            mro as a list of bases including node itself
+        """
+        seqs = [self.get_mro(base) for base
+                in self.get_bases(space)] + [list(self.get_bases(space))]
+        res = []
+        while True:
+            non_empty = list(filter(None, seqs))
+
+            if not non_empty:
+                # Nothing left to process, we're done.
+                res.insert(0, space)
+                return res
+
+            for seq in non_empty:  # Find merge candidates among seq heads.
+                candidate = seq[0]
+                not_head = [s for s in non_empty if candidate in s[1:]]
+                if not_head:
+                    # Reject the candidate.
+                    candidate = None
+                else:
+                    break
+
+            if not candidate:
+                raise TypeError(
+                    "inconsistent hierarchy, no C3 MRO is possible")
+
+            res.append(candidate)
+
+            for seq in non_empty:
+                # Remove candidate.
+                if seq[0] == candidate:
+                    del seq[0]
+
+    def update_subspaces(self, space, skip=True, **kwargs):
+        self.update_subspaces_downward(space, skip, **kwargs)
+        self.update_subspaces_upward(space, **kwargs)
+
+    def update_subspaces_upward(self, space, from_parent=True,
+                                **kwargs):
+
+        if from_parent:
+            target = space.parent
+        else:
+            target = space
+
+        if target.is_model():
+            return
+        else:
+            succ = self.successors(target)
+            for subspace in succ:
+                self.update_subspaces(subspace, False, **kwargs)
+            self.update_subspaces_upward(space.parent,
+                                         from_parent=from_parent,
+                                         **kwargs)
+
+    def update_subspaces_downward(self, space, skip=True, **kwargs):
+        for child in space.static_spaces.values():
+            self.update_subspaces_downward(child, False, **kwargs)
+        if not skip:
+            space.inherit(**kwargs)
+        succ = self.successors(space)
+        for subspace in succ:
+            self.update_subspaces(subspace, False, **kwargs)
 
 
 

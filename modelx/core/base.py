@@ -207,6 +207,7 @@ class Impl:
             raise TypeError('%s not value or interface', interface_class)
 
         self.parent = None  # To be overwritten in Space and Cells
+        self.name = None
         self.allow_none = None
         self.lazy_evals = None
 
@@ -263,17 +264,75 @@ class Impl:
 
                 return fullname
 
-
 class _DummyBuiltins:
     pass
 
 
-class ReferenceImpl(Impl):
+class Derivable(Impl):
 
-    def __init__(self, parent, name, value):
+    state_attrs = ['_is_derived'] + Impl.state_attrs
+
+    def __init__(self):
+        self._is_derived = None  # must be initialized after __init__.
+
+    @property
+    def is_derived(self):
+        return self._is_derived
+
+    @is_derived.setter
+    def is_derived(self, is_derived):
+        self._is_derived = is_derived
+        if not is_derived:
+            if self.parent.parent is not None:
+                self.parent.is_derived = is_derived
+
+    def has_ascendant(self, other):
+        if other is self.parent:
+            return True
+        elif self.parent.parent is None:
+            return False
+        else:
+            return self.parent.has_ascendant(self.parent)
+
+    @property
+    def bases(self):
+        return self.self_bases + self.parent_bases
+
+    @property
+    def parent_bases(self):
+        if self.parent.is_model():
+            return []
+        else:
+            parent_bases = self.parent.bases
+            result = []
+            for space in parent_bases:
+                if self.name in space.inheritables:
+                    if type(self) is type(space.inheritables[self.name]):
+                        result.append(space.inheritables[self.name])
+            return result
+
+    @property
+    def self_bases(self):
+        raise NotImplementedError
+
+    def inherit(self, **kwargs):
+        raise NotImplementedError
+
+    def __repr__(self):
+        if self.parent.is_model():
+            return self.name
+        else:
+            return repr(self.parent) + '.' + self.name
+
+
+class ReferenceImpl(Derivable, Impl):
+
+    def __init__(self, parent, name, value, base=None):
         Impl.__init__(self, value)
+        Derivable.__init__(self)
 
         self.parent = parent
+        self.model = parent.model
         self.name = name
 
     def __getstate__(self):
@@ -291,6 +350,22 @@ class ReferenceImpl(Impl):
             state['interface'] = builtins
 
         self.__dict__.update(state)
+
+    @property
+    def self_bases(self):
+        return []
+
+    def inherit(self, **kwargs):
+
+        if 'clear_value' in kwargs:
+            clear_value = kwargs['clear_value']
+        else:
+            clear_value = True
+
+        if self.bases:
+            if clear_value:
+                self.model.clear_obj(self)
+            self.interface = self.bases[0].interface
 
 
 class NullImpl(Impl):
@@ -605,6 +680,7 @@ class InterfaceMixin:
             self.map_class = BaseView
         self._set_interfaces(self.map_class)
         self.needs_update = True
+
 
 class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
 

@@ -54,17 +54,19 @@ def test_model_delattr_basespace(unpickled_model):
     model = unpickled_model
 
     assert 'base' in model.spaces
-    with pytest.raises(ValueError):
-        del model.base
-
+    # with pytest.raises(ValueError):
+    #     del model.base
+    del model.base
+    assert 'base' not in model.spaces
 
 def test_model_delitem_basespace(unpickled_model):
     model = unpickled_model
 
     assert 'base' in model.spaces
-    with pytest.raises(ValueError):
-        del model.spaces['base']
-
+    # with pytest.raises(ValueError):
+    #     del model.spaces['base']
+    del model.spaces['base']
+    assert 'base' not in model.spaces
 
 def test_space_delattr_space(unpickled_model):
     """Test deletion of a space in a derived nested space."""
@@ -87,8 +89,6 @@ def test_spacemapproxy_contains(unpickled_model):
     """Test spaces, self_spaces, derived_spaces """
     model = unpickled_model
     assert 'child' in model.derived.spaces
-    assert 'child' not in model.derived.self_spaces
-    assert 'child' in model.derived.derived_spaces
 
 
 @pytest.fixture(params=['derived',
@@ -141,19 +141,14 @@ def test_cellsmapproxy_contains(testspaces):
     target, _ = testspaces
 
     assert 'fibo' in target.cells
-    assert 'fibo' in target.derived_cells
-    assert 'fibo' not in target.self_cells
 
 
 def test_space_delattr_cells(testspaces):
     """Test deletion of cells in derived nested spaces."""
 
     target, source = testspaces
-
     del source.fibo
     assert 'fibo' not in target.cells
-    assert 'fibo' not in target.derived_cells
-    assert 'fibo' not in target.self_cells
 
 
 def test_space_new_space(testspaces):
@@ -181,10 +176,13 @@ def test_space_new_cells_override(testspaces):
         else:
             return fibo(x - 1) + fibo(x - 2)
 
-    cells = target.new_cells(name='fibo', formula=fibo_new)
+    # cells = target.new_cells(name='fibo', formula=fibo_new)
+    cells = target.cells['fibo']
+    cells.set_formula(fibo_new)
 
-    assert 'fibo' not in target.derived_cells
-    assert target.self_cells['fibo'] is cells
+    # assert 'fibo' not in target.derived_cells
+    # assert target.self_cells['fibo'] is cells
+    # assert not cells.is_derived()
     assert cells(2) == 3
 
 
