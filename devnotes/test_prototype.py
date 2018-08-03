@@ -246,7 +246,7 @@ def test_new_del_basemember_lv32ly3(new_member):
         assert 'E' not in getattr(G.spaces['D'], new_member + 's')
 
 
-def test_base_parent_child_error():
+def test_base_parent_child():
     """
         C <-----+
           <-B   |
@@ -261,11 +261,11 @@ def test_base_parent_child_error():
     C = model.new_space('C')
     C.add_base(B)
     C.add_base(A)
-    with pytest.raises(ValueError):
-        B.add_base(D)
+    B.add_base(D)
+    assert C.bases == [B, D, A]
 
 
-def test_sub_parent_child_error():
+def test_sub_parent_child():
     """
         A <-B <-C
         |       |
@@ -278,8 +278,8 @@ def test_sub_parent_child_error():
     C = model.new_space('C')
     A.add_base(B)
     B.add_base(C)
-    with pytest.raises(ValueError):
-        D.add_base(C)
+    D.add_base(C)
+    assert D.bases == [C]
 
 
 def test_pararell_inheritance():
@@ -297,3 +297,44 @@ def test_pararell_inheritance():
     C.add_base(D)
     assert 'C' in A.spaces
     assert 'D' in A.spaces
+
+def test_circler_error():
+    """
+        A <-B
+        |   |
+        C ->D
+    """
+    model = MiniModel()
+    A = model.new_space('A')
+    B = model.new_space('B')
+    C = A.new_space('C')
+    D = B.new_space('D')
+
+    D.add_base(C)
+
+    with pytest.raises(ValueError):
+        A.add_base(B)
+
+
+def test_circler_nonerror():
+    """
+            C
+            |-+
+        A <-D |
+        |     |
+        B --->E
+
+    """
+
+    model = MiniModel()
+    A = model.new_space('A')
+    B = A.new_space('B')
+    C = model.new_space('C')
+    D = C.new_space('D')
+    E = C.new_space('E')
+
+    A.add_base(D)
+    E.add_base(B)
+
+    assert A.bases == [D]
+    assert E.bases == [B]

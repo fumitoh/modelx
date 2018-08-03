@@ -18,33 +18,11 @@ class SpaceGraph(nx.DiGraph):
             self.remove_edge(basespace, subspace)
             raise ValueError("Loop detected in inheritance")
 
-        undirected = self.to_undirected()
-
-        for space in self.nodes:   # add composition edges
-            undirected.add_edges_from(space.descendant_edge_iter())
-
-        # Include all spaces reachable from basespace
-        reachable = nx.shortest_path(undirected, source=basespace).keys()
-
-        for space in reachable:
-
-            # Check no two descendants have composition relationship
-            descs = nx.descendants(self, space)
-            for i, j in itertools.combinations(descs, 2):
-                if i.has_linealrel(j):
-                    self.remove_edge(basespace, subspace)
-                    raise ValueError("%s has descendants %s and %s, "
-                                     "which are in parent-child relationship"
-                                     % (space, i, j))
-
-            # Check no two ancestors have composition relationship
-            ascs = nx.ancestors(self, space)
-            for i, j in itertools.combinations(ascs, 2):
-                if i.has_linealrel(j):
-                    self.remove_edge(basespace, subspace)
-                    raise ValueError("%s has ancestors %s and %s, "
-                                     "which are in parent-child"
-                                     "relationship" % (space, i, j))
+        try:
+            self._start_space = subspace
+            self.traverse_subspaces(subspace, check_only=True)
+        finally:
+            self._start_space = None
 
     def get_bases(self, node):
         """Direct Bases iterator"""
@@ -93,27 +71,35 @@ class SpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def update_subspaces(self, space, skip=True):
-        self.update_subspaces_downward(space, skip)
-        self.update_subspaces_upward(space)
 
-    def update_subspaces_upward(self, space):
+    def traverse_subspaces(self, space,  skip=True, check_only=False):
+        self.traverse_subspaces_downward(space, skip, check_only)
+        self.traverse_subspaces_upward(space)
+
+    def traverse_subspaces_upward(self, space):
         if space.parent.parent is None:
             return
         else:
             succ = self.successors(space.parent)
             for subspace in succ:
-                self.update_subspaces(subspace, False)
-            self.update_subspaces_upward(space.parent)
+                if subspace is self._start_space:
+                    raise ValueError("Cyclic inheritance")
+                self.traverse_subspaces(subspace, False)
+            self.traverse_subspaces_upward(space.parent)
 
-    def update_subspaces_downward(self, space, skip=True):
+    def traverse_subspaces_downward(self, space, skip=True, check_only=False):
         for child in space.spaces.values():
-            self.update_subspaces_downward(child, False)
-        if not skip:
-            space.inherit()
+            self.traverse_subspaces_downward(child, False, check_only)
+        if not skip and not check_only:
+                space.inherit()
         succ = self.successors(space)
         for subspace in succ:
-            self.update_subspaces(subspace, False)
+            if subspace is self._start_space:
+                raise ValueError("Cyclic inheritance")
+            self.traverse_subspaces(subspace, False, check_only)
+
+    def update_subspaces(self, space, skip=True):
+        self.traverse_subspaces(space, skip)
 
 
 class SpaceContainer:
