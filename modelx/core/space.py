@@ -596,6 +596,19 @@ class Space(SpaceContainer):
         # Outside formulas only
         return self._impl.new_cells(name, formula).interface
 
+    def add_bases(self, *bases):
+        """Add base spaces."""
+        return self._impl.add_bases(bases)
+
+    def remove_bases(self, *bases):
+        """Remove base spaces."""
+        return self._impl.remove_bases(bases)
+
+    @property
+    def bases(self):
+        """List of base classes."""
+        return get_interfaces(self._impl.bases)
+
     def is_base(self, other):
         """True if the space is a base space of ``other``, False otherwise."""
         return self._impl.is_base(other._impl)
@@ -1316,10 +1329,18 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         self.inherit()
         self.model.spacegraph.update_subspaces(self)
 
+    def add_bases(self, bases):     # bases are interfaces
+        for base in get_impls(bases):
+            self.add_base(base)
+
     def remove_base(self, other):
         self.model.spacegraph.remove_edge(other, self)
         self.inherit()
         self.model.spacegraph.update_subspaces(self)
+
+    def remove_bases(self, bases):  # bases are interfaces
+        for base in get_impls(bases):
+            self.remove_base(base)
 
     def inherit(self, **kwargs):
 

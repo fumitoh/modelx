@@ -356,6 +356,15 @@ class SpaceGraph(nx.DiGraph):
         for desc in nx.descendants(self, basespace):
             desc.update_mro = True
 
+    def remove_edge(self, basespace, subspace):
+        nx.DiGraph.remove_edge(self, basespace, subspace)
+
+        basespace.update_mro = True
+        subspace.update_mro = True
+
+        for desc in nx.descendants(self, subspace):
+            desc.update_mro = True
+
     def get_bases(self, node):
         """Direct Bases iterator"""
         return self.predecessors(node)
