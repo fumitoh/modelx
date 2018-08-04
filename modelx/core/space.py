@@ -56,6 +56,166 @@ class ParamFunc(Formula):
         Formula.__init__(self, func, module_)
 
 
+class SpaceContainer(Interface):
+    """A common base class shared by Model and Space.
+
+    This base class defines methods to serve as child space container,
+    which are common between Model and Space.
+    The methods defined in this class are available both in
+    :py:class:`Model <modelx.core.model.Model>` and
+    :py:class:`Space <modelx.core.space.Space>`.
+
+    """
+    def new_space(self, name=None, bases=None, formula=None, refs=None):
+        """Create a child space.
+
+        Args:
+            name (str, optional): Name of the space. Defaults to ``SpaceN``,
+                where ``N`` is a number determined automatically.
+            bases (optional): A space or a sequence of spaces to be the base
+                space(s) of the created space.
+            formula (optional): Function to specify the parameters of
+                dynamic child spaces. The signature of this function is used
+                for setting parameters for dynamic child spaces.
+                This function should return a mapping of keyword arguments
+                to be passed to this method when the dynamic child spaces
+                are created.
+
+        Returns:
+            The new child space.
+        """
+        space = self._impl.model.currentspace \
+            = self._impl.new_space(name=name, bases=get_impls(bases),
+                                   formula=formula, refs=refs)
+
+        return space.interface
+
+    def import_module(self, module_, recursive=False, **params):
+        """Create a child space from an module.
+
+        Args:
+            module_: a module object or name of the module object.
+            recursive: Not yet implemented.
+            **params: arguments to pass to ``new_space``
+
+        Returns:
+            The new child space created from the module.
+        """
+        if 'bases' in params:
+            params['bases'] = get_impls(params['bases'])
+
+        space = self._impl.model.currentspace \
+            = self._impl.new_space_from_module(module_,
+                                               recursive=recursive,
+                                               **params)
+        return get_interfaces(space)
+
+    def new_space_from_module(self, module_, recursive=False, **params):
+        """Create a child space from an module.
+
+        Alias to :py:meth:`import_module`.
+
+        Args:
+            module_: a module object or name of the module object.
+            recursive: Not yet implemented.
+            **params: arguments to pass to ``new_space``
+
+        Returns:
+            The new child space created from the module.
+        """
+        if 'bases' in params:
+            params['bases'] = get_impls(params['bases'])
+
+        space = self._impl.model.currentspace \
+            = self._impl.new_space_from_module(module_,
+                                                  recursive=recursive,
+                                                  **params)
+        return get_interfaces(space)
+
+    def new_space_from_excel(self, book, range_, sheet=None,
+                                name=None,
+                                names_row=None, param_cols=None,
+                                space_param_order=None,
+                                cells_param_order=None,
+                                transpose=False,
+                                names_col=None, param_rows=None):
+        """Create a child space from an Excel range.
+
+        To use this method, ``openpyxl`` package must be installed.
+
+        Args:
+            book (str): Path to an Excel file.
+            range_ (str): Range expression, such as "A1", "$G4:$K10",
+                or named range "NamedRange1".
+            sheet (str): Sheet name (case ignored).
+            name (str, optional): Name of the space. Defaults to ``SpaceN``,
+                where ``N`` is a number determined automatically.
+            names_row (optional): an index number indicating
+                what row contains the names of cells and parameters.
+                Defaults to the top row (0).
+            param_cols (optional): a sequence of index numbers
+                indicating parameter columns.
+                Defaults to only the leftmost column ([0]).
+            names_col (optional): an index number, starting from 0,
+                indicating what column contains additional parameters.
+            param_rows (optional): a sequence of index numbers, starting from
+                0, indicating rows of additional parameters, in case cells are
+                defined in two dimensions.
+            transpose (optional): Defaults to ``False``.
+                If set to ``True``, "row(s)" and "col(s)" in the parameter
+                names are interpreted inversely, i.e.
+                all indexes passed to "row(s)" parameters are interpreted
+                as column indexes,
+                and all indexes passed to "col(s)" parameters as row indexes.
+            space_param_order: a sequence to specify space parameters and
+                their orders. The elements of the sequence denote the indexes
+                of ``param_cols`` elements, and optionally the index of
+                ``param_rows`` elements shifted by the length of
+                ``param_cols``. The elements of this parameter and
+                ``cell_param_order`` must not overlap.
+            cell_param_order (optional): a sequence to reorder the parameters.
+                The elements of the sequence denote the indexes of
+                ``param_cols`` elements, and optionally the index of
+                ``param_rows`` elements shifted by the length of
+                ``param_cols``. The elements of this parameter and
+                ``cell_space_order`` must not overlap.
+
+        Returns:
+            The new child space created from the Excel range.
+        """
+
+        space = self._impl.new_space_from_excel(
+            book, range_, sheet, name,
+            names_row, param_cols,
+            space_param_order,
+            cells_param_order,
+            transpose,
+            names_col, param_rows)
+
+        return get_interfaces(space)
+
+    @property
+    def spaces(self):
+        """A mapping of the names of child spaces to the Space objects"""
+        return self._impl.spaces.interfaces
+
+    # ----------------------------------------------------------------------
+    # Current Space method
+
+    def cur_space(self, name=None):
+        """Set the current space to Space ``name`` and return it.
+
+        If called without arguments, the current space is returned.
+        Otherwise, the current space is set to the space named ``name``
+        and the space is returned.
+        """
+        if name is None:
+            return self._impl.model.currentspace.interface
+        else:
+            self._impl.model.currentspace = self._impl.spaces[name]
+            return self.cur_space()
+
+
 class SpaceContainerImpl(Impl):
     """Base class of Model and Space to work as container of spaces.
 
@@ -68,9 +228,11 @@ class SpaceContainerImpl(Impl):
     state_attrs = ['_spaces',   # must be defined in subclasses
                    'spacenamer'] + Impl.state_attrs
 
-    def __init__(self, system, if_class):
+    if_class = SpaceContainer
 
-        Impl.__init__(self, if_class)
+    def __init__(self, system):
+
+        Impl.__init__(self)
 
         self.system = system
         self.spacenamer = AutoNamer('Space')
@@ -269,164 +431,6 @@ class SpaceContainerImpl(Impl):
             yield space
 
 
-class SpaceContainer(Interface):
-    """A common base class shared by Model and Space.
-
-    This base class defines methods to serve as child space container,
-    which are common between Model and Space.
-    The methods defined in this class are available both in
-    :py:class:`Model <modelx.core.model.Model>` and
-    :py:class:`Space <modelx.core.space.Space>`.
-
-    """
-    def new_space(self, name=None, bases=None, formula=None, refs=None):
-        """Create a child space.
-
-        Args:
-            name (str, optional): Name of the space. Defaults to ``SpaceN``,
-                where ``N`` is a number determined automatically.
-            bases (optional): A space or a sequence of spaces to be the base
-                space(s) of the created space.
-            formula (optional): Function to specify the parameters of
-                dynamic child spaces. The signature of this function is used
-                for setting parameters for dynamic child spaces.
-                This function should return a mapping of keyword arguments
-                to be passed to this method when the dynamic child spaces
-                are created.
-
-        Returns:
-            The new child space.
-        """
-        space = self._impl.model.currentspace \
-            = self._impl.new_space(name=name, bases=get_impls(bases),
-                                   formula=formula, refs=refs)
-
-        return space.interface
-
-    def import_module(self, module_, recursive=False, **params):
-        """Create a child space from an module.
-
-        Args:
-            module_: a module object or name of the module object.
-            recursive: Not yet implemented.
-            **params: arguments to pass to ``new_space``
-
-        Returns:
-            The new child space created from the module.
-        """
-        if 'bases' in params:
-            params['bases'] = get_impls(params['bases'])
-
-        space = self._impl.model.currentspace \
-            = self._impl.new_space_from_module(module_,
-                                               recursive=recursive,
-                                               **params)
-        return get_interfaces(space)
-
-    def new_space_from_module(self, module_, recursive=False, **params):
-        """Create a child space from an module.
-
-        Alias to :py:meth:`import_module`.
-
-        Args:
-            module_: a module object or name of the module object.
-            recursive: Not yet implemented.
-            **params: arguments to pass to ``new_space``
-
-        Returns:
-            The new child space created from the module.
-        """
-        if 'bases' in params:
-            params['bases'] = get_impls(params['bases'])
-
-        space = self._impl.model.currentspace \
-            = self._impl.new_space_from_module(module_,
-                                                  recursive=recursive,
-                                                  **params)
-        return get_interfaces(space)
-
-    def new_space_from_excel(self, book, range_, sheet=None,
-                                name=None,
-                                names_row=None, param_cols=None,
-                                space_param_order=None,
-                                cells_param_order=None,
-                                transpose=False,
-                                names_col=None, param_rows=None):
-        """Create a child space from an Excel range.
-
-        To use this method, ``openpyxl`` package must be installed.
-
-        Args:
-            book (str): Path to an Excel file.
-            range_ (str): Range expression, such as "A1", "$G4:$K10",
-                or named range "NamedRange1".
-            sheet (str): Sheet name (case ignored).
-            name (str, optional): Name of the space. Defaults to ``SpaceN``,
-                where ``N`` is a number determined automatically.
-            names_row (optional): an index number indicating
-                what row contains the names of cells and parameters.
-                Defaults to the top row (0).
-            param_cols (optional): a sequence of index numbers
-                indicating parameter columns.
-                Defaults to only the leftmost column ([0]).
-            names_col (optional): an index number, starting from 0,
-                indicating what column contains additional parameters.
-            param_rows (optional): a sequence of index numbers, starting from
-                0, indicating rows of additional parameters, in case cells are
-                defined in two dimensions.
-            transpose (optional): Defaults to ``False``.
-                If set to ``True``, "row(s)" and "col(s)" in the parameter
-                names are interpreted inversely, i.e.
-                all indexes passed to "row(s)" parameters are interpreted
-                as column indexes,
-                and all indexes passed to "col(s)" parameters as row indexes.
-            space_param_order: a sequence to specify space parameters and
-                their orders. The elements of the sequence denote the indexes
-                of ``param_cols`` elements, and optionally the index of
-                ``param_rows`` elements shifted by the length of
-                ``param_cols``. The elements of this parameter and
-                ``cell_param_order`` must not overlap.
-            cell_param_order (optional): a sequence to reorder the parameters.
-                The elements of the sequence denote the indexes of
-                ``param_cols`` elements, and optionally the index of
-                ``param_rows`` elements shifted by the length of
-                ``param_cols``. The elements of this parameter and
-                ``cell_space_order`` must not overlap.
-
-        Returns:
-            The new child space created from the Excel range.
-        """
-
-        space = self._impl.new_space_from_excel(
-            book, range_, sheet, name,
-            names_row, param_cols,
-            space_param_order,
-            cells_param_order,
-            transpose,
-            names_col, param_rows)
-
-        return get_interfaces(space)
-
-    @property
-    def spaces(self):
-        """A mapping of the names of child spaces to the Space objects"""
-        return self._impl.spaces.interfaces
-
-    # ----------------------------------------------------------------------
-    # Current Space method
-
-    def cur_space(self, name=None):
-        """Set the current space to Space ``name`` and return it.
-
-        If called without arguments, the current space is returned.
-        Otherwise, the current space is set to the space named ``name``
-        and the space is returned.
-        """
-        if name is None:
-            return self._impl.model.currentspace.interface
-        else:
-            self._impl.model.currentspace = self._impl.spaces[name]
-            return self.cur_space()
 
 
 class SpaceDict(ImplDict):
@@ -567,15 +571,333 @@ class SpaceView(BaseView):
         space.parent.del_space(name)
 
 
+class Space(SpaceContainer):
+    """Container of cells, other spaces, and cells namespace.
+
+    Space objects can contain cells and other spaces.
+    Spaces have mappings of names to objects that serve as global namespaces
+    of the formulas of the cells in the spaces.
+    """
+
+    # ----------------------------------------------------------------------
+    # Manipulating cells
+
+    def new_cells(self, name=None, formula=None):
+        """Create a cells in the space.
+
+        Args:
+            name: If omitted, the model is named automatically ``CellsN``,
+                where ``N`` is an available number.
+            func: The function to define the formula of the cells.
+
+        Returns:
+            The new cells.
+        """
+        # Outside formulas only
+        return self._impl.new_cells(name, formula).interface
+
+    def is_base(self, other):
+        """True if the space is a base space of ``other``, False otherwise."""
+        return self._impl.is_base(other._impl)
+
+    def is_sub(self, other):
+        """True if the space is a sub space of ``other``, False otherwise."""
+        return self._impl.is_sub(other._impl)
+
+    def is_static(self):
+        """True if the space is a static space, False if dynamic."""
+        return self._impl.is_static()
+
+    def is_derived(self):
+        """True if the space is a derived space, False otherwise."""
+        return self._impl.is_derived
+
+    def is_defined(self):
+        """True if the space is a defined space, False otherwise."""
+        return self._impl.is_defined()
+
+    def is_dynamic(self):
+        """True if ths space is a dynamic space, False otherwise."""
+        return self._impl.is_dynamic
+
+    def in_dynamic(self):
+        """True if the space is in a dynamic space, False otherwise."""
+        return self._impl.in_dynamic()
+
+    @property
+    def cells(self):
+        """A mapping of cells names to the cells objects in the space."""
+        return self._impl.cells.interfaces
+
+    @property
+    def self_cells(self):
+        """A mapping that associates names to cells defined in the space"""
+        return self._impl.self_cells.interfaces
+
+    @property
+    def derived_cells(self):
+        """A mapping associating names to derived cells."""
+        return self._impl.derived_cells.interfaces
+
+    @property
+    def all_spaces(self):
+        """A mapping associating names to all(static and dynamic) spaces."""
+        return self._impl.spaces.interfaces
+
+    @property
+    def spaces(self):
+        """A mapping associating names to static spaces."""
+        return self._impl.static_spaces.interfaces
+
+    @property
+    def static_spaces(self):
+        """A mapping associating names to static spaces.
+
+        Alias to :py:meth:`spaces`
+        """
+        return self._impl.static_spaces.interfaces
+
+    @property
+    def dynamic_spaces(self):
+        """A mapping associating names to dynamic spaces."""
+        return self._impl.dynamic_spaces.interfaces
+
+    @property
+    def self_spaces(self):
+        """A mapping associating names to self spaces."""
+        return self._impl.self_spaces.interfaces
+
+    @property
+    def derived_spaces(self):
+        """A mapping associating names to derived spaces."""
+        return self._impl.derived_spaces.interfaces
+
+    @property
+    def argvalues(self):
+        """A tuple of space arguments."""
+        return self._impl.argvalues_if
+
+    @property
+    def parameters(self):
+        """A tuple of parameter strings."""
+        # TODO: Refactor out parameter methods common between Space and Cells.
+        return tuple(self._impl.parameters.keys())
+
+    @property
+    def refs(self):
+        """A map associating names to objects accessible by the names."""
+        return self._impl.refs.interfaces
+
+    def import_funcs(self, module_):
+        """Create a cells from a module."""
+        # Outside formulas only
+        newcells = self._impl.new_cells_from_module(module_)
+        return get_interfaces(newcells)
+
+    def new_cells_from_module(self, module_):
+        """Create a cells from a module.
+
+        Alias to :py:meth:`import_funcs`.
+        """
+        # Outside formulas only
+        newcells = self._impl.new_cells_from_module(module_)
+        return get_interfaces(newcells)
+
+    def reload(self):
+        """Reload the source module and update the formulas.
+
+        If the space was created from a module, reload the module and
+        update the formulas of its cells.
+
+        If a cell in the space is not created from a function definition
+        in the source module of the space, it is not updated.
+
+        If the formula of a cell in the space was created from a function
+        definition in the source module of the space and the definition is
+        missing from the updated module, the formula is cleared and
+        values calculated directly or indirectly depending the cells
+        are cleared.
+
+        If the formula of a cell in the space has not been changed
+        before and after reloading the source module, the values held
+        in the cell and relevant cells are retained.
+
+        Returns:
+            This method returns the space itself.
+        """
+        self._impl.reload()
+        return self
+
+    def new_cells_from_excel(self, book, range_, sheet=None,
+                                names_row=None, param_cols=None,
+                                param_order=None,
+                                transpose=False,
+                                names_col=None, param_rows=None):
+        """Create multiple cells from an Excel range.
+
+        This method reads values from a range in an Excel file,
+        create cells and populate them with the values in the range.
+        To use this method, ``openpyxl`` package must be installed.
+
+        The Excel file to read data from is specified by ``book``
+        parameters. The ``range_`` can be a range address, such as "$G4:$K10",
+        or a named range. In case a range address is given,
+        ``sheet`` must also be given.
+
+        By default, cells data are interpreted as being laid out side-by-side.
+        ``names_row`` is a row index (starting from 0) to specify the
+        row that contains the names of cells and parameters.
+        Cells and parameter names must be contained in a single row.
+        ``param_cols`` accepts a sequence (such as list or tuple) of
+        column indexes (starting from 0) that indicate columns that
+        contain cells arguments.
+
+        **2-dimensional cells definitions**
+
+        The optional ``names_col`` and ``param_rows`` parameters are used,
+        when data for one cells spans more than one column.
+        In such cases, the cells data is 2-dimensional, and
+        there must be parameter row(s) across the columns
+        that contain arguments of the parameters.
+        A sequence of row indexes that indicate parameter rows
+        is passed to ``param_rows``.
+        The names of those parameters must be contained in the
+        same rows as parameter values (arguments), and
+        ``names_col`` is to indicate the column position at which
+        the parameter names are defined.
+
+        **Horizontal arrangement**
+
+        By default, cells data are interpreted as being placed
+        side-by-side, regardless of whether one cells corresponds
+        to a single column or multiple columns.
+        ``transpose`` parameter is used to alter this orientation,
+        and if it is set to ``True``, cells values are
+        interpreted as being placed one above the other.
+        "row(s)" and "col(s)" in the parameter
+        names are interpreted inversely, i.e.
+        all indexes passed to "row(s)" parameters are interpreted
+        as column indexes,
+        and all indexes passed to "col(s)" parameters as row indexes.
+
+
+        Args:
+            book (str): Path to an Excel file.
+            range_ (str): Range expression, such as "A1", "$G4:$K10",
+                or named range "NamedRange1".
+            sheet (str): Sheet name (case ignored).
+            names_row (optional): an index number indicating
+                what row contains the names of cells and parameters.
+                Defaults to the top row (0).
+            param_cols (optional): a sequence of index numbers
+                indicating parameter columns.
+                Defaults to only the leftmost column ([0]).
+            names_col (optional): an index number, starting from 0,
+                indicating what column contains additional parameters.
+            param_rows (optional): a sequence of index numbers, starting from
+                0, indicating rows of additional parameters, in case cells are
+                defined in two dimensions.
+            transpose (optional): Defaults to ``False``.
+                If set to ``True``, "row(s)" and "col(s)" in the parameter
+                names are interpreted inversely, i.e.
+                all indexes passed to "row(s)" parameters are interpreted
+                as column indexes,
+                and all indexes passed to "col(s)" parameters as row indexes.
+            param_order (optional): a sequence to reorder the parameters.
+                The elements of the sequence are the indexes of ``param_cols``
+                elements, and optionally the index of ``param_rows`` elements
+                shifted by the length of ``param_cols``.
+        """
+        return self._impl.new_cells_from_excel(
+            book, range_, sheet, names_row, param_cols,
+            param_order, transpose,
+            names_col, param_rows)
+
+    # ----------------------------------------------------------------------
+    # Checking containing subspaces and cells
+
+    def __contains__(self, item):
+        """Check if item is in the space.
+
+        item can be either a cells or space.
+
+        Args:
+            item: a cells or space to check.
+
+        Returns:
+            True if item is a direct child of the space, False otherwise.
+        """
+        if isinstance(item, str):
+            return item in self._impl.namespace
+
+        elif isinstance(item, Cells):
+            return item._impl in self._impl.cells.values()
+
+        elif isinstance(item, Space):
+            return item._impl in self._impl.spaces.values()
+
+        else:
+            return False
+
+    # ----------------------------------------------------------------------
+    # Getting and setting attributes
+
+    def __getattr__(self, name):
+        return self._impl.namespace[name]
+
+    def __setattr__(self, name, value):
+        if name in self.properties:
+            object.__setattr__(self, name, value)
+        else:
+            self._impl.set_attr(name, value)
+
+    def __delattr__(self, name):
+        self._impl.del_attr(name)
+
+    def __dir__(self):
+        return self._impl.namespace
+
+    # ----------------------------------------------------------------------
+    # Manipulating subspaces
+
+    def has_params(self):
+        """Check if the parameter function is set."""
+        # Outside formulas only
+        return bool(self.signature)
+
+    def __getitem__(self, args):
+        return self._impl.get_dynspace(args).interface
+
+    def __call__(self, *args, **kwargs):
+        return self._impl.get_dynspace(args, kwargs).interface
+
+    def set_formula(self, formula):
+        """Set if the parameter function."""
+        self._impl.set_formula(formula)
+
+    # ----------------------------------------------------------------------
+    # Conversion to Pandas objects
+
+    def to_frame(self, *args):
+        """Convert the space itself into a Pandas DataFrame object."""
+        return self._impl.to_frame(args)
+
+    @property
+    def frame(self):
+        """Alias of ``to_frame()``."""
+        return self._impl.to_frame(())
+
+
 class SpaceImpl(Derivable, SpaceContainerImpl):
     """The implementation of Space class."""
 
     node_class = SpaceArgs
+    if_class = Space
 
     def __init__(self, parent, name, formula=None,
                  refs=None, arguments=None, source=None):
 
-        SpaceContainerImpl.__init__(self, parent.system, if_class=Space)
+        SpaceContainerImpl.__init__(self, parent.system)
         Derivable.__init__(self)
 
         self.name = name
@@ -1318,321 +1640,6 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
                 cells.set_value(args, value)
 
 
-class Space(SpaceContainer):
-    """Container of cells, other spaces, and cells namespace.
-
-    Space objects can contain cells and other spaces.
-    Spaces have mappings of names to objects that serve as global namespaces
-    of the formulas of the cells in the spaces.
-    """
-
-    # ----------------------------------------------------------------------
-    # Manipulating cells
-
-    def new_cells(self, name=None, formula=None):
-        """Create a cells in the space.
-
-        Args:
-            name: If omitted, the model is named automatically ``CellsN``,
-                where ``N`` is an available number.
-            func: The function to define the formula of the cells.
-
-        Returns:
-            The new cells.
-        """
-        # Outside formulas only
-        return self._impl.new_cells(name, formula).interface
-
-    def is_base(self, other):
-        """True if the space is a base space of ``other``, False otherwise."""
-        return self._impl.is_base(other._impl)
-
-    def is_sub(self, other):
-        """True if the space is a sub space of ``other``, False otherwise."""
-        return self._impl.is_sub(other._impl)
-
-    def is_static(self):
-        """True if the space is a static space, False if dynamic."""
-        return self._impl.is_static()
-
-    def is_derived(self):
-        """True if the space is a derived space, False otherwise."""
-        return self._impl.is_derived
-
-    def is_defined(self):
-        """True if the space is a defined space, False otherwise."""
-        return self._impl.is_defined()
-
-    def is_dynamic(self):
-        """True if ths space is a dynamic space, False otherwise."""
-        return self._impl.is_dynamic
-
-    def in_dynamic(self):
-        """True if the space is in a dynamic space, False otherwise."""
-        return self._impl.in_dynamic()
-
-    @property
-    def cells(self):
-        """A mapping of cells names to the cells objects in the space."""
-        return self._impl.cells.interfaces
-
-    @property
-    def self_cells(self):
-        """A mapping that associates names to cells defined in the space"""
-        return self._impl.self_cells.interfaces
-
-    @property
-    def derived_cells(self):
-        """A mapping associating names to derived cells."""
-        return self._impl.derived_cells.interfaces
-
-    @property
-    def all_spaces(self):
-        """A mapping associating names to all(static and dynamic) spaces."""
-        return self._impl.spaces.interfaces
-
-    @property
-    def spaces(self):
-        """A mapping associating names to static spaces."""
-        return self._impl.static_spaces.interfaces
-
-    @property
-    def static_spaces(self):
-        """A mapping associating names to static spaces.
-
-        Alias to :py:meth:`spaces`
-        """
-        return self._impl.static_spaces.interfaces
-
-    @property
-    def dynamic_spaces(self):
-        """A mapping associating names to dynamic spaces."""
-        return self._impl.dynamic_spaces.interfaces
-
-    @property
-    def self_spaces(self):
-        """A mapping associating names to self spaces."""
-        return self._impl.self_spaces.interfaces
-
-    @property
-    def derived_spaces(self):
-        """A mapping associating names to derived spaces."""
-        return self._impl.derived_spaces.interfaces
-
-    @property
-    def argvalues(self):
-        """A tuple of space arguments."""
-        return self._impl.argvalues_if
-
-    @property
-    def parameters(self):
-        """A tuple of parameter strings."""
-        # TODO: Refactor out parameter methods common between Space and Cells.
-        return tuple(self._impl.parameters.keys())
-
-    @property
-    def refs(self):
-        """A map associating names to objects accessible by the names."""
-        return self._impl.refs.interfaces
-
-    def import_funcs(self, module_):
-        """Create a cells from a module."""
-        # Outside formulas only
-        newcells = self._impl.new_cells_from_module(module_)
-        return get_interfaces(newcells)
-
-    def new_cells_from_module(self, module_):
-        """Create a cells from a module.
-
-        Alias to :py:meth:`import_funcs`.
-        """
-        # Outside formulas only
-        newcells = self._impl.new_cells_from_module(module_)
-        return get_interfaces(newcells)
-
-    def reload(self):
-        """Reload the source module and update the formulas.
-
-        If the space was created from a module, reload the module and
-        update the formulas of its cells.
-
-        If a cell in the space is not created from a function definition
-        in the source module of the space, it is not updated.
-
-        If the formula of a cell in the space was created from a function
-        definition in the source module of the space and the definition is
-        missing from the updated module, the formula is cleared and
-        values calculated directly or indirectly depending the cells
-        are cleared.
-
-        If the formula of a cell in the space has not been changed
-        before and after reloading the source module, the values held
-        in the cell and relevant cells are retained.
-
-        Returns:
-            This method returns the space itself.
-        """
-        self._impl.reload()
-        return self
-
-    def new_cells_from_excel(self, book, range_, sheet=None,
-                                names_row=None, param_cols=None,
-                                param_order=None,
-                                transpose=False,
-                                names_col=None, param_rows=None):
-        """Create multiple cells from an Excel range.
-
-        This method reads values from a range in an Excel file,
-        create cells and populate them with the values in the range.
-        To use this method, ``openpyxl`` package must be installed.
-
-        The Excel file to read data from is specified by ``book``
-        parameters. The ``range_`` can be a range address, such as "$G4:$K10",
-        or a named range. In case a range address is given,
-        ``sheet`` must also be given.
-
-        By default, cells data are interpreted as being laid out side-by-side.
-        ``names_row`` is a row index (starting from 0) to specify the
-        row that contains the names of cells and parameters.
-        Cells and parameter names must be contained in a single row.
-        ``param_cols`` accepts a sequence (such as list or tuple) of
-        column indexes (starting from 0) that indicate columns that
-        contain cells arguments.
-
-        **2-dimensional cells definitions**
-
-        The optional ``names_col`` and ``param_rows`` parameters are used,
-        when data for one cells spans more than one column.
-        In such cases, the cells data is 2-dimensional, and
-        there must be parameter row(s) across the columns
-        that contain arguments of the parameters.
-        A sequence of row indexes that indicate parameter rows
-        is passed to ``param_rows``.
-        The names of those parameters must be contained in the
-        same rows as parameter values (arguments), and
-        ``names_col`` is to indicate the column position at which
-        the parameter names are defined.
-
-        **Horizontal arrangement**
-
-        By default, cells data are interpreted as being placed
-        side-by-side, regardless of whether one cells corresponds
-        to a single column or multiple columns.
-        ``transpose`` parameter is used to alter this orientation,
-        and if it is set to ``True``, cells values are
-        interpreted as being placed one above the other.
-        "row(s)" and "col(s)" in the parameter
-        names are interpreted inversely, i.e.
-        all indexes passed to "row(s)" parameters are interpreted
-        as column indexes,
-        and all indexes passed to "col(s)" parameters as row indexes.
-
-
-        Args:
-            book (str): Path to an Excel file.
-            range_ (str): Range expression, such as "A1", "$G4:$K10",
-                or named range "NamedRange1".
-            sheet (str): Sheet name (case ignored).
-            names_row (optional): an index number indicating
-                what row contains the names of cells and parameters.
-                Defaults to the top row (0).
-            param_cols (optional): a sequence of index numbers
-                indicating parameter columns.
-                Defaults to only the leftmost column ([0]).
-            names_col (optional): an index number, starting from 0,
-                indicating what column contains additional parameters.
-            param_rows (optional): a sequence of index numbers, starting from
-                0, indicating rows of additional parameters, in case cells are
-                defined in two dimensions.
-            transpose (optional): Defaults to ``False``.
-                If set to ``True``, "row(s)" and "col(s)" in the parameter
-                names are interpreted inversely, i.e.
-                all indexes passed to "row(s)" parameters are interpreted
-                as column indexes,
-                and all indexes passed to "col(s)" parameters as row indexes.
-            param_order (optional): a sequence to reorder the parameters.
-                The elements of the sequence are the indexes of ``param_cols``
-                elements, and optionally the index of ``param_rows`` elements
-                shifted by the length of ``param_cols``.
-        """
-        return self._impl.new_cells_from_excel(
-            book, range_, sheet, names_row, param_cols,
-            param_order, transpose,
-            names_col, param_rows)
-
-    # ----------------------------------------------------------------------
-    # Checking containing subspaces and cells
-
-    def __contains__(self, item):
-        """Check if item is in the space.
-
-        item can be either a cells or space.
-
-        Args:
-            item: a cells or space to check.
-
-        Returns:
-            True if item is a direct child of the space, False otherwise.
-        """
-        if isinstance(item, str):
-            return item in self._impl.namespace
-
-        elif isinstance(item, Cells):
-            return item._impl in self._impl.cells.values()
-
-        elif isinstance(item, Space):
-            return item._impl in self._impl.spaces.values()
-
-        else:
-            return False
-
-    # ----------------------------------------------------------------------
-    # Getting and setting attributes
-
-    def __getattr__(self, name):
-        return self._impl.namespace[name]
-
-    def __setattr__(self, name, value):
-        if name in self.properties:
-            object.__setattr__(self, name, value)
-        else:
-            self._impl.set_attr(name, value)
-
-    def __delattr__(self, name):
-        self._impl.del_attr(name)
-
-    def __dir__(self):
-        return self._impl.namespace
-
-    # ----------------------------------------------------------------------
-    # Manipulating subspaces
-
-    def has_params(self):
-        """Check if the parameter function is set."""
-        # Outside formulas only
-        return bool(self.signature)
-
-    def __getitem__(self, args):
-        return self._impl.get_dynspace(args).interface
-
-    def __call__(self, *args, **kwargs):
-        return self._impl.get_dynspace(args, kwargs).interface
-
-    def set_formula(self, formula):
-        """Set if the parameter function."""
-        self._impl.set_formula(formula)
-
-    # ----------------------------------------------------------------------
-    # Conversion to Pandas objects
-
-    def to_frame(self, *args):
-        """Convert the space itself into a Pandas DataFrame object."""
-        return self._impl.to_frame(args)
-
-    @property
-    def frame(self):
-        """Alias of ``to_frame()``."""
-        return self._impl.to_frame(())
 
 
 

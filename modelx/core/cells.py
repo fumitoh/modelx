@@ -92,6 +92,261 @@ class CellsMaker:
 ArgsValuePair = namedtuple('ArgsValuePair', ['args', 'value'])
 
 
+class Cells(Interface, Mapping, Callable, Sized):
+    """Data container with a formula to calculate its own values.
+
+    Cells are created by ``new_cells`` method or its variant methods of
+    the containing space, or by function definitions with ``defcells``
+    decorator.
+    """
+    # __slots__ = ('_impl',)
+
+    def __contains__(self, args):
+        return self._impl.has_cell(args)
+
+    def __getitem__(self, key):
+        return self._impl.get_value(key)
+
+    def __call__(self, *args, **kwargs):
+        return self._impl.get_value(args, kwargs)
+
+    def match(self, *args, **kwargs):
+        """Returns the best matching args and their value.
+
+        If the cells returns None for the given arguments,
+        continue to get a value by passing arguments
+        masking the given arguments with Nones.
+        The search of non-None value starts from the given arguments
+        to the all None arguments in the lexicographical order.
+        The masked arguments that returns non-None value
+        first is returned with the value.
+        """
+        return self._impl.find_match(args, kwargs)
+
+    def __len__(self):
+        return len(self._impl.data)
+
+    def __setitem__(self, key, value):
+        """Set value of a particular cell"""
+        self._impl.set_value(key, value)
+
+    def __iter__(self):
+
+        def inner():
+            keys = sorted(tuple(arg for arg in key)
+                          for key in self._impl.data.keys())
+
+            for args in keys:
+                yield args
+
+        return inner()
+
+    def copy(self, space=None, name=None):
+        """Make a copy of itself and return it."""
+        return Cells(space=space, name=name, formula=self.formula)
+
+    def __hash__(self):
+        return hash(id(self))
+
+    def clear(self, *args, **kwargs):
+        """Clear all the values."""
+        return self._impl.clear_value(*args, **kwargs)
+
+    # ----------------------------------------------------------------------
+    # Coercion to single value
+
+    def __bool__(self):
+        """True if self != 0. Called for bool(self)."""
+        return self.get_value() != 0
+
+    def __add__(self, other):
+        """self + other"""
+        return self._impl.single_value + other
+
+    def __radd__(self, other):
+        """other + self"""
+        return self.__add__(other)
+
+    def __neg__(self):
+        """-self"""
+        return -self._impl.single_value
+
+    def __pos__(self):
+        """+self"""
+        return +self._impl.single_value
+
+    def __sub__(self, other):
+        """self - other"""
+        return self + -other
+
+    def __rsub__(self, other):
+        """other - self"""
+        return -self + other
+
+    def __mul__(self, other):
+        """self * other"""
+        return self._impl.single_value * other
+
+    def __rmul__(self, other):
+        """other * self"""
+        return self.__mul__(other)
+
+    def __truediv__(self, other):
+        """self / other: Should promote to float when necessary."""
+        return self._impl.single_value / other
+
+    def __rtruediv__(self, other):
+        """other / self"""
+        return other / self._impl.single_value
+
+    def __pow__(self, exponent):
+        """self ** exponent
+        should promote to float or complex when necessary.
+        """
+        return self._impl.single_value ** exponent
+
+    def __rpow__(self, base):
+        """base ** self"""
+        return base ** self._impl.single_value
+
+    def __abs__(self):
+        """Returns the Real distance from 0. Called for abs(self)."""
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # Comparison operations
+
+    def __eq__(self, other):
+        """self == other"""
+        if self._impl.is_scalar():
+            return self._impl.single_value == other
+        elif isinstance(other, Cells):
+            return self is other
+        else:
+            raise TypeError
+
+    def __lt__(self, other):
+        """self < other"""
+        return self._impl.single_value < other
+
+    def __le__(self, other):
+        """self <= other"""
+        return self.__eq__(other) or self.__lt__(other)
+
+    def __gt__(self, other):
+        """self > other"""
+        return self._impl.single_value > other
+
+    def __ge__(self, other):
+        """self >= other"""
+        return self.__eq__(other) or self.__gt__(other)
+
+    # ----------------------------------------------------------------------
+    # Conversion to Pandas objects
+
+    def to_series(self, *args):
+        """Convert the cells itself into a Pandas Series and return it."""
+        return self._impl.to_series(args)
+
+    @property
+    def series(self):
+        """Alias of ``to_series()``."""
+        return self._impl.to_series(())
+
+    def to_frame(self, *args):
+        """Convert the cells itself into a Pandas DataFrame and return it.
+
+        if no `args` are passed, the returned DataFrame contains as many
+        values as the cells have.
+
+        if A sequence of arguments to the cells is passed as `args`,
+        the returned DataFrame contains values only for the specified `args`.
+
+        Args:
+            args: A sequence or iterable of arguments to the cells.
+
+        Returns:
+            a DataFrame with a column named after the cells,
+            with indexes named after the parameters of the cells.
+        """
+
+        return self._impl.to_frame(args)
+
+    @property
+    def frame(self):
+        """Alias of ``to_frame()``."""
+        return self._impl.to_frame(())
+
+    # ----------------------------------------------------------------------
+    # Properties
+
+    @property
+    def formula(self):
+        """Property to get, set, delete formula."""
+        return self._impl.formula
+
+    @formula.setter
+    def formula(self, formula):
+        self._impl.set_formula(formula)
+
+    @formula.deleter
+    def formula(self):
+        self._impl.clear_formula()
+
+    @property
+    def parameters(self):
+        """A tuple of parameter strings."""
+        return tuple(self._impl.parameters.keys())
+
+    def set_formula(self, func):
+        """Set formula from a function.
+        Deprecated since version 0.0.5. Use formula property instead.
+        """
+        self._impl.set_formula(func)
+
+    def clear_formula(self):
+        """Clear the formula.
+        Deprecated since version 0.0.5. Use formula property instead.
+        """
+        self._impl.clear_formula()
+
+    @property
+    def value(self):
+        """Get, set, delete the scalar value.
+        The cells must be a scalar cells.
+        """
+        return self._impl.single_value
+
+    @value.setter
+    def value(self, value):
+        self._impl.set_value((), value)
+
+    @value.deleter
+    def value(self):
+        self._impl.clear_value()
+
+    # ----------------------------------------------------------------------
+    # Dependency
+
+    def preds(self, *args, **kwargs):
+        """Return a list of predecessors of a cell.
+
+        This method returns a list of CellNode objects, whose elements are
+        predecessors of (i.e. referenced in the formula
+        of) the cell specified by the given arguments.
+        """
+        return self._impl.predecessors(args, kwargs)
+
+    def succs(self, *args, **kwargs):
+        """Return a list of successors of a cell.
+
+        This method returns a list of CellNode objects, whose elements are
+        successors of (i.e. referencing in their formulas)
+        the cell specified by the given arguments.
+        """
+        return self._impl.successors(args, kwargs)
+
+
 class CellsImpl(Derivable, Impl):
     """
     Data container optionally with a formula to set its own values.
@@ -132,11 +387,12 @@ class CellsImpl(Derivable, Impl):
     """
 
     node_class = CellArgs
+    if_class = Cells
 
     def __init__(self, *, space, name=None, formula=None, data=None,
                  base=None):
 
-        Impl.__init__(self, Cells)
+        Impl.__init__(self)
         Derivable.__init__(self)
 
         self.system = space.system
@@ -484,259 +740,6 @@ class CellNode:
             return self._impl.__repr__()
 
 
-class Cells(Interface, Mapping, Callable, Sized):
-    """Data container with a formula to calculate its own values.
-
-    Cells are created by ``new_cells`` method or its variant methods of
-    the containing space, or by function definitions with ``defcells``
-    decorator.
-    """
-    # __slots__ = ('_impl',)
-
-    def __contains__(self, args):
-        return self._impl.has_cell(args)
-
-    def __getitem__(self, key):
-        return self._impl.get_value(key)
-
-    def __call__(self, *args, **kwargs):
-        return self._impl.get_value(args, kwargs)
-
-    def match(self, *args, **kwargs):
-        """Returns the best matching args and their value.
-
-        If the cells returns None for the given arguments,
-        continue to get a value by passing arguments
-        masking the given arguments with Nones.
-        The search of non-None value starts from the given arguments
-        to the all None arguments in the lexicographical order.
-        The masked arguments that returns non-None value
-        first is returned with the value.
-        """
-        return self._impl.find_match(args, kwargs)
-
-    def __len__(self):
-        return len(self._impl.data)
-
-    def __setitem__(self, key, value):
-        """Set value of a particular cell"""
-        self._impl.set_value(key, value)
-
-    def __iter__(self):
-
-        def inner():
-            keys = sorted(tuple(arg for arg in key)
-                          for key in self._impl.data.keys())
-
-            for args in keys:
-                yield args
-
-        return inner()
-
-    def copy(self, space=None, name=None):
-        """Make a copy of itself and return it."""
-        return Cells(space=space, name=name, formula=self.formula)
-
-    def __hash__(self):
-        return hash(id(self))
-
-    def clear(self, *args, **kwargs):
-        """Clear all the values."""
-        return self._impl.clear_value(*args, **kwargs)
-
-    # ----------------------------------------------------------------------
-    # Coercion to single value
-
-    def __bool__(self):
-        """True if self != 0. Called for bool(self)."""
-        return self.get_value() != 0
-
-    def __add__(self, other):
-        """self + other"""
-        return self._impl.single_value + other
-
-    def __radd__(self, other):
-        """other + self"""
-        return self.__add__(other)
-
-    def __neg__(self):
-        """-self"""
-        return -self._impl.single_value
-
-    def __pos__(self):
-        """+self"""
-        return +self._impl.single_value
-
-    def __sub__(self, other):
-        """self - other"""
-        return self + -other
-
-    def __rsub__(self, other):
-        """other - self"""
-        return -self + other
-
-    def __mul__(self, other):
-        """self * other"""
-        return self._impl.single_value * other
-
-    def __rmul__(self, other):
-        """other * self"""
-        return self.__mul__(other)
-
-    def __truediv__(self, other):
-        """self / other: Should promote to float when necessary."""
-        return self._impl.single_value / other
-
-    def __rtruediv__(self, other):
-        """other / self"""
-        return other / self._impl.single_value
-
-    def __pow__(self, exponent):
-        """self ** exponent
-        should promote to float or complex when necessary.
-        """
-        return self._impl.single_value ** exponent
-
-    def __rpow__(self, base):
-        """base ** self"""
-        return base ** self._impl.single_value
-
-    def __abs__(self):
-        """Returns the Real distance from 0. Called for abs(self)."""
-        raise NotImplementedError
-
-    # ----------------------------------------------------------------------
-    # Comparison operations
-
-    def __eq__(self, other):
-        """self == other"""
-        if self._impl.is_scalar():
-            return self._impl.single_value == other
-        elif isinstance(other, Cells):
-            return self is other
-        else:
-            raise TypeError
-
-    def __lt__(self, other):
-        """self < other"""
-        return self._impl.single_value < other
-
-    def __le__(self, other):
-        """self <= other"""
-        return self.__eq__(other) or self.__lt__(other)
-
-    def __gt__(self, other):
-        """self > other"""
-        return self._impl.single_value > other
-
-    def __ge__(self, other):
-        """self >= other"""
-        return self.__eq__(other) or self.__gt__(other)
-
-    # ----------------------------------------------------------------------
-    # Conversion to Pandas objects
-
-    def to_series(self, *args):
-        """Convert the cells itself into a Pandas Series and return it."""
-        return self._impl.to_series(args)
-
-    @property
-    def series(self):
-        """Alias of ``to_series()``."""
-        return self._impl.to_series(())
-
-    def to_frame(self, *args):
-        """Convert the cells itself into a Pandas DataFrame and return it.
-
-        if no `args` are passed, the returned DataFrame contains as many
-        values as the cells have.
-
-        if A sequence of arguments to the cells is passed as `args`,
-        the returned DataFrame contains values only for the specified `args`.
-
-        Args:
-            args: A sequence or iterable of arguments to the cells.
-
-        Returns:
-            a DataFrame with a column named after the cells,
-            with indexes named after the parameters of the cells.
-        """
-
-        return self._impl.to_frame(args)
-
-    @property
-    def frame(self):
-        """Alias of ``to_frame()``."""
-        return self._impl.to_frame(())
-
-    # ----------------------------------------------------------------------
-    # Properties
-
-    @property
-    def formula(self):
-        """Property to get, set, delete formula."""
-        return self._impl.formula
-
-    @formula.setter
-    def formula(self, formula):
-        self._impl.set_formula(formula)
-
-    @formula.deleter
-    def formula(self):
-        self._impl.clear_formula()
-
-    @property
-    def parameters(self):
-        """A tuple of parameter strings."""
-        return tuple(self._impl.parameters.keys())
-
-    def set_formula(self, func):
-        """Set formula from a function.
-        Deprecated since version 0.0.5. Use formula property instead.
-        """
-        self._impl.set_formula(func)
-
-    def clear_formula(self):
-        """Clear the formula.
-        Deprecated since version 0.0.5. Use formula property instead.
-        """
-        self._impl.clear_formula()
-
-    @property
-    def value(self):
-        """Get, set, delete the scalar value.
-        The cells must be a scalar cells.
-        """
-        return self._impl.single_value
-
-    @value.setter
-    def value(self, value):
-        self._impl.set_value((), value)
-
-    @value.deleter
-    def value(self):
-        self._impl.clear_value()
-
-    # ----------------------------------------------------------------------
-    # Dependency
-
-    def preds(self, *args, **kwargs):
-        """Return a list of predecessors of a cell.
-
-        This method returns a list of CellNode objects, whose elements are
-        predecessors of (i.e. referenced in the formula
-        of) the cell specified by the given arguments.
-        """
-        return self._impl.predecessors(args, kwargs)
-
-    def succs(self, *args, **kwargs):
-        """Return a list of successors of a cell.
-
-        This method returns a list of CellNode objects, whose elements are
-        successors of (i.e. referencing in their formulas)
-        the cell specified by the given arguments.
-        """
-        return self._impl.successors(args, kwargs)
 
 
 def shareable_parameters(cells):

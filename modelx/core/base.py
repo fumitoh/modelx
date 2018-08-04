@@ -197,14 +197,14 @@ class Impl:
                    'allow_none',
                    'lazy_evals']
 
-    def __init__(self, interface_class):
+    if_class = None     # Override in sub classes if interface class exists
 
-        if not isclass(interface_class):
-            self.interface = interface_class
-        elif issubclass(interface_class, Interface):
-            self.interface = interface_class(self)
+    def __init__(self, interface=None):
+
+        if self.if_class:
+            self.interface = self.if_class(self)
         else:
-            raise TypeError('%s not value or interface', interface_class)
+            self.interface = interface
 
         self.parent = None  # To be overwritten in Space and Cells
         self.name = None

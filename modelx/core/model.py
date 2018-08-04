@@ -86,10 +86,66 @@ class DependencyGraph(nx.DiGraph):
         else:
             return nx.add_path(self, nodes, **attr)
 
+
+class Model(SpaceContainer):
+    """Top-level container in modelx object hierarchy.
+
+    Model instances are the top-level objects and directly contain
+    :py:class:`Space <modelx.core.space.Space>` objects, which in turn
+    contain other spaces or
+    :py:class:`Cells <modelx.core.cells.Cells>` objects.
+
+    A model can be created by
+    :py:func:`new_model <modelx.core.model.Model>` API function.
+    """
+
+    def rename(self, name):
+        """Rename the model itself"""
+        self._impl.system.rename_model(new_name=name, old_name=self.name)
+
+    def save(self, filepath):
+        """Save the model to a file."""
+        self._impl.save(filepath)
+
+    def close(self):
+        """Close the model."""
+        self._impl.close()
+
+    # ----------------------------------------------------------------------
+    # Getting and setting attributes
+
+    def __getattr__(self, name):
+        return self._impl.get_attr(name)
+
+    def __setattr__(self, name, value):
+        if name in self.properties:
+            object.__setattr__(self, name, value)
+        else:
+            self._impl.set_attr(name, value)
+
+    def __delattr__(self, name):
+        self._impl.del_attr(name)
+
+    def __dir__(self):
+        return self._impl.namespace.interfaces
+
+    @property
+    def cellgraph(self):
+        """A directed graph of cells."""
+        return self._impl.cellgraph
+
+    @property
+    def refs(self):
+        """Return a mapping of global references."""
+        return self._impl.global_refs.mproxy
+
+
 class ModelImpl(SpaceContainerImpl):
 
+    if_class = Model
+
     def __init__(self, *, system, name):
-        SpaceContainerImpl.__init__(self, system, if_class=Model)
+        SpaceContainerImpl.__init__(self, system)
 
         self.cellgraph = DependencyGraph()
         self.lexdep = DependencyGraph()     # Lexical dependency
@@ -273,59 +329,6 @@ class ModelImpl(SpaceContainerImpl):
             self.del_ref(name)
         else:
             raise KeyError("Name '%s' not defined" % name)
-
-
-class Model(SpaceContainer):
-    """Top-level container in modelx object hierarchy.
-
-    Model instances are the top-level objects and directly contain
-    :py:class:`Space <modelx.core.space.Space>` objects, which in turn
-    contain other spaces or
-    :py:class:`Cells <modelx.core.cells.Cells>` objects.
-
-    A model can be created by
-    :py:func:`new_model <modelx.core.model.Model>` API function.
-    """
-
-    def rename(self, name):
-        """Rename the model itself"""
-        self._impl.system.rename_model(new_name=name, old_name=self.name)
-
-    def save(self, filepath):
-        """Save the model to a file."""
-        self._impl.save(filepath)
-
-    def close(self):
-        """Close the model."""
-        self._impl.close()
-
-    # ----------------------------------------------------------------------
-    # Getting and setting attributes
-
-    def __getattr__(self, name):
-        return self._impl.get_attr(name)
-
-    def __setattr__(self, name, value):
-        if name in self.properties:
-            object.__setattr__(self, name, value)
-        else:
-            self._impl.set_attr(name, value)
-
-    def __delattr__(self, name):
-        self._impl.del_attr(name)
-
-    def __dir__(self):
-        return self._impl.namespace.interfaces
-
-    @property
-    def cellgraph(self):
-        """A directed graph of cells."""
-        return self._impl.cellgraph
-
-    @property
-    def refs(self):
-        """Return a mapping of global references."""
-        return self._impl.global_refs.mproxy
 
 
 class SpaceGraph(nx.DiGraph):
