@@ -343,6 +343,12 @@ class SpaceGraph(nx.DiGraph):
             self.remove_edge(basespace, subspace)
             raise ValueError("Loop detected in inheritance")
 
+        try:
+            self._start_space = subspace
+            self.update_subspaces(subspace, check_only=True)
+        finally:
+            self._start_space = None
+
         # Flag update MRO cache
         for desc in nx.descendants(self, basespace):
             desc.update_mro = True
@@ -394,8 +400,8 @@ class SpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def update_subspaces(self, space, skip=True, **kwargs):
-        self.update_subspaces_downward(space, skip, **kwargs)
+    def update_subspaces(self, space, skip=True, check_only=False, **kwargs):
+        self.update_subspaces_downward(space, skip, check_only, **kwargs)
         self.update_subspaces_upward(space, **kwargs)
 
     def update_subspaces_upward(self, space, from_parent=True,
@@ -411,18 +417,23 @@ class SpaceGraph(nx.DiGraph):
         else:
             succ = self.successors(target)
             for subspace in succ:
+                if subspace is self._start_space:
+                    raise ValueError("Cyclic inheritance")
                 self.update_subspaces(subspace, False, **kwargs)
             self.update_subspaces_upward(space.parent,
                                          from_parent=from_parent,
                                          **kwargs)
 
-    def update_subspaces_downward(self, space, skip=True, **kwargs):
+    def update_subspaces_downward(self, space, skip=True,
+                                  chck_only=False, **kwargs):
         for child in space.static_spaces.values():
-            self.update_subspaces_downward(child, False, **kwargs)
-        if not skip:
+            self.update_subspaces_downward(child, False, chck_only, **kwargs)
+        if not skip and not chck_only:
             space.inherit(**kwargs)
         succ = self.successors(space)
         for subspace in succ:
+            if subspace is self._start_space:
+                raise ValueError("Cyclic inheritance")
             self.update_subspaces(subspace, False, **kwargs)
 
 
