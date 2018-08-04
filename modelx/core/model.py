@@ -425,10 +425,10 @@ class SpaceGraph(nx.DiGraph):
                                          **kwargs)
 
     def update_subspaces_downward(self, space, skip=True,
-                                  chck_only=False, **kwargs):
+                                  check_only=False, **kwargs):
         for child in space.static_spaces.values():
-            self.update_subspaces_downward(child, False, chck_only, **kwargs)
-        if not skip and not chck_only:
+            self.update_subspaces_downward(child, False, check_only, **kwargs)
+        if not skip and not check_only:
             space.inherit(**kwargs)
         succ = self.successors(space)
         for subspace in succ:
