@@ -11,22 +11,22 @@ Installation
 
 Python version
 --------------
-modelx requires Python 3.4 or newer. modelx does not work with Python 3 older
-than version 3.4 or any version of Python 2.
+modelx requires Python 3.6 or newer. modelx does not work with Python 3 older
+than version 3.6 or any version of Python 2.
 
 
 Package dependency
 ------------------
 modelx depends of the following packages.
 
-* NetworkX
+* NetworkX (>=2.0)
 * Pandas
 * OpenPyXL
 
 networkx
 ^^^^^^^^
 `NetworkX <http://networkx.github.io/>`_ is a required package that modelx
-depends on.
+depends on. Version 2.0 or newer is required.
 
 Pandas
 ^^^^^^

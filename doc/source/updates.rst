@@ -4,6 +4,13 @@ Updates
 
 .. Latest Updates Begin
 
+* *5 August 2018:*
+  :ref:`modelx v0.0.13 <release-v0.0.13>` is released.
+
+* *5 August 2018:*
+  The :doc:`reference/index` guide is updated so that base class members
+  are also described in their concrete classes' pages.
+
 * *16 June 2018:*
   :ref:`modelx v0.0.12 <release-v0.0.12>` is released.
 
@@ -14,7 +21,7 @@ Updates
   modelx v0.0.10 is released.
 
 * *20 April 2018:*
-  The :doc:`reference/concepts` page is added in the :doc:`reference/index` manual.
+  The :doc:`reference/concepts` page is added in the :doc:`reference/index` guide.
 
 
 .. Latest Updates End

@@ -34,6 +34,43 @@ Updates
 Releases
 ========
 
+.. _release-v0.0.13:
+
+v0.0.13 (5 August 2018)
+-----------------------
+Space implementation has been largely rewritten in this release to
+make the inheritance logic more robust.
+
+.. warning::
+
+   Support for Python 3.4, 3.5 is dropped in this release.
+   Now only Python 3.6 and 3.7 are supported.
+   This is mainly due to the fact that modelx utilizes
+   the order preservation nature of :class:`dict` introduced in Python 3.6.
+   :class:`dict` performance improvement in Python 3.6 is also the reason
+   to drop support for older versions.
+
+   Support for NetworkX ver 1.x is also dropped in this release.
+   NetworkX version 2.x is now required.
+
+Enhancements
+~~~~~~~~~~~~
+- :meth:`~core.space.Space.add_bases` and :meth:`~core.space.Space.remove_bases` are added.
+- :attr:`~core.space.Space.bases` is added.
+
+Backwards Incompatible Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Support for Python older than 3.6 is dropped. Now Python 3.6 or above is required.
+- Support for NetworkX version 1 is dropped. Now NetworkX version 2 is required.
+- Dynamic spaces now inherit their parent spaces by default.
+- :meth:`~core.space.Space.new_cells` raises an error when the cells already exists.
+- :attr:`~core.cells.Cells.formula` now returns Formula object instead of string.
+
+Bug Fixes
+~~~~~~~~~
+- :func:`repr` on SpaceView and CellsView now list only selected items.
+
+
 .. _release-v0.0.12:
 
 v0.0.12 (16 June 2018)
@@ -41,7 +78,7 @@ v0.0.12 (16 June 2018)
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`~core.space.Space.cells` returns an immutable mapping of cells named
+- :attr:`~core.space.Space.cells` returns an immutable mapping of cells named
   :class:`~core.space.CellsView` supporting
   :meth:`~core.space.CellsView.to_frame` method,
   which returns a DataFrame

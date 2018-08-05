@@ -144,7 +144,7 @@ and it was first released in October 2017.
 
 Requirements
 ------------
-* Python 3.4+
-* NetwrkX
+* Python 3.6+
+* NetwrkX 2.0+
 * Pandas
 * OpenPyXL

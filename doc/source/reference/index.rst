@@ -20,15 +20,26 @@ Function Reference
 Class Reference
 ---------------
 
+Concrete Class
+~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :template: mxclass.rst
+
+   ~modelx.core.model.Model
+   ~modelx.core.space.Space
+   ~modelx.core.cells.Cells
+   ~modelx.core.space.CellsView
+   ~modelx.core.cells.CellNode
+
+Base Class
+~~~~~~~~~~
+
 .. autosummary::
    :toctree: generated/
    :template: mxclass.rst
 
    ~modelx.core.base.Interface
-   ~modelx.core.model.Model
    ~modelx.core.space.SpaceContainer
-   ~modelx.core.space.Space
    ~modelx.core.base.SelectedView
-   ~modelx.core.space.CellsView
-   ~modelx.core.cells.Cells
-   ~modelx.core.cells.CellNode
