@@ -215,6 +215,16 @@ class SpaceContainer(Interface):
             self._impl.model.currentspace = self._impl.spaces[name]
             return self.cur_space()
 
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def literaldict(self):
+        """A dict of members expressed in literals"""
+
+        result = Interface.literaldict.fget(self)
+        result['spaces'] = self.spaces.literaldict
+        return result
 
 class SpaceContainerImpl(Impl):
     """Base class of Model and Space to work as container of spaces.
@@ -563,12 +573,33 @@ class CellsView(SelectedView):
 
         return _to_frame_inner(impls, args)
 
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def literaldict(self):
+        """A dict of members expressed in literals"""
+
+        result = super().literaldict
+        result['type'] = 'CellsView'
+        return result
 
 class SpaceView(BaseView):
 
     def __delitem__(self, name):
         space = self._data[name]._impl
         space.parent.del_space(name)
+
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def literaldict(self):
+        """A dict of members expressed in literals"""
+
+        result = super().literaldict
+        result['type'] = 'SpaceView'
+        return result
 
 
 class Space(SpaceContainer):
@@ -876,7 +907,7 @@ class Space(SpaceContainer):
     def has_params(self):
         """Check if the parameter function is set."""
         # Outside formulas only
-        return bool(self.signature)
+        return bool(self._impl.formula)
 
     def __getitem__(self, args):
         return self._impl.get_dynspace(args).interface
@@ -899,6 +930,32 @@ class Space(SpaceContainer):
     def frame(self):
         """Alias of ``to_frame()``."""
         return self._impl.to_frame(())
+
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def literaldict(self):
+        """A dict of members expressed in literals"""
+
+        result = SpaceContainer.literaldict.fget(self)
+        result['type'] = 'Space'
+        result['static_spaces'] = self.static_spaces.literaldict
+        result['dynamic_spaces'] = self.dynamic_spaces.literaldict
+        result['cells'] = self.cells.literaldict
+
+        if self.has_params():
+            result['params'] = ', '.join(self.parameters)
+        else:
+            result['params'] = ''
+
+        args = self.argvalues
+        if args is not None:
+            result['argvalues'] = ', '.join([repr(arg) for arg in args])
+        else:
+            result['argvalues'] = ''
+
+        return result
 
 
 class SpaceImpl(Derivable, SpaceContainerImpl):

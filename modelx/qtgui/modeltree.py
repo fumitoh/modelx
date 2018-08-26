@@ -75,7 +75,7 @@ class BaseItem(object):
     def data(self, column):
 
         if column == 0:
-            return self.itemData.name
+            return self.itemData['name']
         elif column == self.colType:
             return self.getType()
         elif column == self.colParam:
@@ -101,7 +101,7 @@ class SpaceContainerItem(BaseItem):
     """Base Item class for Models and Spaces which inherit SpaceContainer."""
     def updateChild(self):
         self.childItems.clear()
-        for space in self.itemData.spaces.values():
+        for space in self.itemData['spaces']['items'].values():
             self.childItems.append(SpaceItem(space, self))
 
 
@@ -121,14 +121,14 @@ class SpaceItem(SpaceContainerItem):
     """Item class for Space objects."""
     def updateChild(self):
         self.childItems.clear()
-        for space in self.itemData.static_spaces.values():
+        for space in self.itemData['static_spaces']['items'].values():
             self.childItems.append(SpaceItem(space, self))
 
-        dynspaces = self.itemData.dynamic_spaces
+        dynspaces = self.itemData['dynamic_spaces']['items']
         if len(dynspaces) > 0:
             self.childItems.append(DynamicSpaceMapItem(dynspaces, self))
 
-        cellsmap = self.itemData.cells
+        cellsmap = self.itemData['cells']['items']
         for cells in cellsmap.values():
             self.childItems.append(CellsItem(cells, self))
 
@@ -136,9 +136,9 @@ class SpaceItem(SpaceContainerItem):
         return 'Space'
 
     def getParams(self):
-        args = self.itemData.argvalues
+        args = self.itemData['argvalues']
         if args is not None:
-            return ', '.join([repr(arg) for arg in args])
+            return args
         else:
             return ''
 
@@ -159,8 +159,7 @@ class DynamicSpaceMapItem(BaseItem):
         return ''
 
     def getParams(self):
-        return ', '.join(self.parent().itemData.parameters)
-
+        return self.parent().itemData['params']
 
 class CellsItem(BaseItem):
     """Item class for cells objects."""
@@ -171,13 +170,13 @@ class CellsItem(BaseItem):
         return 'Cells'
 
     def getParams(self):
-        return ', '.join(self.itemData.parameters)
+        return self.itemData['params']
 
 class ModelTreeModel(QAbstractItemModel):
 
-    def __init__(self, model, parent=None):
+    def __init__(self, data, parent=None):
         super(ModelTreeModel, self).__init__(parent)
-        self.rootItem = ModelItem(model)
+        self.rootItem = ModelItem(data)
 
     def columnCount(self, parent):
         if parent.isValid():

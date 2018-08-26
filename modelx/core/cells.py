@@ -346,6 +346,18 @@ class Cells(Interface, Mapping, Callable, Sized):
         """
         return self._impl.successors(args, kwargs)
 
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def literaldict(self):
+        """A dict of members expressed in literals"""
+
+        result = Interface.literaldict.fget(self)
+        result['type'] = 'Cells'
+        result['params'] = ', '.join(self.parameters)
+        return result
+
 
 class CellsImpl(Derivable, Impl):
     """

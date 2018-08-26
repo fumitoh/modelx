@@ -482,6 +482,17 @@ class Interface:
     def allow_none(self, value):
         self._impl.allow_none = value if value is None else bool(value)
 
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def literaldict(self):
+        """A dict of members expressed in literals"""
+
+        result = {}
+        result['name'] = self.name
+
+        return result
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.
@@ -759,6 +770,22 @@ class BaseView(Mapping):
 
     # Now, add the methods in dicts but not in MutableMapping
     def __repr__(self): return repr(self._data)
+
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def literaldict(self):
+        """A dict of members expressed in literals"""
+
+        try:
+            result = {}
+            result['items'] = {name: item.literaldict
+                               for name, item in self.items()}
+        except:
+            raise RuntimeError("%s literadict raised an error" % self)
+
+        return result
 
 
 def _map_repr(self):
