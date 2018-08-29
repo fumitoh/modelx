@@ -171,7 +171,7 @@ def cur_model(name=None):
         return _system.currentmodel.interface
     else:
         _system.currentmodel = _system.models[name]
-        return cur_model(name)
+        return _system.currentmodel.interface
 
 
 def cur_space(name=None):
