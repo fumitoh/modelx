@@ -490,6 +490,7 @@ class Interface:
         """A dict of members expressed in literals"""
 
         result = {}
+        result['id'] = id(self._impl)
         result['name'] = self.name
 
         return result

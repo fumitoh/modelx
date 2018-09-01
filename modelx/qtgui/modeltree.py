@@ -45,6 +45,7 @@
 
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 
+
 class BaseItem(object):
     """Base Item class for all tree item classes."""
     def __init__(self, data, parent=None):
@@ -53,8 +54,12 @@ class BaseItem(object):
         self.colParam = 2
 
         self.parentItem = parent
-        self.itemData = data
+        self.itemData = None
         self.childItems = []
+        self.updateData(data)
+
+    def updateData(self, data):
+        self.itemData = data
         self.updateChild()
 
     def updateChild(self):
@@ -97,7 +102,34 @@ class BaseItem(object):
     def getParams(self):
         raise NotImplementedError
 
-class SpaceContainerItem(BaseItem):
+
+class InterfaceItem(BaseItem):
+    """Object item, such as Model, Space, Cells"""
+
+    @property
+    def objid(self):
+        return self.itemData['id']
+
+    def __eq__(self, other):
+        if isinstance(other, InterfaceItem):
+            return self.objid == other.objid
+        else:
+            return False
+
+
+class ViewItem(BaseItem):
+
+    @property
+    def attrid(self):
+        return self.getType()
+
+    def __eq__(self, other):
+        if isinstance(other, ViewItem):
+            return (self.parent == other.parent
+                    and self.attrid == other.attrid)
+
+
+class SpaceContainerItem(InterfaceItem):
     """Base Item class for Models and Spaces which inherit SpaceContainer."""
     def updateChild(self):
         self.childItems.clear()
@@ -142,7 +174,8 @@ class SpaceItem(SpaceContainerItem):
         else:
             return ''
 
-class DynamicSpaceMapItem(BaseItem):
+
+class DynamicSpaceMapItem(ViewItem):
     """Item class for parent nodes of dynamic spaces of a space."""
     def updateChild(self):
         self.childItems.clear()
@@ -161,7 +194,8 @@ class DynamicSpaceMapItem(BaseItem):
     def getParams(self):
         return self.parent().itemData['params']
 
-class CellsItem(BaseItem):
+
+class CellsItem(InterfaceItem):
     """Item class for cells objects."""
     def updateChild(self):
         pass
@@ -172,11 +206,24 @@ class CellsItem(BaseItem):
     def getParams(self):
         return self.itemData['params']
 
+
 class ModelTreeModel(QAbstractItemModel):
 
     def __init__(self, data, parent=None):
         super(ModelTreeModel, self).__init__(parent)
         self.rootItem = ModelItem(data)
+
+    def updateRoot(self, data):
+        self.beginResetModel()
+        self.rootItem = ModelItem(data)
+        self.endResetModel()
+
+    @property
+    def modelid(self):
+        if self.rootItem:
+            return self.rootItem.objid
+        else:
+            return None
 
     def columnCount(self, parent):
         if parent.isValid():
@@ -235,7 +282,7 @@ class ModelTreeModel(QAbstractItemModel):
         childItem = index.internalPointer()
         parentItem = childItem.parent()
 
-        if parentItem == self.rootItem:
+        if parentItem is None or parentItem == self.rootItem:
             return QModelIndex()
 
         return self.createIndex(parentItem.row(), 0, parentItem)
