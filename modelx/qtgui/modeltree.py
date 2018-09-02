@@ -1,3 +1,16 @@
+# Copyright (c) 2017-2018 Fumito Hamamura <fumito.ham@gmail.com>
+
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation version 3.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 # The source code in this file is modified from:
 # https://github.com/baoboa/pyqt5/blob/master/examples/itemviews/simpletreemodel/simpletreemodel.py
@@ -43,6 +56,7 @@
 ##
 #############################################################################
 
+import itertools
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 
 
@@ -59,14 +73,25 @@ class BaseItem(object):
         self.updateData(data)
 
     def updateData(self, data):
-        self.itemData = data
-        self.updateChild()
+        if self.itemData != data:
+            self.itemData = data
+            self.updateChild()
+        else:
+            self.itemData = data
 
     def updateChild(self):
         raise NotImplementedError
 
+    def changeParent(self, parent):
+        self.parentItem = parent
+
     def appendChild(self, item):
+        item.changeParent(self)
         self.childItems.append(item)
+
+    def insertChild(self, index, item):
+        item.changeParent(self)
+        self.childItems.insert(index, item)
 
     def child(self, row):
         return self.childItems[row]
@@ -116,6 +141,9 @@ class InterfaceItem(BaseItem):
         else:
             return False
 
+    def __hash__(self):
+        return hash(self.objid)
+
 
 class ViewItem(BaseItem):
 
@@ -125,22 +153,26 @@ class ViewItem(BaseItem):
 
     def __eq__(self, other):
         if isinstance(other, ViewItem):
-            return (self.parent == other.parent
+            return (self.parent() == other.parent()
                     and self.attrid == other.attrid)
+
+    def __hash__(self):
+        return hash((self.parent().objid, self.attrid))
 
 
 class SpaceContainerItem(InterfaceItem):
     """Base Item class for Models and Spaces which inherit SpaceContainer."""
     def updateChild(self):
-        self.childItems.clear()
-        for space in self.itemData['spaces']['items'].values():
-            self.childItems.append(SpaceItem(space, self))
+        self.childItems = self.newChildItems(self.itemData)
 
+    def newChildItems(self, data):
+        return [SpaceItem(space, self)
+                for space in data['spaces']['items'].values()]
 
 class ModelItem(SpaceContainerItem):
     """Item class for a Model (root item)"""
-    def __init__(self, model):
-        super(ModelItem, self).__init__(model, parent=None)
+    def __init__(self, data):
+        super(ModelItem, self).__init__(data, parent=None)
 
     def getType(self):
         return 'Model'
@@ -206,7 +238,6 @@ class CellsItem(InterfaceItem):
     def getParams(self):
         return self.itemData['params']
 
-
 class ModelTreeModel(QAbstractItemModel):
 
     def __init__(self, data, parent=None):
@@ -214,9 +245,115 @@ class ModelTreeModel(QAbstractItemModel):
         self.rootItem = ModelItem(data)
 
     def updateRoot(self, data):
-        self.beginResetModel()
-        self.rootItem = ModelItem(data)
-        self.endResetModel()
+        newmodel = ModelItem(data)
+        self.updateItem(QModelIndex(), newmodel)
+
+    def getItem(self, index):
+        if not index.isValid():
+            return self.rootItem
+        else:
+            return index.internalPointer()
+
+    def updateItem(self, index, newitem, recursive=True):
+        if not index.isValid():
+            item = self.rootItem
+        else:
+            item = index.internalPointer()
+
+        if item.itemData != newitem.itemData:
+            item.itemData = newitem.itemData
+            # self.dataChanged.emit(index, index)
+            delItems = set(item.childItems) - set(newitem.childItems)
+
+            if delItems:
+                delRows = sorted([item.row() for item in delItems])
+                delRows = [list(g) for _, g in itertools.groupby(
+                    delRows, key=lambda n, c=itertools.count(): n-next(c))]
+
+                for rows in delRows:
+                    self.removeRows(rows[0], len(rows), index)
+
+            addItems = set(newitem.childItems) - set(item.childItems)
+
+            if addItems:
+                addRows = sorted([item.row() for item in addItems])
+                addRows = [list(g) for _, g in itertools.groupby(
+                    addRows, key=lambda n, c=itertools.count(): n-next(c))]
+
+                for rows in addRows:
+                    self.insertRows(rows, newitem, index)
+
+            self.reorderChild(index, newitem)
+
+            if recursive:
+                for row, child in enumerate(item.childItems):
+                    child_index = self.index(row, 0, index)
+                    self.updateItem(child_index, newitem.childItems[row])
+
+    def insertRows(self, rows, newitem, parent):
+        # Signature is different from the base method.
+        item = self.getItem(parent)
+        self.beginInsertRows(parent, rows[0], rows[-1])
+
+        for row in rows:
+            item.insertChild(row, newitem.childItems[row])
+
+        self.endInsertRows()
+
+    def removeRows(self, position, rows, parent=QModelIndex()):
+
+        item = self.getItem(parent)
+
+        self.beginRemoveRows(parent, position, position + rows - 1)
+
+        for row in range(position, position + rows):
+            item.childItems.pop(row)
+
+        self.endRemoveRows()
+
+    def reorderChild(self, parent, newitem):
+        """Reorder a list to match target by moving a sequence at a time.
+
+        Written for QtAbstractItemModel.moveRows.
+        """
+        source = self.getItem(parent).childItems
+        target = newitem.childItems
+
+        i = 0
+        while i < len(source):
+
+            if source[i] == target[i]:
+                i += 1
+                continue
+            else:
+                i0 = i
+                j0 = source.index(target[i0])
+                j = j0 + 1
+                while j < len(source):
+                    if source[j] == target[j - j0 + i0]:
+                        j += 1
+                        continue
+                    else:
+                        break
+                self.moveRows(parent, i0, j0, j - j0)
+                i += j - j0
+
+    def moveRows(self, parent, index_to, index_from, length):
+        """Move a sub sequence in a list
+
+        index_to must be smaller than index_from
+        """
+        source = self.getItem(parent).childItems
+
+        self.beginMoveRows(parent, index_from, index_from + length - 1,
+                           parent, index_to)
+
+        sublist = [source.pop(index_from) for _ in range(length)]
+
+        for _ in range(length):
+            source.insert(index_to, sublist.pop())
+
+        self.endMoveRows()
 
     @property
     def modelid(self):
