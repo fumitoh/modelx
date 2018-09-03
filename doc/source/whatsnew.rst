@@ -34,6 +34,25 @@ Updates
 Releases
 ========
 
+.. _release-v0.0.14:
+
+v0.0.14 (3 September 2018)
+--------------------------
+This version is mainly for updating modelx Qt widgets,
+in order for the widgets to work with
+the initial version of spyder-modelx, Spyder plugin for modelx.
+
+Enhancements
+~~~~~~~~~~~~
+- Add property :attr:`~core.base.Interface.literaldict`
+  and ``BaseView.literaldict``. This property is used by spyder-modelx.
+
+
+Bug Fixes
+~~~~~~~~~
+- Fix crashes when :func:`~core.api.cur_model` is called with ``name``
+  argument to change the current model.
+
 .. _release-v0.0.13:
 
 v0.0.13 (5 August 2018)
