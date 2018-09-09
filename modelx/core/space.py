@@ -1659,7 +1659,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def to_frame(self, args):
         return _to_frame_inner(self.cells, args)
 
-    def new_cells_from_module(self, module_):
+    def new_cells_from_module(self, module_, override=True):
         # Outside formulas only
 
         module_ = get_module(module_)
@@ -1670,7 +1670,11 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
             if isinstance(func, FunctionType):
                 # Choose only the functions defined in the module.
                 if func.__module__ == module_.__name__:
-                    newcells[name] = self.new_cells(name, func)
+                    if name in self.namespace_impl and override:
+                        self.cells[name].set_formula(func)
+                        newcells[name] = self.cells[name]
+                    else:
+                        newcells[name] = self.new_cells(name, func)
 
         return newcells
 
