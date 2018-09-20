@@ -34,6 +34,15 @@ Updates
 Releases
 ========
 
+.. _release-v0.0.15:
+
+v0.0.15 (20 September 2018)
+---------------------------
+
+Enhancements
+~~~~~~~~~~~~
+- Importing a module overrides formulas if their cells already exist.
+
 .. _release-v0.0.14:
 
 v0.0.14 (3 September 2018)

@@ -4,6 +4,10 @@ Updates
 
 .. Latest Updates Begin
 
+* *20 September 2018:*
+  modelx v0.0.15 is released. See :ref:`Release Notes <release-v0.0.15>`
+  for details
+
 * *8 September 2018:*
   The :doc:`installation` page is updated and
   :ref:`Installing Spyder plugin for modelx <install-spyder-plugin>` section
