@@ -427,21 +427,6 @@ class SpaceContainerImpl(Impl):
         for space in self.spaces.values():
             space.inherit()
 
-    def descendant_edge_iter(self):
-        iter = self._nested_spaces_iter_helper()
-        prev = self
-        for space in iter:
-            yield (prev, space)
-            prev = space
-
-    def _nested_spaces_iter_helper(self):
-        for space in self.spaces.values():
-            for nested in space._nested_spaces_iter_helper():
-                yield nested
-            yield space
-
-
-
 
 class SpaceDict(ImplDict):
 
@@ -1173,12 +1158,6 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
 
     def has_linealrel(self, other):
         return self.has_ascendant(other) or self.has_descendant(other)
-
-    def _nested_spaces_iter_helper(self):
-        for space in self.static_spaces.values():
-            for nested in space._nested_spaces_iter_helper():
-                yield nested
-            yield space
 
     # ----------------------------------------------------------------------
     # Components and namespace

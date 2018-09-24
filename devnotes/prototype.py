@@ -117,19 +117,6 @@ class SpaceContainer:
         for space in self.spaces.values():
             space.inherit()
 
-    def descendant_edge_iter(self):
-        iter = self._nested_spaces_iter_helper()
-        prev = self
-        for space in iter:
-            yield (prev, space)
-            prev = space
-
-    def _nested_spaces_iter_helper(self):
-        for space in self.spaces.values():
-            for nested in space._nested_spaces_iter_helper():
-                yield nested
-            yield space
-
 
 class MiniModel(SpaceContainer):
     def __init__(self):
