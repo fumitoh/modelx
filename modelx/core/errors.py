@@ -29,8 +29,8 @@ class DeepReferenceError(RuntimeError):
         {1}""")
 
     def __init__(self, max_depth, trace_msg):
-        msg = self.message_template.format(max_depth, trace_msg)
-        RuntimeError.__init__(self, msg)
+        self.msg = self.message_template.format(max_depth, trace_msg)
+        RuntimeError.__init__(self, self.msg)
 
 
 class NoneReturnedError(ValueError):

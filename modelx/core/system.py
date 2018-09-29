@@ -31,6 +31,7 @@ class CallStack(deque):
         self._succ = None
         self._system = system
         self.max_depth = max_depth
+        self.last_tracebacklimit = None
         deque.__init__(self)
 
     def last(self):
@@ -39,8 +40,19 @@ class CallStack(deque):
     def is_empty(self):
         return len(self) == 0
 
+    def enter_stacking(self):
+        if not self._system.is_errorhandler_configured:
+            self._system.configure_errorhandler()
+
+    def exit_stacking(self):
+        """Not used. Left for future enhancement."""
+        pass
+
     def append(self, item):
-        if len(self) > self.max_depth:
+        if self.is_empty():
+            self.enter_stacking()
+
+        elif len(self) > self.max_depth:
             raise DeepReferenceError(self.max_depth, self.tracemessage())
         deque.append(self, item)
 
@@ -82,7 +94,44 @@ def custom_showwarning(message, category,
         # the file (probably stderr) is invalid - this warning gets lost.
         pass
 
+def is_ipython():
+    """True if the current shell is an IPython shell.
+
+    https://stackoverflow.com/questions/5376837/how-can-i-do-an-if-run-from-ipython-test-in-python
+    """
+    try:
+        __IPYTHON__
+        return True
+    except NameError:
+        return False
+
+
 class System:
+
+    is_errorhandler_configured = False
+
+    @classmethod
+    def configure_errorhandler(cls):
+        """Monkey patch shell's error handler.
+
+        __IPYTHON__ is not detected when starting a kernel,
+        so this method is to monkey-patch the showtraceback method of
+        IPython's InteractiveShell after the modelx module is loaded.
+        """
+        if cls.is_errorhandler_configured:
+            return
+
+        if is_ipython():
+            from IPython.core.interactiveshell import InteractiveShell
+            cls.InteractiveShell = InteractiveShell
+            # save original showtraceback as a class member
+            cls.default_showtraceback = InteractiveShell.showtraceback
+            InteractiveShell.showtraceback = custom_showtraceback
+        else:
+            cls.default_excepthook = sys.excepthook
+            sys.excepthook = excepthook
+
+        cls.is_errorhandler_configured = True
 
     def __init__(self, max_depth=1000):
         self.orig_settings = {}
@@ -95,16 +144,14 @@ class System:
         self.self = None
 
     def configure_python(self):
-        """Configure Python settings for modelx"""
+        """Configure Python settings for modelx
+
+        The error handler is configured later.
+        """
         orig = self.orig_settings
 
         orig['sys.recursionlimit'] = sys.getrecursionlimit()
         sys.setrecursionlimit(10000)
-
-        if hasattr(sys, 'tracebacklimit'):
-            orig['sys.tracebacklimit'] = sys.tracebacklimit
-        if False:   # Print traceback for the time being
-            sys.tracebacklimit = 0
 
         orig['showwarning'] = warnings.showwarning
         warnings.showwarning = custom_showwarning
@@ -122,6 +169,13 @@ class System:
 
         if 'showwarning' in orig:
             warnings.showwarning = orig['showwarning']
+
+        if is_ipython():
+            self.InteractiveShell.showtraceback = self.default_showtraceback
+        else:
+            sys.excepthook = self.default_excepthook
+
+        System.is_errorhandler_configured = False
 
         orig.clear()
 
@@ -193,5 +247,28 @@ class System:
         model_name = parts.pop(0)
         return self.models[model_name].get_object('.'.join(parts))
 
+# --------------------------------------------------------------------------
+# Monkey patch functions for custom error messages
+
+def custom_showtraceback(self, exc_tuple=None, filename=None, tb_offset=None,
+                         exception_only=False, running_compiled_code=False):
+    """Custom showtraceback for monkey-patching IPython's InteractiveShell
+
+    https://stackoverflow.com/questions/1261668/cannot-override-sys-excepthook
+    """
+    System.default_showtraceback(self, exc_tuple, filename,
+                                 tb_offset, exception_only=True,
+                                 running_compiled_code=running_compiled_code)
 
 
+def excepthook(self, except_type, exception, traceback):
+    """Custom exception hook to replace sys.excepthook
+
+    This is for CPython's default shell. IPython does not use sys.exepthook.
+
+    https://stackoverflow.com/questions/27674602/hide-traceback-unless-a-debug-flag-is-set
+    """
+    if except_type is DeepReferenceError:
+        print(exception.msg)
+    else:
+        System.default_excepthook(except_type, exception, traceback)

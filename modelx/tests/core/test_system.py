@@ -70,8 +70,7 @@ def test_deep_reference_error():
     0: ErrModel.ErrSpace.erronerous(x=1, y=3)
     1: ErrModel.ErrSpace.erronerous(x=2, y=2)
     2: ErrModel.ErrSpace.erronerous(x=3, y=1)
-    3: ErrModel.ErrSpace.erronerous(x=4, y=0)
-    """)
+    3: ErrModel.ErrSpace.erronerous(x=4, y=0)""")
 
     system.callstack.max_depth = last_max_depth
     assert errinfo.value.args[0] == errmsg

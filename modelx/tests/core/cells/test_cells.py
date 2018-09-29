@@ -321,8 +321,7 @@ def test_none_returned_error():
     errmsg = dedent("""
         None returned from ErrModel.ErrSpace.return_none(x=1, y=3).
         Call stack traceback:
-        0: ErrModel.ErrSpace.return_none(x=1, y=3)
-        """)
+        0: ErrModel.ErrSpace.return_none(x=1, y=3)""")
 
     assert errinfo.value.args[0] == errmsg
 

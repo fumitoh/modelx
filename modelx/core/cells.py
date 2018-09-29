@@ -697,7 +697,6 @@ class CellsImpl(Derivable, Impl):
         return cells_to_series(self, args)
 
     def to_frame(self, args):
-
         from modelx.io.pandas import cells_to_dataframe
         args = self._pandas_shared_logic(args)
         return cells_to_dataframe(self, args)
