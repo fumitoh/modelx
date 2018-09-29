@@ -318,7 +318,7 @@ def test_none_returned_error():
     with pytest.raises(NoneReturnedError) as errinfo:
         cells(1, 3)
 
-    errmsg = dedent("""
+    errmsg = dedent("""\
         None returned from ErrModel.ErrSpace.return_none(x=1, y=3).
         Call stack traceback:
         0: ErrModel.ErrSpace.return_none(x=1, y=3)""")

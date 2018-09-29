@@ -64,7 +64,7 @@ def test_deep_reference_error():
     with pytest.raises(DeepReferenceError) as errinfo:
         cells(1, 3)
 
-    errmsg = dedent("""
+    errmsg = dedent("""\
     Formula chain exceeded the 3 limit.
     Call stack traceback:
     0: ErrModel.ErrSpace.erronerous(x=1, y=3)
