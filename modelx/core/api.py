@@ -30,6 +30,7 @@ from types import FunctionType as _FunctionType
 from modelx.core import system as _system
 from modelx.core.cells import CellsMaker as _CellsMaker
 from modelx.core.space import Space as _Space
+from modelx.core.model import Model as _Model
 from modelx.core.base import get_interfaces as _get_interfaces
 
 
@@ -161,23 +162,28 @@ def get_models():
     return _get_interfaces(_system.models)
 
 
-def cur_model(name=None):
+def cur_model(model=None):
     """Get and/or set the current model.
 
-    If ``name`` is given, set the current model to ``name`` and return it.
-    If ``name`` is not given, the current model is returned.
+    If ``model`` is given, set the current model to ``model`` and return it.
+    ``model`` can be the name of a model object, or a model object itself.
+    If ``model`` is not given, the current model is returned.
     """
-    if name is None:
+    if model is None:
         if _system.currentmodel is not None:
             return _system.currentmodel.interface
         else:
             return None
     else:
-        _system.currentmodel = _system.models[name]
+        if isinstance(model, _Model):
+            _system.currentmodel = model._impl
+        else:
+            _system.currentmodel = _system.models[model]
+
         return _system.currentmodel.interface
 
 
-def cur_space(name=None):
+def cur_space(space=None):
     """Get and/or set the current space of the current model.
 
     If ``name`` is given, the current space of the current model is
@@ -185,7 +191,7 @@ def cur_space(name=None):
     If ``name`` is not given, the current space of the current model
     is returned.
     """
-    if name is None:
+    if space is None:
         if _system.currentmodel is not None:
             if _system.currentmodel.currentspace is not None:
                 return _system.currentmodel.currentspace.interface
@@ -194,7 +200,13 @@ def cur_space(name=None):
         else:
             return None
     else:
-        _system.currentmodel.currentspace = _system.currentmodel.spaces[name]
+        if isinstance(space, _Space):
+            cur_model(space.model)
+            _system.currentmodel.currentspace = space._impl
+        else:
+            _system.currentmodel.currentspace = \
+                _system.currentmodel.spaces[space]
+
         return cur_space()
 
 
