@@ -446,6 +446,16 @@ class Interface:
         else:
             return self._impl.parent.interface
 
+    @property
+    def model(self):
+        """The model this object belongs to.
+
+        This is a property of Model, Space and Cells.
+        For models, this property is themselves.
+        """
+        return self._impl.model.interface
+
+
     def __repr__(self):
         type_ = self.__class__.__name__
         return "<%s %s>" % (type_, self._impl.repr_string)

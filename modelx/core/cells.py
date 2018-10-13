@@ -408,7 +408,7 @@ class CellsImpl(Derivable, Impl):
         Derivable.__init__(self)
 
         self.system = space.system
-        self.model = space.model
+        self._model = space.model
         self.space = self.parent = space
 
         if base is not None:
@@ -438,7 +438,7 @@ class CellsImpl(Derivable, Impl):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = ['model',
+    state_attrs = ['_model',
                    'space',
                    'formula',
                    'name',
@@ -461,6 +461,9 @@ class CellsImpl(Derivable, Impl):
 
     # ----------------------------------------------------------------------
     # Properties
+    @property
+    def model(self):
+        return self._model
 
     def __repr__(self):
         return '<CellsImpl: %s>' % self.name
@@ -519,7 +522,7 @@ class CellsImpl(Derivable, Impl):
 
         if self.bases:
             if clear_value:
-                self.model.clear_obj(self)
+                self._model.clear_obj(self)
             self.formula = self.bases[0].formula
             self.altfunc.set_update()
 
@@ -538,18 +541,18 @@ class CellsImpl(Derivable, Impl):
         oldsrc = self.formula.source
         newsrc = self.formula._reload(module_).source
         if oldsrc != newsrc:
-            self.model.clear_obj(self)
+            self._model.clear_obj(self)
 
     def clear_formula(self):
         self.set_formula(NULL_FORMULA)
 
     def set_formula(self, func):
-        self.model.clear_obj(self)
+        self._model.clear_obj(self)
         formula = Formula(func)
         self.formula = formula
         self.altfunc.set_update()
         if not self.parent.in_dynamic():
-            self.model.spacegraph.update_subspaces_upward(
+            self._model.spacegraph.update_subspaces_upward(
                 self.parent,
                 from_parent=False,
                 event='cells_set_formula')
@@ -591,7 +594,7 @@ class CellsImpl(Derivable, Impl):
             finally:
                 self.system.callstack.pop()
 
-        graph = self.model.cellgraph
+        graph = self._model.cellgraph
         if not self.system.callstack.is_empty():
             graph.add_path([ptr, self.system.callstack.last()])
         else:
@@ -627,7 +630,7 @@ class CellsImpl(Derivable, Impl):
 
         if self.system.callstack.is_empty():
             self._store_value(ptr, value, True)
-            self.model.cellgraph.add_node(ptr)
+            self._model.cellgraph.add_node(ptr)
         else:
             if ptr == self.system.callstack.last():
                 self._store_value(ptr, value, False)
@@ -668,7 +671,7 @@ class CellsImpl(Derivable, Impl):
         else:
             ptr = CellArgs(self, args, kwargs)
             if self.has_cell(ptr.argvalues):
-                self.model.clear_descendants(ptr)
+                self._model.clear_descendants(ptr)
 
     def clear_all_values(self):
         for args in list(self.data):
@@ -706,12 +709,12 @@ class CellsImpl(Derivable, Impl):
 
     def predecessors(self, args, kwargs):
         node = CellArgs(self, args, kwargs)
-        preds = self.model.cellgraph.predecessors(node)
+        preds = self._model.cellgraph.predecessors(node)
         return [CellNode(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = CellArgs(self, args, kwargs)
-        succs = self.model.cellgraph.successors(node)
+        succs = self._model.cellgraph.successors(node)
         return [CellNode(n) for n in succs]
 
 
