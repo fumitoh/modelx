@@ -168,7 +168,10 @@ def cur_model(name=None):
     If ``name`` is not given, the current model is returned.
     """
     if name is None:
-        return _system.currentmodel.interface
+        if _system.currentmodel is not None:
+            return _system.currentmodel.interface
+        else:
+            return None
     else:
         _system.currentmodel = _system.models[name]
         return _system.currentmodel.interface
@@ -183,7 +186,13 @@ def cur_space(name=None):
     is returned.
     """
     if name is None:
-        return _system.currentmodel.currentspace.interface
+        if _system.currentmodel is not None:
+            if _system.currentmodel.currentspace is not None:
+                return _system.currentmodel.currentspace.interface
+            else:
+                return None
+        else:
+            return None
     else:
         _system.currentmodel.currentspace = _system.currentmodel.spaces[name]
         return cur_space()
