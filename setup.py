@@ -21,17 +21,15 @@ DESCRIPTION = "Build and run complex models composed of formulas and data"
 
 here = path.abspath(path.dirname(__file__))
 
-# Get the long description from the README file
-# with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-#     LONG_DESCRIPTION = f.read()
 
-LONG_DESCRIPTION = """
-modelx is a Python package for performing complex calculations
-by creating models composed of structured data and formulas written
-in the form of Python functions.
-You can think of it as a multidimensional version of spreadsheet,
-but it’s so much more!
-"""
+def get_description():
+    """Get long description from README."""
+    with open(path.join(here, 'README.rst'), 'r') as f:
+        data = f.read()
+    return data
+
+
+LONG_DESCRIPTION = get_description()
 
 def get_version(version_tuple):
     # additional handling of a,b,rc tags, this can
