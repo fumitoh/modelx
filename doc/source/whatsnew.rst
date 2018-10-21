@@ -39,14 +39,15 @@ Releases
 v0.0.16 (21 October 2018)
 -------------------------
 spyder-modelx plugin introduces a new widget to view cells values in a table.
-This release reflects some updates in modelx to make the new widget to work.
+This release reflects some updates in modelx to make the new widget work.
 
 Enhancements
 ~~~~~~~~~~~~
-- cur_model and cur_space now accept model and space objects as their
-  arguments respectively, in addition to the names of model or space objects.
+- :func:`~core.api.cur_model` and :func:`~core.api.cur_space` now accept
+  model and space objects as their arguments respectively,
+  in addition to the names of model or space objects.
 
-- Add model property to all Interface subclasses.
+- Add :attr:`~core.base.Interface.model` property to all Interface subclasses.
 
 - Traceback messages upon erroneous formula calls are now limited
   to 6 trace stack entries.
@@ -57,9 +58,10 @@ Enhancements
 
 Backwards Incompatible Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- The parameters to cur_model and cur_space are renamed from name to
-  model and space respectively, due to the enhancement to accept
-  objects, in addition to the names of the objects.
+- The parameters to :func:`~core.api.cur_model` and :func:`~core.api.cur_space`
+  are renamed from ``name`` to ``model`` and ``space`` respectively,
+  due to the enhancement for these functions to accept objects,
+  in addition to the names of the objects.
 
 
 .. _release-v0.0.15:
