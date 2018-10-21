@@ -8,7 +8,7 @@ What's New
 
    modelx is in its early alpha-release stage, and its specifications are
    subject to changes without consideration on backward compatibility.
-   The source files of you models may need to be modified manually,
+   The source files of your models may need to be modified manually,
    if there are updates that break backward compatibility in newer versions
    of modelx.
 
@@ -33,6 +33,34 @@ Updates
 
 Releases
 ========
+
+.. _release-v0.0.16:
+
+v0.0.16 (21 October 2018)
+-------------------------
+spyder-modelx plugin introduces a new widget to view cells values in a table.
+This release reflects some updates in modelx to make the new widget to work.
+
+Enhancements
+~~~~~~~~~~~~
+- cur_model and cur_space now accept model and space objects as their
+  arguments respectively, in addition to the names of model or space objects.
+
+- Add model property to all Interface subclasses.
+
+- Traceback messages upon erroneous formula calls are now limited
+  to 6 trace stack entries.
+
+- Error messages upon erroneous formula calls are now simplified
+  not to show file traceback.
+
+
+Backwards Incompatible Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- The parameters to cur_model and cur_space are renamed from name to
+  model and space respectively, due to the enhancement to accept
+  objects, in addition to the names of the objects.
+
 
 .. _release-v0.0.15:
 

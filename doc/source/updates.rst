@@ -4,9 +4,13 @@ Updates
 
 .. Latest Updates Begin
 
+* *21 October 2018:*
+  modelx v0.0.16 is released. See :ref:`Release Notes <release-v0.0.16>`
+  for details.
+
 * *20 September 2018:*
   modelx v0.0.15 is released. See :ref:`Release Notes <release-v0.0.15>`
-  for details
+  for details.
 
 * *8 September 2018:*
   The :doc:`installation` page is updated and
