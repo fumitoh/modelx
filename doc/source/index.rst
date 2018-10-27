@@ -3,8 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to modelx's documentation!
-==================================
+modelx
+======
+*Escape from spreadsheet models!*
 
 Latest Updates
 --------------
@@ -15,12 +16,23 @@ Latest Updates
 
 :doc:`... See more updates<updates>`
 
+
+.. include:: ../../README.rst
+   :start-after: Overview Begin
+   :end-before: Overview End
+
+What Next
+---------
+
+- :doc:`Installation </installation>`
+- :doc:`Tutorial <tutorial>`
+- :doc:`Reference </reference/index>`
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents
 
    whatsnew
-   overview
    installation
    tutorial
    reference/index

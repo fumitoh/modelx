@@ -4,6 +4,10 @@ Updates
 
 .. Latest Updates Begin
 
+* *27 October 2018:*
+  The *Overview* page of this site is updated and merged into the landing
+  page.
+
 * *21 October 2018:*
   modelx v0.0.16 is released. See :ref:`Release Notes <release-v0.0.16>`
   for details.

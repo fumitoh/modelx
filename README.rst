@@ -6,14 +6,44 @@ modelx
 
 What is modelx?
 ---------------
-modelx is a Python package for performing complex calculations by creating
-models composed of structured data and formulas written in the form of Python
-functions. You can think of it as a multidimensional
-version of spreadsheet, but it’s so much more!
+**modelx** is a Python package to build object-oriented models
+containing formulas and values to carry out complex calculations.
+You can think of it as a hierarchical and multidimensional extension
+of spreadsheet, but there's so much more to it!
+
+Feature highlights
+------------------
+**modelx** comes with features that enable users to interactively
+develop, run and scrutinize complex models in smart ways:
+
+- Only little Python knowledge required
+- Model composed of a tree of Spaces containing Cells
+- Cells containing formulas and data
+- Dynamic name binding for evaluating formulas within a Space
+- Space inheritance
+- Dynamic parametrized spaces created interactively
+- GUI as Spyder plugin (spyder-modelx)
+- Cells graph to track cells interdependency (Under development)
+- Saving to / loading from files
+- Conversion to Pandas objects
+- Reading from Excel files
+
+Who is modelx for?
+------------------
+**modelx** is designed to be domain agnostic.
+
+The modelx was created by actuary, and its primary use is to develop
+actuarial projection models. **lifelib** (https://lifelib.io) is a
+library of actuarial models that are built on top of modelx.
+
+However, modelx is intentionally designed to eliminate domain specific features
+so that potential audience for modelx can be wider than actuaries,
+whoever needs to develop
+complex models of any sorts that are too much to deal with by spreadsheets.
 
 How modelx works
 ----------------
-modelx exposes its API functions and classes such as Model, Space and Cells to
+**modelx** exposes its API functions and classes such as Model, Space and Cells to
 its users, and the users build their models from those classes, by defining
 calculation formulas in the form of Python functions and associating those
 calculations with Cells objects.
@@ -59,32 +89,7 @@ To get a Fibonacci number for, say 10, you can do::
     Name: fibo, dtype: int64
 
 
-Feature highlights
-------------------
-You may not see the whole point of usig modelx as the example above is
-a simple one illustrating its fundamental mechanism, but
-modelx comes with features that enable users to build and manipulate
-more complex models in smart ways:
-
-- Cells containing formulas and data
-- Dynamic scoping for evaluating formulas
-- Cells graph to track cells interdependency
-- Spaces to organize cells by related calculations
-- Sub-spacing (having nested spaces within spaces)
-- Space inheritance
-- Dynamic parametrized spaces created automatically
-- Saving to / loading from files
-- Conversion to Pandas objects
-- Reading from Excel files
-
-Who is modelx for?
-------------------
-modelx is designed to be domain agnostic.
-The modelx was created by an actuary to be used as a base tool to develop
-actuarial projection models,
-but it is intentionally designed to eliminate domain specific features
-so that potential audience for modelx can be anyone who needs to develop
-complex models of any sorts that are too much to deal with by spreadsheets.
+Refer to **lifelib** (https://lifelib.io) fo more complex examples.
 
 
 Python and modelx
