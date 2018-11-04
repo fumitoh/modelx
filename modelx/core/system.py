@@ -41,8 +41,7 @@ class CallStack(deque):
         return len(self) == 0
 
     def enter_stacking(self):
-        if not self._system.is_errorhandler_configured:
-            self._system.configure_errorhandler()
+        pass
 
     def exit_stacking(self):
         """Not used. Left for future enhancement."""
@@ -74,6 +73,7 @@ class CallStack(deque):
 
         return result
 
+
 def custom_showwarning(message, category,
                        filename='', lineno=-1, file=None, line=None):
     """Hook to override default showwarning.
@@ -94,8 +94,11 @@ def custom_showwarning(message, category,
         # the file (probably stderr) is invalid - this warning gets lost.
         pass
 
+
 def is_ipython():
     """True if the current shell is an IPython shell.
+
+    Note __IPYTHON__ is not yet set before IPython kernel is initialized.
 
     https://stackoverflow.com/questions/5376837/how-can-i-do-an-if-run-from-ipython-test-in-python
     """
@@ -108,30 +111,38 @@ def is_ipython():
 
 class System:
 
-    is_errorhandler_configured = False
-
-    @classmethod
-    def configure_errorhandler(cls):
+    def setup_ipython(self):
         """Monkey patch shell's error handler.
 
-        __IPYTHON__ is not detected when starting a kernel,
-        so this method is to monkey-patch the showtraceback method of
-        IPython's InteractiveShell after the modelx module is loaded.
+        This method is to monkey-patch the showtraceback method of
+        IPython's InteractiveShell to
+
+        __IPYTHON__ is not detected when starting an IPython kernel,
+        so this method is called from start_kernel in spyder-modelx.
         """
-        if cls.is_errorhandler_configured:
+        if self.is_ipysetup:
             return
 
-        if is_ipython():
-            from IPython.core.interactiveshell import InteractiveShell
-            cls.InteractiveShell = InteractiveShell
-            # save original showtraceback as a class member
-            cls.default_showtraceback = InteractiveShell.showtraceback
-            InteractiveShell.showtraceback = custom_showtraceback
-        else:
-            cls.default_excepthook = sys.excepthook
-            sys.excepthook = excepthook
+        from ipykernel.kernelapp import IPKernelApp
 
-        cls.is_errorhandler_configured = True
+        self.shell = IPKernelApp.instance().shell
+        shell_class = type(self.shell)
+
+        shell_class.default_showtraceback = shell_class.showtraceback
+        shell_class.showtraceback = custom_showtraceback
+
+        self.is_ipysetup = True
+
+    def restore_ipython(self):
+        """Restore default IPython showtraceback"""
+        if not self.is_ipysetup:
+            return
+
+        shell_class = type(self.shell)
+        shell_class.showtraceback = shell_class.default_showtraceback
+        del shell_class.default_showtraceback
+
+        self.is_ipysetup = False
 
     def __init__(self, max_depth=1000):
         self.orig_settings = {}
@@ -142,6 +153,12 @@ class System:
         self._currentmodel = None
         self._models = {}
         self.self = None
+
+        if is_ipython():
+            self.setup_ipython()
+        else:
+            self.shell = None
+            self.is_ipysetup = False
 
     def configure_python(self):
         """Configure Python settings for modelx
@@ -169,13 +186,6 @@ class System:
 
         if 'showwarning' in orig:
             warnings.showwarning = orig['showwarning']
-
-        if is_ipython():
-            self.InteractiveShell.showtraceback = self.default_showtraceback
-        else:
-            sys.excepthook = self.default_excepthook
-
-        System.is_errorhandler_configured = False
 
         orig.clear()
 
@@ -250,19 +260,20 @@ class System:
 # --------------------------------------------------------------------------
 # Monkey patch functions for custom error messages
 
+
 def custom_showtraceback(self, exc_tuple=None, filename=None, tb_offset=None,
                          exception_only=False, running_compiled_code=False):
     """Custom showtraceback for monkey-patching IPython's InteractiveShell
 
     https://stackoverflow.com/questions/1261668/cannot-override-sys-excepthook
     """
-    System.default_showtraceback(self, exc_tuple, filename,
+    self.default_showtraceback(exc_tuple, filename,
                                  tb_offset, exception_only=True,
                                  running_compiled_code=running_compiled_code)
 
 
 def excepthook(self, except_type, exception, traceback):
-    """Custom exception hook to replace sys.excepthook
+    """Not Used: Custom exception hook to replace sys.excepthook
 
     This is for CPython's default shell. IPython does not use sys.exepthook.
 
@@ -271,4 +282,4 @@ def excepthook(self, except_type, exception, traceback):
     if except_type is DeepReferenceError:
         print(exception.msg)
     else:
-        System.default_excepthook(except_type, exception, traceback)
+        self.default_excepthook(except_type, exception, traceback)
