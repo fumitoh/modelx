@@ -80,6 +80,7 @@ class CellArgs(ObjectArgs):
         ObjectArgs.__init__(self, cells, args, kwargs)
         self.cells = self.obj_
 
+
 class CellsMaker:
 
     def __init__(self, *, space, name):
@@ -88,6 +89,7 @@ class CellsMaker:
 
     def __call__(self, func):
         return self.space.new_cells(formula=func, name=self.name).interface
+
 
 ArgsValuePair = namedtuple('ArgsValuePair', ['args', 'value'])
 
@@ -751,8 +753,6 @@ class CellNode:
             return self._impl.__repr__() + '=' + str(self.value)
         else:
             return self._impl.__repr__()
-
-
 
 
 def shareable_parameters(cells):

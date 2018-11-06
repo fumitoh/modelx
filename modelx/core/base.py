@@ -147,6 +147,7 @@ class ObjectArgs:
 
         return self.obj_.get_fullname() + "(" + arg_repr + ")"
 
+
 def get_interfaces(impls):
     """Get interfaces from their implementations."""
     if impls is None:
@@ -263,6 +264,7 @@ class Impl:
                     fullname = '.'.join(separated)
 
                 return fullname
+
 
 class _DummyBuiltins:
     pass
@@ -455,7 +457,6 @@ class Interface:
         """
         return self._impl.model.interface
 
-
     def __repr__(self):
         type_ = self.__class__.__name__
         return "<%s %s>" % (type_, self._impl.repr_string)
@@ -504,6 +505,7 @@ class Interface:
                   'name': self.name}
 
         return result
+
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.
@@ -770,7 +772,6 @@ class BaseView(Mapping):
         if hasattr(self.__class__, "__missing__"):
             return self.__class__.__missing__(self, key)
         raise KeyError(key)
-
 
     def __iter__(self):
         return iter(self._data)

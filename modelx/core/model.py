@@ -188,7 +188,6 @@ class ModelImpl(SpaceContainerImpl):
     # def clear_lexdescendants(self, refnode):
     #     """Clear values of cells that refer to `ref`."""
 
-
     def clear_obj(self, obj):
         """Clear values and nodes of `obj` and their dependants."""
         removed = self.cellgraph.clear_obj(obj)

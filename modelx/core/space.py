@@ -226,6 +226,7 @@ class SpaceContainer(Interface):
         result['spaces'] = self.spaces.literaldict
         return result
 
+
 class SpaceContainerImpl(Impl):
     """Base class of Model and Space to work as container of spaces.
 
