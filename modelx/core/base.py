@@ -499,9 +499,9 @@ class Interface:
     def literaldict(self):
         """A dict of members expressed in literals"""
 
-        result = {}
-        result['id'] = id(self._impl)
-        result['name'] = self.name
+        result = {'type': type(self).__name__,
+                  'id': id(self),
+                  'name': self.name}
 
         return result
 
@@ -789,8 +789,8 @@ class BaseView(Mapping):
     def literaldict(self):
         """A dict of members expressed in literals"""
 
+        result = {'type': type(self).__name__}
         try:
-            result = {}
             result['items'] = {name: item.literaldict
                                for name, item in self.items()}
         except:

@@ -222,7 +222,7 @@ class SpaceContainer(Interface):
     def literaldict(self):
         """A dict of members expressed in literals"""
 
-        result = Interface.literaldict.fget(self)
+        result = super().literaldict
         result['spaces'] = self.spaces.literaldict
         return result
 
@@ -558,33 +558,12 @@ class CellsView(SelectedView):
 
         return _to_frame_inner(impls, args)
 
-    # ----------------------------------------------------------------------
-    # Override base class methods
-
-    @property
-    def literaldict(self):
-        """A dict of members expressed in literals"""
-
-        result = super().literaldict
-        result['type'] = 'CellsView'
-        return result
 
 class SpaceView(BaseView):
 
     def __delitem__(self, name):
         space = self._data[name]._impl
         space.parent.del_space(name)
-
-    # ----------------------------------------------------------------------
-    # Override base class methods
-
-    @property
-    def literaldict(self):
-        """A dict of members expressed in literals"""
-
-        result = super().literaldict
-        result['type'] = 'SpaceView'
-        return result
 
 
 class Space(SpaceContainer):
@@ -923,8 +902,7 @@ class Space(SpaceContainer):
     def literaldict(self):
         """A dict of members expressed in literals"""
 
-        result = SpaceContainer.literaldict.fget(self)
-        result['type'] = 'Space'
+        result = super().literaldict
         result['static_spaces'] = self.static_spaces.literaldict
         result['dynamic_spaces'] = self.dynamic_spaces.literaldict
         result['cells'] = self.cells.literaldict

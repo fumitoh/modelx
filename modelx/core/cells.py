@@ -353,8 +353,7 @@ class Cells(Interface, Mapping, Callable, Sized):
     def literaldict(self):
         """A dict of members expressed in literals"""
 
-        result = Interface.literaldict.fget(self)
-        result['type'] = 'Cells'
+        result = super().literaldict
         result['params'] = ', '.join(self.parameters)
         return result
 
