@@ -126,12 +126,12 @@ class System:
         from ipykernel.kernelapp import IPKernelApp
 
         self.shell = IPKernelApp.instance().shell
-        shell_class = type(self.shell)
 
-        shell_class.default_showtraceback = shell_class.showtraceback
-        shell_class.showtraceback = custom_showtraceback
-
-        self.is_ipysetup = True
+        if self.shell:      # is set to None in PyCharm
+            shell_class = type(self.shell)
+            shell_class.default_showtraceback = shell_class.showtraceback
+            shell_class.showtraceback = custom_showtraceback
+            self.is_ipysetup = True
 
     def restore_ipython(self):
         """Restore default IPython showtraceback"""
@@ -155,6 +155,7 @@ class System:
         self.self = None
 
         if is_ipython():
+            self.is_ipysetup = False
             self.setup_ipython()
         else:
             self.shell = None
