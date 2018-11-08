@@ -124,14 +124,18 @@ class System:
             return
 
         from ipykernel.kernelapp import IPKernelApp
+        self.shell = IPKernelApp.instance().shell   # None in PyCharm console
 
-        self.shell = IPKernelApp.instance().shell
+        if not self.shell and is_ipython():
+            self.shell = get_ipython()
 
-        if self.shell:      # is set to None in PyCharm
+        if self.shell:
             shell_class = type(self.shell)
             shell_class.default_showtraceback = shell_class.showtraceback
             shell_class.showtraceback = custom_showtraceback
             self.is_ipysetup = True
+        else:
+            raise RuntimeError("IPython shell not found.")
 
     def restore_ipython(self):
         """Restore default IPython showtraceback"""
