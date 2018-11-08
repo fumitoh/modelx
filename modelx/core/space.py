@@ -66,6 +66,8 @@ class SpaceContainer(Interface):
     :py:class:`Space <modelx.core.space.Space>`.
 
     """
+    __slots__ = ()
+
     def new_space(self, name=None, bases=None, formula=None, refs=None):
         """Create a child space.
 
@@ -574,6 +576,7 @@ class Space(SpaceContainer):
     Spaces have mappings of names to objects that serve as global namespaces
     of the formulas of the cells in the spaces.
     """
+    __slots__ = ()
 
     # ----------------------------------------------------------------------
     # Manipulating cells

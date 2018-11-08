@@ -8,11 +8,18 @@ def sample_objects():
 
 
 @pytest.fixture(params=range(3))
-def model_property(request, sample_objects):
+def model_obj_pair(request, sample_objects):
     m, s, c = msc = sample_objects
     yield m, msc[request.param]
 
 
-def test_property_model(model_property):
-    m, obj = model_property
+def test_property_model(model_obj_pair):
+    m, obj = model_obj_pair
     assert m is obj.model
+
+
+def test_slots(model_obj_pair):
+    m, obj = model_obj_pair
+
+    with pytest.raises(Exception):
+        obj.__dict__

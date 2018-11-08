@@ -98,6 +98,7 @@ class Model(SpaceContainer):
     A model can be created by
     :py:func:`new_model <modelx.core.model.Model>` API function.
     """
+    __slots__ = ()
 
     def rename(self, name):
         """Rename the model itself"""

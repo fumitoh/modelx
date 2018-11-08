@@ -404,7 +404,7 @@ class Interface:
     All the properties defined in this class are available in Model,
     Space and Cells objects.
     """
-
+    __slots__ = ('_impl',)
     properties = ['allow_none']
 
     def __new__(cls, _impl):

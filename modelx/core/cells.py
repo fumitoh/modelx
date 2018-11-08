@@ -101,7 +101,7 @@ class Cells(Interface, Mapping, Callable, Sized):
     the containing space, or by function definitions with ``defcells``
     decorator.
     """
-    # __slots__ = ('_impl',)
+    __slots__ = ()
 
     def __contains__(self, args):
         return self._impl.has_cell(args)
