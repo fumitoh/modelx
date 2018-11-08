@@ -28,8 +28,8 @@ class DeepReferenceError(RuntimeError):
         Call stack traceback:
         {1}""")
 
-    def __init__(self, max_depth, trace_msg):
-        self.msg = self.message_template.format(max_depth, trace_msg)
+    def __init__(self, maxdepth, trace_msg):
+        self.msg = self.message_template.format(maxdepth, trace_msg)
         RuntimeError.__init__(self, self.msg)
 
 

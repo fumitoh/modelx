@@ -27,10 +27,10 @@ class Executive:
 
 class CallStack(deque):
 
-    def __init__(self, system, max_depth):
+    def __init__(self, system, maxdepth):
         self._succ = None
         self._system = system
-        self.max_depth = max_depth
+        self.maxdepth = maxdepth
         self.last_tracebacklimit = None
         deque.__init__(self)
 
@@ -51,8 +51,8 @@ class CallStack(deque):
         if self.is_empty():
             self.enter_stacking()
 
-        elif len(self) > self.max_depth:
-            raise DeepReferenceError(self.max_depth, self.tracemessage())
+        elif len(self) > self.maxdepth:
+            raise DeepReferenceError(self.maxdepth, self.tracemessage())
         deque.append(self, item)
 
     def tracemessage(self, maxlen=6):
@@ -148,10 +148,10 @@ class System:
 
         self.is_ipysetup = False
 
-    def __init__(self, max_depth=1000):
+    def __init__(self, maxdepth=1000):
         self.orig_settings = {}
         self.configure_python()
-        self.callstack = CallStack(self, max_depth)
+        self.callstack = CallStack(self, maxdepth)
         self._modelnamer = AutoNamer("Model")
         self._backupnamer = AutoNamer("_BAK")
         self._currentmodel = None
