@@ -21,5 +21,5 @@ def test_property_model(model_obj_pair):
 def test_slots(model_obj_pair):
     m, obj = model_obj_pair
 
-    with pytest.raises(Exception):
-        obj.__dict__
+    with pytest.raises(AttributeError):
+        object.__getattribute__(obj, '__dict__')
