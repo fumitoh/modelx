@@ -162,6 +162,17 @@ def get_models():
     return _get_interfaces(_system.models)
 
 
+def get_object(name: str):
+    """Get a modelx object from its full name."""
+    elms = name.split('.')
+    parent = get_models()[elms.pop(0)]
+    while len(elms) > 0:
+        obj = elms.pop(0)
+        parent = getattr(parent, obj)
+
+    return parent
+
+
 def cur_model(model=None):
     """Get and/or set the current model.
 
