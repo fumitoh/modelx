@@ -352,6 +352,9 @@ class Formula:
 
         return self
 
+    def _to_attrdict(self, attrs=None):
+        return {'source': self.source}
+
 
 NULL_FORMULA = Formula('lambda: None')
 

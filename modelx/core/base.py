@@ -502,10 +502,20 @@ class Interface:
 
         result = {'type': type(self).__name__,
                   'id': id(self),
-                  'name': self.name}
+                  'name': self.name,
+                  'fullname': self.fullname}
 
         return result
 
+    def _to_attrdict(self, attrs=None):
+        """Get extra attributes"""
+        result = self.literaldict
+
+        for attr in attrs:
+            if hasattr(self, attr):
+                result[attr] = getattr(self, attr)._to_attrdict(attrs)
+
+        return result
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.
@@ -793,6 +803,17 @@ class BaseView(Mapping):
         result = {'type': type(self).__name__}
         try:
             result['items'] = {name: item.literaldict
+                               for name, item in self.items()}
+        except:
+            raise RuntimeError("%s literadict raised an error" % self)
+
+        return result
+
+    def _to_attrdict(self, attrs=None):
+
+        result = {'type': type(self).__name__}
+        try:
+            result['items'] = {name: item._to_attrdict(attrs)
                                for name, item in self.items()}
         except:
             raise RuntimeError("%s literadict raised an error" % self)
