@@ -3,7 +3,7 @@ import pytest
 import pickle
 
 from modelx.core.api import *
-from modelx.core import system
+from modelx.core import mxsys
 
 
 # ---- Test impl ----
@@ -72,7 +72,7 @@ def pickletest_dynamicspace():
 
     byte_obj = pickle.dumps(model._impl)
     unpickled = pickle.loads(byte_obj)
-    unpickled.restore_state(system)
+    unpickled.restore_state(mxsys)
     model = unpickled.interface
 
     return (model, check)
