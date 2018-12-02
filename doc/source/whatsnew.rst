@@ -31,8 +31,23 @@ Updates
 
    updates
 
-Releases
-========
+Releases: modelx
+================
+
+.. _release-v0.0.17:
+
+v0.0.17 (2 December 2018)
+-------------------------
+This release is mainly for adding interface to .
+spyder-modelx :ref:`release-mxplugin-v0.0.6`
+
+Enhancements
+~~~~~~~~~~~~
+- :func:`~core.api.get_object` to get a modelx object from its full name.
+
+Bug Fixes
+~~~~~~~~~
+- Error when modelx tries to get IPython shell before it becomes available.
 
 .. _release-v0.0.16:
 
@@ -252,3 +267,20 @@ Bug Fixes
 
 - Fix :py:func:`~core.api.open_model` to make :py:func:`~core.api.cur_model`
   properly return unpickled model.
+
+
+Releases: spyder-modelx
+=======================
+
+.. _release-mxplugin-v0.0.6:
+
+v0.0.6 (2 December 2018)
+------------------------
+- Add Formula list widget to MxExplorer.
+- Support Spyder 3.3.2.
+
+.. _release-mxplugin-v0.0.5:
+
+v0.0.5 (21 October 2018)
+------------------------
+- Add MxDataView widget.
