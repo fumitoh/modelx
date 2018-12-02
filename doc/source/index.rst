@@ -7,6 +7,11 @@ modelx
 ======
 *Escape from spreadsheet models!*
 
+.. figure:: images/spyder/MxPluginImage.png
+
+   Spyder plugin for modelx
+
+
 Latest Updates
 --------------
 
@@ -34,6 +39,7 @@ What Next
 
    whatsnew
    installation
+   spyder
    tutorial
    reference/index
 

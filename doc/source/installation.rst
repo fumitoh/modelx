@@ -92,48 +92,9 @@ at the top of the source directory::
     $ pip install .
 
 
-.. _install-spyder-plugin:
+Spyder integration
+------------------
 
-Installing Spyder plugin for modelx
------------------------------------
-
-`Spyder <https://www.spyder-ide.org/>`_ is a popular Python IDE,
-and it's bundled in with `Anaconda <https://www.anaconda.com/>`_ by default.
-``spyder-modelx`` is a Spyder plugin to add custom IPyhton consoles
-and Modelx explorer, a widget that shows
-the current model in a tree view.
-
-To install the plugin, run the following command in the command prompt::
-
-    $ pip install spyder-modelx
-
-
-To check the plugin, start Spyder, and go to *View->Panes* menu, and
-check *Mx explorer*.
-
-.. figure:: images/SpyderMainMenuForModelx.png
-
-Then the Modelx explorer tab appears in the upper right pane.
-
-.. figure:: images/MxExplorer.png
-
-Right-click ont the IPython console tab in the lower right pane, then click
-*Open a modelx console* menu.
-
-.. figure:: images/IPythonConsoleMenu.png
-
-A modelx console named *Mx Console* starts. The modelx console works
-exactly the same as a regular IPython console,
-except that the modelx explorer shows the components of the current model
-in the IPython session of this console. To test the behaviour,
-create a new model and space in the modelx console like this::
-
-    >>> import modelx as mx
-
-    >>> model, space = mx.new_model(), mx.new_space()
-
-    >>> cells = space.new_cells()
-
-The modelx explorer shows the component tree of the created space.
-
-.. figure:: images/MxExplorerTreeSample.png
+`Spyder`_ is a popular open-source Python IDE, and
+a Spyder plugin for modelx is avaialble. To install and use the plugin,
+see the :doc:`spyder` page
