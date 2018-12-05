@@ -880,6 +880,9 @@ class Space(SpaceContainer):
     def __getitem__(self, args):
         return self._impl.get_dynspace(args).interface
 
+    def __iter__(self):
+        raise TypeError("'Space' is not iterable")
+
     def __call__(self, *args, **kwargs):
         return self._impl.get_dynspace(args, kwargs).interface
 
