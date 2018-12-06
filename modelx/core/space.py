@@ -855,7 +855,10 @@ class Space(SpaceContainer):
     # Getting and setting attributes
 
     def __getattr__(self, name):
-        return self._impl.namespace[name]
+        if name in self._impl.namespace:
+            return self._impl.namespace[name]
+        else:
+            raise AttributeError  # Must return AttributeError for hasattr
 
     def __setattr__(self, name, value):
         if name in self.properties:

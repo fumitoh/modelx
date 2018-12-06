@@ -157,7 +157,7 @@ def test_del_cells(testmodel):
     foo(3)
     del space.foo
 
-    with pytest.raises(KeyError):
+    with pytest.raises(AttributeError):
         space.foo(3)
 
     with pytest.raises(RuntimeError):
