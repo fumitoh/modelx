@@ -736,6 +736,16 @@ class CellNode:
         else:
             raise ValueError('Value not found')
 
+    @property
+    def preds(self):
+        """A list of nodes that this node refers to."""
+        return self.cells.preds(*self.args)
+
+    @property
+    def succs(self):
+        """A list of nodes that refer to this  node."""
+        return self.cells.succs(*self.args)
+
     def __repr__(self):
         if self.has_value:
             return self._impl.__repr__() + '=' + str(self.value)
