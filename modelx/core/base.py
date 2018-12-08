@@ -503,7 +503,8 @@ class Interface:
         result = {'type': type(self).__name__,
                   'id': id(self),
                   'name': self.name,
-                  'fullname': self.fullname}
+                  'fullname': self.fullname,
+                  'repr': self._get_repr()}
 
         return result
 
@@ -516,6 +517,9 @@ class Interface:
                 result[attr] = getattr(self, attr)._to_attrdict(attrs)
 
         return result
+
+    def _get_repr(self):
+        return self._impl._repr_self
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.
