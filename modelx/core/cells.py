@@ -329,6 +329,8 @@ class Cells(Interface, Mapping, Callable, Sized):
 
     # ----------------------------------------------------------------------
     # Dependency
+    def node(self, *args, **kwargs):
+        return CellNode(CellArgs(self._impl, args, kwargs))
 
     def preds(self, *args, **kwargs):
         """Return a list of predecessors of a cell.
