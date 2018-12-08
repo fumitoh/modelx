@@ -215,17 +215,17 @@ class Impl:
     @property
     def repr_string(self):
         """String to called by Interface.__repr__"""
-        if self._repr_parent:
-            return "%s in %s" % (self._repr_self, self._repr_parent)
+        if self.repr_parent:
+            return "%s in %s" % (self.repr_self, self.repr_parent)
         else:
-            return self._repr_self
+            return self.repr_self
 
     @property
-    def _repr_self(self):
+    def repr_self(self):
         raise NotImplementedError
 
     @property
-    def _repr_parent(self):
+    def repr_parent(self):
         raise NotImplementedError
 
     def get_property(self, name):
@@ -497,7 +497,7 @@ class Interface:
     # Override base class methods
 
     @property
-    def literaldict(self):
+    def _baseattrs(self):
         """A dict of members expressed in literals"""
 
         result = {'type': type(self).__name__,
@@ -510,7 +510,7 @@ class Interface:
 
     def _to_attrdict(self, attrs=None):
         """Get extra attributes"""
-        result = self.literaldict
+        result = self._baseattrs
 
         for attr in attrs:
             if hasattr(self, attr):
@@ -519,7 +519,7 @@ class Interface:
         return result
 
     def _get_repr(self):
-        return self._impl._repr_self
+        return self._impl.repr_self
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.
@@ -801,12 +801,12 @@ class BaseView(Mapping):
     # Override base class methods
 
     @property
-    def literaldict(self):
+    def _baseattrs(self):
         """A dict of members expressed in literals"""
 
         result = {'type': type(self).__name__}
         try:
-            result['items'] = {name: item.literaldict
+            result['items'] = {name: item._baseattrs
                                for name, item in self.items()}
         except:
             raise RuntimeError("%s literadict raised an error" % self)

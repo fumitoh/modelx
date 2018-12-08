@@ -352,10 +352,10 @@ class Cells(Interface, Mapping, Callable, Sized):
     # Override base class methods
 
     @property
-    def literaldict(self):
+    def _baseattrs(self):
         """A dict of members expressed in literals"""
 
-        result = super().literaldict
+        result = super()._baseattrs
         result['params'] = ', '.join(self.parameters)
         return result
 
@@ -474,12 +474,12 @@ class CellsImpl(Derivable, Impl):
         return self.space.fullname + '.' + self.name
 
     @property
-    def _repr_self(self):
+    def repr_self(self):
         return "%s(%s)" % (self.name, ', '.join(self.parameters.keys()))
 
     @property
-    def _repr_parent(self):
-        return self.space._repr_parent + '.' + self.space._repr_self
+    def repr_parent(self):
+        return self.space.repr_parent + '.' + self.space.repr_self
 
     @property
     def signature(self):

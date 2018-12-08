@@ -185,11 +185,11 @@ class SpaceContainer(Interface):
     # Override base class methods
 
     @property
-    def literaldict(self):
+    def _baseattrs(self):
         """A dict of members expressed in literals"""
 
-        result = super().literaldict
-        result['spaces'] = self.spaces.literaldict
+        result = super()._baseattrs
+        result['spaces'] = self.spaces._baseattrs
         return result
 
 

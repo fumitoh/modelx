@@ -199,11 +199,11 @@ class ModelImpl(SpaceContainerImpl):
         return self.name
 
     @property
-    def _repr_self(self):
+    def repr_self(self):
         return self.name
 
     @property
-    def _repr_parent(self):
+    def repr_parent(self):
         return ''
 
     @property

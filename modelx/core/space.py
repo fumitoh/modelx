@@ -534,13 +534,13 @@ class Space(SpaceContainer):
     # Override base class methods
 
     @property
-    def literaldict(self):
+    def _baseattrs(self):
         """A dict of members expressed in literals"""
 
-        result = super().literaldict
-        result['static_spaces'] = self.static_spaces.literaldict
-        result['dynamic_spaces'] = self.dynamic_spaces.literaldict
-        result['cells'] = self.cells.literaldict
+        result = super()._baseattrs
+        result['static_spaces'] = self.static_spaces._baseattrs
+        result['dynamic_spaces'] = self.dynamic_spaces._baseattrs
+        result['cells'] = self.cells._baseattrs
 
         if self.has_params():
             result['params'] = ', '.join(self.parameters)
@@ -736,7 +736,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         return '<SpaceImpl: ' + self.fullname + '>'
 
     @property
-    def _repr_self(self):
+    def repr_self(self):
 
         if self.is_dynamic:
             args = [repr(arg) for arg in get_interfaces(self.argvalues)]
@@ -746,15 +746,15 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
             return self.name
 
     @property
-    def _repr_parent(self):
+    def repr_parent(self):
 
         if self.is_dynamic:
-            return self.parent._repr_parent
+            return self.parent.repr_parent
         else:
-            if self.parent._repr_parent:
-                return self.parent._repr_parent + '.' + self.parent._repr_self
+            if self.parent.repr_parent:
+                return self.parent.repr_parent + '.' + self.parent.repr_self
             else:
-                return self.parent._repr_self
+                return self.parent.repr_self
 
     # ----------------------------------------------------------------------
     # Component properties
