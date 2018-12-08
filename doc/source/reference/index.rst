@@ -41,5 +41,5 @@ Base Class
    :template: mxclass.rst
 
    ~modelx.core.base.Interface
-   ~modelx.core.space.SpaceContainer
+   ~modelx.core.spacecontainer.SpaceContainer
    ~modelx.core.base.SelectedView
