@@ -489,18 +489,6 @@ class CellsImpl(Derivable, Impl):
     def parameters(self):
         return self.signature.parameters
 
-    @property
-    def repr_(self):
-
-        format_ = dedent("""\
-        name: %s
-        space: %s
-        number of cells: %s""")
-
-        return format_ % (self.name,
-                          self.space.name,
-                          len(self.data))
-
     def has_cell(self, args):
         return args in self.data
 

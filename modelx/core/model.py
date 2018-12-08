@@ -195,16 +195,6 @@ class ModelImpl(SpaceContainerImpl):
         for cell in removed:
             del cell.cells.data[cell.argvalues]
 
-    @property
-    def repr_(self):
-        format_ = dedent("""\
-        name: %s
-        spaces(%s): %s""")
-
-        return format_ % (
-            self.name,
-            len(self.spaces), list(self.spaces.keys()))
-
     def __repr__(self):
         return self.name
 
