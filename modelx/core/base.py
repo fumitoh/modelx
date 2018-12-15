@@ -842,7 +842,7 @@ class SelectedView(BaseView):
     """
     def __init__(self, data, keys=None):
         BaseView.__init__(self, data)
-        self.set_keys(keys)
+        self._set_keys(keys)
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -852,7 +852,7 @@ class SelectedView(BaseView):
         else:
             raise KeyError
 
-    def set_keys(self, keys=None):
+    def _set_keys(self, keys=None):
 
         if keys is None:
             self.__keys = None
