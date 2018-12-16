@@ -194,6 +194,23 @@ class SpaceView(BaseView):
         space.parent.del_space(name)
 
 
+class RefView(SelectedView):
+
+    @property
+    def _baseattrs(self):
+
+        result = {'type': type(self).__name__}
+
+        result['items'] = items = {}
+        for name, item in self.items():
+            if name != '_self':
+                itemattrs = {'repr': name,
+                             'id': id(item),
+                             'type': type(item).__name__}
+                items[name] = itemattrs
+
+        return result
+
 class Space(SpaceContainer):
     """Container of cells, other spaces, and cells namespace.
 
@@ -541,6 +558,7 @@ class Space(SpaceContainer):
         result['static_spaces'] = self.static_spaces._baseattrs
         result['dynamic_spaces'] = self.dynamic_spaces._baseattrs
         result['cells'] = self.cells._baseattrs
+        result['refs'] = self.refs._baseattrs
 
         if self.has_params():
             result['params'] = ', '.join(self.parameters)
@@ -606,7 +624,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         self._local_refs = {'_self': self,
                             '_space': self}
 
-        self._refs = ImplChainMap(self, BaseView,
+        self._refs = ImplChainMap(self, RefView,
                                   [self.model._global_refs,
                                    self._local_refs,
                                    self._arguments,
