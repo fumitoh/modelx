@@ -302,8 +302,8 @@ class ModelImpl(SpaceContainerImpl):
         elif name in self.global_refs:
             return get_interfaces(self.global_refs[name])
         else:
-            raise KeyError("Model '{0}' does not have '{1}'".\
-                           format(self.name, name))
+            raise AttributeError(
+                "Model '{0}' does not have '{1}'".format(self.name, name))
 
     def set_attr(self, name, value):
         if name in self.spaces:
