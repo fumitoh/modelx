@@ -748,6 +748,19 @@ class CellNode:
         """A list of nodes that refer to this  node."""
         return self.cells.succs(*self.args)
 
+    @property
+    def _baseattrs(self):
+        """A dict of members expressed in literals"""
+
+        result = {'type': type(self).__name__,
+                  'obj': self.cells._baseattrs,
+                  'args': self.args,
+                  'predslen': len(self.preds),
+                  'succslen': len(self.succs),
+                  'repr': repr(self)}
+
+        return result
+
     def __repr__(self):
         if self.has_value:
             return self._impl.__repr__() + '=' + str(self.value)

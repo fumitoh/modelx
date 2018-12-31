@@ -24,7 +24,7 @@ or by::
     from modelx import *
 
 """
-
+import ast
 from types import FunctionType as _FunctionType
 
 from modelx.core import mxsys as _system
@@ -164,6 +164,7 @@ def get_models():
 
 def get_object(name: str):
     """Get a modelx object from its full name."""
+    # TODO: Duplicate of system.get_object
     elms = name.split('.')
     parent = get_models()[elms.pop(0)]
     while len(elms) > 0:
@@ -171,6 +172,19 @@ def get_object(name: str):
         parent = getattr(parent, obj)
 
     return parent
+
+
+def _get_node(name: str, args: str):
+    """Get node from object name and arg string
+
+    Not Used. Left for future reference purpose.
+    """
+    obj = get_object(name)
+    args = ast.literal_eval(args)
+    if not isinstance(args, tuple):
+        args = (args,)
+
+    return obj.node(*args)
 
 
 def cur_model(model=None):
