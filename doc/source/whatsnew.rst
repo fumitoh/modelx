@@ -34,11 +34,32 @@ Updates
 Releases: modelx
 ================
 
+.. _release-v0.0.18:
+
+v0.0.18 (31 December 2018)
+--------------------------
+This release is mainly for adding interface functions/methods to
+spyder-modelx :ref:`release-mxplugin-v0.0.7`
+
+Enhancements
+~~~~~~~~~~~~
+- Add :attr:`~core.cells.CellNode.preds` and :attr:`~core.cells.CellNode.succs` properties
+  to :class:`~core.cells.CellNode`.
+- Add :meth:`~core.cells.Cells.node` to :class:`~core.cells.Cells`
+- Rename ``literaldict`` property to ``_baseattrs`` for :class:`~core.base.Interface`,
+  :class:`~core.base.BaseView` and their subclasses.
+- Rename ``set_keys`` method of :class:`~core.base.SelectedView` to ``_set_keys`` .
+
+Bug Fixes
+~~~~~~~~~
+- Raise not KeyError but AttributeError upon hasattr/getattr on Space.
+
+
 .. _release-v0.0.17:
 
 v0.0.17 (2 December 2018)
 -------------------------
-This release is mainly for adding interface to .
+This release is mainly for adding interface to functions to
 spyder-modelx :ref:`release-mxplugin-v0.0.6`
 
 Enhancements
@@ -98,8 +119,8 @@ the initial version of spyder-modelx, Spyder plugin for modelx.
 
 Enhancements
 ~~~~~~~~~~~~
-- Add property :attr:`~core.base.Interface.literaldict`
-  and ``BaseView.literaldict``. This property is used by spyder-modelx.
+- Add property :attr:`~core.base.Interface._baseattrs`
+  and ``BaseView._baseattrs``. This property is used by spyder-modelx.
 
 
 Bug Fixes
@@ -271,6 +292,12 @@ Bug Fixes
 
 Releases: spyder-modelx
 =======================
+
+.. _release-mxplugin-v0.0.7:
+
+v0.0.7 (31 December 2018)
+-------------------------
+- Add Formula list widget to MxAnalyzer.
 
 .. _release-mxplugin-v0.0.6:
 

@@ -4,6 +4,15 @@ Updates
 
 .. Latest Updates Begin
 
+* *31 December 2018:*
+  spyder-modelx v0.0.7 is released.
+  See :ref:`Release Notes <release-mxplugin-v0.0.7>`
+  for details.
+
+* *31 December 2018:*
+  modelx v0.0.17 is released. See :ref:`Release Notes <release-v0.0.18>`
+  for details.
+
 * *2 December 2018:*
   :doc:`spyder` page is added. A plugin image is added in the landing page.
 
