@@ -330,6 +330,7 @@ class Cells(Interface, Mapping, Callable, Sized):
     # ----------------------------------------------------------------------
     # Dependency
     def node(self, *args, **kwargs):
+        """Return a :class:`CellNode` object for the given arguments."""
         return CellNode(CellArgs(self._impl, args, kwargs))
 
     def preds(self, *args, **kwargs):
