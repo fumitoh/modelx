@@ -518,8 +518,11 @@ class Interface:
 
         return result
 
-    def _get_repr(self):
-        return self._impl.repr_self
+    def _get_repr(self, fullname=False):
+        if fullname:
+            return self._impl.repr_parent + '.' + self._impl.repr_self
+        else:
+            return self._impl.repr_self
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.

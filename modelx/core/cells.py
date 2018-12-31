@@ -755,17 +755,20 @@ class CellNode:
         result = {'type': type(self).__name__,
                   'obj': self.cells._baseattrs,
                   'args': self.args,
+                  'value': self.value if self.has_value else None,
                   'predslen': len(self.preds),
                   'succslen': len(self.succs),
-                  'repr': repr(self)}
+                  'repr_parent': self.cells._impl.repr_parent,
+                  'repr': self.cells._get_repr()}
 
         return result
 
     def __repr__(self):
+        name = self.cells._get_repr(fullname=True)
         if self.has_value:
-            return self._impl.__repr__() + '=' + str(self.value)
+            return name + '=' + str(self.value)
         else:
-            return self._impl.__repr__()
+            return name
 
 
 def shareable_parameters(cells):
