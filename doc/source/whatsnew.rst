@@ -297,7 +297,10 @@ Releases: spyder-modelx
 
 v0.0.7 (31 December 2018)
 -------------------------
-- Add Formula list widget to MxAnalyzer.
+
+- Add MxAnalyzer widget.
+- MxExplorer now shows reference items.
+- MxExplorer now displays dynamic spaces as parametrized expressions.
 
 .. _release-mxplugin-v0.0.6:
 
