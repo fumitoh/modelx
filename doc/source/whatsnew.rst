@@ -298,7 +298,7 @@ Releases: spyder-modelx
 v0.0.7 (31 December 2018)
 -------------------------
 
-- Add MxAnalyzer widget.
+- Add MxAnalyzer widget. See :ref:`MxAnalyzer` section for details.
 - MxExplorer now shows reference items.
 - MxExplorer now displays dynamic spaces as parametrized expressions.
 
@@ -313,4 +313,4 @@ v0.0.6 (2 December 2018)
 
 v0.0.5 (21 October 2018)
 ------------------------
-- Add MxDataView widget.
+- Add MxDataView widget. See :ref:`MxDataView` section for details.

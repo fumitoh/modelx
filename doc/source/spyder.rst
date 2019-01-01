@@ -15,6 +15,7 @@ a primary version of components, including:
 * MxConsole
 * MxExplorer
 * MxDataView
+* MxAnalyzer
 
 **MxConsole**  appears as tabs in Spyder's default IPython console,
 and runs custom IPython shells. Users should use these shells instead of
@@ -29,6 +30,11 @@ of cells in a selected space next to the tree.
 
 **MxDataView** shows data in modelx objects in a
 spreadsheet-like tabular format.
+
+**MxAnalyzer** is for tracking dependency of calculations.
+The user enter a Cell node, a combination of a Cell and arguments, and
+MxAnalyzer currently shows a tree of Cell nodes directly or indirectly used in
+calculating the value of the specified node.
 
 The plugin widgets are "dockable" as Spyder's default widgets, meaning
 you can detach those widgets from the Spyder's main window to have their
@@ -82,6 +88,8 @@ To install the plugin, run the following command in the command prompt::
 If Spyder is running while the plugin gets installed, close Spyder once
 and restart it to bring the plugin into effect.
 
+.. _MxExplorerAndMxConsole:
+
 MxExplorer and MxConsole
 ------------------------
 To enable the modelx plugin, start Spyder, and go to *View->Panes* menu, and
@@ -122,6 +130,7 @@ The list of the formulas appears to the right of the model tree in MxExplorer.
 
 .. figure:: images/spyder/CodeListExample.png
 
+.. _MxDataView:
 
 MxDataView
 ----------
@@ -134,7 +143,7 @@ MxExploer, and check *MxDataView*.
 
 .. figure:: images/spyder/SpyderMainMenuForModelx.png
 
-To specify the DataFrame object to display,
+To specify a DataFrame object to display,
 enter a Python expression that returns
 the DataFrame object, in the text box labeled *Expression*.
 The Python expression is evaluated in the global namespace of the
@@ -143,3 +152,23 @@ re-evaluated every time MxConsole execute a Python command.
 
 .. figure:: images/spyder/MxDataViewExample.png
 
+.. _MxAnalyzer:
+
+MxAnalyzer
+----------
+
+MxAnalyzer is used for checking calculation dependency.
+
+If MxDataView widget is not shown, Go to *View->Panes* menu as you did with
+MxExploer, and check *MxAnalyzer*.
+
+.. figure:: images/spyder/MxAnalyzerMenu.png
+
+Enter an expression that returns a Cell object in the top-left box, and
+arguments to the Cell in the to-right box.
+The Python expression is evaluated in the global namespace of the
+Python session in the active MxConsole.
+Then MxAnalyzer shows a tree of Cell nodes directly or indirectly used in
+calculating the value of the specified node.
+
+.. figure:: images/spyder/MxAnalyzer.png
