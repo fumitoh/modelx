@@ -134,14 +134,14 @@ class Cells(Interface, Mapping, Callable, Sized):
 
     def __iter__(self):
 
-        def inner():
-            keys = sorted(tuple(arg for arg in key)
-                          for key in self._impl.data.keys())
+        def inner(): # For single parameter
+            for key in self._impl.data.keys():
+                yield key[0]
 
-            for args in keys:
-                yield args
-
-        return inner()
+        if len(self._impl.parameters) == 1:
+            return inner()
+        else:
+            return iter(self._impl.data)
 
     def copy(self, space=None, name=None):
         """Make a copy of itself and return it."""

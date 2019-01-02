@@ -137,19 +137,19 @@ def test_clear_value(sample_space):
     sample_space.fibo[5]
 
     sample_space.fibo.clear(3)
-    assert set(sample_space.fibo) == {(0,), (1,), (2,)}
+    assert set(sample_space.fibo) == {0, 1, 2}
 
 def test_clear_value_kwargs(sample_space):
     sample_space.fibo[5]
 
     sample_space.fibo.clear(x=3)
-    assert set(sample_space.fibo) == {(0,), (1,), (2,)}
+    assert set(sample_space.fibo) == {0, 1, 2}
 
 def test_clear_all_values(sample_space):
     sample_space.fibo[5]
 
-    check = set(sample_space.fibo) == {(0,), (1,), (2,),
-                                       (3,), (4,), (5,)}
+    check = set(sample_space.fibo) == {0, 1, 2, 3, 4, 5}
+
     sample_space.fibo.clear()
     assert check and set(sample_space.fibo) == set()
 
@@ -173,9 +173,9 @@ def test_clear_value_source(sample_space):
 
     errors = []
     space.dependant(2)
-    if not set(space.dependant) == {(2,)}:
+    if not set(space.dependant) == {2}:
         errors.append("error with dependant")
-    if not set(space.source) == {(1,), (2,)}:
+    if not set(space.source) == {1, 2}:
         errors.append("error with source")
 
     space.source.clear(1)
@@ -205,8 +205,8 @@ def test_clear_formula(sample_space):
     dependant = space.new_cells(formula=f2)
 
     dependant(2)
-    assert set(dependant) == {(2,)}
-    assert set(source) == {(1,), (2,)}
+    assert set(dependant) == {2}
+    assert set(source) == {1, 2}
 
     del source.formula
     assert set(source) == set()
@@ -238,14 +238,14 @@ def test_set_formula(sample_space):
     dependant = space.new_cells(formula=f2)
 
     result = dependant(2)
-    assert set(dependant) == {(2,)}
-    assert set(source) == {(1,), (2,)}
+    assert set(dependant) == {2}
+    assert set(source) == {1, 2}
     assert result == 4
 
     source.formula = f3
     result = dependant(2)
-    assert set(source) == {(1,), (2,)}
-    assert set(dependant) == {(2,)}
+    assert set(source) == {1, 2}
+    assert set(dependant) == {2}
     assert result == 6
 
 
