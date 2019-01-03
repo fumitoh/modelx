@@ -300,8 +300,9 @@ class SpaceContainerImpl(Impl):
         if not is_valid_name(name):
             raise ValueError("Invalid name '%s'." % name)
 
-        space = self._new_space(name, formula,
-                                refs, arguments, source, is_derived)
+        space = self._new_space(name=name, formula=formula,
+                                refs=refs, source=source,
+                                is_derived=is_derived)
 
         self.model.spacegraph.add_node(space)
         self.model.spacegraph.update_subspaces(space)

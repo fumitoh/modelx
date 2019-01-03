@@ -211,6 +211,7 @@ class RefView(SelectedView):
 
         return result
 
+
 class Space(SpaceContainer):
     """Container of cells, other spaces, and cells namespace.
 
@@ -600,6 +601,13 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
             self.is_dynamic = True
             self._arguments = RefDict(self, data=arguments)
 
+        if self.in_dynamic():
+            self._parentargs = ImplChainMap(self, None,
+                                            [parent._arguments,
+                                             parent._parentargs])
+        else:
+            self._parentargs = RefDict(self)
+
         if isinstance(source, ModuleType):
             self.source = source.__name__
         else:
@@ -627,6 +635,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         self._refs = ImplChainMap(self, RefView,
                                   [self.model._global_refs,
                                    self._local_refs,
+                                   self._parentargs,
                                    self._arguments,
                                    self._self_refs])
 
@@ -684,6 +693,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         '_dynamic_spaces',
         '_local_refs',
         '_arguments',
+        '_parentargs',
         '_self_refs',
         '_refs',
         '_inheritables',
@@ -823,6 +833,10 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
 
     @property
     def arguments(self):
+        return self._arguments.get_updated()
+
+    @property
+    def parentargs(self):
         return self._arguments.get_updated()
 
     @property
