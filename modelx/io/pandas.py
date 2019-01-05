@@ -81,7 +81,20 @@ def cellsiter_to_dataframe(cellsiter, args, drop_allna=True):
             try:
                 result = pd.merge(result, df, how='outer')
             except MergeError:
+                # When no common column exists, i.e. all cells are scalars.
                 result = pd.concat([result, df], axis=1)
+            except ValueError:
+                # When common columns are not coercible (numeric vs object),
+                # Make the numeric column object type
+                cols = set(result.columns) & set(df.columns)
+                for col in cols:
+                    if str(result[col].dtype) == 'object':
+                        frame = df
+                    else:
+                        frame = result
+                    frame[[col]] = frame[col].astype('object')
+                # Try again
+                result = pd.merge(result, df, how='outer')
 
     if result is None:
         return pd.DataFrame()

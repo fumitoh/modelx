@@ -25,6 +25,23 @@ def testspace():
 
     return space
 
+
+@pytest.fixture
+def space_with_string_index():
+
+    model = mx.new_model()
+    space = model.new_space()
+
+    def f0(strind):
+        return strind
+
+    def f1():
+        return 3
+
+    mx.defcells(f0, f1)
+
+    return space
+
 # -------------------------------------------------------------------------
 # Test Conversion from Cells to DataFrame and Series
 
@@ -104,6 +121,19 @@ def test_space_to_frame_args_defaults(testspace, args, idxlen, cols):
         args = args[0]
     for arg in args:
         assert df.loc[(arg, 1), 'f2'] == testspace.f2(arg, 1)
+
+
+def test_space_with_string_index_to_frame(space_with_string_index):
+    """When index contains string and NaN"""
+
+    s = space_with_string_index
+    s.f0('foo')
+    s.f1()
+
+    df = pd.DataFrame(data={'f0': ['foo', np.NaN], 'f1': [np.NaN, 3.0]},
+                      index=pd.Index(['foo', np.NaN], name='strind'))
+
+    assert s.frame.equals(df)
 
 
 # -------------------------------------------------------------------------
