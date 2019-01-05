@@ -300,7 +300,11 @@ class CellsTable:
         else:
             raise ValueError("invalid orientation")
 
-        self.param_names = [param_names[idx] for idx in self.param_order]
+        if self.param_order:
+            self.param_names = [param_names[idx] for idx in self.param_order]
+        else:
+            self.param_order = list(range(len(param_names)))
+            self.param_names = param_names
 
     def items(self):
 
