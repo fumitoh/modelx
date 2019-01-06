@@ -88,11 +88,17 @@ def cellsiter_to_dataframe(cellsiter, args, drop_allna=True):
                 # Make the numeric column object type
                 cols = set(result.columns) & set(df.columns)
                 for col in cols:
-                    if str(result[col].dtype) == 'object':
-                        frame = df
-                    else:
-                        frame = result
-                    frame[[col]] = frame[col].astype('object')
+
+                    # When only either of them has object dtype
+                    if len([str(frame[col].dtype) for frame in (result, df)
+                            if str(frame[col].dtype) == 'object']) == 1:
+
+                        if str(result[col].dtype) == 'object':
+                            frame = df
+                        else:
+                            frame = result
+                        frame[[col]] = frame[col].astype('object')
+
                 # Try again
                 result = pd.merge(result, df, how='outer')
 
