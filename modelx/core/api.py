@@ -50,6 +50,15 @@ def restore_python():
     """
     _system.restore_python()
 
+
+def restore_ipython():
+    """Restore IPython' default error message.
+
+    Bring back IPython's default traceback message upon error for debugging.
+    """
+    _system.restore_ipython()
+
+
 def new_model(name=None):
     """Create and return a new model.
 
