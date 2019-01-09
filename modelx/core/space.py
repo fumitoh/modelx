@@ -203,7 +203,7 @@ class RefView(SelectedView):
 
         result['items'] = items = {}
         for name, item in self.items():
-            if name != '_self':
+            if name[0] != '_':
                 itemattrs = {'repr': name,
                              'id': id(item),
                              'type': type(item).__name__}
