@@ -1188,7 +1188,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
             if existing_dynbases: # must have exactly 1 element
                 dynbase = existing_dynbases[0]
             else:
-                dynbase = owner.new_space(bases=bases)
+                dynbase = owner.new_space(bases=bases, prefix='_')
                 owner._dynamic_bases.append(dynbase)
 
         else:
