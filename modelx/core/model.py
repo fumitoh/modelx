@@ -359,6 +359,9 @@ class SpaceGraph(nx.DiGraph):
         """Direct Bases iterator"""
         return self.predecessors(node)
 
+    # TODO: Create check_mro(self, spaces)
+    # to check if C3 MRO is possible by temporarily adding spaces to the graph
+
     def get_mro(self, space):
         """Calculate the Method Resolution Order of bases using the C3 algorithm.
 
@@ -391,7 +394,7 @@ class SpaceGraph(nx.DiGraph):
                 else:
                     break
 
-            if not candidate:
+            if not candidate:   # Better to return None instead of error?
                 raise TypeError(
                     "inconsistent hierarchy, no C3 MRO is possible")
 

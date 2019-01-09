@@ -1069,7 +1069,8 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def _new_member(self, attr, name, is_derived=False):
         if attr == 'static_spaces':
             space = self._new_space(name, is_derived=is_derived)
-            self.model.spacegraph.add_node(space)
+            if not self.in_dynamic():
+                self.model.spacegraph.add_node(space)
             return space
         elif attr == 'cells':
             return self._new_cells(name, formula=None, is_derived=is_derived)
@@ -1085,7 +1086,10 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
 
         if self.in_dynamic():
             if self.is_dynamic:
-                return self._dynbase.mro
+                if self._dynbase is not None:
+                    return self._dynbase.mro
+                else:
+                    return []
             else:
                 return []
         else:
@@ -1154,10 +1158,48 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def eval_formula(self, spaceargs):
         return self.altfunc.get_updated().altfunc(**spaceargs.arguments)
 
+    def _get_nearest_static(self):
+        if self.in_dynamic():
+            return self.parent._get_nearest_static()
+        else:
+            return self
+
+    def _get_dynamic_base(self, bases_):
+        """Create or get the base space from a list of spaces
+
+        if a direct base space in `bases` is dynamic, replace it with
+        its base.
+        """
+        owner = self._get_nearest_static()
+
+        bases = [base if not base.in_dynamic() else base.bases[0]
+                 for base in bases_]   # TODO: Need to check if MRO is possible
+
+        if len(bases) == 1:
+            dynbase = bases[0]
+
+            if dynbase not in owner._dynamic_bases:
+                owner._dynamic_bases.append(dynbase)
+
+        elif len(bases) > 1:
+            existing_dynbases = [db for db in owner._dynamic_bases
+                                 if db.bases == bases]
+
+            if existing_dynbases: # must have exactly 1 element
+                dynbase = existing_dynbases[0]
+            else:
+                dynbase = owner.new_space(bases=bases)
+                owner._dynamic_bases.append(dynbase)
+
+        else:
+            RuntimeError("must not happen")
+
+        return dynbase
+
     def _new_dynspace(self, name=None, bases=None, formula=None,
                       refs=None, arguments=None, source=None,
                       is_derived=False):
-        """Create a new dynamic space."""
+        """Create a new dynamic root space."""
 
         if name is None:
             name = self.spacenamer.get_next(self.namespace)
@@ -1172,26 +1214,18 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
                                 arguments=arguments, source=source,
                                 is_derived=False)
 
-        if isinstance(bases, SpaceImpl):
-            dynbase = bases
-            if dynbase not in self._dynamic_bases:
-                self._dynamic_bases.append(dynbase)
-        else:
-            existing_dynbases = [db for db in self._dynamic_bases
-                                 if db.self_bases == bases]
-
-            if existing_dynbases:
-                dynbase = existing_dynbases[0]
-            else:
-                dynbase = self.new_space(bases=bases, refs=refs)
-                self._dynamic_bases.append(dynbase)
-
-        space._dynbase = dynbase
-        dynbase._dynamic_subs.append(space)
+        if bases: # i.e. not []
+            dynbase = self._get_dynamic_base(bases)
+            space._dynbase = dynbase
+            dynbase._dynamic_subs.append(space)
 
         return space
 
     def get_dynspace(self, args, kwargs=None):
+        """Create a dynamic root space
+
+        Called from interface methods
+        """
 
         ptr = SpaceArgs(self, args, kwargs)
 
@@ -1209,22 +1243,18 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
                 self.system.self = last_self
 
             if space_args is None:
-                space_args = {'bases': self}
+                space_args = {'bases': [self]} # Default
             else:
                 if 'bases' in space_args:
                     bases = get_impls(space_args['bases'])
                     if isinstance(bases, SpaceImpl):
-                        if bases is self:
-                            bases = self
-                        else:
-                            bases = [bases, self]
+                        space_args['bases'] = [bases]
+                    elif bases is None:
+                        space_args['bases'] = [self]    # Default
                     else:
-                        if self not in bases:
-                            bases.append(self)
-
-                    space_args['bases'] = bases
+                        space_args['bases'] = bases
                 else:
-                    space_args['bases'] = self
+                    space_args['bases'] = [self]
 
             space_args['arguments'] = ptr.arguments
             space = self._new_dynspace(**space_args)

@@ -304,15 +304,17 @@ class SpaceContainerImpl(Impl):
                                 refs=refs, source=source,
                                 is_derived=is_derived)
 
-        self.model.spacegraph.add_node(space)
-        self.model.spacegraph.update_subspaces(space)
+        if not space.in_dynamic():
 
-        # Set up direct base spaces and mro
-        if bases is not None:
-            if isinstance(bases, SpaceImpl):
-                bases = [bases]
-            for base in bases:
-                space.add_base(base)
+            self.model.spacegraph.add_node(space)
+            self.model.spacegraph.update_subspaces(space)
+
+            # Set up direct base spaces and mro
+            if bases is not None:
+                if isinstance(bases, SpaceImpl):
+                    bases = [bases]
+                for base in bases:
+                    space.add_base(base)
 
         return space
 
