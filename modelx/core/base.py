@@ -928,5 +928,5 @@ class BoundFunction(LazyEval):
     def __getstate__(self):
         state = self.__dict__.copy()
         del state['altfunc']
-        self.set_update()     # Reconstruct altfunc after unpickling
+        state['needs_update'] = True # Reconstruct altfunc after unpickling
         return state
