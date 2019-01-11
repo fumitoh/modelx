@@ -61,10 +61,13 @@ setting.
 
 From the Spyder menu, select *Tools->Preferences* to bring up Preferences window.
 Choose *Python interpreter* in the left pane, and you'll find an area titled
-*User Module Rloader (UMR)* on the bottom right side of the Preferences window.
-Uncheck *Enable UMR* option to disable User Module Reloader. This prevents
-Spyder from reloading modelx module every time you re-run the same script
-from *Run* menu.
+*User Module Reloader (UMR)* on the bottom right side of the Preferences window.
+Leave *Enable UMR* option checked,
+click *Set UMR excluded(not reloaded) modules* and then UMR dialog box pops up
+as the figure blow.
+Enter "modelx" in the dialog box. This prevents
+Spyder from reloading the modelx module every time you re-run the same script
+from *Run* menu, while allowing other modules to be reloaded.
 
 Note that you need to restart Spyder to bring the change into effect.
 
