@@ -1,5 +1,16 @@
+import itertools
 import pytest
 import modelx as mx
+
+def foo(x):
+    if x == 0:
+        return 123
+    else:
+        return foo(x - 1)
+
+def baz(y, z):
+    return y + z
+
 
 @pytest.fixture
 def testmodel():
@@ -7,21 +18,19 @@ def testmodel():
     model, space = mx.new_model(name='testmodel'), \
                    mx.new_space(name='testspace')
 
-    @mx.defcells(space)
-    def foo(x):
-        if x == 0:
-            return 123
-        else:
-            return foo(x - 1)
-
+    space.new_cells(formula=foo)
     space.bar = 3
-
-    @mx.defcells(space)
-    def baz(y, z):
-        return y + z
-
+    space.new_cells(formula=baz)
     return model
 
+@pytest.fixture
+def savetestmodel(testmodel, tmpdir_factory):
+
+    model = testmodel
+    old_name = testmodel.name
+    file = str(tmpdir_factory.mktemp('data').join('test_open_model.mx'))
+    model.save(file)
+    return model, file
 
 def test_get_object(testmodel):
 
@@ -49,3 +58,38 @@ def test_get_object(testmodel):
 def test_get_node(testmodel, name, argstr, args):
     from modelx.core.api import _get_node
     assert _get_node(name, argstr).args == args
+
+
+@pytest.mark.parametrize('name, newname', [
+    ['new_model', 'new_model'],
+    ['testmodel', 'testmodel'],
+    [None, 'testmodel']
+])
+def test_open_model_close_old(savetestmodel, name, newname):
+    """Test open_model API with/without name args."""
+
+    model, file = savetestmodel
+    model.close()
+    newmodel = mx.open_model(file, name)
+    assert newmodel.name == newname
+
+
+@pytest.mark.parametrize('name, newname, renamed', [
+    ['new_model', 'new_model', False],
+    ['testmodel', 'testmodel', True],
+    [None, 'testmodel', True]
+])
+def test_open_model_leave_old(savetestmodel, name, newname, renamed):
+    """Test open_model API with/without name args when old model exists.
+
+    Args:
+        name: Name passed to open_model
+        newname: Name the new model should have
+        renamed: True if the old model is renamed
+    """
+    model, file = savetestmodel
+    oldname = model.name
+    newmodel = mx.open_model(file, name)
+    assert newmodel.name == newname
+    assert model.name[:len(oldname)] == oldname
+    assert renamed != (len(model.name) == len(oldname))

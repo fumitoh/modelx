@@ -245,16 +245,17 @@ def cur_space(space=None):
         return cur_space()
 
 
-def open_model(path):
+def open_model(path, name=None):
     """Load a model saved from a file and return it.
 
     Args:
         path (:obj:`str`): Path to the file to load the model from.
+        name (optional): If specified, the model is renamed to this name.
 
     Returns:
         A new model created from the file.
     """
-    return _system.open_model(path)
+    return _system.open_model(path, name)
 
 
 

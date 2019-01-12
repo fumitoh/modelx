@@ -17,7 +17,7 @@ import warnings
 import pickle
 from collections import deque
 from modelx.core.model import ModelImpl
-from modelx.core.util import AutoNamer
+from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError
 
 
@@ -235,15 +235,26 @@ class System:
     def currentspace(self):
         return self.currentmodel.currentspace
 
-    def open_model(self, path):
+    def open_model(self, path, name):
         with open(path, 'rb') as file:
             model = pickle.load(file)
 
-        if model.name in self.models:
-            self._rename_samename(model.name)
-
         model._impl.restore_state(self)
-        self.models[model.name] = model._impl
+
+        if name is not None:
+            if not is_valid_name(name):
+                raise ValueError("Invalid name '%s'." % name)
+
+        newname = name or model.name
+
+        if newname in self.models:
+            self._rename_samename(newname)
+
+        if name is not None:
+            if not model._impl.rename(name):
+                raise RuntimeError("must not happen")
+
+        self.models[newname] = model._impl
         self._currentmodel = model._impl
 
         return model
