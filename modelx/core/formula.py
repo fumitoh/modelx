@@ -242,6 +242,7 @@ class Formula:
 
         elif isinstance(func, str):
 
+            func = dedent(func)
             module_node = compile(func, '<string>', mode='exec',
                                   flags=ast.PyCF_ONLY_AST)
 
