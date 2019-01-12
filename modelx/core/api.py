@@ -42,6 +42,7 @@ def configure_python():
     """
     _system.configure_python()
 
+
 def restore_python():
     """Restore Python ``sys`` settings for modelx.
 

@@ -194,7 +194,6 @@ class System:
 
         orig.clear()
 
-
     def new_model(self, name=None):
 
         if name in self.models:
