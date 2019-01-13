@@ -22,11 +22,6 @@ Latest Updates
 :doc:`... See more updates<updates>`
 
 
-.. include:: whatsnew.rst
-   :start-after: Warning on Changes Begin
-   :end-before: Warning on Changes End
-
-
 .. include:: ../../README.rst
    :start-after: Overview Begin
    :end-before: Overview End
