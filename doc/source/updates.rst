@@ -4,13 +4,22 @@ Updates
 
 .. Latest Updates Begin
 
+* *13 January 2019:*
+  spyder-modelx v0.0.8 is released.
+  See :ref:`Release Notes <release-mxplugin-v0.0.8>`
+  for details.
+
+* *13 January 2019:*
+  modelx v0.0.19 is released. See :ref:`Release Notes <release-v0.0.19>`
+  for details.
+
 * *31 December 2018:*
   spyder-modelx v0.0.7 is released.
   See :ref:`Release Notes <release-mxplugin-v0.0.7>`
   for details.
 
 * *31 December 2018:*
-  modelx v0.0.17 is released. See :ref:`Release Notes <release-v0.0.18>`
+  modelx v0.0.18 is released. See :ref:`Release Notes <release-v0.0.18>`
   for details.
 
 * *2 December 2018:*
@@ -24,6 +33,8 @@ Updates
 * *2 December 2018:*
   modelx v0.0.17 is released. See :ref:`Release Notes <release-v0.0.17>`
   for details.
+
+.. Latest Updates End
 
 * *27 October 2018:*
   The *Overview* page of this site is updated and merged into the landing
@@ -65,8 +76,6 @@ Updates
 * *20 April 2018:*
   The :doc:`reference/concepts` page is added in the :doc:`reference/index` guide.
 
-
-.. Latest Updates End
 
 -------
 

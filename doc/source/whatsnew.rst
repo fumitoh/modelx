@@ -34,6 +34,30 @@ Updates
 Releases: modelx
 ================
 
+.. _release-v0.0.19:
+
+v0.0.19 (13 January 2019)
+-------------------------
+Enhancements / bug fixes for defining and using dynamics spaces whose
+base includes dynamics spaces.
+
+Enhancements
+~~~~~~~~~~~~
+- Add ``name`` parameter to :func:`~core.api.open_model`.
+- Pass dynamic arguments down to its children.
+- Iterating over cells with single parameter returns values instead of tuples of single elements.
+- View's _baseattrs to not include items with `_` prefixed names.
+
+Bug Fixes
+~~~~~~~~~
+- Fix bases of derived dynamic spaces. If dynamic spaces are to be the base spaces of a dynamic sub space,
+  then the static base spaces of the dynamic spaces become the base spaces in replacement for the
+  dynamic spaces.
+- Fix *AttributeError: 'BoundFunction' object has no attribute 'altfunc'* on unpickled models.
+- Dedent function definitions for those defined inside blocks of other function definition.
+- Fix error in conversion to DataFrame when merging indexes with different types.
+
+
 .. _release-v0.0.18:
 
 v0.0.18 (31 December 2018)
@@ -293,11 +317,17 @@ Bug Fixes
 Releases: spyder-modelx
 =======================
 
+.. _release-mxplugin-v0.0.8:
+
+v0.0.8 (13 January 2019)
+------------------------
+- Fix MxAnalyzer crash.
+- MxAnalyzer can now handle Cells with no arguments
+
 .. _release-mxplugin-v0.0.7:
 
 v0.0.7 (31 December 2018)
 -------------------------
-
 - Add MxAnalyzer widget. See :ref:`MxAnalyzer` section for details.
 - MxExplorer now shows reference items.
 - MxExplorer now displays dynamic spaces as parametrized expressions.

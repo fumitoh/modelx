@@ -138,6 +138,14 @@ When updating modelx to a newer version,
 make sure you rebuild model files saved using older versions of modelx
 from their source code.
 
+.. warning::
+
+   If you have embedded modelx in actuarial production processes,
+   then it is encouraged to connect with the author
+   `on linkedin <https://www.linkedin.com/in/fumito-hamamura>`_
+   or `on github <https://github.com/fumitoh>`_ ,
+   as modelx features you rely on might change or be removed in future releases
+   without the author knowing those features are in use.
 
 History
 -------
