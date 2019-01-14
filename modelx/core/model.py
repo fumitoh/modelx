@@ -359,8 +359,19 @@ class SpaceGraph(nx.DiGraph):
         """Direct Bases iterator"""
         return self.predecessors(node)
 
-    # TODO: Create check_mro(self, spaces)
-    # to check if C3 MRO is possible by temporarily adding spaces to the graph
+    def check_mro(self, *bases):
+        """Check if C3 MRO is possible with given bases"""
+
+        try:
+            self.add_node('temp')
+            for base in bases:
+                nx.DiGraph.add_edge(self, base, 'temp')
+            result = self.get_mro('temp')[1:]
+
+        finally:
+            self.remove_node('temp')
+
+        return result
 
     def get_mro(self, space):
         """Calculate the Method Resolution Order of bases using the C3 algorithm.
