@@ -532,6 +532,21 @@ class Space(SpaceContainer):
     def __call__(self, *args, **kwargs):
         return self._impl.get_dynspace(args, kwargs).interface
 
+    # ----------------------------------------------------------------------
+    # Formula
+
+    # TODO: Factor out formula related methods and properties
+    #  common between Cells and Spaces
+
+    @property
+    def formula(self):
+        """Property to get, set, delete formula."""
+        return self._impl.formula
+
+    @formula.setter
+    def formula(self, formula):
+        self._impl.set_formula(formula)
+
     def set_formula(self, formula):
         """Set if the parameter function."""
         self._impl.set_formula(formula)
