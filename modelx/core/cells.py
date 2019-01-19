@@ -539,15 +539,17 @@ class CellsImpl(Derivable, Impl):
         self.set_formula(NULL_FORMULA)
 
     def set_formula(self, func):
+
+        if self.parent.in_dynamic():
+            raise ValueError("cannot set formula in dynamic space")
         self._model.clear_obj(self)
         formula = Formula(func)
         self.formula = formula
         self.altfunc.set_update()
-        if not self.parent.in_dynamic():
-            self._model.spacegraph.update_subspaces_upward(
-                self.parent,
-                from_parent=False,
-                event='cells_set_formula')
+        self._model.spacegraph.update_subspaces_upward(
+            self.parent,
+            from_parent=False,
+            event='cells_set_formula')
     # ----------------------------------------------------------------------
     # Value operations
 
