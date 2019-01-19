@@ -359,7 +359,7 @@ class SpaceGraph(nx.DiGraph):
         """Direct Bases iterator"""
         return self.predecessors(node)
 
-    def check_mro(self, *bases):
+    def check_mro(self, bases):
         """Check if C3 MRO is possible with given bases"""
 
         try:

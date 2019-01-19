@@ -240,7 +240,7 @@ class Space(SpaceContainer):
 
     def add_bases(self, *bases):
         """Add base spaces."""
-        return self._impl.add_bases(bases)
+        return self._impl.add_bases(get_impls(bases))
 
     def remove_bases(self, *bases):
         """Remove base spaces."""
@@ -1020,14 +1020,12 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Inheritance
 
-    def add_base(self, other):
-        self.model.spacegraph.add_edge(other, self)
+    def add_bases(self, bases):
+        self.model.spacegraph.check_mro(bases)
+        for other in bases:
+            self.model.spacegraph.add_edge(other, self)
         self.inherit()
         self.model.spacegraph.update_subspaces(self)
-
-    def add_bases(self, bases):     # bases are interfaces
-        for base in get_impls(bases):
-            self.add_base(base)
 
     def remove_base(self, other):
         self.model.spacegraph.remove_edge(other, self)

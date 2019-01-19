@@ -315,8 +315,8 @@ class SpaceContainerImpl(Impl):
             if bases is not None:
                 if isinstance(bases, SpaceImpl):
                     bases = [bases]
-                for base in bases:
-                    space.add_base(base)
+
+                space.add_bases(bases)
 
         return space
 
