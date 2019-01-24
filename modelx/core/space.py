@@ -634,7 +634,6 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         # Construct member containers
 
         self._dynamic_spaces = ImplDict(self, SpaceView)
-        self._dynamic_bases = []    # tuple of static spaces to dynspace list
         self._dynamic_subs = []
         self._dynbase = None
         self._self_refs = RefDict(self)
@@ -702,7 +701,6 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         'update_mro',
         '_cells',
         '_static_spaces',
-        '_dynamic_bases',
         '_dynamic_subs',
         '_dynbase',
         '_dynamic_spaces',
@@ -1027,7 +1025,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         self.inherit()
         self.model.spacegraph.update_subspaces(self)
 
-    def remove_base(self, other):
+    def remove_base(self, other):  # TODO: Replace this with remove bases
         self.model.spacegraph.remove_edge(other, self)
         self.inherit()
         self.model.spacegraph.update_subspaces(self)
@@ -1096,6 +1094,11 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     # --- Inheritance properties ---
 
     @property
+    def direct_bases(self):
+        """Return an iterator over direct base spaces"""
+        return self.model.spacegraph.predecessors(self)
+
+    @property
     def self_bases(self):
 
         if self.in_dynamic():
@@ -1108,7 +1111,6 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
                 return []
         else:
             return self.mro[1:]
-            # return self.model.spacegraph.get_mro(self)[1:]
 
     # Overridden temporarily to add dynamic spaces
     @property
@@ -1172,43 +1174,23 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def eval_formula(self, spaceargs):
         return self.altfunc.get_updated().altfunc(**spaceargs.arguments)
 
-    def _get_nearest_static(self):
-        if self.in_dynamic():
-            return self.parent._get_nearest_static()
-        else:
-            return self
-
     def _get_dynamic_base(self, bases_):
         """Create or get the base space from a list of spaces
 
         if a direct base space in `bases` is dynamic, replace it with
         its base.
         """
-        owner = self._get_nearest_static()
-
-        bases = [base if not base.in_dynamic() else base.bases[0]
-                 for base in bases_]   # TODO: Need to check if MRO is possible
+        bases = tuple(base.bases[0] if base.in_dynamic() else base
+                      for base in bases_)
 
         if len(bases) == 1:
-            dynbase = bases[0]
-
-            if dynbase not in owner._dynamic_bases:
-                owner._dynamic_bases.append(dynbase)
+            return bases[0]
 
         elif len(bases) > 1:
-            existing_dynbases = [db for db in owner._dynamic_bases
-                                 if db.bases == bases]
-
-            if existing_dynbases: # must have exactly 1 element
-                dynbase = existing_dynbases[0]
-            else:
-                dynbase = owner.new_space(bases=bases, prefix='_')
-                owner._dynamic_bases.append(dynbase)
+            return self.model.get_dynamic_base(bases)
 
         else:
             RuntimeError("must not happen")
-
-        return dynbase
 
     def _new_dynspace(self, name=None, bases=None, formula=None,
                       refs=None, arguments=None, source=None,

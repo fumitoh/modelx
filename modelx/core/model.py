@@ -31,7 +31,7 @@ from modelx.core.space import (
     SpaceContainer,
     SpaceView,
     RefDict)
-from modelx.core.util import is_valid_name
+from modelx.core.util import is_valid_name, AutoNamer
 
 
 class DependencyGraph(nx.DiGraph):
@@ -163,6 +163,9 @@ class ModelImpl(SpaceContainerImpl):
         data = {'__builtins__': builtins}
         self._global_refs = RefDict(self, data=data)
         self._spaces = ImplDict(self, SpaceView)
+        self._dynamic_bases = {}
+        self._dynamic_bases_inverse = {}
+        self._dynamic_base_namer = AutoNamer('__Space')
         self._namespace = ImplChainMap(
             self, BaseView, [self._spaces, self._global_refs])
         self.allow_none = False
@@ -247,6 +250,9 @@ class ModelImpl(SpaceContainerImpl):
                    'lexdep',
                    '_namespace',
                    '_global_refs',
+                   '_dynamic_bases',
+                   '_dynamic_bases_inverse',
+                   '_dynamic_base_namer',
                    'spacegraph'] + SpaceContainerImpl.state_attrs
 
     def __getstate__(self):
@@ -319,6 +325,20 @@ class ModelImpl(SpaceContainerImpl):
             self.del_ref(name)
         else:
             raise KeyError("Name '%s' not defined" % name)
+
+    def get_dynamic_base(self, bases: tuple):
+        """Create of get a base space for a tuple of bases"""
+
+        try:
+            return self._dynamic_bases_inverse[bases]
+        except KeyError:
+            name = self._dynamic_base_namer.get_next(self._dynamic_bases)
+            base = self._new_space(name=name)
+            self.spacegraph.add_space(base)
+            self._dynamic_bases[name] = base
+            self._dynamic_bases_inverse[bases] = base
+            base.add_bases(bases)
+            return base
 
 
 class SpaceGraph(nx.DiGraph):
