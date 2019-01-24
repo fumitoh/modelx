@@ -1084,7 +1084,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
             space = self._new_space(name, is_derived=is_derived)
             self._set_space(space)
             if not self.in_dynamic():
-                self.model.spacegraph.add_node(space)
+                self.model.spacegraph.add_space(space)
             return space
         elif attr == 'cells':
             return self._new_cells(name, formula=None, is_derived=is_derived)

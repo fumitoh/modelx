@@ -323,6 +323,10 @@ class ModelImpl(SpaceContainerImpl):
 
 class SpaceGraph(nx.DiGraph):
 
+    def add_space(self, space):
+        self.add_node(space)
+        self.update_subspaces(space)
+
     def add_edge(self, basespace, subspace):
 
         if basespace.has_linealrel(subspace):
