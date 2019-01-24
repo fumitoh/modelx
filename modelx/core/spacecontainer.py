@@ -269,14 +269,12 @@ class SpaceContainerImpl(Impl):
 
         space = SpaceImpl(parent=self, name=name, formula=formula,
                           refs=refs, arguments=arguments, source=source)
-
-        self._set_space(space)
         space.is_derived = is_derived
 
         return space
 
     def new_space(self, name=None, bases=None, formula=None,
-                  *, refs=None, arguments=None, source=None, is_derived=False,
+                  *, refs=None, source=None, is_derived=False,
                   prefix=''):
         """Create a new child space.
 
@@ -305,6 +303,7 @@ class SpaceContainerImpl(Impl):
         space = self._new_space(name=name, formula=formula,
                                 refs=refs, source=source,
                                 is_derived=is_derived)
+        self._set_space(space)
 
         if not space.in_dynamic():
 

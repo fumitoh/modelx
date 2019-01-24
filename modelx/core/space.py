@@ -1082,6 +1082,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def _new_member(self, attr, name, is_derived=False):
         if attr == 'static_spaces':
             space = self._new_space(name, is_derived=is_derived)
+            self._set_space(space)
             if not self.in_dynamic():
                 self.model.spacegraph.add_node(space)
             return space
@@ -1226,6 +1227,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         space = self._new_space(name=name, refs=refs,
                                 arguments=arguments, source=source,
                                 is_derived=False)
+        self._set_space(space)
 
         if bases: # i.e. not []
             dynbase = self._get_dynamic_base(bases)
