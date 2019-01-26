@@ -215,16 +215,14 @@ class Impl:
     @property
     def repr_string(self):
         """String to called by Interface.__repr__"""
-        if self.repr_parent:
-            return "%s in %s" % (self.repr_self, self.repr_parent)
+        if self.repr_parent():
+            return "%s in %s" % (self.repr_self(), self.repr_parent())
         else:
-            return self.repr_self
+            return self.repr_self()
 
-    @property
-    def repr_self(self):
+    def repr_self(self, add_params=True):
         raise NotImplementedError
 
-    @property
     def repr_parent(self):
         raise NotImplementedError
 
@@ -518,11 +516,13 @@ class Interface:
 
         return result
 
-    def _get_repr(self, fullname=False):
+    def _get_repr(self, fullname=False, add_params=True):
+
+        impl = self._impl
         if fullname:
-            return self._impl.repr_parent + '.' + self._impl.repr_self
+            return impl.repr_parent() + '.' + impl.repr_self(add_params)
         else:
-            return self._impl.repr_self
+            return impl.repr_self(add_params)
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.

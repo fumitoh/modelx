@@ -476,13 +476,14 @@ class CellsImpl(Derivable, Impl):
     def fullname(self):
         return self.space.fullname + '.' + self.name
 
-    @property
-    def repr_self(self):
-        return "%s(%s)" % (self.name, ', '.join(self.parameters.keys()))
+    def repr_self(self, add_params=True):
+        if add_params:
+            return "%s(%s)" % (self.name, ', '.join(self.parameters.keys()))
+        else:
+            return self.name
 
-    @property
     def repr_parent(self):
-        return self.space.repr_parent + '.' + self.space.repr_self
+        return self.space.repr_parent() + '.' + self.space.repr_self()
 
     @property
     def signature(self):
@@ -761,17 +762,23 @@ class CellNode:
                   'value': self.value if self.has_value else None,
                   'predslen': len(self.preds),
                   'succslen': len(self.succs),
-                  'repr_parent': self.cells._impl.repr_parent,
+                  'repr_parent': self.cells._impl.repr_parent(),
                   'repr': self.cells._get_repr()}
 
         return result
 
     def __repr__(self):
-        name = self.cells._get_repr(fullname=True)
+
+        name = self.cells._get_repr(fullname=True, add_params=False)
+        params = tuple(self.cells._impl.parameters.keys())
+
+        arglist = ', '.join('%s=%s' % (param, arg) for param, arg
+                            in zip(params, self.args))
+
         if self.has_value:
-            return name + '=' + str(self.value)
+            return name + '(' + arglist + ')' + '=' + str(self.value)
         else:
-            return name
+            return name + '(' + arglist + ')'
 
 
 def shareable_parameters(cells):

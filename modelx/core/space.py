@@ -776,26 +776,24 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def __repr__(self):
         return '<SpaceImpl: ' + self.fullname + '>'
 
-    @property
-    def repr_self(self):
+    def repr_self(self, add_params=True):
 
-        if self.is_dynamic:
+        if add_params and self.is_dynamic:
             args = [repr(arg) for arg in get_interfaces(self.argvalues)]
             param = ', '.join(args)
             return "%s[%s]" % (self.parent.name, param)
         else:
             return self.name
 
-    @property
     def repr_parent(self):
 
         if self.is_dynamic:
-            return self.parent.repr_parent
+            return self.parent.repr_parent()
         else:
-            if self.parent.repr_parent:
-                return self.parent.repr_parent + '.' + self.parent.repr_self
+            if self.parent.repr_parent():
+                return self.parent.repr_parent() + '.' + self.parent.repr_self()
             else:
-                return self.parent.repr_self
+                return self.parent.repr_self()
 
     # ----------------------------------------------------------------------
     # Component properties

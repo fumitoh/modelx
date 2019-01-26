@@ -201,11 +201,9 @@ class ModelImpl(SpaceContainerImpl):
     def __repr__(self):
         return self.name
 
-    @property
-    def repr_self(self):
+    def repr_self(self, add_params=True):
         return self.name
 
-    @property
     def repr_parent(self):
         return ''
 
