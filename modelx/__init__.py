@@ -14,7 +14,7 @@
 
 
 
-VERSION = (0, 0, 20)
+VERSION = (0, 1, 0, 'dev')
 __version__ = '.'.join([str(x) for x in VERSION])
 from modelx.core.api import *  # must come after __version__ assignment.
 from modelx.qtgui.api import *
