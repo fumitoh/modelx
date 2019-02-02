@@ -34,6 +34,20 @@ Updates
 Releases: modelx
 ================
 
+.. _release-v0.0.20:
+
+v0.0.20 (2 February 2019)
+-------------------------
+
+Enhancements
+~~~~~~~~~~~~
+- :class:`~core.cells.CellNode` repr to show "parameter=arguments".
+- Add :attr:`~core.space.Space.formula` property.
+
+Bug Fixes
+~~~~~~~~~
+- Fix duplicate multiple bases of a dynamic space.
+
 .. _release-v0.0.19:
 
 v0.0.19 (13 January 2019)

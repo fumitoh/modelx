@@ -4,6 +4,10 @@ Updates
 
 .. Latest Updates Begin
 
+* *2 February 2019:*
+  modelx v0.0.20 is released. See :ref:`Release Notes <release-v0.0.20>`
+  for details.
+
 * *13 January 2019:*
   spyder-modelx v0.0.8 is released.
   See :ref:`Release Notes <release-mxplugin-v0.0.8>`
