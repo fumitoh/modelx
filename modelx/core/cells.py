@@ -94,7 +94,7 @@ class CellsMaker:
 ArgsValuePair = namedtuple('ArgsValuePair', ['args', 'value'])
 
 
-class Cells(Interface, Mapping, Callable, Sized):
+class Cells(Interface, Mapping, Callable):
     """Data container with a formula to calculate its own values.
 
     Cells are created by ``new_cells`` method or its variant methods of
