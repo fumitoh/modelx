@@ -66,8 +66,10 @@ def sample_space():
 
     return space
 
+
 def test_parent(sample_space):
     assert sample_space.func1.parent == sample_space
+
 
 def test_defcells_funcs(sample_space):
     assert sample_space.func1[2] == 10 \
@@ -84,6 +86,7 @@ def test_getitem(sample_space):
 
 def test_call(sample_space):
     assert sample_space.fibo(10) == 55
+
 
 @pytest.mark.parametrize("args, masked, value", [
     ((1, 2, 3), (1, 2, 3), 123),
@@ -139,11 +142,13 @@ def test_clear_value(sample_space):
     sample_space.fibo.clear(3)
     assert set(sample_space.fibo) == {0, 1, 2}
 
+
 def test_clear_value_kwargs(sample_space):
     sample_space.fibo[5]
 
     sample_space.fibo.clear(x=3)
     assert set(sample_space.fibo) == {0, 1, 2}
+
 
 def test_clear_all_values(sample_space):
     sample_space.fibo[5]
@@ -152,6 +157,7 @@ def test_clear_all_values(sample_space):
 
     sample_space.fibo.clear()
     assert check and set(sample_space.fibo) == set()
+
 
 def test_clear_value_source(sample_space):
 
@@ -265,32 +271,8 @@ def test_parameters(sample_space):
     assert space.matchtest.parameters == ('x', 'y', 'z')
 
 # --------------------------------------------------------------------------
-# Test value property
-
-def test_set_value(sample_space):
-    cells = sample_space.new_cells()
-    cells.value = 5
-    assert cells() == 5
-
-def test_get_value(sample_space):
-    cells = sample_space.new_cells(formula="lambda: 3")
-    assert cells.value == 3
-
-def test_del_value(sample_space):
-    cells = sample_space.new_cells()
-    cells.allow_none = True
-    cells.value = 2
-    del cells.value
-    assert cells.value is None
-
-def x_test_itr(sample_space):
-    sample_space(5)
-    x = [i for i in sample_space]
-    assert x == [0, 1, 2, 3, 4, 5]
-
-
-# --------------------------------------------------------------------------
 # Test _impl methods
+
 
 def test_fullname(sample_space):
     assert sample_space.fibo._impl.get_fullname() \
@@ -304,7 +286,6 @@ def test_fullname_omit_model(sample_space):
 
 # --------------------------------------------------------------------------
 # Test errors
-
 
 def test_none_returned_error():
 
@@ -342,48 +323,4 @@ def test_zerodiv():
 
     with pytest.raises(RewindStackError):
         cells(0)
-
-# --------------------------------------------------------------------------
-# Test comparison
-
-@pytest.fixture
-def testcomp():
-
-    model, space = new_model(), new_space()
-
-    @defcells
-    def bar():
-        return 3
-
-    @defcells
-    def baz():
-        return 4
-
-    return space
-
-def test_lt(testcomp):
-    assert testcomp.bar < testcomp.baz
-    assert not testcomp.baz < testcomp.bar
-    assert 3 < testcomp.baz
-    assert testcomp.bar < 4
-
-
-def test_le(testcomp):
-    assert testcomp.bar <= testcomp.baz
-    assert not testcomp.baz <= testcomp.bar
-    assert 3 <= testcomp.baz
-    assert testcomp.bar <= 4
-
-def test_gt(testcomp):
-    assert not testcomp.bar > testcomp.baz
-    assert testcomp.baz > testcomp.bar
-    assert not 3 > testcomp.baz
-    assert not testcomp.bar > 4
-
-
-def test_ge(testcomp):
-    assert not testcomp.bar >= testcomp.baz
-    assert testcomp.baz >= testcomp.bar
-    assert not 3 >= testcomp.baz
-    assert not testcomp.bar >= 4
 
