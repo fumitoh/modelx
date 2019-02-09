@@ -87,11 +87,8 @@ class ObjectArgs:
         if not remove_extra:
             return args
         else:
-            if len(args):
-                paramlen = len(sig.parameters.keys())
-                return args[:min(len(args), paramlen)]
-            else:
-                return args
+            paramlen = len(sig.parameters.keys())
+            return args[:min(len(args), paramlen)]
 
     def _bind_args(self, args, kwargs=None):
 
