@@ -138,7 +138,7 @@ class Cells(Interface, Mapping, Callable):
             for key in self._impl.data.keys():
                 yield key[0]
 
-        if len(self._impl.parameters) == 1:
+        if len(self._impl.formula.parameters) == 1:
             return inner()
         else:
             return iter(self._impl.data)
@@ -298,7 +298,7 @@ class Cells(Interface, Mapping, Callable):
     @property
     def parameters(self):
         """A tuple of parameter strings."""
-        return tuple(self._impl.parameters.keys())
+        return self._impl.formula.parameters
 
     def set_formula(self, func):
         """Set formula from a function.
@@ -478,26 +478,18 @@ class CellsImpl(Derivable, Impl):
 
     def repr_self(self, add_params=True):
         if add_params:
-            return "%s(%s)" % (self.name, ', '.join(self.parameters.keys()))
+            return "%s(%s)" % (self.name, ', '.join(self.formula.parameters))
         else:
             return self.name
 
     def repr_parent(self):
         return self.space.repr_parent() + '.' + self.space.repr_self()
 
-    @property
-    def signature(self):
-        return self.formula.signature
-
-    @property
-    def parameters(self):
-        return self.signature.parameters
-
     def has_cell(self, args):
         return args in self.data
 
-    def is_scalar(self):
-        return len(self.parameters) == 0
+    def is_scalar(self):    # TODO: Move to HasFormula
+        return len(self.formula.parameters) == 0
 
     @property
     def single_value(self):
@@ -770,7 +762,7 @@ class CellNode:
     def __repr__(self):
 
         name = self.cells._get_repr(fullname=True, add_params=False)
-        params = tuple(self.cells._impl.parameters.keys())
+        params = self.cells._impl.formula.parameters
 
         arglist = ', '.join('%s=%s' % (param, arg) for param, arg
                             in zip(params, self.args))
@@ -801,7 +793,7 @@ def shareable_parameters(cells):
     """
     result = []
     for c in cells.values():
-        params = tuple(c.parameters.keys())
+        params = c.formula.parameters
 
         for i in range(min(len(result), len(params))):
             if params[i] != result[i]:

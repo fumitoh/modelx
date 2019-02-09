@@ -301,7 +301,7 @@ class Formula:
 
     @property
     def parameters(self):
-        return self.signature.parameters
+        return tuple(self.signature.parameters)
 
     def __getstate__(self):
         """Specify members to pickle."""

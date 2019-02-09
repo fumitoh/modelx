@@ -29,7 +29,7 @@ def test_new_cells_from_excel(testmodel, range_, orientation):
                                   transpose=orientation)
 
     for cells, offset in zip(['Cells1', 'Cells2'], [1000, 2000]):
-        assert list(space.cells[cells]._impl.parameters.keys()) == ['Param']
+        assert space.cells[cells].parameters == ('Param',)
         for param in range(16):
             assert space.cells[cells](param) == offset + param
 
@@ -52,8 +52,7 @@ def test_new_cells_from_excel_multparams(testmodel, range_, orientation):
 
     for cells, offset in zip(['Cells1', 'Cells2'], [1000, 2000]):
 
-        assert list(space.cells[cells]._impl.parameters.keys()) == ['Param1',
-                                                                     'Param2']
+        assert space.cells[cells].parameters == ('Param1', 'Param2')
         for param in range(16):
             assert space.cells[cells](param, param + 100) == offset + param
 
@@ -76,8 +75,7 @@ def test_new_cells_from_excel_extparams(testmodel, range_, orientation):
 
 
     for cells, offset in zip(['Cells1', 'Cells2'], [1000, 2000]):
-        assert list(space.cells[cells]._impl.parameters.keys()) == ['Sex',
-                                                                    'Param']
+        assert space.cells[cells].parameters == ('Sex', 'Param')
         for param in range(16):
             assert space.cells[cells]('M', param) == offset + param
             assert space.cells[cells]('F', param) == offset + param + 1000
@@ -101,9 +99,7 @@ def test_new_cells_from_excel_multextparams(testmodel, range_, orientation):
 
     for cells, offset1 in zip(['Cells1', 'Cells2'], [1000, 2000]):
 
-        assert list(space.cells[cells]._impl.parameters.keys()) == ['Product',
-                                                                    'Sex',
-                                                                    'Year']
+        assert space.cells[cells].parameters == ('Product', 'Sex', 'Year')
         for product, offset2 in zip(['A', 'B'], [0, 1000]):
             for sex, offset3 in zip(['M', 'F'], [0, 1000]):
                 for year in range(10):
@@ -177,8 +173,7 @@ def test_new_space_from_excel(testmodel, range_, transpose):
         assert child.Product == product
 
         for cells, offset2 in zip(['Cells1', 'Cells2'], [1000, 2000]):
-            assert list(child.cells[cells]._impl.parameters.keys()) \
-                    == ['Sex', 'Year']
+            assert child.cells[cells].parameters == ('Sex', 'Year')
 
             for sex, offset3 in zip(['M', 'F'], [0, 1000]):
                 for year in range(10):

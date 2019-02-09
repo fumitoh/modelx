@@ -108,12 +108,12 @@ def _to_frame_inner(cellsiter, args):
         for cells in cellsiter.values():
 
             newarg = CellArgs.normalize_args(
-                cells.signature, arg, remove_extra=True)
+                cells.formula.signature, arg, remove_extra=True)
 
             cells.get_value(newarg)
 
             arg = CellArgs.normalize_args(
-                cells.signature, arg, remove_extra=False)
+                cells.formula.signature, arg, remove_extra=False)
 
             if arg not in argkeys:
                 argkeys.append(arg)
@@ -335,8 +335,7 @@ class Space(SpaceContainer):
     @property
     def parameters(self):
         """A tuple of parameter strings."""
-        # TODO: Refactor out parameter methods common between Space and Cells.
-        return tuple(self._impl.parameters.keys())
+        return tuple(self._impl.formula.parameters)
 
     @property
     def refs(self):
@@ -757,13 +756,13 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Space properties
 
-    @property
-    def signature(self):
-        return self.formula.signature
-
-    @property
-    def parameters(self):
-        return self.formula.signature.parameters
+    # @property
+    # def signature(self):
+    #     return self.formula.signature
+    #
+    # @property
+    # def parameters(self):
+    #     return self.formula.signature.parameters
 
     @property
     def fullname(self):
@@ -1151,7 +1150,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def _bind_args(self, args):
 
         if self.is_dynamic:
-            self.boundargs = self.parent.signature.bind(**args)
+            self.boundargs = self.parent.formula.signature.bind(**args)
             self.argvalues = tuple(self.boundargs.arguments.values())
             self.argvalues_if = tuple(get_interfaces(self.argvalues))
         else:

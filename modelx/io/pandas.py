@@ -110,7 +110,7 @@ def cellsiter_to_dataframe(cellsiter, args, drop_allna=True):
 
 def get_all_params(cells_iter):
 
-    params = [cells.parameters.keys() for cells in cells_iter]
+    params = [cells.formula.parameters for cells in cells_iter]
     params = list(itertools.chain.from_iterable(params))
     return sorted(set(params), key=params.index)
 
@@ -129,7 +129,7 @@ def cells_to_series(cells, args):
     If longer, then redundant args are ignored.
     """
 
-    paramlen = len(cells.parameters)
+    paramlen = len(cells.formula.parameters)
     is_multidx = paramlen > 1
 
     if len(cells.data) == 0:
@@ -144,7 +144,7 @@ def cells_to_series(cells, args):
 
         if len(args) > 0:
             defaults = tuple(param.default for param
-                             in cells.parameters.values())
+                             in cells.formula.signature.parameters.values())
             updated_args = []
             for arg in args:
 
@@ -173,7 +173,7 @@ def cells_to_series(cells, args):
     result = pd.Series(data=data, name=cells.name, index=indexes)
 
     if indexes is not None and any(i is not np.nan for i in indexes):
-        result.index.names = list(cells.parameters.keys())
+        result.index.names = list(cells.formula.parameters)
 
     return result
 

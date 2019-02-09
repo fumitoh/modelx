@@ -69,7 +69,7 @@ class ObjectArgs:
             pass
 
         else:
-            args = self.normalize_args(obj_.signature, args)
+            args = self.normalize_args(obj_.formula.signature, args)
 
         self._bind_args(args, kwargs)
 
@@ -101,7 +101,7 @@ class ObjectArgs:
         else:
             if kwargs is None:
                 kwargs = {}
-            self.boundargs = self.obj_.signature.bind(*args, **kwargs)
+            self.boundargs = self.obj_.formula.signature.bind(*args, **kwargs)
             self.boundargs.apply_defaults()
             self.argvalues = tuple(self.boundargs.arguments.values())
 
@@ -128,7 +128,7 @@ class ObjectArgs:
 
     @property
     def parameters(self):
-        return tuple(self.obj_.signature.parameters.keys())
+        return tuple(self.obj_.formula.signature.parameters.keys())
 
     def __hash__(self):
         return hash(self.id_)
