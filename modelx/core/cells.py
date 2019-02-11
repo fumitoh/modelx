@@ -42,6 +42,9 @@ def cells_to_argvals(args, kwargs):
     if isinstance(args, str):
         pass
 
+    elif isinstance(args, Cells):
+        args = args._impl.single_value
+
     elif isinstance(args, Sequence):
 
         result = []
@@ -55,9 +58,6 @@ def cells_to_argvals(args, kwargs):
                 result.append(arg)
 
         args = result
-
-    elif isinstance(args, Cells):
-        args = args._impl.single_value
 
     if kwargs is not None:
         for key, arg in kwargs.items():
