@@ -85,3 +85,16 @@ def test_getitem_string(cells_signatures):
     assert space.mult_params["foo", "bar"] == "foobar"
     assert space.mult_params[("foo", "bar")] == "foobar"
     assert space.mult_params[["foo", "bar"]] == "foobar"
+
+
+def test_scalar_cells_arg(cells_signatures):
+
+    space = cells_signatures
+    assert isinstance(space.single_param(space.no_param), int)
+
+
+def test_invalid_cells_arg(cells_signatures):
+
+    space = cells_signatures
+    with pytest.raises(ValueError):
+        space.single_param(space.mult_params)
