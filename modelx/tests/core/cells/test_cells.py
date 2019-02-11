@@ -153,10 +153,10 @@ def test_clear_value_kwargs(sample_space):
 def test_clear_all_values(sample_space):
     sample_space.fibo[5]
 
-    check = set(sample_space.fibo) == {0, 1, 2, 3, 4, 5}
+    assert set(sample_space.fibo) == {0, 1, 2, 3, 4, 5}
 
     sample_space.fibo.clear()
-    assert check and set(sample_space.fibo) == set()
+    assert set(sample_space.fibo) == set()
 
 
 def test_clear_value_source(sample_space):
