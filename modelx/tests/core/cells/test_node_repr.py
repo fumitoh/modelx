@@ -22,7 +22,8 @@ def no_values():
     def param2(x, y):
         return x * y
 
-    return space
+    yield space
+    model.close()
 
 
 @pytest.fixture
