@@ -70,3 +70,7 @@ def test_del_value(constcells):
     del cells.value
     assert cells.value is None
 
+
+def test_bool(constcells):
+    assert bool(constcells.bar)
+

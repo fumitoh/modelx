@@ -18,7 +18,7 @@ from collections import Sequence, ChainMap
 from types import FunctionType, ModuleType
 
 from modelx.core.base import (
-    ObjectArgs,
+    # ObjectArgs,
     get_impls,
     get_interfaces,
     Impl,
@@ -30,25 +30,16 @@ from modelx.core.base import (
     BaseView,
     SelectedView,
     BoundFunction)
+from modelx.core.node import (
+    node_get_args, tuplize_key, get_node, OBJ, KEY)
 from modelx.core.spacecontainer import SpaceContainer, SpaceContainerImpl
 from modelx.core.formula import Formula, ModuleSource
 from modelx.core.cells import (
     Cells,
     CellsImpl,
-    CellArgs,
-    cells_to_argvals,
+    convert_args,
     shareable_parameters)
 from modelx.core.util import AutoNamer, is_valid_name, get_module
-
-
-class SpaceArgs(ObjectArgs):
-    """Combination of space and arguments to locate its subspace."""
-
-    def __init__(self, space, args, kwargs=None):
-
-        args, kwargs = cells_to_argvals(args, kwargs)
-        ObjectArgs.__init__(self, space, args, kwargs)
-        self.space = self.obj_
 
 
 class ParamFunc(Formula):
@@ -107,13 +98,9 @@ def _to_frame_inner(cellsiter, args):
     for arg in args:
         for cells in cellsiter.values():
 
-            newarg = CellArgs.normalize_args(
-                cells.formula.signature, arg, remove_extra=True)
-
+            newarg = tuplize_key(cells, arg, remove_extra=True)
             cells.get_value(newarg)
-
-            arg = CellArgs.normalize_args(
-                cells.formula.signature, arg, remove_extra=False)
+            arg = tuplize_key(cells, arg, remove_extra=False)
 
             if arg not in argkeys:
                 argkeys.append(arg)
@@ -522,8 +509,8 @@ class Space(SpaceContainer):
         # Outside formulas only
         return bool(self._impl.formula)
 
-    def __getitem__(self, args):
-        return self._impl.get_dynspace(args).interface
+    def __getitem__(self, key):
+        return self._impl.get_dynspace(tuplize_key(self, key)).interface
 
     def __iter__(self):
         raise TypeError("'Space' is not iterable")
@@ -592,7 +579,6 @@ class Space(SpaceContainer):
 class SpaceImpl(Derivable, SpaceContainerImpl):
     """The implementation of Space class."""
 
-    node_class = SpaceArgs
     if_class = Space
 
     def __init__(self, parent, name, formula=None,
@@ -755,14 +741,6 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
 
     # ----------------------------------------------------------------------
     # Space properties
-
-    # @property
-    # def signature(self):
-    #     return self.formula.signature
-    #
-    # @property
-    # def parameters(self):
-    #     return self.formula.signature.parameters
 
     @property
     def fullname(self):
@@ -1168,8 +1146,8 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         else:
             raise ValueError("formula already assigned.")
 
-    def eval_formula(self, spaceargs):
-        return self.altfunc.get_updated().altfunc(**spaceargs.arguments)
+    def eval_formula(self, node):
+        return self.altfunc.get_updated().altfunc(*node[KEY])
 
     def _get_dynamic_base(self, bases_):
         """Create or get the base space from a list of spaces
@@ -1221,23 +1199,24 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         Called from interface methods
         """
 
-        ptr = SpaceArgs(self, args, kwargs)
+        node = get_node(self, *convert_args(args, kwargs))
+        key = node[KEY]
 
-        if ptr.argvalues in self.param_spaces:
-            return self.param_spaces[ptr.argvalues]
+        if key in self.param_spaces:
+            return self.param_spaces[key]
 
         else:
             last_self = self.system.self
             self.system.self = self
 
             try:
-                space_args = self.eval_formula(ptr)
+                space_args = self.eval_formula(node)
 
             finally:
                 self.system.self = last_self
 
             if space_args is None:
-                space_args = {'bases': [self]} # Default
+                space_args = {'bases': [self]}  # Default
             else:
                 if 'bases' in space_args:
                     bases = get_impls(space_args['bases'])
@@ -1250,9 +1229,9 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
                 else:
                     space_args['bases'] = [self]
 
-            space_args['arguments'] = ptr.arguments
+            space_args['arguments'] = node_get_args(node)
             space = self._new_dynspace(**space_args)
-            self.param_spaces[ptr.argvalues] = space
+            self.param_spaces[key] = space
             space.inherit(clear_value=False)
             return space
 

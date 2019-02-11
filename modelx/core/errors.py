@@ -13,6 +13,8 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from textwrap import dedent
+from modelx.core.node import get_node_repr
+
 """
 modelx errors & warnings
 """
@@ -43,8 +45,8 @@ class NoneReturnedError(ValueError):
         Call stack traceback:
         {1}""")
 
-    def __init__(self, last_call, trace_msg):
-        msg = self.message_template.format(last_call, trace_msg)
+    def __init__(self, node, trace_msg):
+        msg = self.message_template.format(get_node_repr(node), trace_msg)
         ValueError.__init__(self, msg)
 
 

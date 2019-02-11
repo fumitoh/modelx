@@ -22,11 +22,12 @@ from collections.abc import (
 from itertools import combinations
 
 from modelx.core.base import (
-    ObjectArgs,
     Impl,
     Derivable,
     Interface,
     BoundFunction)
+from modelx.core.node import (
+    OBJ, KEY, get_node, tuplize_key)
 from modelx.core.formula import (
     Formula,
     NULL_FORMULA)
@@ -36,49 +37,25 @@ from modelx.core.errors import (
     RewindStackError)
 
 
-def cells_to_argvals(args, kwargs):
+def convert_args(args, kwargs):
     """If args and kwargs contains Cells, Convert them to their values."""
 
-    if isinstance(args, str):
-        pass
+    found = False
+    for arg in args:
+        if isinstance(arg, Cells):
+            found = True
+            break
 
-    elif isinstance(args, Cells):
-        args = args._impl.single_value
-
-    elif isinstance(args, Sequence):
-
-        result = []
-        for arg in args:
-            if isinstance(arg, Cells):
-                if arg._impl.is_scalar():
-                    result.append(arg._impl.single_value)
-                else:
-                    raise ValueError('Cells cannot be an argument')
-            else:
-                result.append(arg)
-
-        args = result
+    if found:
+        args = tuple(arg.value if isinstance(arg, Cells) else arg
+                     for arg in args)
 
     if kwargs is not None:
         for key, arg in kwargs.items():
             if isinstance(arg, Cells):
-                if arg._impl.is_scalar():
-                    kwargs[key] = arg._impl.single_value
-                else:
-                    raise ValueError('Cells cannot be an argument')
+                kwargs[key] = arg.value
 
     return args, kwargs
-
-
-class CellArgs(ObjectArgs):
-
-    state_attrs = ['cells'] + ObjectArgs.state_attrs
-
-    def __init__(self, cells, args, kwargs=None):
-
-        args, kwargs = cells_to_argvals(args, kwargs)
-        ObjectArgs.__init__(self, cells, args, kwargs)
-        self.cells = self.obj_
 
 
 class CellsMaker:
@@ -103,11 +80,11 @@ class Cells(Interface, Mapping, Callable):
     """
     __slots__ = ()
 
-    def __contains__(self, args):
-        return self._impl.has_cell(args)
+    def __contains__(self, key):
+        return self._impl.has_cell(tuplize_key(self, key))
 
     def __getitem__(self, key):
-        return self._impl.get_value(key)
+        return self._impl.get_value(tuplize_key(self, key))
 
     def __call__(self, *args, **kwargs):
         return self._impl.get_value(args, kwargs)
@@ -130,7 +107,7 @@ class Cells(Interface, Mapping, Callable):
 
     def __setitem__(self, key, value):
         """Set value of a particular cell"""
-        self._impl.set_value(key, value)
+        self._impl.set_value(tuplize_key(self, key), value)
 
     def __iter__(self):
 
@@ -159,7 +136,7 @@ class Cells(Interface, Mapping, Callable):
 
     def __bool__(self):
         """True if self != 0. Called for bool(self)."""
-        return self.get_value() != 0
+        return self._impl.single_value != 0
 
     def __add__(self, other):
         """self + other"""
@@ -331,7 +308,7 @@ class Cells(Interface, Mapping, Callable):
     # Dependency
     def node(self, *args, **kwargs):
         """Return a :class:`CellNode` object for the given arguments."""
-        return CellNode(CellArgs(self._impl, args, kwargs))
+        return CellNode(get_node(self._impl, *convert_args(args, kwargs)))
 
     def preds(self, *args, **kwargs):
         """Return a list of predecessors of a cell.
@@ -402,7 +379,6 @@ class CellsImpl(Derivable, Impl):
         data: array-like, dict, pandas.DataSeries or scalar values.
     """
 
-    node_class = CellArgs
     if_class = Cells
 
     def __init__(self, *, space, name=None, formula=None, data=None,
@@ -485,8 +461,8 @@ class CellsImpl(Derivable, Impl):
     def repr_parent(self):
         return self.space.repr_parent() + '.' + self.space.repr_self()
 
-    def has_cell(self, args):
-        return args in self.data
+    def has_cell(self, key):
+        return key in self.data
 
     def is_scalar(self):    # TODO: Move to HasFormula
         return len(self.formula.parameters) == 0
@@ -546,94 +522,94 @@ class CellsImpl(Derivable, Impl):
     # ----------------------------------------------------------------------
     # Value operations
 
-    def eval_formula(self, cellargs):
-        return self.altfunc.get_updated().altfunc(**cellargs.arguments)
+    def eval_formula(self, node):
+        return self.altfunc.get_updated().altfunc(*node[KEY])
 
-    def get_value(self, args=None, kwargs=None):
+    def get_value(self, args, kwargs=None):
 
-        ptr = CellArgs(self, args, kwargs)
-        args = ptr.argvalues
+        node = get_node(self, *convert_args(args, kwargs))
+        key = node[KEY]
 
-        if self.has_cell(args):
-            value = self.data[args]
+        if self.has_cell(key):
+            value = self.data[key]
 
         else:
-            self.system.callstack.append(ptr)
+            self.system.callstack.append(node)
             try:
-                value = self.eval_formula(ptr)
+                value = self.eval_formula(node)
 
-                if self.has_cell(args):
+                if self.has_cell(key):
                     # Assignment took place inside the cell.
                     if value is not None:
                         raise ValueError("Duplicate assignment for %s"
-                                         % args)
+                                         % key)
                     else:
-                        value = self.data[args]
-                        del self.data[args]
-                        value = self._store_value(ptr, value, False)
+                        value = self.data[key]
+                        del self.data[key]
+                        value = self._store_value(node, value, False)
                 else:
-                    value = self._store_value(ptr, value, False)
+                    value = self._store_value(node, value, False)
 
             except ZeroDivisionError:
                 tracemsg = self.system.callstack.tracemessage()
-                raise RewindStackError(ptr, tracemsg)
+                raise RewindStackError(node, tracemsg)
 
             finally:
                 self.system.callstack.pop()
 
         graph = self._model.cellgraph
         if not self.system.callstack.is_empty():
-            graph.add_path([ptr, self.system.callstack.last()])
+            graph.add_path([node, self.system.callstack.last()])
         else:
-            graph.add_node(ptr)
+            graph.add_node(node)
 
         return value
 
     def find_match(self, args, kwargs):
 
-        ptr = CellArgs(self, args, kwargs)
-        args = ptr.argvalues
-        args_len = len(args)
+        node = get_node(self, *convert_args(args, kwargs))
+        key = node[KEY]
+        keylen = len(key)
 
         if not self.get_property('allow_none'):
             # raise ValueError('Cells %s cannot return None' % self.name)
             tracemsg = self.system.callstack.tracemessage()
-            raise NoneReturnedError(ptr, tracemsg)
+            raise NoneReturnedError(node, tracemsg)
 
-        for match_len in range(args_len, -1, -1):
-            for idxs in combinations(range(args_len), match_len):
-                masked = [None] * args_len
+        for match_len in range(keylen, -1, -1):
+            for idxs in combinations(range(keylen), match_len):
+                masked = [None] * keylen
                 for idx in idxs:
-                    masked[idx] = args[idx]
+                    masked[idx] = key[idx]
                 value = self.get_value(masked)
                 if value is not None:
                     return ArgsValuePair(tuple(masked), value)
 
         return ArgsValuePair(None, None)
 
-    def set_value(self, key, value):
+    def set_value(self, args, value):
 
-        ptr = CellArgs(self, key)
+        node = get_node(self, *convert_args(args, {}))
 
         if self.system.callstack.is_empty():
-            self._store_value(ptr, value, True)
-            self._model.cellgraph.add_node(ptr)
+            self._store_value(node, value, True)
+            self._model.cellgraph.add_node(node)
         else:
-            if ptr == self.system.callstack.last():
-                self._store_value(ptr, value, False)
+            if node == self.system.callstack.last():
+                self._store_value(node, value, False)
             else:
                 raise KeyError("Assignment in cells other than %s" %
-                               ptr.argvalues)
+                               node[KEY])
 
-    def _store_value(self, ptr, value, overwrite=False):
+    def _store_value(self, node, value, overwrite=False):
 
-        key = ptr.argvalues
+        key = node[KEY]
 
         if isinstance(value, Cells):
             if value._impl.is_scalar():
                 value = value._impl.single_value
 
-        if not ptr.cells.has_cell(key) or overwrite:
+        if not node[OBJ].has_cell(key) or overwrite:
 
             if overwrite:
                 self.clear_value(*key)
@@ -644,11 +620,11 @@ class CellsImpl(Derivable, Impl):
                 self.data[key] = value
             else:
                 tracemsg = self.system.callstack.tracemessage()
-                raise NoneReturnedError(ptr, tracemsg)
+                raise NoneReturnedError(node, tracemsg)
 
         else:
             raise ValueError("Value already exists for %s" %
-                             ptr.arguments)
+                             node[KEY])
 
         return value
 
@@ -656,9 +632,9 @@ class CellsImpl(Derivable, Impl):
         if args == () and kwargs == {} and not self.is_scalar():
             self.clear_all_values()
         else:
-            ptr = CellArgs(self, args, kwargs)
-            if self.has_cell(ptr.argvalues):
-                self._model.clear_descendants(ptr)
+            node = get_node(self, *convert_args(args, kwargs))
+            if self.has_cell(node[KEY]):
+                self._model.clear_descendants(node)
 
     def clear_all_values(self):
         for args in list(self.data):
@@ -667,40 +643,40 @@ class CellsImpl(Derivable, Impl):
     # ----------------------------------------------------------------------
     # Pandas I/O
 
-    def _pandas_shared_logic(self, args):
+    def tuplize_arg_sequence(self, argseq):
 
-        if len(args) == 1:
-            if isinstance(args[0], Sequence) and len(args[0]) == 0:
-                pass    # Empty sequence
+        if len(argseq) == 1:
+            if isinstance(argseq[0], Sequence) and len(argseq[0]) == 0:
+                pass  # Empty sequence
             else:
-                args = args[0]
+                argseq = argseq[0]
 
-        for arg in args:
-            self.get_value(arg)
+        for arg in argseq:
+            self.get_value(tuplize_key(self, arg, remove_extra=True))
 
-        return tuple(CellArgs(self, arg).argvalues for arg in args)
+        return tuple(tuplize_key(self, arg) for arg in argseq)
 
     def to_series(self, args):
 
         from modelx.io.pandas import cells_to_series
-        args = self._pandas_shared_logic(args)
+        args = self.tuplize_arg_sequence(args)
         return cells_to_series(self, args)
 
     def to_frame(self, args):
         from modelx.io.pandas import cells_to_dataframe
-        args = self._pandas_shared_logic(args)
+        args = self.tuplize_arg_sequence(args)
         return cells_to_dataframe(self, args)
 
     # ----------------------------------------------------------------------
     # Dependency
 
     def predecessors(self, args, kwargs):
-        node = CellArgs(self, args, kwargs)
+        node = get_node(self, *convert_args(args, kwargs))
         preds = self._model.cellgraph.predecessors(node)
         return [CellNode(n) for n in preds]
 
     def successors(self, args, kwargs):
-        node = CellArgs(self, args, kwargs)
+        node = get_node(self, *convert_args(args, kwargs))
         succs = self._model.cellgraph.successors(node)
         return [CellNode(n) for n in succs]
 
@@ -708,29 +684,29 @@ class CellsImpl(Derivable, Impl):
 class CellNode:
     """A combination of a cells, its args and its value."""
 
-    def __init__(self, cellargs):
-        self._impl = cellargs
+    def __init__(self, node):
+        self._impl = node
 
     @property
     def cells(self):
         """Return the Cells object"""
-        return self._impl.cells.interface
+        return self._impl[OBJ].interface
 
     @property
     def args(self):
         """Return a tuple of the cells' arguments."""
-        return self._impl.argvalues
+        return self._impl[KEY]
 
     @property
     def has_value(self):
         """Return ``True`` if the cell has a value."""
-        return self._impl.cells.has_cell(self._impl.argvalues)
+        return self._impl[OBJ].has_cell(self._impl[KEY])
 
     @property
     def value(self):
         """Return the value of the cells."""
         if self.has_value:
-            return self._impl.cells.get_value(self._impl.argvalues)
+            return self._impl[OBJ].get_value(self._impl[KEY])
         else:
             raise ValueError('Value not found')
 

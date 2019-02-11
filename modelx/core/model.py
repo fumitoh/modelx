@@ -25,7 +25,7 @@ from modelx.core.base import (
     ImplChainMap,
     BaseView,
     ReferenceImpl)
-from modelx.core.cells import CellArgs
+from modelx.core.node import OBJ, KEY, get_node, node_has_key
 from modelx.core.space import (
     SpaceContainerImpl,
     SpaceContainer,
@@ -71,7 +71,7 @@ class DependencyGraph(nx.DiGraph):
             nodes = self.nodes
 
         for node in nodes:
-            if node.obj_ == obj:
+            if node[OBJ] == obj:
                 result.add(node)
         return result
 
@@ -185,8 +185,8 @@ class ModelImpl(SpaceContainerImpl):
     def clear_descendants(self, source, clear_source=True):
         """Clear values and nodes calculated from `source`."""
         removed = self.cellgraph.clear_descendants(source, clear_source)
-        for cell in removed:
-            del cell.cells.data[cell.argvalues]
+        for node in removed:
+            del node[OBJ].data[node[KEY]]
 
     # TODO
     # def clear_lexdescendants(self, refnode):
@@ -195,8 +195,8 @@ class ModelImpl(SpaceContainerImpl):
     def clear_obj(self, obj):
         """Clear values and nodes of `obj` and their dependants."""
         removed = self.cellgraph.clear_obj(obj)
-        for cell in removed:
-            del cell.cells.data[cell.argvalues]
+        for node in removed:
+            del node[OBJ].data[node[KEY]]
 
     def __repr__(self):
         return self.name
@@ -264,8 +264,11 @@ class ModelImpl(SpaceContainerImpl):
         for gname, graph in graphs.items():
             mapping = {}
             for node in graph:
-                name = node.obj_.get_fullname(omit_model=True)
-                mapping[node] = (name, node.argvalues)
+                name = node[OBJ].get_fullname(omit_model=True)
+                if node_has_key(node):
+                    mapping[node] = (name, node[KEY])
+                else:
+                    mapping[node] = name
             state[gname] = nx.relabel_nodes(graph, mapping)
 
         return state
@@ -278,9 +281,12 @@ class ModelImpl(SpaceContainerImpl):
         SpaceContainerImpl.restore_state(self, system)
         mapping = {}
         for node in self.cellgraph:
-            name, argvalues = node
+            if isinstance(node, tuple):
+                name, key = node
+            else:
+                name, key = node, None
             cells = self.get_object(name)
-            mapping[node] = CellArgs(cells, argvalues)
+            mapping[node] = get_node(cells, key, None)
 
         self.cellgraph = nx.relabel_nodes(self.cellgraph, mapping)
 

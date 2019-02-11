@@ -16,6 +16,7 @@ import sys
 import warnings
 import pickle
 from collections import deque
+from modelx.core.node import get_node_repr
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError
@@ -61,7 +62,7 @@ class CallStack(deque):
         """
         result = ''
         for i, value in enumerate(self):
-            result += "{0}: {1}\n".format(i, value)
+            result += "{0}: {1}\n".format(i, get_node_repr(value))
 
         result = result.strip('\n')
         lines = result.split('\n')

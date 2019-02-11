@@ -16,8 +16,9 @@ import sys
 import builtins
 from types import FunctionType
 from collections import Sequence, ChainMap, Mapping, UserDict, OrderedDict
-from inspect import isclass, BoundArguments
+from inspect import BoundArguments
 from modelx.core.formula import create_closure
+from modelx.core.node import get_node
 
 # To add new method apply_defaults to BoundArguments.
 if sys.version_info < (3, 5, 0):
@@ -54,95 +55,6 @@ if sys.version_info < (3, 5, 0):
         self.arguments = OrderedDict(new_arguments)
 
     BoundArguments.apply_defaults = _apply_defaults
-
-
-class ObjectArgs:
-    """Pair of an object and its arguments"""
-
-    state_attrs = ['obj_', 'argvalues']
-
-    def __init__(self, obj_, args, kwargs=None):
-        self.obj_ = obj_
-
-        if args is None and kwargs is None:
-            # Object-only node
-            pass
-
-        else:
-            args = self.normalize_args(obj_.formula.signature, args)
-
-        self._bind_args(args, kwargs)
-
-    @staticmethod
-    def normalize_args(sig, args, remove_extra=False):
-
-        if isinstance(args, str):
-            args = (args,)
-
-        elif not isinstance(args, Sequence):
-            args = (args,)
-
-        # TODO: If a single arg is a sequence, can be misinterpreted.
-
-        if not remove_extra:
-            return args
-        else:
-            paramlen = len(sig.parameters.keys())
-            return args[:min(len(args), paramlen)]
-
-    def _bind_args(self, args, kwargs=None):
-
-        if args is None and kwargs is None:
-            # Object-only node
-            self.argvalues = self.boundargs = None
-        else:
-            if kwargs is None:
-                kwargs = {}
-            self.boundargs = self.obj_.formula.signature.bind(*args, **kwargs)
-            self.boundargs.apply_defaults()
-            self.argvalues = tuple(self.boundargs.arguments.values())
-
-        self.id_ = (self.obj_, self.argvalues)
-
-    def __getstate__(self):
-        state = {key: value for key, value in self.__dict__.items()
-                 if key in self.state_attrs}
-
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        # From Python 3.5, signature is pickable,
-        # pickling logic for this class may be simplified.
-        self._bind_args(self.argvalues)
-
-        if self.argvalues != state['argvalues']:
-            raise ValueError('Pickle Error.')
-
-    @property
-    def arguments(self):
-        return self.boundargs.arguments
-
-    @property
-    def parameters(self):
-        return tuple(self.obj_.formula.signature.parameters.keys())
-
-    def __hash__(self):
-        return hash(self.id_)
-
-    def __eq__(self, other):
-        return self.id_ == other.id_
-
-    def __repr__(self):
-        # TODO: Need to generalize. Currently CellsArg specific.
-        arg_repr = ""
-        for param, arg in self.arguments.items():
-            arg_repr += param + "=" + repr(arg) + ", "
-
-        if len(arg_repr) > 1:
-            arg_repr = arg_repr[:-2]
-
-        return self.obj_.get_fullname() + "(" + arg_repr + ")"
 
 
 def get_interfaces(impls):
@@ -259,6 +171,13 @@ class Impl:
                     fullname = '.'.join(separated)
 
                 return fullname
+
+    def get_repr(self, fullname=False, add_params=True):
+
+        if fullname:
+            return self.repr_parent() + '.' + self.repr_self(add_params)
+        else:
+            return self.repr_self(add_params)
 
 
 class _DummyBuiltins:
@@ -514,12 +433,8 @@ class Interface:
         return result
 
     def _get_repr(self, fullname=False, add_params=True):
+        return self._impl.get_repr(fullname, add_params)
 
-        impl = self._impl
-        if fullname:
-            return impl.repr_parent() + '.' + impl.repr_self(add_params)
-        else:
-            return impl.repr_self(add_params)
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.
@@ -907,12 +822,12 @@ class BoundFunction(LazyEval):
         name = func.__name__  # self.cells.name   # func.__name__
         namespace_impl = self.owner._namespace_impl.get_updated()
         namespace = namespace_impl.interfaces
-        selfnode = self.owner.node_class(self.owner, None)
+        selfnode = get_node(self.owner, None, None)
 
         for name in self.owner.formula.srcnames:
             if name in namespace_impl and \
               isinstance(namespace_impl[name], ReferenceImpl):
-                refnode = ObjectArgs(namespace_impl[name], None)
+                refnode = get_node(namespace_impl[name], None, None)
                 self.owner.model.lexdep.add_path([selfnode, refnode])
 
         closure = func.__closure__  # None normally.

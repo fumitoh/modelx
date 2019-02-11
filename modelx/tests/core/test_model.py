@@ -1,7 +1,7 @@
 import pytest
 
 from modelx.core.api import *
-from modelx.core.cells import CellArgs
+from modelx.core.node import get_node
 from modelx.core.base import get_interfaces
 from modelx.core.model import SpaceGraph
 
@@ -22,17 +22,21 @@ def simplemodel():
 
     return model
 
+
 def test_parent(simplemodel):
     assert simplemodel.parent == None
 
+
 def test_autoname_space(simplemodel):
     assert simplemodel.cur_space().name == 'Space1'
+
 
 def test_dir(simplemodel):
     names = dir(simplemodel)
     assert 'Space1' in names
     assert '__builtins__' in names
     assert 'bar' in names
+
 
 def test_new_space(simplemodel):
     space = simplemodel.new_space()
@@ -75,11 +79,11 @@ def test_cellgraph(simplemodel):
     space.fibo[10]
 
     for x in range(10):
-        fibo = CellArgs(space.fibo._impl, x)
-        fibo_prev1 = CellArgs(space.fibo._impl, x - 1)
-        fibo_prev2 = CellArgs(space.fibo._impl, x - 2)
-        fibo_next1 = CellArgs(space.fibo._impl, x + 1)
-        fibo_next2 = CellArgs(space.fibo._impl, x + 2)
+        fibo = get_node(space.fibo._impl, (x,), {})
+        fibo_prev1 = get_node(space.fibo._impl, (x-1,), {})
+        fibo_prev2 = get_node(space.fibo._impl, (x-2,), {})
+        fibo_next1 = get_node(space.fibo._impl, (x+1,), {})
+        fibo_next2 = get_node(space.fibo._impl, (x+2,), {})
 
         if x == 0 or x == 1:
             assert list(get_predec(fibo)) == []
@@ -100,7 +104,8 @@ def test_cellgraph_standalone():
 
     foo(1)
     nodes = model.cellgraph.nodes()
-    assert CellArgs(foo._impl, 1) in nodes
+    assert get_node(foo._impl, (1,), {}) in nodes
+
 
 def test_cellgraph_informula_assignment():
     model, space = new_model(), new_space()
@@ -111,7 +116,7 @@ def test_cellgraph_informula_assignment():
 
     bar(1)
     nodes = model.cellgraph.nodes()
-    assert CellArgs(bar._impl, 1) in nodes
+    assert get_node(bar._impl, (1,), {}) in nodes
 
 
 def test_global_ref_attr(simplemodel):
