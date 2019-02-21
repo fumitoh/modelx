@@ -41,6 +41,7 @@ What Next
    installation
    spyder
    tutorial
+   userguide
    reference/index
 
 * :ref:`genindex`

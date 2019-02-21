@@ -2,26 +2,25 @@ Reference
 =========
 
 
-.. toctree::
-   :caption: Concept Description
-
-   concepts
-
 Function Reference
 ------------------
 
 .. autosummary::
    :toctree: generated/
 
-   modelx.core.api
-   modelx.qtgui.api
+   ~modelx.new_model
+   ~modelx.new_space
+   ~modelx.defcells
+   ~modelx.get_models
+   ~modelx.get_object
+   ~modelx.cur_model
+   ~modelx.cur_space
+   ~modelx.open_model
+   ~modelx.restore_ipython
 
 
 Class Reference
 ---------------
-
-Concrete Class
-~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
@@ -30,16 +29,7 @@ Concrete Class
    ~modelx.core.model.Model
    ~modelx.core.space.Space
    ~modelx.core.cells.Cells
+   ~modelx.core.space.SpaceView
    ~modelx.core.space.CellsView
    ~modelx.core.cells.CellNode
 
-Base Class
-~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-   :template: mxclass.rst
-
-   ~modelx.core.base.Interface
-   ~modelx.core.spacecontainer.SpaceContainer
-   ~modelx.core.base.SelectedView
