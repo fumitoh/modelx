@@ -186,7 +186,7 @@ class _DummyBuiltins:
 
 class Derivable(Impl):
 
-    state_attrs = ['_is_derived'] + Impl.state_attrs
+    state_attrs = ['_is_derived']
 
     def __init__(self):
         self._is_derived = None  # must be initialized after __init__.
@@ -242,6 +242,8 @@ class Derivable(Impl):
 
 
 class ReferenceImpl(Derivable, Impl):
+
+    state_attrs = Impl.state_attrs + Derivable.state_attrs
 
     def __init__(self, parent, name, value, base=None):
         Impl.__init__(self, value)
