@@ -20,7 +20,7 @@ from modelx.core.base import (
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
-class SpaceContainer(Interface):
+class BaseSpaceContainer(Interface):
     """A common base class shared by Model and Space.
 
     This base class defines methods to serve as child space container,
@@ -30,6 +30,43 @@ class SpaceContainer(Interface):
     :py:class:`Space <modelx.core.space.Space>`.
 
     """
+    __slots__ = ()
+
+    @property
+    def spaces(self):
+        """A mapping of the names of child spaces to the Space objects"""
+        return self._impl.spaces.interfaces
+
+    # ----------------------------------------------------------------------
+    # Current Space method
+
+    def cur_space(self, name=None):
+        """Set the current space to Space ``name`` and return it.
+
+        If called without arguments, the current space is returned.
+        Otherwise, the current space is set to the space named ``name``
+        and the space is returned.
+        """
+        if name is None:
+            return self._impl.model.currentspace.interface
+        else:
+            self._impl.model.currentspace = self._impl.spaces[name]
+            return self.cur_space()
+
+    # ----------------------------------------------------------------------
+    # Override base class methods
+
+    @property
+    def _baseattrs(self):
+        """A dict of members expressed in literals"""
+
+        result = super()._baseattrs
+        result['spaces'] = self.spaces._baseattrs
+        return result
+
+
+class EditableSpaceContainer(BaseSpaceContainer):
+
     __slots__ = ()
 
     def new_space(self, name=None, bases=None, formula=None, refs=None):
@@ -160,40 +197,8 @@ class SpaceContainer(Interface):
 
         return get_interfaces(space)
 
-    @property
-    def spaces(self):
-        """A mapping of the names of child spaces to the Space objects"""
-        return self._impl.spaces.interfaces
 
-    # ----------------------------------------------------------------------
-    # Current Space method
-
-    def cur_space(self, name=None):
-        """Set the current space to Space ``name`` and return it.
-
-        If called without arguments, the current space is returned.
-        Otherwise, the current space is set to the space named ``name``
-        and the space is returned.
-        """
-        if name is None:
-            return self._impl.model.currentspace.interface
-        else:
-            self._impl.model.currentspace = self._impl.spaces[name]
-            return self.cur_space()
-
-    # ----------------------------------------------------------------------
-    # Override base class methods
-
-    @property
-    def _baseattrs(self):
-        """A dict of members expressed in literals"""
-
-        result = super()._baseattrs
-        result['spaces'] = self.spaces._baseattrs
-        return result
-
-
-class SpaceContainerImpl(Impl):
+class BaseSpaceContainerImpl(Impl):
     """Base class of Model and Space to work as container of spaces.
 
     **Space Deletion**
@@ -204,8 +209,6 @@ class SpaceContainerImpl(Impl):
 
     state_attrs = ['_spaces',   # must be defined in subclasses
                    'spacenamer'] + Impl.state_attrs
-
-    if_class = SpaceContainer
 
     def __init__(self, system):
 
@@ -273,6 +276,13 @@ class SpaceContainerImpl(Impl):
 
         return space
 
+    def _set_space(self, space):
+        """To be overridden in subclasses."""
+        raise NotImplementedError
+
+
+class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
+
     def new_space(self, name=None, bases=None, formula=None,
                   *, refs=None, source=None, is_derived=False,
                   prefix=''):
@@ -316,10 +326,6 @@ class SpaceContainerImpl(Impl):
                 space.add_bases(bases)
 
         return space
-
-    def _set_space(self, space):
-        """To be overridden in subclasses."""
-        raise NotImplementedError
 
     def new_space_from_module(self, module_, recursive=False, **params):
 
@@ -398,5 +404,3 @@ class SpaceContainerImpl(Impl):
         self.model.spacegraph.remove_node(space)
         for space in self.spaces.values():
             space.inherit()
-
-

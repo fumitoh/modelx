@@ -32,7 +32,9 @@ from modelx.core.base import (
     BoundFunction)
 from modelx.core.node import (
     node_get_args, tuplize_key, get_node, OBJ, KEY)
-from modelx.core.spacecontainer import SpaceContainer, SpaceContainerImpl
+from modelx.core.spacecontainer import (
+    EditableSpaceContainer,
+    EditableSpaceContainerImpl)
 from modelx.core.formula import Formula, ModuleSource
 from modelx.core.cells import (
     Cells,
@@ -199,7 +201,7 @@ class RefView(SelectedView):
         return result
 
 
-class Space(SpaceContainer):
+class Space(EditableSpaceContainer):
     """Container of cells, other spaces, and cells namespace.
 
     Space objects can contain cells and other spaces.
@@ -576,7 +578,7 @@ class Space(SpaceContainer):
         return result
 
 
-class SpaceImpl(Derivable, SpaceContainerImpl):
+class SpaceImpl(Derivable, EditableSpaceContainerImpl):
     """The implementation of Space class."""
 
     if_class = Space
@@ -584,7 +586,7 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
     def __init__(self, parent, name, formula=None,
                  refs=None, arguments=None, source=None):
 
-        SpaceContainerImpl.__init__(self, parent.system)
+        EditableSpaceContainerImpl.__init__(self, parent.system)
         Derivable.__init__(self)
 
         self.name = name
@@ -703,7 +705,8 @@ class SpaceImpl(Derivable, SpaceContainerImpl):
         'name',
         'allow_none',
         'source',
-        'altfunc'] + SpaceContainerImpl.state_attrs + Derivable.state_attrs
+        'altfunc'] + EditableSpaceContainerImpl.state_attrs \
+                  + Derivable.state_attrs
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()

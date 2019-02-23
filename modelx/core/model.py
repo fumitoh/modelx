@@ -26,9 +26,10 @@ from modelx.core.base import (
     BaseView,
     ReferenceImpl)
 from modelx.core.node import OBJ, KEY, get_node, node_has_key
+from modelx.core.spacecontainer import (
+    EditableSpaceContainerImpl,
+    EditableSpaceContainer)
 from modelx.core.space import (
-    SpaceContainerImpl,
-    SpaceContainer,
     SpaceView,
     RefDict)
 from modelx.core.util import is_valid_name, AutoNamer
@@ -87,7 +88,7 @@ class DependencyGraph(nx.DiGraph):
             return nx.add_path(self, nodes, **attr)
 
 
-class Model(SpaceContainer):
+class Model(EditableSpaceContainer):
     """Top-level container in modelx object hierarchy.
 
     Model instances are the top-level objects and directly contain
@@ -141,12 +142,12 @@ class Model(SpaceContainer):
         return self._impl.global_refs.mproxy
 
 
-class ModelImpl(SpaceContainerImpl):
+class ModelImpl(EditableSpaceContainerImpl):
 
     if_class = Model
 
     def __init__(self, *, system, name):
-        SpaceContainerImpl.__init__(self, system)
+        EditableSpaceContainerImpl.__init__(self, system)
 
         self.cellgraph = DependencyGraph()
         self.lexdep = DependencyGraph()     # Lexical dependency
@@ -251,7 +252,7 @@ class ModelImpl(SpaceContainerImpl):
                    '_dynamic_bases',
                    '_dynamic_bases_inverse',
                    '_dynamic_base_namer',
-                   'spacegraph'] + SpaceContainerImpl.state_attrs
+                   'spacegraph'] + EditableSpaceContainerImpl.state_attrs
 
     def __getstate__(self):
 
@@ -278,7 +279,7 @@ class ModelImpl(SpaceContainerImpl):
 
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
-        SpaceContainerImpl.restore_state(self, system)
+        EditableSpaceContainerImpl.restore_state(self, system)
         mapping = {}
         for node in self.cellgraph:
             if isinstance(node, tuple):
