@@ -218,7 +218,7 @@ Refer to :py:func:`~modelx.core.api.defcells` section in the reference manual
 for the details.
 
 Another way to create a cells is to use Space's
-:py:meth:`~modelx.core.space.Space.new_cells` method. Not that
+:py:meth:`~modelx.core.space.StaticSpace.new_cells` method. Not that
 the command below doesn't work in the current context as we've
 already defined ``fibo``::
 
@@ -388,7 +388,7 @@ Cells
    the cells belong to spaces. One cells must belong to one ane only one
    space.
 
-   The :py:meth:`cells <modelx.core.space.Space.cells>` property of Space
+   The :py:meth:`cells <modelx.core.space.StaticSpace.cells>` property of Space
    returns a dictionary of all the cells associated with their names.
 
 (Sub)spaces
@@ -454,7 +454,7 @@ References
       >>> bar()
       6
 
-   The :py:meth:`refs <modelx.core.space.Space.refs>`
+   The :py:meth:`refs <modelx.core.space.StaticSpace.refs>`
    property of space returns a mapping of reference names
    to their objects::
 

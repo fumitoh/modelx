@@ -109,13 +109,14 @@ class Impl:
 
     if_class = None     # Override in sub classes if interface class exists
 
-    def __init__(self, interface=None):
+    def __init__(self, system, interface=None):
 
         if self.if_class:
             self.interface = self.if_class(self)
         else:
             self.interface = interface
 
+        self.system = system
         self.parent = None  # To be overwritten in Space and Cells
         self.name = None
         self.allow_none = None
@@ -179,6 +180,10 @@ class Impl:
         else:
             return self.repr_self(add_params)
 
+    def restore_state(self, system):
+        """Called after unpickling to restore some attributes manually."""
+        self.system = system
+
 
 class _DummyBuiltins:
     pass
@@ -186,9 +191,10 @@ class _DummyBuiltins:
 
 class Derivable(Impl):
 
-    state_attrs = ['_is_derived']
+    state_attrs = ['_is_derived'] + Impl.state_attrs
 
-    def __init__(self):
+    def __init__(self, system, interface=None):
+        Impl.__init__(self, system, interface)
         self._is_derived = None  # must be initialized after __init__.
 
     @property
@@ -222,10 +228,14 @@ class Derivable(Impl):
             parent_bases = self.parent.bases
             result = []
             for space in parent_bases:
-                if self.name in space.inheritables:
-                    if type(self) is type(space.inheritables[self.name]):
-                        result.append(space.inheritables[self.name])
+                bases = self._get_members(space)
+                if self.name in bases:
+                    result.append(bases[self.name])
             return result
+
+    @staticmethod
+    def _get_members(other):
+        raise NotImplementedError
 
     @property
     def self_bases(self):
@@ -241,13 +251,12 @@ class Derivable(Impl):
             return repr(self.parent) + '.' + self.name
 
 
-class ReferenceImpl(Derivable, Impl):
+class ReferenceImpl(Derivable):
 
-    state_attrs = Impl.state_attrs + Derivable.state_attrs
+    state_attrs = Derivable.state_attrs
 
     def __init__(self, parent, name, value, base=None):
-        Impl.__init__(self, value)
-        Derivable.__init__(self)
+        Derivable.__init__(self, parent.system, interface=value)
 
         self.parent = parent
         self.model = parent.model
@@ -272,6 +281,10 @@ class ReferenceImpl(Derivable, Impl):
     @property
     def self_bases(self):
         return []
+
+    @staticmethod
+    def _get_members(other):
+        return other.self_refs
 
     def inherit(self, **kwargs):
 
@@ -804,7 +817,7 @@ class BoundFunction(LazyEval):
     def __init__(self, owner):
         """Create altered function from owner's formula.
 
-        owner is a SpaceImpl or CellsImpl, which has formula, and
+        owner is a StaticSpaceImpl or CellsImpl, which has formula, and
         namespace_impl as its members.
         """
         LazyEval.__init__(self, [])

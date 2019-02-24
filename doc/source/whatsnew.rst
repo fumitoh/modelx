@@ -42,7 +42,7 @@ v0.0.20 (2 February 2019)
 Enhancements
 ~~~~~~~~~~~~
 - :class:`~core.cells.CellNode` repr to show "parameter=arguments".
-- Add :attr:`~core.space.Space.formula` property.
+- Add :attr:`~core.space.StaticSpace.formula` property.
 
 Bug Fixes
 ~~~~~~~~~
@@ -187,15 +187,15 @@ make the inheritance logic more robust.
 
 Enhancements
 ~~~~~~~~~~~~
-- :meth:`~core.space.Space.add_bases` and :meth:`~core.space.Space.remove_bases` are added.
-- :attr:`~core.space.Space.bases` is added.
+- :meth:`~core.space.StaticSpace.add_bases` and :meth:`~core.space.StaticSpace.remove_bases` are added.
+- :attr:`~core.space.StaticSpace.bases` is added.
 
 Backwards Incompatible Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Support for Python older than 3.6 is dropped. Now Python 3.6 or above is required.
 - Support for NetworkX version 1 is dropped. Now NetworkX version 2 is required.
 - Dynamic spaces now inherit their parent spaces by default.
-- :meth:`~core.space.Space.new_cells` raises an error when the cells already exists.
+- :meth:`~core.space.StaticSpace.new_cells` raises an error when the cells already exists.
 - :attr:`~core.cells.Cells.formula` now returns Formula object instead of string.
 
 Bug Fixes
@@ -210,7 +210,7 @@ v0.0.12 (16 June 2018)
 
 Enhancements
 ~~~~~~~~~~~~
-- :attr:`~core.space.Space.cells` returns an immutable mapping of cells named
+- :attr:`~core.space.StaticSpace.cells` returns an immutable mapping of cells named
   :class:`~core.space.CellsView` supporting
   :meth:`~core.space.CellsView.to_frame` method,
   which returns a DataFrame
@@ -223,14 +223,14 @@ Enhancements
 - Cells are now of a Mapping type, which implements ``keys()``, ``values()``,
   ``items()`` methods to get their arguments and values.
 
-- Subscription(``[]``) operator on :attr:`~core.space.Space.cells` now
+- Subscription(``[]``) operator on :attr:`~core.space.StaticSpace.cells` now
   accepts multiple args of cell names and a sequence of cell names,
   such as ``['foo', 'bar']`` and ``[['foo', 'bar']]``, which returns
   an immutable mapping (view) that includes only specified cells.
 
 Backwards Incompatible Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- :attr:`~core.space.Space.frame` returns does not include empty or all-None cells.
+- :attr:`~core.space.StaticSpace.frame` returns does not include empty or all-None cells.
 
 
 Bug Fixes
@@ -288,24 +288,24 @@ v0.0.8 (25 March 2018)
 Enhancements
 ~~~~~~~~~~~~
 - Make :func:`get_modeltree <modelx.qtgui.api.get_modeltree>` available directly under ``modelx``.
-- Add :meth:`~core.space.SpaceContainer.import_module` and :meth:`~core.space.Space.import_funcs` properties.
-- Add :attr:`~core.space.Space.all_spaces` to contain all child spaces, including dynamic spaces.
-- Add :py:attr:`~core.space.Space.self_spaces` and :py:attr:`~core.space.Space.derived_spaces` properties.
+- Add :meth:`~core.space.SpaceContainer.import_module` and :meth:`~core.space.StaticSpace.import_funcs` properties.
+- Add :attr:`~core.space.StaticSpace.all_spaces` to contain all child spaces, including dynamic spaces.
+- Add :py:attr:`~core.space.StaticSpace.self_spaces` and :py:attr:`~core.space.StaticSpace.derived_spaces` properties.
 - Add :py:func:`~core.api.configure_python` and :py:func:`~core.api.restore_python`.
-- Add :py:meth:`~core.space.Space.reload` to reload the source module.
-- :py:class:`~core.model.Model` and :py:class:`~core.space.Space` to list their members on :func:`dir`.
+- Add :py:meth:`~core.space.StaticSpace.reload` to reload the source module.
+- :py:class:`~core.model.Model` and :py:class:`~core.space.StaticSpace` to list their members on :func:`dir`.
 - Raise an error upon zero division in formulas.
 - Add :py:attr:`~core.base.Interface.parent` property.
 
 Backwards Incompatible Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Base spaces are now indelible.
-- :attr:`~core.space.Space.spaces` now contains only statics spaces. Now :attr:`~core.space.Space.static_spaces` is an alias to  :attr:`~core.space.Space.spaces`.
+- :attr:`~core.space.StaticSpace.spaces` now contains only statics spaces. Now :attr:`~core.space.StaticSpace.static_spaces` is an alias to  :attr:`~core.space.StaticSpace.spaces`.
 
 Bug Fixes
 ~~~~~~~~~
-- Remove overridden cells from :py:attr:`~core.space.Space.derived_cells`
-- Update :py:attr:`~core.space.Space.self_cells` when new cells are added.
+- Remove overridden cells from :py:attr:`~core.space.StaticSpace.derived_cells`
+- Update :py:attr:`~core.space.StaticSpace.self_cells` when new cells are added.
 - Fix stack overflow with Anaconda 64-bit Python on Windows.
 
 Thanks
@@ -317,8 +317,8 @@ v0.0.7 (27 February 2018)
 
 Backwards Incompatible Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Renamed :py:class:`~core.space.Space` constructor parameter ``paramfunc`` to ``formula``.
-- Renamed :py:meth:`~core.space.Space.new_cells` parameter ``func`` to ``formula``.
+- Renamed :py:class:`~core.space.StaticSpace` constructor parameter ``paramfunc`` to ``formula``.
+- Renamed :py:meth:`~core.space.StaticSpace.new_cells` parameter ``func`` to ``formula``.
 - Renamed :py:class:`~core.base.Interface` ``can_have_none`` to ``allow_none``.
 
 Bug Fixes

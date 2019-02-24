@@ -20,6 +20,7 @@ import pickle
 import networkx as nx
 
 from modelx.core.base import (
+    Impl,
     get_interfaces,
     ImplDict,
     ImplChainMap,
@@ -27,9 +28,11 @@ from modelx.core.base import (
     ReferenceImpl)
 from modelx.core.node import OBJ, KEY, get_node, node_has_key
 from modelx.core.spacecontainer import (
+    BaseSpaceContainerImpl,
     EditableSpaceContainerImpl,
     EditableSpaceContainer)
 from modelx.core.space import (
+    DynamicSpaceImpl,
     SpaceView,
     RefDict)
 from modelx.core.util import is_valid_name, AutoNamer
@@ -92,7 +95,7 @@ class Model(EditableSpaceContainer):
     """Top-level container in modelx object hierarchy.
 
     Model instances are the top-level objects and directly contain
-    :py:class:`Space <modelx.core.space.Space>` objects, which in turn
+    :py:class:`StaticSpace <modelx.core.space.StaticSpace>` objects, which in turn
     contain other spaces or
     :py:class:`Cells <modelx.core.cells.Cells>` objects.
 
@@ -142,12 +145,13 @@ class Model(EditableSpaceContainer):
         return self._impl.global_refs.mproxy
 
 
-class ModelImpl(EditableSpaceContainerImpl):
+class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     if_class = Model
 
     def __init__(self, *, system, name):
-        EditableSpaceContainerImpl.__init__(self, system)
+        Impl.__init__(self, system=system)
+        EditableSpaceContainerImpl.__init__(self)
 
         self.cellgraph = DependencyGraph()
         self.lexdep = DependencyGraph()     # Lexical dependency
@@ -244,15 +248,19 @@ class ModelImpl(EditableSpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = ['name',
-                   'cellgraph',
-                   'lexdep',
-                   '_namespace',
-                   '_global_refs',
-                   '_dynamic_bases',
-                   '_dynamic_bases_inverse',
-                   '_dynamic_base_namer',
-                   'spacegraph'] + EditableSpaceContainerImpl.state_attrs
+    state_attrs = [
+        'name',
+        'cellgraph',
+        'lexdep',
+        '_namespace',
+        '_global_refs',
+        '_dynamic_bases',
+        '_dynamic_bases_inverse',
+        '_dynamic_base_namer',
+        'spacegraph'
+    ] + BaseSpaceContainerImpl.state_attrs + Impl.state_attrs
+
+    assert len(state_attrs) == len(set(state_attrs))
 
     def __getstate__(self):
 
@@ -279,7 +287,8 @@ class ModelImpl(EditableSpaceContainerImpl):
 
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
-        EditableSpaceContainerImpl.restore_state(self, system)
+        Impl.restore_state(self, system)
+        BaseSpaceContainerImpl.restore_state(self, system)
         mapping = {}
         for node in self.cellgraph:
             if isinstance(node, tuple):
@@ -355,7 +364,7 @@ class SpaceGraph(nx.DiGraph):
     def add_edge(self, basespace, subspace):
 
         if basespace.has_linealrel(subspace):
-            if not subspace.is_dynamic:
+            if not isinstance(subspace, DynamicSpaceImpl):
                 raise ValueError("%s and %s have parent-child relationship"
                                  % (basespace, subspace))
 

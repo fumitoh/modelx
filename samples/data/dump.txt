@@ -50,7 +50,7 @@
   189: K            BININT1    0      Push a one-byte unsigned integer.
   191: \x8c         SHORT_BINUNICODE '_AutoNamer__basename' Push a Python Unicode string object.
   213: \x94         MEMOIZE           Store the stack top into the memo.  The stack is not popped.
-  214: \x8c         SHORT_BINUNICODE 'Space' Push a Python Unicode string object.
+  214: \x8c         SHORT_BINUNICODE 'StaticSpace' Push a Python Unicode string object.
   221: \x94         MEMOIZE                  Store the stack top into the memo.  The stack is not popped.
   222: u            SETITEMS   (MARK at 161) Add an arbitrary number of key+value pairs to an existing dict.
   223: b        BUILD                        Finish building an object, via __setstate__ or dict update.

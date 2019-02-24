@@ -340,7 +340,7 @@ class Cells(Interface, Mapping, Callable):
         return result
 
 
-class CellsImpl(Derivable, Impl):
+class CellsImpl(Derivable):
     """
     Data container optionally with a formula to set its own values.
 
@@ -384,10 +384,8 @@ class CellsImpl(Derivable, Impl):
     def __init__(self, *, space, name=None, formula=None, data=None,
                  base=None):
 
-        Impl.__init__(self)
-        Derivable.__init__(self)
+        Derivable.__init__(self, system=space.system)
 
-        self.system = space.system
         self._model = space.model
         self.space = self.parent = space
 
@@ -424,7 +422,9 @@ class CellsImpl(Derivable, Impl):
                    'name',
                    'data',
                    '_namespace_impl',
-                   'altfunc'] + Derivable.state_attrs + Impl.state_attrs
+                   'altfunc'] + Derivable.state_attrs
+
+    assert len(state_attrs) == len(set(state_attrs))
 
     def __getstate__(self):
         state = {key: value for key, value in self.__dict__.items()
@@ -435,12 +435,9 @@ class CellsImpl(Derivable, Impl):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def restore_state(self, system):
-        """Called after unpickling to restore some attributes manually."""
-        self.system = system
-
     # ----------------------------------------------------------------------
     # Properties
+
     @property
     def model(self):
         return self._model
@@ -494,6 +491,10 @@ class CellsImpl(Derivable, Impl):
     @property
     def self_bases(self):
         return []
+
+    @staticmethod
+    def _get_members(other):
+        return other.cells
 
     # ----------------------------------------------------------------------
     # Formula operations

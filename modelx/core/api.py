@@ -29,7 +29,7 @@ from types import FunctionType as _FunctionType
 
 from modelx.core import mxsys as _system
 from modelx.core.cells import CellsMaker as _CellsMaker
-from modelx.core.space import Space as _Space
+from modelx.core.space import BaseSpace as _Space
 from modelx.core.model import Model as _Model
 from modelx.core.base import get_interfaces as _get_interfaces
 
@@ -97,7 +97,7 @@ def defcells(space=None, name=None, *funcs):
 
     Convenience decorator/function to create new cells directly from function
     definitions or function objects substituting for calling
-    :py:meth:`new_cells <modelx.core.space.Space.new_cells>`
+    :py:meth:`new_cells <modelx.core.space.StaticSpace.new_cells>`
     method of the parent space.
 
     There are 3 ways to use ``defcells`` to define cells from functions.

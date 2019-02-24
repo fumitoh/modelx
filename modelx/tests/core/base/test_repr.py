@@ -30,11 +30,11 @@ def test_repr_model(repr_test):
     assert repr(repr_test) == "<Model ReprModel>"
 
 def test_repr_space(repr_test):
-    assert repr(repr_test.ReprSpace) == "<Space ReprSpace in ReprModel>"
+    assert repr(repr_test.ReprSpace) == "<StaticSpace ReprSpace in ReprModel>"
 
 def test_repr_suspace(repr_test):
     assert repr(repr_test.ReprSpace.ReprChild) \
-        == "<Space ReprChild in ReprModel.ReprSpace>"
+        == "<StaticSpace ReprChild in ReprModel.ReprSpace>"
 
 def test_repr_cells(repr_test):
     cells = repr_test.ReprSpace.Foo
@@ -47,7 +47,7 @@ def test_repr_cells_in_child(repr_test):
 
 def test_repr_dynspace(repr_test):
     space = repr_test.DynSpace(1, 2)
-    assert repr(space) == "<Space DynSpace[1, 2] in ReprModel>"
+    assert repr(space) == "<DynamicSpace DynSpace[1, 2] in ReprModel>"
 
 def test_repr_cells_in_dynspace(repr_test):
     cells = repr_test.DynSpace(1, 2).Foo
