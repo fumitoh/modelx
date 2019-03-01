@@ -230,7 +230,7 @@ class BaseSpace(BaseSpaceContainer):
 
     def is_static(self):
         """True if the space is a static space, False if dynamic."""
-        return self._impl.is_static()
+        return isinstance(self._impl, StaticSpaceImpl)
 
     def is_derived(self):
         """True if the space is a derived space, False otherwise."""
@@ -772,15 +772,8 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
     def is_sub(self, other):
         return other in self.bases
 
-    def is_defined(self):
-        if self.is_static():
-            return not self.is_derived
-        return False
 
     # --- Dynamic space properties ---
-
-    def is_static(self):
-        raise NotImplementedError
 
     def in_dynamic(self):
         raise NotImplementedError
@@ -1212,8 +1205,8 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         else:
             raise KeyError("'%s' not found in Space '%s'" % (name, self.name))
 
-    def is_static(self):
-        return True
+    def is_defined(self):
+        return not self.is_derived
 
     def in_dynamic(self):
         return False
@@ -1384,9 +1377,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     @property
     def parentargs(self):
         return self._arguments.get_updated()
-
-    def is_static(self):
-        return False
 
     def in_dynamic(self):
         return True
