@@ -363,12 +363,6 @@ class BaseSpace(BaseSpaceContainer):
         else:
             result['params'] = ''
 
-        args = self.argvalues
-        if args is not None:
-            result['argvalues'] = ', '.join([repr(arg) for arg in args])
-        else:
-            result['argvalues'] = ''
-
         return result
 
 
@@ -1440,3 +1434,15 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
         # From Python 3.5, signature is pickable,
         # pickling logic involving signature may be simplified.
         self._bind_args(self._arguments)
+
+    @property
+    def _baseattrs(self):
+
+        result = super()._baseattrs
+        args = self.argvalues
+        if args is not None:
+            result['argvalues'] = ', '.join([repr(arg) for arg in args])
+        else:
+            result['argvalues'] = ''
+
+        return result
