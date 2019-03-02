@@ -113,29 +113,29 @@ def test_inheritance(testspaces):
 
     target, source = testspaces
 
-    assert source.is_base(target)
-    assert target.is_sub(source)
+    assert source._is_base(target)
+    assert target._is_sub(source)
 
 
 def test_properties(testspaces):
 
     target, source = testspaces
 
-    assert target.is_static()
-    assert source.is_static()
+    assert target._is_static()
+    assert source._is_static()
 
-    assert not source.is_root()
-    assert not target.is_root()
+    assert not source._is_root()
+    assert not target._is_root()
 
-    assert source.is_defined()
-    assert not source.is_derived()
+    assert source._is_defined()
+    assert not source._is_derived()
 
     if source.name == "base":
-        assert target.is_defined()
-        assert not target.is_derived()
+        assert target._is_defined()
+        assert not target._is_derived()
     else:
-        assert not target.is_defined()
-        assert target.is_derived()
+        assert not target._is_defined()
+        assert target._is_derived()
 
 
 def test_cellsmapproxy_contains(testspaces):

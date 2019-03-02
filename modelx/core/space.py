@@ -221,31 +221,31 @@ class BaseSpace(BaseSpaceContainer):
         """List of base classes."""
         return get_interfaces(self._impl.bases)
 
-    def is_base(self, other):
+    def _is_base(self, other):
         """True if the space is a base space of ``other``, False otherwise."""
         return self._impl.is_base(other._impl)
 
-    def is_sub(self, other):
+    def _is_sub(self, other):
         """True if the space is a sub space of ``other``, False otherwise."""
         return self._impl.is_sub(other._impl)
 
-    def is_static(self):
+    def _is_static(self):
         """True if the space is a static space, False if dynamic."""
         return isinstance(self._impl, StaticSpaceImpl)
 
-    def is_derived(self):
+    def _is_derived(self):
         """True if the space is a derived space, False otherwise."""
         return self._impl.is_derived
 
-    def is_defined(self):
+    def _is_defined(self):
         """True if the space is a defined space, False otherwise."""
         return self._impl.is_defined()
 
-    def is_root(self):
+    def _is_root(self):
         """True if ths space is a dynamic space, False otherwise."""
         return isinstance(self._impl, RootDynamicSpaceImpl)
 
-    def is_dynamic(self):
+    def _is_dynamic(self):
         """True if the space is in a dynamic space, False otherwise."""
         return self._impl.is_dynamic()
 
@@ -255,12 +255,12 @@ class BaseSpace(BaseSpaceContainer):
         return self._impl.cells.interfaces
 
     @property
-    def self_cells(self):
+    def _self_cells(self):
         """A mapping that associates names to cells defined in the space"""
         return self._impl.self_cells.interfaces
 
     @property
-    def derived_cells(self):
+    def _derived_cells(self):
         """A mapping associating names to derived cells."""
         return self._impl.derived_cells.interfaces
 
@@ -288,12 +288,12 @@ class BaseSpace(BaseSpaceContainer):
         return self._impl.dynamic_spaces.interfaces
 
     @property
-    def self_spaces(self):
+    def _self_spaces(self):
         """A mapping associating names to self spaces."""
         return self._impl.self_spaces.interfaces
 
     @property
-    def derived_spaces(self):
+    def _derived_spaces(self):
         """A mapping associating names to derived spaces."""
         return self._impl.derived_spaces.interfaces
 

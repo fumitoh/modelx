@@ -47,18 +47,18 @@ def unpickled_model(request, derived_sample, tmpdir_factory):
 def test_defined(unpickled_model):
 
     root = unpickled_model.root
-    assert not root.C.is_derived()
-    assert not root.C.B.is_derived()
-    assert not root.C.B.D.is_derived()
+    assert not root.C._is_derived()
+    assert not root.C.B._is_derived()
+    assert not root.C.B.D._is_derived()
 
 
 @pytest.mark.parametrize("member", ["space", "cells", "ref"])
 def test_derived_to_defined(unpickled_model, member):
 
     root = unpickled_model.root
-    assert not root.E.is_derived()
-    assert root.E.B.is_derived()
-    assert root.E.B.D.is_derived()
+    assert not root.E._is_derived()
+    assert root.E.B._is_derived()
+    assert root.E.B.D._is_derived()
 
     if member == "space":
         root.E.B.D.new_space(name="F")
@@ -67,6 +67,6 @@ def test_derived_to_defined(unpickled_model, member):
     else:
         root.E.B.D.F = 123
 
-    assert not root.E.is_derived()
-    assert not root.E.B.is_derived()
-    assert not root.E.B.D.is_derived()
+    assert not root.E._is_derived()
+    assert not root.E.B._is_derived()
+    assert not root.E.B.D._is_derived()
