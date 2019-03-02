@@ -605,7 +605,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         '_self_refs',
         '_refs',
         '_namespace_impl',
-        'is_dynamic',
         'param_spaces',
         'formula',
         'cellsnamer',
@@ -842,18 +841,12 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         for dynspace in self._dynamic_subs:
             dynspace.inherit(**kwargs)
 
+    def _new_space_member(self, name, is_derived):
+        raise NotImplementedError
+
     def _new_member(self, attr, name, is_derived=False):
         if attr == 'static_spaces':
-            if not self.in_dynamic():
-                space = self._new_space(name, is_derived=is_derived)
-            else:
-                space = DynamicSpaceImpl(parent=self, name=name)
-                space.is_derived = is_derived
-
-            self._set_space(space)
-            if not self.in_dynamic():
-                self.model.spacegraph.add_space(space)
-            return space
+            return self._new_space_member(name, is_derived)
         elif attr == 'cells':
             return self._new_cells(name, formula=None, is_derived=is_derived)
         elif attr == 'self_refs':
@@ -923,8 +916,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             RuntimeError("must not happen")
 
     def _new_dynspace(self, name=None, bases=None, formula=None,
-                      refs=None, arguments=None, source=None,
-                      is_derived=False):
+                      refs=None, arguments=None, source=None):
         """Create a new dynamic root space."""
 
         if name is None:
@@ -939,9 +931,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         space = RootDynamicSpaceImpl(
             parent=self, name=name, formula=formula,
             refs=refs, source=source, arguments=arguments)
-
-        space.is_derived = is_derived
-
+        space.is_derived = False
         self._set_space(space)
 
         if bases: # i.e. not []
@@ -1074,6 +1064,12 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
                             [self.model._global_refs,
                              self._local_refs,
                              self._self_refs])
+
+    def _new_space_member(self, name, is_derived):
+        space = self._new_space(name, is_derived=is_derived)
+        self._set_space(space)
+        self.model.spacegraph.add_space(space)
+        return space
 
     def new_cells(self, name=None, formula=None, is_derived=False):
 
@@ -1346,6 +1342,12 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
         BaseSpaceImpl.__init__(self, parent, name,
                                formula, refs, source, arguments)
+
+    def _new_space_member(self, name, is_derived):
+        space = DynamicSpaceImpl(parent=self, name=name)
+        space.is_derived = is_derived
+        self._set_space(space)
+        return space
 
     def _create_refs(self, arguments=None):
         self._parentargs = self._create_parentargs()

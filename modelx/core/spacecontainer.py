@@ -311,15 +311,14 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                                 is_derived=is_derived)
         self._set_space(space)
 
-        if not space.in_dynamic():
-            self.model.spacegraph.add_space(space)
+        self.model.spacegraph.add_space(space)
 
-            # Set up direct base spaces and mro
-            if bases is not None:
-                if isinstance(bases, StaticSpaceImpl):
-                    bases = [bases]
+        # Set up direct base spaces and mro
+        if bases is not None:
+            if isinstance(bases, StaticSpaceImpl):
+                bases = [bases]
 
-                space.add_bases(bases)
+            space.add_bases(bases)
 
         return space
 
