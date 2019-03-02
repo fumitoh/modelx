@@ -771,7 +771,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
     def is_sub(self, other):
         return other in self.bases
 
-
     # --- Dynamic space properties ---
 
     def in_dynamic(self):
@@ -1150,8 +1149,7 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def new_ref(self, name, value, is_derived=False):
         ref = self._new_ref(name, value, is_derived)
         ref.inherit()
-        if not self.in_dynamic():
-            self.model.spacegraph.update_subspaces(self)
+        self.model.spacegraph.update_subspaces(self)
         return ref
 
     # ----------------------------------------------------------------------
