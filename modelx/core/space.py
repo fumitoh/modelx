@@ -241,13 +241,13 @@ class BaseSpace(BaseSpaceContainer):
         """True if the space is a defined space, False otherwise."""
         return self._impl.is_defined()
 
-    def is_dynamic(self):
+    def is_root(self):
         """True if ths space is a dynamic space, False otherwise."""
         return isinstance(self._impl, RootDynamicSpaceImpl)
 
-    def in_dynamic(self):
+    def is_dynamic(self):
         """True if the space is in a dynamic space, False otherwise."""
-        return self._impl.in_dynamic()
+        return self._impl.is_dynamic()
 
     @property
     def cells(self):
@@ -801,7 +801,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
 
     # --- Dynamic space properties ---
 
-    def in_dynamic(self):
+    def is_dynamic(self):
         raise NotImplementedError
 
     def _set_space(self, space):
@@ -934,7 +934,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         its base.
         """
         bases = tuple(
-            base.bases[0] if base.in_dynamic() else base for base in bases_
+            base.bases[0] if base.is_dynamic() else base for base in bases_
         )
 
         if len(bases) == 1:
@@ -1278,7 +1278,7 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def is_defined(self):
         return not self.is_derived
 
-    def in_dynamic(self):
+    def is_dynamic(self):
         return False
 
     # ----------------------------------------------------------------------
@@ -1470,7 +1470,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     def parentargs(self):
         return self._arguments.get_updated()
 
-    def in_dynamic(self):
+    def is_dynamic(self):
         return True
 
 

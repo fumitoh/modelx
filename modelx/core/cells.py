@@ -503,7 +503,7 @@ class CellsImpl(Derivable):
 
     def set_formula(self, func):
 
-        if self.parent.in_dynamic():
+        if self.parent.is_dynamic():
             raise ValueError("cannot set formula in dynamic space")
         self._model.clear_obj(self)
         formula = Formula(func)

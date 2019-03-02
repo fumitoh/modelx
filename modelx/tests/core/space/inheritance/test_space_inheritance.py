@@ -124,8 +124,8 @@ def test_properties(testspaces):
     assert target.is_static()
     assert source.is_static()
 
-    assert not source.is_dynamic()
-    assert not target.is_dynamic()
+    assert not source.is_root()
+    assert not target.is_root()
 
     assert source.is_defined()
     assert not source.is_derived()
