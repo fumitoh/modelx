@@ -19,14 +19,14 @@ import importlib
 import types
 from inspect import getmro
 
-class AutoNamer:
 
+class AutoNamer:
     def __init__(self, basename):
 
         self.__basename = basename
         self.__last_postfix = 0
 
-    def get_next(self, existing_names, prefix=''):
+    def get_next(self, existing_names, prefix=""):
 
         self.__last_postfix += 1
         result = prefix + self.__basename + str(self.__last_postfix)
@@ -39,7 +39,7 @@ class AutoNamer:
             return result
 
     def revert(self):
-        self.__last_postfix -= (self.__last_postfix and 1)
+        self.__last_postfix -= self.__last_postfix and 1
 
     def reset(self):
         self.__last_postfix = 0
@@ -55,7 +55,7 @@ def is_valid_name(word):
 
     if word.isidentifier() and not keyword.iskeyword(word):
         check = _system_defined_names.match(word)
-        if not check:   # _system_defined_names.match(word):
+        if not check:  # _system_defined_names.match(word):
             return True
 
     return False
@@ -88,7 +88,6 @@ def get_module(module_):
         module_ = sys.modules[module_]
 
     else:
-        raise TypeError("%s is not a module or string." %
-                        module_)
+        raise TypeError("%s is not a module or string." % module_)
 
     return module_

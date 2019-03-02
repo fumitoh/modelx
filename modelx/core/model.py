@@ -25,16 +25,15 @@ from modelx.core.base import (
     ImplDict,
     ImplChainMap,
     BaseView,
-    ReferenceImpl)
+    ReferenceImpl,
+)
 from modelx.core.node import OBJ, KEY, get_node, node_has_key
 from modelx.core.spacecontainer import (
     BaseSpaceContainerImpl,
     EditableSpaceContainerImpl,
-    EditableSpaceContainer)
-from modelx.core.space import (
-    DynamicSpaceImpl,
-    SpaceView,
-    RefDict)
+    EditableSpaceContainer,
+)
+from modelx.core.space import DynamicSpaceImpl, SpaceView, RefDict
 from modelx.core.util import is_valid_name, AutoNamer
 
 
@@ -69,7 +68,7 @@ class DependencyGraph(nx.DiGraph):
         """Return nodes with `obj`."""
         result = set()
 
-        if nx.__version__[0] == '1':
+        if nx.__version__[0] == "1":
             nodes = self.nodes_iter()
         else:
             nodes = self.nodes
@@ -85,7 +84,7 @@ class DependencyGraph(nx.DiGraph):
 
     def add_path(self, nodes, **attr):
         """In replacement for Deprecated add_path method"""
-        if nx.__version__[0] == '1':
+        if nx.__version__[0] == "1":
             return super().add_path(nodes, **attr)
         else:
             return nx.add_path(self, nodes, **attr)
@@ -102,6 +101,7 @@ class Model(EditableSpaceContainer):
     A model can be created by
     :py:func:`new_model <modelx.core.model.Model>` API function.
     """
+
     __slots__ = ()
 
     def rename(self, name):
@@ -154,7 +154,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         EditableSpaceContainerImpl.__init__(self)
 
         self.cellgraph = DependencyGraph()
-        self.lexdep = DependencyGraph()     # Lexical dependency
+        self.lexdep = DependencyGraph()  # Lexical dependency
         self.spacegraph = SpaceGraph()
         self.currentspace = None
 
@@ -165,14 +165,15 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         else:
             raise ValueError("Invalid name '%s'." % name)
 
-        data = {'__builtins__': builtins}
+        data = {"__builtins__": builtins}
         self._global_refs = RefDict(self, data=data)
         self._spaces = ImplDict(self, SpaceView)
         self._dynamic_bases = {}
         self._dynamic_bases_inverse = {}
-        self._dynamic_base_namer = AutoNamer('__Space')
+        self._dynamic_base_namer = AutoNamer("__Space")
         self._namespace = ImplChainMap(
-            self, BaseView, [self._spaces, self._global_refs])
+            self, BaseView, [self._spaces, self._global_refs]
+        )
         self.allow_none = False
         self.lazy_evals = self._namespace
 
@@ -181,8 +182,8 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         if is_valid_name(name):
             if name not in self.system.models:
                 self.name = name
-                return True     # Rename success
-            else:               # Model name already exists
+                return True  # Rename success
+            else:  # Model name already exists
                 return False
         else:
             raise ValueError("Invalid name '%s'." % name)
@@ -210,7 +211,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         return self.name
 
     def repr_parent(self):
-        return ''
+        return ""
 
     @property
     def fullname(self):
@@ -233,42 +234,52 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     def save(self, filepath):
         self.update_lazyevals()
-        with open(filepath, 'wb') as file:
+        with open(filepath, "wb") as file:
             pickle.dump(self.interface, file, protocol=4)
 
     def get_object(self, name):
         """Retrieve an object by a dotted name relative to the model."""
-        parts = name.split('.')
+        parts = name.split(".")
         space = self.spaces[parts.pop(0)]
         if parts:
-            return space.get_object('.'.join(parts))
+            return space.get_object(".".join(parts))
         else:
             return space
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = [
-        'name',
-        'cellgraph',
-        'lexdep',
-        '_namespace',
-        '_global_refs',
-        '_dynamic_bases',
-        '_dynamic_bases_inverse',
-        '_dynamic_base_namer',
-        'spacegraph'
-    ] + BaseSpaceContainerImpl.state_attrs + Impl.state_attrs
+    state_attrs = (
+        [
+            "name",
+            "cellgraph",
+            "lexdep",
+            "_namespace",
+            "_global_refs",
+            "_dynamic_bases",
+            "_dynamic_bases_inverse",
+            "_dynamic_base_namer",
+            "spacegraph",
+        ]
+        + BaseSpaceContainerImpl.state_attrs
+        + Impl.state_attrs
+    )
 
     assert len(state_attrs) == len(set(state_attrs))
 
     def __getstate__(self):
 
-        state = {key: value for key, value in self.__dict__.items()
-                 if key in self.state_attrs}
+        state = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key in self.state_attrs
+        }
 
-        graphs = {name: graph for name, graph in state.items()
-                  if isinstance(graph, DependencyGraph)}
+        graphs = {
+            name: graph
+            for name, graph in state.items()
+            if isinstance(graph, DependencyGraph)
+        }
 
         for gname, graph in graphs.items():
             mapping = {}
@@ -323,7 +334,8 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             return get_interfaces(self.global_refs[name])
         else:
             raise AttributeError(
-                "Model '{0}' does not have '{1}'".format(self.name, name))
+                "Model '{0}' does not have '{1}'".format(self.name, name)
+            )
 
     def set_attr(self, name, value):
         if name in self.spaces:
@@ -356,7 +368,6 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
 
 class SpaceGraph(nx.DiGraph):
-
     def add_space(self, space):
         self.add_node(space)
         self.update_subspaces(space)
@@ -365,8 +376,10 @@ class SpaceGraph(nx.DiGraph):
 
         if basespace.has_linealrel(subspace):
             if not isinstance(subspace, DynamicSpaceImpl):
-                raise ValueError("%s and %s have parent-child relationship"
-                                 % (basespace, subspace))
+                raise ValueError(
+                    "%s and %s have parent-child relationship"
+                    % (basespace, subspace)
+                )
 
         nx.DiGraph.add_edge(self, basespace, subspace)
 
@@ -401,13 +414,13 @@ class SpaceGraph(nx.DiGraph):
         """Check if C3 MRO is possible with given bases"""
 
         try:
-            self.add_node('temp')
+            self.add_node("temp")
             for base in bases:
-                nx.DiGraph.add_edge(self, base, 'temp')
-            result = self.get_mro('temp')[1:]
+                nx.DiGraph.add_edge(self, base, "temp")
+            result = self.get_mro("temp")[1:]
 
         finally:
-            self.remove_node('temp')
+            self.remove_node("temp")
 
         return result
 
@@ -423,8 +436,9 @@ class SpaceGraph(nx.DiGraph):
         Returns:
             mro as a list of bases including node itself
         """
-        seqs = [self.get_mro(base) for base
-                in self.get_bases(space)] + [list(self.get_bases(space))]
+        seqs = [self.get_mro(base) for base in self.get_bases(space)] + [
+            list(self.get_bases(space))
+        ]
         res = []
         while True:
             non_empty = list(filter(None, seqs))
@@ -443,9 +457,10 @@ class SpaceGraph(nx.DiGraph):
                 else:
                     break
 
-            if not candidate:   # Better to return None instead of error?
+            if not candidate:  # Better to return None instead of error?
                 raise TypeError(
-                    "inconsistent hierarchy, no C3 MRO is possible")
+                    "inconsistent hierarchy, no C3 MRO is possible"
+                )
 
             res.append(candidate)
 
@@ -458,8 +473,7 @@ class SpaceGraph(nx.DiGraph):
         self.update_subspaces_downward(space, skip, check_only, **kwargs)
         self.update_subspaces_upward(space, **kwargs)
 
-    def update_subspaces_upward(self, space, from_parent=True,
-                                **kwargs):
+    def update_subspaces_upward(self, space, from_parent=True, **kwargs):
 
         if from_parent:
             target = space.parent
@@ -474,12 +488,13 @@ class SpaceGraph(nx.DiGraph):
                 if subspace is self._start_space:
                     raise ValueError("Cyclic inheritance")
                 self.update_subspaces(subspace, False, **kwargs)
-            self.update_subspaces_upward(space.parent,
-                                         from_parent=from_parent,
-                                         **kwargs)
+            self.update_subspaces_upward(
+                space.parent, from_parent=from_parent, **kwargs
+            )
 
-    def update_subspaces_downward(self, space, skip=True,
-                                  check_only=False, **kwargs):
+    def update_subspaces_downward(
+        self, space, skip=True, check_only=False, **kwargs
+    ):
         for child in space.static_spaces.values():
             self.update_subspaces_downward(child, False, check_only, **kwargs)
         if not skip and not check_only:
@@ -489,6 +504,3 @@ class SpaceGraph(nx.DiGraph):
             if subspace is self._start_space:
                 raise ValueError("Cyclic inheritance")
             self.update_subspaces(subspace, False, **kwargs)
-
-
-

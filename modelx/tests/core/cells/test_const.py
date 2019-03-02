@@ -52,6 +52,7 @@ def test_ge(constcells):
 # --------------------------------------------------------------------------
 # Test value property
 
+
 def test_set_value(constcells):
     cells = constcells.new_cells()
     cells.value = 5
@@ -73,4 +74,3 @@ def test_del_value(constcells):
 
 def test_bool(constcells):
     assert bool(constcells.bar)
-

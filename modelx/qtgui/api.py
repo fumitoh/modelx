@@ -27,16 +27,15 @@ or by::
 import sys, warnings
 import modelx as mx
 
-__all__ = ['get_modeltree',
-           'get_tree',
-           'show_tree']
+__all__ = ["get_modeltree", "get_tree", "show_tree"]
 
 try:
     from qtpy.QtWidgets import QApplication, QTreeView
     from modelx.qtgui.modeltree import ModelTreeModel
 except ImportError:
-    warnings.warn("QtPy package not found."
-                  "GUI will not be available.", ImportWarning)
+    warnings.warn(
+        "QtPy package not found." "GUI will not be available.", ImportWarning
+    )
 
 
 def get_modeltree(model=None):
@@ -89,9 +88,9 @@ def show_tree(model=None):
     app.exec_()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    model, space = mx.new_model('Fibonacci'), mx.new_space()
+    model, space = mx.new_model("Fibonacci"), mx.new_space()
 
     @mx.defcells()
     def fibo(x):

@@ -33,7 +33,7 @@ if sys.version_info < (3, 5, 0):
         empty dict.
         """
         from collections import OrderedDict
-        from inspect import (_empty, _VAR_KEYWORD, _VAR_POSITIONAL)
+        from inspect import _empty, _VAR_KEYWORD, _VAR_POSITIONAL
 
         arguments = self.arguments
         new_arguments = []
@@ -102,12 +102,9 @@ class Impl:
     special methods that are meant for changing the behaviour of operations
     for users."""
 
-    state_attrs = ['interface',
-                   'parent',
-                   'allow_none',
-                   'lazy_evals']
+    state_attrs = ["interface", "parent", "allow_none", "lazy_evals"]
 
-    if_class = None     # Override in sub classes if interface class exists
+    if_class = None  # Override in sub classes if interface class exists
 
     def __init__(self, system, interface=None):
 
@@ -162,21 +159,21 @@ class Impl:
         fullname = self.name
         parent = self.parent
         while True:
-            fullname = parent.name + '.' + fullname
+            fullname = parent.name + "." + fullname
             if parent.is_space():
                 parent = parent.parent
             else:
                 if omit_model:
-                    separated = fullname.split('.')
+                    separated = fullname.split(".")
                     separated.pop(0)
-                    fullname = '.'.join(separated)
+                    fullname = ".".join(separated)
 
                 return fullname
 
     def get_repr(self, fullname=False, add_params=True):
 
         if fullname:
-            return self.repr_parent() + '.' + self.repr_self(add_params)
+            return self.repr_parent() + "." + self.repr_self(add_params)
         else:
             return self.repr_self(add_params)
 
@@ -191,7 +188,7 @@ class _DummyBuiltins:
 
 class Derivable(Impl):
 
-    state_attrs = ['_is_derived'] + Impl.state_attrs
+    state_attrs = ["_is_derived"] + Impl.state_attrs
 
     def __init__(self, system, interface=None):
         Impl.__init__(self, system, interface)
@@ -248,7 +245,7 @@ class Derivable(Impl):
         if self.parent.is_model():
             return self.name
         else:
-            return repr(self.parent) + '.' + self.name
+            return repr(self.parent) + "." + self.name
 
 
 class ReferenceImpl(Derivable):
@@ -263,18 +260,21 @@ class ReferenceImpl(Derivable):
         self.name = name
 
     def __getstate__(self):
-        state = {key: value for key, value in self.__dict__.items()
-                 if key in self.state_attrs}
+        state = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key in self.state_attrs
+        }
 
-        if state['interface'] is builtins:
-            state['interface'] = _DummyBuiltins()
+        if state["interface"] is builtins:
+            state["interface"] = _DummyBuiltins()
 
         return state
 
     def __setstate__(self, state):
 
-        if isinstance(state['interface'], _DummyBuiltins):
-            state['interface'] = builtins
+        if isinstance(state["interface"], _DummyBuiltins):
+            state["interface"] = builtins
 
         self.__dict__.update(state)
 
@@ -288,8 +288,8 @@ class ReferenceImpl(Derivable):
 
     def inherit(self, **kwargs):
 
-        if 'clear_value' in kwargs:
-            clear_value = kwargs['clear_value']
+        if "clear_value" in kwargs:
+            clear_value = kwargs["clear_value"]
         else:
             clear_value = True
 
@@ -306,6 +306,7 @@ class NullImpl(Impl):
     and detach ``impl`` from its interface.
     The interface points to this NllImpl singleton.
     """
+
     the_instance = None
 
     def __new__(cls, impl):
@@ -313,7 +314,7 @@ class NullImpl(Impl):
         if cls.the_instance is None:
             cls.the_instance = object.__new__(cls)
 
-        if hasattr(impl, 'del_self'):
+        if hasattr(impl, "del_self"):
             impl.del_self()
 
         impl.interface._impl = cls.the_instance
@@ -333,15 +334,16 @@ class Interface:
     All the properties defined in this class are available in Model,
     Space and Cells objects.
     """
-    __slots__ = ('_impl',)
-    properties = ['allow_none']
+
+    __slots__ = ("_impl",)
+    properties = ["allow_none"]
 
     def __new__(cls, _impl):
 
         if isinstance(_impl, Impl):
             if not hasattr(_impl, "interface"):
                 self = object.__new__(cls)
-                object.__setattr__(self, '_impl', _impl)
+                object.__setattr__(self, "_impl", _impl)
                 return self
             else:
                 return _impl.interface
@@ -397,7 +399,7 @@ class Interface:
         return self._impl
 
     def __setstate__(self, state):
-        object.__setattr__(self, '_impl', state)
+        object.__setattr__(self, "_impl", state)
 
     @property
     def allow_none(self):
@@ -429,11 +431,13 @@ class Interface:
     def _baseattrs(self):
         """A dict of members expressed in literals"""
 
-        result = {'type': type(self).__name__,
-                  'id': id(self),
-                  'name': self.name,
-                  'fullname': self.fullname,
-                  'repr': self._get_repr()}
+        result = {
+            "type": type(self).__name__,
+            "id": id(self),
+            "name": self.name,
+            "fullname": self.fullname,
+            "repr": self._get_repr(),
+        }
 
         return result
 
@@ -463,7 +467,7 @@ class LazyEval:
     """
 
     def __init__(self, observers):
-        self.needs_update = False # must be read only
+        self.needs_update = False  # must be read only
         self.observers = []
         self.observing = []
         for observer in observers:
@@ -486,7 +490,7 @@ class LazyEval:
         return self
 
     def _update_data(self):
-        raise NotImplementedError   # To be overwritten in derived classes
+        raise NotImplementedError  # To be overwritten in derived classes
 
     def append_observer(self, observer):
         if all(observer is not other for other in self.observers):
@@ -512,14 +516,12 @@ class LazyEval:
         self.__dict__.update(state)
 
     def debug_print_observers(self, indent_level=0):
-        print(' ' * indent_level * 4,
-              self, ':', self.needs_update)
+        print(" " * indent_level * 4, self, ":", self.needs_update)
         for observer in self.observers:
             observer.debug_print_observers(indent_level + 1)
 
 
 class LazyEvalDict(LazyEval, UserDict):
-
     def __init__(self, data=None, observers=None):
 
         if data is None:
@@ -529,7 +531,7 @@ class LazyEvalDict(LazyEval, UserDict):
 
         UserDict.__init__(self, data)
         LazyEval.__init__(self, observers)
-        self._repr = ''
+        self._repr = ""
 
     def get_updated_data(self):
         """Get updated ``data`` instead of self. """
@@ -556,7 +558,6 @@ class LazyEvalDict(LazyEval, UserDict):
 
 
 class LazyEvalChainMap(LazyEval, ChainMap):
-
     def __init__(self, maps=None, observers=None, observe_maps=True):
 
         if maps is None:
@@ -566,7 +567,7 @@ class LazyEvalChainMap(LazyEval, ChainMap):
 
         ChainMap.__init__(self, *maps)
         LazyEval.__init__(self, observers)
-        self._repr = ''
+        self._repr = ""
 
         if observe_maps:
             for other in maps:
@@ -593,13 +594,11 @@ class LazyEvalChainMap(LazyEval, ChainMap):
 
 
 class OwnerMixin:
-
     def __init__(self, owner):
         self.owner = owner
 
 
 class OrderMixin:
-
     def __init__(self):
         self.order = []  # sorted(list(self))
 
@@ -619,6 +618,7 @@ class InterfaceMixin:
 
     _update_interfaces needs to be manually called from _update_data.
     """
+
     def __init__(self, map_class):
         self._interfaces = dict()
         self.map_class = map_class
@@ -638,20 +638,19 @@ class InterfaceMixin:
 
     def __getstate__(self):
         state = super().__getstate__()
-        state['_interfaces'] = dict()
-        del state['interfaces']
+        state["_interfaces"] = dict()
+        del state["interfaces"]
         return state
 
     def __setstate__(self, state):
         super().__setstate__(state)
-        if self.map_class == 'BaseView':
+        if self.map_class == "BaseView":
             self.map_class = BaseView
         self._set_interfaces(self.map_class)
         self.needs_update = True
 
 
 class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
-
     def __init__(self, owner, ifclass, data=None, observers=None):
         InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
@@ -664,18 +663,19 @@ class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
         self._update_interfaces()
 
     def __repr__(self):
-        if hasattr(self, 'debug_name'):
+        if hasattr(self, "debug_name"):
             name = self.debug_name
         else:
-            name = ''
-        return repr(self.owner.fullname) + ':' + repr(self.__class__) \
-            + ':' + name
+            name = ""
+        return (
+            repr(self.owner.fullname) + ":" + repr(self.__class__) + ":" + name
+        )
 
 
 class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
-
-    def __init__(self, owner, ifclass, maps=None,
-                 observers=None, observe_maps=True):
+    def __init__(
+        self, owner, ifclass, maps=None, observers=None, observe_maps=True
+    ):
         InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
         OwnerMixin.__init__(self, owner)
@@ -687,12 +687,14 @@ class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
         self._update_interfaces()
 
     def __repr__(self):
-        if hasattr(self, 'debug_name'):
+        if hasattr(self, "debug_name"):
             name = self.debug_name
         else:
-            name = ''
-        return repr(self.owner.fullname) + ':' + repr(self.__class__) \
-            + ':' + name
+            name = ""
+        return (
+            repr(self.owner.fullname) + ":" + repr(self.__class__) + ":" + name
+        )
+
 
 # The code below is modified from UserDict in Python's standard library.
 #
@@ -708,7 +710,8 @@ class BaseView(Mapping):
     def __init__(self, data):
         self._data = data
 
-    def __len__(self): return len(self._data)
+    def __len__(self):
+        return len(self._data)
 
     def __getitem__(self, key):
         if key in self._data:
@@ -725,7 +728,8 @@ class BaseView(Mapping):
         return key in self._data
 
     # Now, add the methods in dicts but not in MutableMapping
-    def __repr__(self): return repr(self._data)
+    def __repr__(self):
+        return repr(self._data)
 
     # ----------------------------------------------------------------------
     # Override base class methods
@@ -734,11 +738,13 @@ class BaseView(Mapping):
     def _baseattrs(self):
         """A dict of members expressed in literals"""
 
-        result = {'type': type(self).__name__}
+        result = {"type": type(self).__name__}
         try:
-            result['items'] = {name: item._baseattrs
-                               for name, item in self.items()
-                               if name[0] != '_'}
+            result["items"] = {
+                name: item._baseattrs
+                for name, item in self.items()
+                if name[0] != "_"
+            }
         except:
             raise RuntimeError("%s literadict raised an error" % self)
 
@@ -746,10 +752,11 @@ class BaseView(Mapping):
 
     def _to_attrdict(self, attrs=None):
 
-        result = {'type': type(self).__name__}
+        result = {"type": type(self).__name__}
         try:
-            result['items'] = {name: item._to_attrdict(attrs)
-                               for name, item in self.items()}
+            result["items"] = {
+                name: item._to_attrdict(attrs) for name, item in self.items()
+            }
         except:
             raise RuntimeError("%s literadict raised an error" % self)
 
@@ -757,9 +764,9 @@ class BaseView(Mapping):
 
 
 def _map_repr(self):
-    result = [',\n '] * (len(self) * 2 -1)
+    result = [",\n "] * (len(self) * 2 - 1)
     result[0::2] = sorted(list(self))
-    return '{' + ''.join(result) + '}'
+    return "{" + "".join(result) + "}"
 
 
 class SelectedView(BaseView):
@@ -771,6 +778,7 @@ class SelectedView(BaseView):
         data: The original mapping object.
         keys: Iterable of selected keys.
     """
+
     def __init__(self, data, keys=None):
         BaseView.__init__(self, data)
         self._set_keys(keys)
@@ -794,7 +802,6 @@ class SelectedView(BaseView):
         return len(list(iter(self)))
 
     def __iter__(self):
-
         def newiter():
             for key in self.__keys:
                 if key in self._data:
@@ -824,7 +831,7 @@ class BoundFunction(LazyEval):
         self.owner = owner
 
         # Must not update owner's namespace to avoid circular updates.
-        self.namespace_impl = owner._namespace_impl # No need to hold this
+        self.namespace_impl = owner._namespace_impl  # No need to hold this
         self.observe(self.namespace_impl)
         self.altfunc = None
         self.set_update()
@@ -840,20 +847,22 @@ class BoundFunction(LazyEval):
         selfnode = get_node(self.owner, None, None)
 
         for name in self.owner.formula.srcnames:
-            if name in namespace_impl and \
-              isinstance(namespace_impl[name], ReferenceImpl):
+            if name in namespace_impl and isinstance(
+                namespace_impl[name], ReferenceImpl
+            ):
                 refnode = get_node(namespace_impl[name], None, None)
                 self.owner.model.lexdep.add_path([selfnode, refnode])
 
         closure = func.__closure__  # None normally.
-        if closure is not None:     # pytest fails without this.
+        if closure is not None:  # pytest fails without this.
             closure = create_closure(self.owner.interface)
 
-        self.altfunc = FunctionType(codeobj, namespace,
-                                    name=name, closure=closure)
+        self.altfunc = FunctionType(
+            codeobj, namespace, name=name, closure=closure
+        )
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        del state['altfunc']
-        state['needs_update'] = True # Reconstruct altfunc after unpickling
+        del state["altfunc"]
+        state["needs_update"] = True  # Reconstruct altfunc after unpickling
         return state

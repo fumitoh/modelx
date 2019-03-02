@@ -12,11 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from modelx.core.base import (
-    get_impls,
-    get_interfaces,
-    Impl,
-    Interface)
+from modelx.core.base import get_impls, get_interfaces, Impl, Interface
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
@@ -30,6 +26,7 @@ class BaseSpaceContainer(Interface):
     :py:class:`StaticSpace <modelx.core.space.StaticSpace>`.
 
     """
+
     __slots__ = ()
 
     @property
@@ -61,7 +58,7 @@ class BaseSpaceContainer(Interface):
         """A dict of members expressed in literals"""
 
         result = super()._baseattrs
-        result['spaces'] = self.spaces._baseattrs
+        result["spaces"] = self.spaces._baseattrs
         return result
 
 
@@ -87,9 +84,9 @@ class EditableSpaceContainer(BaseSpaceContainer):
         Returns:
             The new child space.
         """
-        space = self._impl.model.currentspace \
-            = self._impl.new_space(name=name, bases=get_impls(bases),
-                                   formula=formula, refs=refs)
+        space = self._impl.model.currentspace = self._impl.new_space(
+            name=name, bases=get_impls(bases), formula=formula, refs=refs
+        )
 
         return space.interface
 
@@ -104,13 +101,14 @@ class EditableSpaceContainer(BaseSpaceContainer):
         Returns:
             The new child space created from the module.
         """
-        if 'bases' in params:
-            params['bases'] = get_impls(params['bases'])
+        if "bases" in params:
+            params["bases"] = get_impls(params["bases"])
 
-        space = self._impl.model.currentspace \
-            = self._impl.new_space_from_module(module_,
-                                               recursive=recursive,
-                                               **params)
+        space = (
+            self._impl.model.currentspace
+        ) = self._impl.new_space_from_module(
+            module_, recursive=recursive, **params
+        )
         return get_interfaces(space)
 
     def new_space_from_module(self, module_, recursive=False, **params):
@@ -126,22 +124,30 @@ class EditableSpaceContainer(BaseSpaceContainer):
         Returns:
             The new child space created from the module.
         """
-        if 'bases' in params:
-            params['bases'] = get_impls(params['bases'])
+        if "bases" in params:
+            params["bases"] = get_impls(params["bases"])
 
-        space = self._impl.model.currentspace \
-            = self._impl.new_space_from_module(module_,
-                                                  recursive=recursive,
-                                                  **params)
+        space = (
+            self._impl.model.currentspace
+        ) = self._impl.new_space_from_module(
+            module_, recursive=recursive, **params
+        )
         return get_interfaces(space)
 
-    def new_space_from_excel(self, book, range_, sheet=None,
-                                name=None,
-                                names_row=None, param_cols=None,
-                                space_param_order=None,
-                                cells_param_order=None,
-                                transpose=False,
-                                names_col=None, param_rows=None):
+    def new_space_from_excel(
+        self,
+        book,
+        range_,
+        sheet=None,
+        name=None,
+        names_row=None,
+        param_cols=None,
+        space_param_order=None,
+        cells_param_order=None,
+        transpose=False,
+        names_col=None,
+        param_rows=None,
+    ):
         """Create a child space from an Excel range.
 
         To use this method, ``openpyxl`` package must be installed.
@@ -188,12 +194,18 @@ class EditableSpaceContainer(BaseSpaceContainer):
         """
 
         space = self._impl.new_space_from_excel(
-            book, range_, sheet, name,
-            names_row, param_cols,
+            book,
+            range_,
+            sheet,
+            name,
+            names_row,
+            param_cols,
             space_param_order,
             cells_param_order,
             transpose,
-            names_col, param_rows)
+            names_col,
+            param_rows,
+        )
 
         return get_interfaces(space)
 
@@ -206,19 +218,22 @@ class BaseSpaceContainerImpl:
     del_space(name)
 
     """
-    state_attrs = ['_spaces',   # must be defined in subclasses
-                   'spacenamer']
+
+    state_attrs = ["_spaces", "spacenamer"]  # must be defined in subclasses
 
     def __init__(self):
-        self.spacenamer = AutoNamer('Space')
+        self.spacenamer = AutoNamer("Space")
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
     def __getstate__(self):
 
-        state = {key: value for key, value in self.__dict__.items()
-                 if key in self.state_attrs}
+        state = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key in self.state_attrs
+        }
 
         return state
 
@@ -258,14 +273,21 @@ class BaseSpaceContainerImpl:
     # ----------------------------------------------------------------------
     # Create space
 
-    def _new_space(self, name=None, formula=None,
-                   refs=None, arguments=None, source=None,
-                   is_derived=False):
+    def _new_space(
+        self,
+        name=None,
+        formula=None,
+        refs=None,
+        arguments=None,
+        source=None,
+        is_derived=False,
+    ):
 
         from modelx.core.space import StaticSpaceImpl
 
-        space = StaticSpaceImpl(parent=self, name=name, formula=formula,
-                          refs=refs, source=source)
+        space = StaticSpaceImpl(
+            parent=self, name=name, formula=formula, refs=refs, source=source
+        )
         space.is_derived = is_derived
 
         return space
@@ -279,9 +301,17 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
     state_attrs = []
 
-    def new_space(self, name=None, bases=None, formula=None,
-                  *, refs=None, source=None, is_derived=False,
-                  prefix=''):
+    def new_space(
+        self,
+        name=None,
+        bases=None,
+        formula=None,
+        *,
+        refs=None,
+        source=None,
+        is_derived=False,
+        prefix=""
+    ):
         """Create a new child space.
 
         Args:
@@ -306,9 +336,13 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         if not prefix and not is_valid_name(name):
             raise ValueError("Invalid name '%s'." % name)
 
-        space = self._new_space(name=name, formula=formula,
-                                refs=refs, source=source,
-                                is_derived=is_derived)
+        space = self._new_space(
+            name=name,
+            formula=formula,
+            refs=refs,
+            source=source,
+            is_derived=is_derived,
+        )
         self._set_space(space)
 
         self.model.spacegraph.add_space(space)
@@ -324,44 +358,57 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
     def new_space_from_module(self, module_, recursive=False, **params):
 
-        params['source'] = module_ = get_module(module_)
+        params["source"] = module_ = get_module(module_)
 
-        if 'name' not in params or params['name'] is None:
+        if "name" not in params or params["name"] is None:
             # xxx.yyy.zzz -> zzz
-            name = params['name'] = module_.__name__.split('.')[-1]
+            name = params["name"] = module_.__name__.split(".")[-1]
         else:
-            name = params['name']
+            name = params["name"]
 
         space = self.new_space(**params)
         space.new_cells_from_module(module_)
 
-        if recursive and hasattr(module_, '_spaces'):
+        if recursive and hasattr(module_, "_spaces"):
             for name in module_._spaces:
-                submodule = module_.__name__ + '.' + name
+                submodule = module_.__name__ + "." + name
                 space.new_space_from_module(module_=submodule, recursive=True)
 
         return space
 
-    def new_space_from_excel(self, book, range_, sheet=None,
-                                name=None,
-                                names_row=None, param_cols=None,
-                                space_param_order=None,
-                                cells_param_order=None,
-                                transpose=False,
-                                names_col=None, param_rows=None):
+    def new_space_from_excel(
+        self,
+        book,
+        range_,
+        sheet=None,
+        name=None,
+        names_row=None,
+        param_cols=None,
+        space_param_order=None,
+        cells_param_order=None,
+        transpose=False,
+        names_col=None,
+        param_rows=None,
+    ):
 
         import modelx.io.excel as xl
 
         param_order = space_param_order + cells_param_order
 
-        cellstable = xl.CellsTable(book, range_, sheet,
-                                   names_row, param_cols,
-                                   param_order,
-                                   transpose,
-                                   names_col, param_rows)
+        cellstable = xl.CellsTable(
+            book,
+            range_,
+            sheet,
+            names_row,
+            param_cols,
+            param_order,
+            transpose,
+            names_col,
+            param_rows,
+        )
 
-        space_params = cellstable.param_names[:len(space_param_order)]
-        cells_params = cellstable.param_names[len(space_param_order):]
+        space_params = cellstable.param_names[: len(space_param_order)]
+        cells_params = cellstable.param_names[len(space_param_order) :]
 
         if space_params:
             space_sig = "=None, ".join(space_params) + "=None"
@@ -379,15 +426,15 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         space = self.new_space(name=name, formula=param_func)
 
         for cellsdata in cellstable.items():
-            space.new_cells(name=cellsdata.name,formula=blank_func)
+            space.new_cells(name=cellsdata.name, formula=blank_func)
 
         # Split for-loop to avoid clearing the preceding cells
         # each time a new cells is created in the base space.
 
         for cellsdata in cellstable.items():
             for args, value in cellsdata.items():
-                space_args = args[:len(space_params)]
-                cells_args = args[len(space_params):]
+                space_args = args[: len(space_params)]
+                cells_args = args[len(space_params) :]
                 subspace = space.get_dynspace(space_args)
                 cells = subspace.cells[cellsdata.name]
                 cells.set_value(cells_args, value)

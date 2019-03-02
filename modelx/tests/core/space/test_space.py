@@ -6,10 +6,11 @@ import pytest
 from modelx.core.api import *
 from ..data import testmodule
 
+
 @pytest.fixture
 def testmodel():
 
-    model, space = new_model(name='testmodel'), new_space(name='testspace')
+    model, space = new_model(name="testmodel"), new_space(name="testspace")
 
     @defcells(space)
     def foo(x):
@@ -22,12 +23,16 @@ def testmodel():
 
     return model
 
+
 def test_refs(testmodel):
-    assert 'bar' in testmodel.testspace.refs
+    assert "bar" in testmodel.testspace.refs
+
 
 def test_dir(testmodel):
-    assert {'foo', 'bar', '_self', '_space',
-            '__builtins__'} == set(dir(testmodel.testspace))
+    assert {"foo", "bar", "_self", "_space", "__builtins__"} == set(
+        dir(testmodel.testspace)
+    )
+
 
 def test_parent(testmodel):
     assert cur_space().parent == testmodel
@@ -49,15 +54,17 @@ def test_new_cells_from_module(testmodel):
     cells = cur_space().new_cells_from_module(testmodule)
     assert set(testmodule.funcs) == set(cells.keys())
 
+
 def test_import_funcs(testmodel):
     cells = cur_space().import_funcs(testmodule)
     assert set(testmodule.funcs) == set(cells.keys())
 
+
 def test_new_cells_from_modulename(testmodel):
 
-    names = __name__.split('.')
-    names = names[:-2] + ['data', 'testmodule']
-    module_name = '.'.join(names)
+    names = __name__.split(".")
+    names = names[:-2] + ["data", "testmodule"]
+    module_name = ".".join(names)
 
     cells = cur_space().import_funcs(module_name)
     assert set(testmodule.funcs) == set(cells.keys())
@@ -86,12 +93,14 @@ def test_derived_spaces(testmodel):
 def test_formula(testmodel):
 
     model = testmodel
-    base = model.new_space(formula=lambda x, y: {'bases': _self})
+    base = model.new_space(formula=lambda x, y: {"bases": _self})
 
-    distance_def = dedent("""\
+    distance_def = dedent(
+        """\
     def distance():
         return (x ** 2 + y ** 2) ** 0.5
-    """)
+    """
+    )
 
     base.new_cells(formula=distance_def)
 
@@ -101,7 +110,7 @@ def test_formula(testmodel):
 def test_dynamic_spaces(testmodel):
 
     model = testmodel
-    space = model.new_space(formula=lambda n: {'bases': _self})
+    space = model.new_space(formula=lambda n: {"bases": _self})
 
     @defcells
     def foo(x):
@@ -113,7 +122,7 @@ def test_dynamic_spaces(testmodel):
 
 def test_new_cells_refs(testmodel):
 
-    space = testmodel.new_space(refs={'x': 1})
+    space = testmodel.new_space(refs={"x": 1})
     assert space.x == 1
 
 
@@ -167,53 +176,54 @@ def test_del_cells(testmodel):
 def test_static_spaces(testmodel):
 
     space = new_space()
-    child = space.new_space('Child')
-    assert space.static_spaces == {'Child': child}
+    child = space.new_space("Child")
+    assert space.static_spaces == {"Child": child}
 
 
 def test_del_static_spaces(testmodel):
 
     space = new_space()
-    child = space.new_space('Child')
+    child = space.new_space("Child")
     del space.Child
     assert space.static_spaces == {}
 
+
 # ----- Test SpaceView -----
-space_names = list('ABCDEFGHI')
+space_names = list("ABCDEFGHI")
 
 
 @pytest.fixture
 def spacemap_model():
-    model, parent = new_model(), new_space('Parent')
+    model, parent = new_model(), new_space("Parent")
     for name in space_names:
         parent.new_space(name)
     return model
 
 
 if sys.version_info >= (3, 6, 0):
+
     def test_spacemapproxy_order(spacemap_model):
-        parent = spacemap_model.spaces['Parent']
+        parent = spacemap_model.spaces["Parent"]
         assert list(parent.spaces) == space_names
 
-
     def test_spacemapproxy_del(spacemap_model):
-        parent = spacemap_model.spaces['Parent']
+        parent = spacemap_model.spaces["Parent"]
 
         names = space_names.copy()
-        names.remove('C')
-        del parent.spaces['C']
+        names.remove("C")
+        del parent.spaces["C"]
         assert list(parent.spaces) == names
 
-
     def test_spacemapproxy_add(spacemap_model):
-        parent = spacemap_model.spaces['Parent']
+        parent = spacemap_model.spaces["Parent"]
         names = space_names.copy()
-        names.append('X')
-        parent.new_space('X')
+        names.append("X")
+        parent.new_space("X")
         assert list(parent.spaces) == names
 
 
 # ----- Testing _impl  ----
+
 
 def test_mro_root(testmodel):
     space = cur_space()
@@ -225,4 +235,4 @@ def test_fullname(testmodel):
 
 
 def test_fullname_omit_model(testmodel):
-    assert cur_space()._impl.get_fullname(omit_model=True) == 'testspace'
+    assert cur_space()._impl.get_fullname(omit_model=True) == "testspace"

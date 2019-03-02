@@ -1,4 +1,3 @@
-
 try:
     import sys, warnings
     from qtpy.QtWidgets import QApplication
@@ -9,5 +8,6 @@ try:
         app = QApplication(sys.argv)
 
 except ImportError:
-    warnings.warn("QtPy package not found."
-                  "GUI will not be available.", ImportWarning)
+    warnings.warn(
+        "QtPy package not found." "GUI will not be available.", ImportWarning
+    )

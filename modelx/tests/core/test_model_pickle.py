@@ -8,21 +8,26 @@ from modelx.core import mxsys
 
 # ---- Test impl ----
 
+
 @pytest.fixture
 def pickletest():
 
-    model = new_model('TestModel')
+    model = new_model("TestModel")
     space = model.new_space()
 
-    func1 = dedent("""\
+    func1 = dedent(
+        """\
     def single_value(x):
         return 5 * x
-    """)
+    """
+    )
 
-    func2 = dedent("""\
+    func2 = dedent(
+        """\
     def mult_single_value(x):
         return 2 * single_value(x)
-    """)
+    """
+    )
 
     func1 = space.new_cells(formula=func1)
     func2 = space.new_cells(formula=func2)
@@ -44,28 +49,32 @@ def test_unpickled_model(pickletest):
     if not model.name == unpickeld.name:
         errors.append("name did not match")
 
-    if not hasattr(model, 'interface'):
+    if not hasattr(model, "interface"):
         errors.append("no interface")
 
-    if not hasattr(model, 'cellgraph'):
+    if not hasattr(model, "cellgraph"):
         errors.append("no cellgraph")
 
     assert not errors, "errors:\n{}".format("\n".join(errors))
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def pickletest_dynamicspace():
 
-    param = dedent("""\
+    param = dedent(
+        """\
     def param(x):
         return {'bases': _self}
-    """)
+    """
+    )
 
-    fibo = dedent("""\
+    fibo = dedent(
+        """\
     def fibo(n):
-        return x * n""")
+        return x * n"""
+    )
 
-    model, space = new_model(), new_space(name='Space1', formula=param)
+    model, space = new_model(), new_space(name="Space1", formula=param)
     space.new_cells(formula=fibo)
 
     check = space[2].fibo(3)
@@ -100,4 +109,4 @@ def test_pickle_argvalues_none(pickletest_dynamicspace):
 def test_pickle_parameters(pickletest_dynamicspace):
 
     model, check = pickletest_dynamicspace
-    assert model.Space1.parameters == ('x',)
+    assert model.Space1.parameters == ("x",)

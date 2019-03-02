@@ -35,6 +35,7 @@ KEY = 1
 #         return self.formula.signature
 #
 
+
 def node_has_key(node):
     return len(node) > 1
 
@@ -74,7 +75,7 @@ def tuplize_key(obj, key, remove_extra=False):
     else:
         arglen = len(key)
         if arglen:
-            return key[:min(arglen, paramlen)]
+            return key[: min(arglen, paramlen)]
         else:
             return key
 
@@ -93,10 +94,11 @@ def get_node_repr(node):
     name = obj.get_repr(fullname=True, add_params=False)
     params = obj.formula.parameters
 
-    arglist = ', '.join('%s=%s' % (param, arg) for param, arg
-                        in zip(params, key))
+    arglist = ", ".join(
+        "%s=%s" % (param, arg) for param, arg in zip(params, key)
+    )
 
     if key in obj.data:
-        return name + '(' + arglist + ')' + '=' + str(obj.data[key])
+        return name + "(" + arglist + ")" + "=" + str(obj.data[key])
     else:
-        return name + '(' + arglist + ')'
+        return name + "(" + arglist + ")"

@@ -44,19 +44,22 @@ def fix_lamdaline(source):
         pass
 
     # Find the position of 'lambda'
-    lambda_pos = [(t.type, t.string)
-                  for t in tkns].index((tokenize.NAME, 'lambda'))
+    lambda_pos = [(t.type, t.string) for t in tkns].index(
+        (tokenize.NAME, "lambda")
+    )
 
     # Ignore tokes before 'lambda'
     tkns = tkns[lambda_pos:]
 
     # Find the position of th las OP
-    lastop_pos = len(tkns) -1 - [t.type for t in tkns[::-1]].index(tokenize.OP)
+    lastop_pos = (
+        len(tkns) - 1 - [t.type for t in tkns[::-1]].index(tokenize.OP)
+    )
     lastop = tkns[lastop_pos]
 
     # Remove OP from the line
     fiedlineno = lastop.start[0]
-    fixedline = lastop.line[:lastop.start[1]] + lastop.line[lastop.end[1]:]
+    fixedline = lastop.line[: lastop.start[1]] + lastop.line[lastop.end[1] :]
 
     tkns = tkns[:lastop_pos]
 
@@ -79,8 +82,9 @@ def find_funcdef(source):
     """Find the first FuncDef ast object in source"""
 
     try:
-        module_node = compile(source, '<string>', mode='exec',
-                              flags=ast.PyCF_ONLY_AST)
+        module_node = compile(
+            source, "<string>", mode="exec", flags=ast.PyCF_ONLY_AST
+        )
     except SyntaxError:
         return find_funcdef(fix_lamdaline(source))
 
@@ -146,6 +150,7 @@ def create_closure(new_value):
     import ctypes
 
     dummy = None
+
     def temp_func():
         return dummy
 
@@ -170,9 +175,11 @@ def _dummy_defcells(space=None, name=None):
         # called as a function decorator
         return space
 
-    else:   # called as a deco-maker
+    else:  # called as a deco-maker
+
         def _dummy_decorator(func):
             return func
+
         return _dummy_decorator
 
 
@@ -195,34 +202,35 @@ class ModuleSource:
 
         self.name = module_.__name__
         file = module_.__file__
-        with open(file, 'r') as srcfile:
+        with open(file, "r") as srcfile:
             self.source = srcfile.read()
 
-        codeobj = compile(self.source, file, mode='exec')
+        codeobj = compile(self.source, file, mode="exec")
         namespace = {}
         eval(codeobj, namespace)
 
         srcfuncs = {}
         for name in namespace:
             obj = namespace[name]
-            if isinstance(obj, FunctionType) \
-                    and getsourcefile(obj) == file:
+            if isinstance(obj, FunctionType) and getsourcefile(obj) == file:
                 srcfuncs[name] = obj
 
         self.funcs = {}
         for name in module_.__dict__:
             obj = getattr(module_, name)
-            if isinstance(obj, FunctionType) \
-                    and obj.__module__ == self.name \
-                    and name in srcfuncs \
-                    and getsource(obj) == getsource(srcfuncs[name]):
+            if (
+                isinstance(obj, FunctionType)
+                and obj.__module__ == self.name
+                and name in srcfuncs
+                and getsource(obj) == getsource(srcfuncs[name])
+            ):
 
                 self.funcs[name] = obj
 
 
 class Formula:
 
-    __slots__ = ('func', 'signature', 'source', 'module_', 'srcnames')
+    __slots__ = ("func", "signature", "source", "module_", "srcnames")
 
     def __init__(self, func, module_=None):
 
@@ -237,43 +245,48 @@ class Formula:
             except:
                 warnings.warn(
                     "Cannot retrieve source code for function '%s'. "
-                    "%s.source set to None." % (func.__name__, func.__name__))
+                    "%s.source set to None." % (func.__name__, func.__name__)
+                )
                 self.source = None
 
         elif isinstance(func, str):
 
             func = dedent(func)
-            module_node = compile(func, '<string>', mode='exec',
-                                  flags=ast.PyCF_ONLY_AST)
+            module_node = compile(
+                func, "<string>", mode="exec", flags=ast.PyCF_ONLY_AST
+            )
 
-            if len(module_node.body) == 1 and \
-                    isinstance(module_node.body[0], ast.FunctionDef):
+            if len(module_node.body) == 1 and isinstance(
+                module_node.body[0], ast.FunctionDef
+            ):
 
                 funcdef = module_node.body[0]
                 funcname = funcdef.name
                 namespace = {}
 
-                if 'decorator_list' in funcdef._fields:
-                    namespace['defcells'] = _dummy_defcells
+                if "decorator_list" in funcdef._fields:
+                    namespace["defcells"] = _dummy_defcells
 
                 exec(func, namespace)
 
                 self.func = namespace[funcname]
                 self.signature = signature(self.func)
 
-            elif len(module_node.body) == 1 and \
-                    isinstance(module_node.body[0].value, ast.Lambda):
+            elif len(module_node.body) == 1 and isinstance(
+                module_node.body[0].value, ast.Lambda
+            ):
 
                 funcdef = module_node.body[0].value
                 namespace = {}
 
                 # Assign the lambda to a temporary name to extract its object.
-                lambda_assignment = "_lambdafunc = " + \
-                    os.linesep.join([s for s in func.splitlines() if s])
+                lambda_assignment = "_lambdafunc = " + os.linesep.join(
+                    [s for s in func.splitlines() if s]
+                )
                 # Remove blank lines.
 
                 exec(lambda_assignment, namespace)
-                self.func = namespace['_lambdafunc']
+                self.func = namespace["_lambdafunc"]
                 self.signature = signature(self.func)
 
             else:
@@ -305,12 +318,10 @@ class Formula:
 
     def __getstate__(self):
         """Specify members to pickle."""
-        return {'source': self.source,
-                'module_': self.module_}
+        return {"source": self.source, "module_": self.module_}
 
     def __setstate__(self, state):
-        self.__init__(func=state['source'],
-                      module_=state['module_'])
+        self.__init__(func=state["source"], module_=state["module_"])
 
     def __repr__(self):
         return self.source
@@ -341,6 +352,7 @@ class Formula:
             raise RuntimeError
         elif module_ is None:
             import importlib
+
             module_ = ModuleSource(importlib.reload(module_))
         elif module_.name != self.module_:
             raise RuntimeError
@@ -354,9 +366,7 @@ class Formula:
         return self
 
     def _to_attrdict(self, attrs=None):
-        return {'source': self.source}
+        return {"source": self.source}
 
 
-NULL_FORMULA = Formula('lambda: None')
-
-
+NULL_FORMULA = Formula("lambda: None")

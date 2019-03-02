@@ -1,31 +1,17 @@
-from modelx.core.util import (is_valid_name,
-                              AutoNamer)
+from modelx.core.util import is_valid_name, AutoNamer
 
 import pytest
 
 
-
-@pytest.mark.parametrize("name",
-                         [
-                             "Cells123",
-                             "Space_123",
-                         ]
-                         )
+@pytest.mark.parametrize("name", ["Cells123", "Space_123"])
 def test_is_valid_name_valid(name):
     assert is_valid_name(name)
 
 
-@pytest.mark.parametrize("name",
-                         [
-                             "123foo",
-                             "_foo",
-                             "foo bar",
-                             "*foo",
-                             "__foo__",
-                             "foo.bar",
-                             "boo/bar"
-                         ]
-                         )
+@pytest.mark.parametrize(
+    "name",
+    ["123foo", "_foo", "foo bar", "*foo", "__foo__", "foo.bar", "boo/bar"],
+)
 def test_is_valid_name_invalid(name):
     assert not is_valid_name(name)
 
@@ -45,21 +31,14 @@ def test_get_next(simplenamer):
 
 
 def test_get_next_skip_existing(simplenamer):
-    existing_names = ["Cells11",
-                      "Cells12",
-                      "Cells13"]
+    existing_names = ["Cells11", "Cells12", "Cells13"]
 
     assert simplenamer.get_next(existing_names) == "Cells14"
 
 
 def test_get_next_with_prefix():
-    existing_names = ["model_BAK1",
-                      "model_BAK2",
-                      "model_BAK3"]
+    existing_names = ["model_BAK1", "model_BAK2", "model_BAK3"]
 
-    autonamer = AutoNamer('_BAK')
+    autonamer = AutoNamer("_BAK")
 
-    assert autonamer.get_next(existing_names, 'model') == "model_BAK4"
-
-
-
+    assert autonamer.get_next(existing_names, "model") == "model_BAK4"

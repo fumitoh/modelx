@@ -6,8 +6,8 @@ import pytest
 @pytest.fixture
 def cells_signatures():
 
-    model = mx.new_model('Model')
-    space = model.new_space('Space')
+    model = mx.new_model("Model")
+    space = model.new_space("Space")
 
     @defcells
     def no_param():
@@ -34,7 +34,7 @@ def cells_signatures():
 
 
 def test_get_too_many_args(cells_signatures):
-    
+
     space = cells_signatures
 
     with pytest.raises(TypeError):
@@ -50,7 +50,7 @@ def test_get_too_many_args(cells_signatures):
         space.single_param[1, 2]
 
     with pytest.raises(TypeError):
-        space.single_param[(1, 2)] # Intepreted as [1, 2]
+        space.single_param[(1, 2)]  # Intepreted as [1, 2]
 
 
 def test_get_too_few_args(cells_signatures):
@@ -78,7 +78,7 @@ def test_get_default_args(cells_signatures):
 
 
 def test_getitem_string(cells_signatures):
-    
+
     space = cells_signatures
     assert space.single_param["foo"] == "foo"
     assert space.single_param_with_default["bar"] == "bar"

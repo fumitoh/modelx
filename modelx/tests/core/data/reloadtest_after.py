@@ -1,4 +1,3 @@
-
 def foo(n):
     """Return 1 for all n >= 0"""
     if n == 1:

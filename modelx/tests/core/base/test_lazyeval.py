@@ -3,16 +3,15 @@ from modelx import *
 from modelx.core.base import *
 
 
-data1 = {'A': 1, 'B': 2}
-data2 = {'C': 3, 'D': 4}
+data1 = {"A": 1, "B": 2}
+data2 = {"C": 3, "D": 4}
 
-check = {'B': 2, 'C': 3, 'D': 4, 'E': 5}
+check = {"B": 2, "C": 3, "D": 4, "E": 5}
 ledict2 = LazyEvalDict(data2, [])
 ledict1 = LazyEvalDict(data1, [ledict2])
 
 
 class LazyEvalDict2(LazyEvalDict):
-
     def __init__(self, source, data, observers):
         self.source = source
         self.org_data = data.copy()
@@ -52,8 +51,8 @@ def test_lazy_eval_dict():
 
 def test_lazy_eval_dict_update():
     sample = SampleLazyEval()
-    del sample.lazy_eval_dict1['A']
-    sample.lazy_eval_dict1['E'] = 5
+    del sample.lazy_eval_dict1["A"]
+    sample.lazy_eval_dict1["E"] = 5
     sample.lazy_eval_dict1.set_update()
 
     assert sample.lazy_eval_dict2 == check
@@ -67,8 +66,8 @@ def test_lazy_eval_chmap():
 def test_lazy_eval_chmap_update():
 
     sample = SampleLazyEval()
-    del sample.lazy_eval_dict1['A']
-    sample.lazy_eval_dict1['E'] = 5
+    del sample.lazy_eval_dict1["A"]
+    sample.lazy_eval_dict1["E"] = 5
     sample.lazy_eval_dict1.set_update()
 
     assert sample.lazy_eval_chmap == check

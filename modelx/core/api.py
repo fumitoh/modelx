@@ -150,21 +150,23 @@ def defcells(space=None, name=None, *funcs):
         func = space
         return _system.currentspace.new_cells(formula=func).interface
 
-    elif (isinstance(space, _Space) or space is None) \
-            and (isinstance(name, str) or name is None):
+    elif (isinstance(space, _Space) or space is None) and (
+        isinstance(name, str) or name is None
+    ):
         # return decorator itself
         if space is None:
             space = _system.currentspace.interface
 
         return _CellsMaker(space=space._impl, name=name)
 
-    elif all(isinstance(func, _FunctionType) for func \
-             in (space, name) + funcs):
+    elif all(
+        isinstance(func, _FunctionType) for func in (space, name) + funcs
+    ):
 
         return [defcells(func) for func in (space, name) + funcs]
 
     else:
-        raise TypeError('invalid defcells arguments')
+        raise TypeError("invalid defcells arguments")
 
 
 def get_models():
@@ -175,7 +177,7 @@ def get_models():
 def get_object(name: str):
     """Get a modelx object from its full name."""
     # TODO: Duplicate of system.get_object
-    elms = name.split('.')
+    elms = name.split(".")
     parent = get_models()[elms.pop(0)]
     while len(elms) > 0:
         obj = elms.pop(0)
@@ -239,8 +241,9 @@ def cur_space(space=None):
             cur_model(space.model)
             _system.currentmodel.currentspace = space._impl
         else:
-            _system.currentmodel.currentspace = \
-                _system.currentmodel.spaces[space]
+            _system.currentmodel.currentspace = _system.currentmodel.spaces[
+                space
+            ]
 
         return cur_space()
 
@@ -256,6 +259,3 @@ def open_model(path, name=None):
         A new model created from the file.
     """
     return _system.open_model(path, name)
-
-
-

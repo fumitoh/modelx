@@ -27,7 +27,6 @@ class Executive:
 
 
 class CallStack(deque):
-
     def __init__(self, system, maxdepth):
         self._succ = None
         self._system = system
@@ -60,23 +59,24 @@ class CallStack(deque):
         """
         if maxlen > 0, the message is shortened to maxlen traces.
         """
-        result = ''
+        result = ""
         for i, value in enumerate(self):
             result += "{0}: {1}\n".format(i, get_node_repr(value))
 
-        result = result.strip('\n')
-        lines = result.split('\n')
+        result = result.strip("\n")
+        lines = result.split("\n")
 
         if maxlen and len(lines) > maxlen:
             i = int(maxlen / 2)
-            lines = lines[:i] + ['...'] + lines[-(maxlen - i):]
-            result = '\n'.join(lines)
+            lines = lines[:i] + ["..."] + lines[-(maxlen - i) :]
+            result = "\n".join(lines)
 
         return result
 
 
-def custom_showwarning(message, category,
-                       filename='', lineno=-1, file=None, line=None):
+def custom_showwarning(
+    message, category, filename="", lineno=-1, file=None, line=None
+):
     """Hook to override default showwarning.
 
     https://stackoverflow.com/questions/2187269/python-print-only-the-message-on-warnings
@@ -111,7 +111,6 @@ def is_ipython():
 
 
 class System:
-
     def setup_ipython(self):
         """Monkey patch shell's error handler.
 
@@ -125,7 +124,8 @@ class System:
             return
 
         from ipykernel.kernelapp import IPKernelApp
-        self.shell = IPKernelApp.instance().shell   # None in PyCharm console
+
+        self.shell = IPKernelApp.instance().shell  # None in PyCharm console
 
         if not self.shell and is_ipython():
             self.shell = get_ipython()
@@ -173,25 +173,25 @@ class System:
         """
         orig = self.orig_settings
 
-        orig['sys.recursionlimit'] = sys.getrecursionlimit()
+        orig["sys.recursionlimit"] = sys.getrecursionlimit()
         sys.setrecursionlimit(10000)
 
-        orig['showwarning'] = warnings.showwarning
+        orig["showwarning"] = warnings.showwarning
         warnings.showwarning = custom_showwarning
 
     def restore_python(self):
         """Restore Python settings to the original states"""
         orig = self.orig_settings
-        sys.setrecursionlimit(orig['sys.recursionlimit'])
+        sys.setrecursionlimit(orig["sys.recursionlimit"])
 
-        if 'sys.tracebacklimit' in orig:
-            sys.tracebacklimit = orig['sys.tracebacklimit']
+        if "sys.tracebacklimit" in orig:
+            sys.tracebacklimit = orig["sys.tracebacklimit"]
         else:
-            if hasattr(sys, 'tracebacklimit'):
+            if hasattr(sys, "tracebacklimit"):
                 del sys.tracebacklimit
 
-        if 'showwarning' in orig:
-            warnings.showwarning = orig['showwarning']
+        if "showwarning" in orig:
+            warnings.showwarning = orig["showwarning"]
 
         orig.clear()
 
@@ -215,8 +215,9 @@ class System:
     def _rename_samename(self, name):
         backupname = self._backupnamer.get_next(self.models, prefix=name)
         if self.rename_model(backupname, name):
-            warnings.warn("Existing model '%s' renamed to '%s'" %
-                          (name, backupname))
+            warnings.warn(
+                "Existing model '%s' renamed to '%s'" % (name, backupname)
+            )
         else:
             raise ValueError("Failed to create %s", name)
 
@@ -237,7 +238,7 @@ class System:
         return self.currentmodel.currentspace
 
     def open_model(self, path, name):
-        with open(path, 'rb') as file:
+        with open(path, "rb") as file:
             model = pickle.load(file)
 
         model._impl.restore_state(self)
@@ -268,24 +269,35 @@ class System:
     def get_object(self, name):
         """Retrieve an object by its absolute name."""
 
-        parts = name.split('.')
+        parts = name.split(".")
 
         model_name = parts.pop(0)
-        return self.models[model_name].get_object('.'.join(parts))
+        return self.models[model_name].get_object(".".join(parts))
+
 
 # --------------------------------------------------------------------------
 # Monkey patch functions for custom error messages
 
 
-def custom_showtraceback(self, exc_tuple=None, filename=None, tb_offset=None,
-                         exception_only=False, running_compiled_code=False):
+def custom_showtraceback(
+    self,
+    exc_tuple=None,
+    filename=None,
+    tb_offset=None,
+    exception_only=False,
+    running_compiled_code=False,
+):
     """Custom showtraceback for monkey-patching IPython's InteractiveShell
 
     https://stackoverflow.com/questions/1261668/cannot-override-sys-excepthook
     """
-    self.default_showtraceback(exc_tuple, filename,
-                                 tb_offset, exception_only=True,
-                                 running_compiled_code=running_compiled_code)
+    self.default_showtraceback(
+        exc_tuple,
+        filename,
+        tb_offset,
+        exception_only=True,
+        running_compiled_code=running_compiled_code,
+    )
 
 
 def excepthook(self, except_type, exception, traceback):

@@ -23,7 +23,7 @@ def viewtest():
 
 def test_view(viewtest):
 
-    selected = viewtest.cells['foo', 'bar']
+    selected = viewtest.cells["foo", "bar"]
     assert len(selected) == 2
 
     for name, cells in selected.items():

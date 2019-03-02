@@ -29,20 +29,22 @@ from modelx.core.base import (
     ImplChainMap,
     BaseView,
     SelectedView,
-    BoundFunction)
-from modelx.core.node import (
-    node_get_args, tuplize_key, get_node, OBJ, KEY)
+    BoundFunction,
+)
+from modelx.core.node import node_get_args, tuplize_key, get_node, OBJ, KEY
 from modelx.core.spacecontainer import (
     BaseSpaceContainer,
     BaseSpaceContainerImpl,
     EditableSpaceContainer,
-    EditableSpaceContainerImpl)
+    EditableSpaceContainerImpl,
+)
 from modelx.core.formula import Formula, ModuleSource
 from modelx.core.cells import (
     Cells,
     CellsImpl,
     convert_args,
-    shareable_parameters)
+    shareable_parameters,
+)
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
@@ -52,19 +54,16 @@ class ParamFunc(Formula):
 
 
 class SpaceDict(ImplDict):
-
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, SpaceView, data, observers)
 
 
 class CellsDict(ImplDict):
-
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, CellsView, data, observers)
 
 
 class RefDict(ImplDict):
-
     def __init__(self, space, data=None, observers=None):
 
         if data is not None:
@@ -79,7 +78,7 @@ class RefDict(ImplDict):
     # TODO: Should remove this to force refs created outside RefDict?
     @staticmethod
     def get_ref(space, name, value):
-        if isinstance(value, Impl):   # TODO: Probably not correct.
+        if isinstance(value, Impl):  # TODO: Probably not correct.
             return value
         else:
             return ReferenceImpl(space, name, value)
@@ -137,6 +136,7 @@ class CellsView(SelectedView):
          baz}
 
     """
+
     def __delitem__(self, name):
         cells = self._data[name]._impl
         cells.space.del_cells(name)
@@ -168,6 +168,7 @@ class CellsView(SelectedView):
         """
         if sys.version_info < (3, 6, 0):
             from collections import OrderedDict
+
             impls = OrderedDict()
             for name, obj in self.items():
                 impls[name] = obj._impl
@@ -178,25 +179,25 @@ class CellsView(SelectedView):
 
 
 class SpaceView(BaseView):
-
     def __delitem__(self, name):
         space = self._data[name]._impl
         space.parent.del_space(name)
 
 
 class RefView(SelectedView):
-
     @property
     def _baseattrs(self):
 
-        result = {'type': type(self).__name__}
+        result = {"type": type(self).__name__}
 
-        result['items'] = items = {}
+        result["items"] = items = {}
         for name, item in self.items():
-            if name[0] != '_':
-                itemattrs = {'repr': name,
-                             'id': id(item),
-                             'type': type(item).__name__}
+            if name[0] != "_":
+                itemattrs = {
+                    "repr": name,
+                    "id": id(item),
+                    "type": type(item).__name__,
+                }
                 items[name] = itemattrs
 
         return result
@@ -353,15 +354,15 @@ class BaseSpace(BaseSpaceContainer):
         """A dict of members expressed in literals"""
 
         result = super()._baseattrs
-        result['static_spaces'] = self.static_spaces._baseattrs
-        result['dynamic_spaces'] = self.dynamic_spaces._baseattrs
-        result['cells'] = self.cells._baseattrs
-        result['refs'] = self.refs._baseattrs
+        result["static_spaces"] = self.static_spaces._baseattrs
+        result["dynamic_spaces"] = self.dynamic_spaces._baseattrs
+        result["cells"] = self.cells._baseattrs
+        result["refs"] = self.refs._baseattrs
 
         if self.has_params():
-            result['params'] = ', '.join(self.parameters)
+            result["params"] = ", ".join(self.parameters)
         else:
-            result['params'] = ''
+            result["params"] = ""
 
         return result
 
@@ -373,6 +374,7 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
     Spaces have mappings of names to objects that serve as global namespaces
     of the formulas of the cells in the spaces.
     """
+
     __slots__ = ()
     # ----------------------------------------------------------------------
     # Manipulating cells
@@ -439,11 +441,18 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         self._impl.reload()
         return self
 
-    def new_cells_from_excel(self, book, range_, sheet=None,
-                                names_row=None, param_cols=None,
-                                param_order=None,
-                                transpose=False,
-                                names_col=None, param_rows=None):
+    def new_cells_from_excel(
+        self,
+        book,
+        range_,
+        sheet=None,
+        names_row=None,
+        param_cols=None,
+        param_order=None,
+        transpose=False,
+        names_col=None,
+        param_rows=None,
+    ):
         """Create multiple cells from an Excel range.
 
         This method reads values from a range in an Excel file,
@@ -520,9 +529,16 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
                 shifted by the length of ``param_cols``.
         """
         return self._impl.new_cells_from_excel(
-            book, range_, sheet, names_row, param_cols,
-            param_order, transpose,
-            names_col, param_rows)
+            book,
+            range_,
+            sheet,
+            names_row,
+            param_cols,
+            param_order,
+            transpose,
+            names_col,
+            param_rows,
+        )
 
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells
@@ -562,7 +578,6 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
     def __delattr__(self, name):
         self._impl.del_attr(name)
 
-
     # ----------------------------------------------------------------------
     # Formula
 
@@ -592,38 +607,50 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
     * Formula container
     * Implement Derivable
     """
+
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = [
-        '_mro_cache',
-        'update_mro',
-        '_cells',
-        '_static_spaces',
-        '_dynamic_spaces',
-        '_local_refs',
-        '_self_refs',
-        '_refs',
-        '_namespace_impl',
-        'param_spaces',
-        'formula',
-        'cellsnamer',
-        'name',
-        'source',
-        'altfunc'
-    ] + BaseSpaceContainerImpl.state_attrs + Derivable.state_attrs
+    state_attrs = (
+        [
+            "_mro_cache",
+            "update_mro",
+            "_cells",
+            "_static_spaces",
+            "_dynamic_spaces",
+            "_local_refs",
+            "_self_refs",
+            "_refs",
+            "_namespace_impl",
+            "param_spaces",
+            "formula",
+            "cellsnamer",
+            "name",
+            "source",
+            "altfunc",
+        ]
+        + BaseSpaceContainerImpl.state_attrs
+        + Derivable.state_attrs
+    )
 
     assert len(state_attrs) == len(set(state_attrs))
 
-    def __init__(self, parent, name, formula=None,
-                 refs=None, source=None, arguments=None):
+    def __init__(
+        self,
+        parent,
+        name,
+        formula=None,
+        refs=None,
+        source=None,
+        arguments=None,
+    ):
 
         BaseSpaceContainerImpl.__init__(self)
         Derivable.__init__(self, parent.system)
 
         self.name = name
         self.parent = parent
-        self.cellsnamer = AutoNamer('Cells')
+        self.cellsnamer = AutoNamer("Cells")
 
         self._mro_cache = None
         self.update_mro = True
@@ -641,18 +668,17 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         self._self_refs = RefDict(self)
         self._cells = CellsDict(self)
         self._static_spaces = SpaceDict(self)
-        self._spaces = ImplChainMap(self, SpaceView,
-                                    [self._static_spaces,
-                                     self._dynamic_spaces])
+        self._spaces = ImplChainMap(
+            self, SpaceView, [self._static_spaces, self._dynamic_spaces]
+        )
 
-        self._local_refs = {'_self': self, '_space': self}
+        self._local_refs = {"_self": self, "_space": self}
 
         self._refs = self._create_refs(arguments)
 
-        self._namespace_impl = ImplChainMap(self, None,
-                                            [self._cells,
-                                             self._refs,
-                                             self._spaces])
+        self._namespace_impl = ImplChainMap(
+            self, None, [self._cells, self._refs, self._spaces]
+        )
 
         self.lazy_evals = self._namespace_impl
 
@@ -660,8 +686,10 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         # Add initial refs members
 
         if refs is not None:
-            refsimpl = {name: ReferenceImpl(self, name, value)
-                        for name, value in refs.items()}
+            refsimpl = {
+                name: ReferenceImpl(self, name, value)
+                for name, value in refs.items()
+            }
             self._self_refs.update(refsimpl)
             self._self_refs.set_update()
 
@@ -676,19 +704,19 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         # ------------------------------------------------------------------
         # For repr of LazyEvalDict, LazyEvalImpl
 
-        self._cells.debug_name = '_cells'
-        self._static_spaces.debug_name = '_static_spaces'
-        self._dynamic_spaces.debug_name = '_dynamic_spaces'
-        self._self_refs.debug_name = '_self_refs'
-        self._refs.debug_name = '_refs'
-        self._namespace_impl.debug_name = '_namespace_impl'
+        self._cells.debug_name = "_cells"
+        self._static_spaces.debug_name = "_static_spaces"
+        self._dynamic_spaces.debug_name = "_dynamic_spaces"
+        self._self_refs.debug_name = "_self_refs"
+        self._refs.debug_name = "_refs"
+        self._namespace_impl.debug_name = "_namespace_impl"
 
     def _create_refs(self, arguments=None):
         raise NotImplementedError
 
     @property
     def fullname(self):
-        return self.parent.fullname + '.' + self.name
+        return self.parent.fullname + "." + self.name
 
     @property
     def model(self):
@@ -799,32 +827,33 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
 
     def inherit(self, **kwargs):
 
-        if 'event' in kwargs:
-            event = kwargs['event']
+        if "event" in kwargs:
+            event = kwargs["event"]
         else:
             event = None
 
         if self.bases and self.bases[0].formula is not None:
             if not isinstance(self, RootDynamicSpaceImpl):
-                if event != 'new_cells' and event != 'cells_set_formula':
+                if event != "new_cells" and event != "cells_set_formula":
                     self.set_formula(self.bases[0].formula)
 
-        attrs = ('cells', 'self_refs', 'static_spaces')
+        attrs = ("cells", "self_refs", "static_spaces")
         for attr in attrs:
             selfmap = getattr(self, attr)
             basemap = ChainMap(*[getattr(base, attr) for base in self.bases])
             for name in basemap:
                 if name not in self.namespace_impl:
-                    selfmap[name] = self._new_member(attr, name,
-                                                     is_derived=True)
+                    selfmap[name] = self._new_member(
+                        attr, name, is_derived=True
+                    )
                     clear_value = False
                 else:
-                    if 'clear_value' in kwargs:
-                        clear_value = kwargs['clear_value']
+                    if "clear_value" in kwargs:
+                        clear_value = kwargs["clear_value"]
                     else:
                         clear_value = True
 
-                kwargs['clear_value'] = clear_value
+                kwargs["clear_value"] = clear_value
                 selfmap[name].inherit(**kwargs)
 
             names = set(selfmap) - set(basemap)
@@ -832,7 +861,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
                 member = selfmap[name]
                 if member.is_derived:
                     selfmap.del_item(name)
-                    if attr == 'static_spaces':
+                    if attr == "static_spaces":
                         self.model.spacegraph.remove_node(member)
                 else:
                     member.inherit(**kwargs)
@@ -844,11 +873,11 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         raise NotImplementedError
 
     def _new_member(self, attr, name, is_derived=False):
-        if attr == 'static_spaces':
+        if attr == "static_spaces":
             return self._new_space_member(name, is_derived)
-        elif attr == 'cells':
+        elif attr == "cells":
             return self._new_cells(name, formula=None, is_derived=is_derived)
-        elif attr == 'self_refs':
+        elif attr == "self_refs":
             return self._new_ref(name, None, is_derived=is_derived)
         else:
             raise RuntimeError("must not happen")
@@ -861,8 +890,10 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             if other in self.spaces.values():
                 return True
             else:
-                return any(child.has_descendant(other)
-                           for child in self.spaces.values())
+                return any(
+                    child.has_descendant(other)
+                    for child in self.spaces.values()
+                )
         else:
             return False
 
@@ -872,11 +903,11 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
     def get_object(self, name):
         """Retrieve an object by a dotted name relative to the space."""
 
-        parts = name.split('.')
+        parts = name.split(".")
         child = parts.pop(0)
 
         if parts:
-            return self.spaces[child].get_object('.'.join(parts))
+            return self.spaces[child].get_object(".".join(parts))
         else:
             return self._namespace_impl[child]
 
@@ -902,8 +933,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         if a direct base space in `bases` is dynamic, replace it with
         its base.
         """
-        bases = tuple(base.bases[0] if base.in_dynamic() else base
-                      for base in bases_)
+        bases = tuple(
+            base.bases[0] if base.in_dynamic() else base for base in bases_
+        )
 
         if len(bases) == 1:
             return bases[0]
@@ -914,8 +946,15 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         else:
             RuntimeError("must not happen")
 
-    def _new_dynspace(self, name=None, bases=None, formula=None,
-                      refs=None, arguments=None, source=None):
+    def _new_dynspace(
+        self,
+        name=None,
+        bases=None,
+        formula=None,
+        refs=None,
+        arguments=None,
+        source=None,
+    ):
         """Create a new dynamic root space."""
 
         if name is None:
@@ -928,12 +967,17 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             raise ValueError("Invalid name '%s'." % name)
 
         space = RootDynamicSpaceImpl(
-            parent=self, name=name, formula=formula,
-            refs=refs, source=source, arguments=arguments)
+            parent=self,
+            name=name,
+            formula=formula,
+            refs=refs,
+            source=source,
+            arguments=arguments,
+        )
         space.is_derived = False
         self._set_space(space)
 
-        if bases: # i.e. not []
+        if bases:  # i.e. not []
             dynbase = self._get_dynamic_base(bases)
             space._dynbase = dynbase
             dynbase._dynamic_subs.append(space)
@@ -963,20 +1007,20 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
                 self.system.self = last_self
 
             if space_args is None:
-                space_args = {'bases': [self]}  # Default
+                space_args = {"bases": [self]}  # Default
             else:
-                if 'bases' in space_args:
-                    bases = get_impls(space_args['bases'])
+                if "bases" in space_args:
+                    bases = get_impls(space_args["bases"])
                     if isinstance(bases, StaticSpaceImpl):
-                        space_args['bases'] = [bases]
+                        space_args["bases"] = [bases]
                     elif bases is None:
-                        space_args['bases'] = [self]    # Default
+                        space_args["bases"] = [self]  # Default
                     else:
-                        space_args['bases'] = bases
+                        space_args["bases"] = bases
                 else:
-                    space_args['bases'] = [self]
+                    space_args["bases"] = [self]
 
-            space_args['arguments'] = node_get_args(node)
+            space_args["arguments"] = node_get_args(node)
             space = self._new_dynspace(**space_args)
             self.param_spaces[key] = space
             space.inherit(clear_value=False)
@@ -986,13 +1030,13 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
     # Space properties
 
     def __repr__(self):
-        return '<SpaceImpl: ' + self.fullname + '>'
+        return "<SpaceImpl: " + self.fullname + ">"
 
     def repr_self(self, add_params=True):
 
         if add_params and isinstance(self, RootDynamicSpaceImpl):
             args = [repr(arg) for arg in get_interfaces(self.argvalues)]
-            param = ', '.join(args)
+            param = ", ".join(args)
             return "%s[%s]" % (self.parent.name, param)
         else:
             return self.name
@@ -1003,13 +1047,18 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             return self.parent.repr_parent()
         else:
             if self.parent.repr_parent():
-                return self.parent.repr_parent() + '.' + self.parent.repr_self()
+                return (
+                    self.parent.repr_parent() + "." + self.parent.repr_self()
+                )
             else:
                 return self.parent.repr_self()
 
     def __getstate__(self):
-        state = {key: value for key, value in self.__dict__.items()
-                 if key in self.state_attrs}
+        state = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key in self.state_attrs
+        }
         return state
 
     def __setstate__(self, state):
@@ -1036,33 +1085,45 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     * cell creation
     * ref assignment
     """
+
     if_class = StaticSpace
-    state_attrs = ['_dynamic_subs'
-        ] + BaseSpaceImpl.state_attrs + EditableSpaceContainerImpl.state_attrs
+    state_attrs = (
+        ["_dynamic_subs"]
+        + BaseSpaceImpl.state_attrs
+        + EditableSpaceContainerImpl.state_attrs
+    )
     assert len(state_attrs) == len(set(state_attrs))
 
-    def __init__(self, parent, name, formula=None,
-                 refs=None, source=None, arguments=None):
+    def __init__(
+        self,
+        parent,
+        name,
+        formula=None,
+        refs=None,
+        source=None,
+        arguments=None,
+    ):
 
         BaseSpaceImpl.__init__(self, parent, name, formula, refs, source)
 
-        self._refs = ImplChainMap(self, RefView,
-                                  [self.model._global_refs,
-                                   self._local_refs,
-                                   self._self_refs])
+        self._refs = ImplChainMap(
+            self,
+            RefView,
+            [self.model._global_refs, self._local_refs, self._self_refs],
+        )
 
-        self._namespace_impl = ImplChainMap(self, None,
-                                            [self._cells,
-                                             self._refs,
-                                             self._spaces])
+        self._namespace_impl = ImplChainMap(
+            self, None, [self._cells, self._refs, self._spaces]
+        )
 
         self.lazy_evals = self._namespace_impl
 
     def _create_refs(self, arguments=None):
-        return ImplChainMap(self, RefView,
-                            [self.model._global_refs,
-                             self._local_refs,
-                             self._self_refs])
+        return ImplChainMap(
+            self,
+            RefView,
+            [self.model._global_refs, self._local_refs, self._self_refs],
+        )
 
     def _new_space_member(self, name, is_derived):
         space = self._new_space(name, is_derived=is_derived)
@@ -1077,9 +1138,9 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         else:
             cells = self._new_cells(name, formula, is_derived)
             cells.inherit()
-            self.model.spacegraph.update_subspaces_upward(self,
-                                                          from_parent=False,
-                                                          event='new_cells')
+            self.model.spacegraph.update_subspaces_upward(
+                self, from_parent=False, event="new_cells"
+            )
             return cells
 
     def new_cells_from_module(self, module_, override=True):
@@ -1101,11 +1162,18 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
         return newcells
 
-    def new_cells_from_excel(self, book, range_, sheet=None,
-                             names_row=None, param_cols=None,
-                             param_order=None,
-                             transpose=False,
-                             names_col=None, param_rows=None):
+    def new_cells_from_excel(
+        self,
+        book,
+        range_,
+        sheet=None,
+        names_row=None,
+        param_cols=None,
+        param_order=None,
+        transpose=False,
+        names_col=None,
+        param_rows=None,
+    ):
         """Create multiple cells from an Excel range.
 
         Args:
@@ -1128,9 +1196,17 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         """
         import modelx.io.excel as xl
 
-        cellstable = xl.CellsTable(book, range_, sheet,
-                                   names_row, param_cols, param_order,
-                                   transpose, names_col, param_rows)
+        cellstable = xl.CellsTable(
+            book,
+            range_,
+            sheet,
+            names_row,
+            param_cols,
+            param_order,
+            transpose,
+            names_col,
+            param_rows,
+        )
 
         if cellstable.param_names:
             sig = "=None, ".join(cellstable.param_names) + "=None"
@@ -1238,8 +1314,9 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         if name in self.static_spaces:
             space = self.static_spaces[name]
             if space.is_derived:
-                raise ValueError("%s has derived spaces"
-                                 % repr(space.interface))
+                raise ValueError(
+                    "%s has derived spaces" % repr(space.interface)
+                )
             else:
                 self.static_spaces.del_item(name)
                 self.model.spacegraph.remove_node(space)
@@ -1288,7 +1365,8 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             raise ValueError("Ref '%s' cannot be deleted" % name)
         elif name in self.model.global_refs:
             raise ValueError(
-                "Global ref '%s' cannot be deleted in space" % name)
+                "Global ref '%s' cannot be deleted in space" % name
+            )
         else:
             raise KeyError("Ref '%s' does not exist" % name)
 
@@ -1303,8 +1381,11 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         modsrc = ModuleSource(module_)
         funcs = modsrc.funcs
         newfuncs = set(funcs)
-        oldfuncs = {cells.formula.name for cells in self.cells.values()
-                    if cells.formula.module_ == module_.__name__}
+        oldfuncs = {
+            cells.formula.name
+            for cells in self.cells.values()
+            if cells.formula.module_ == module_.__name__
+        }
 
         cells_to_add = newfuncs - oldfuncs
         cells_to_clear = oldfuncs - newfuncs
@@ -1329,17 +1410,23 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     if_class = DynamicSpace
 
-    state_attrs = [
-        '_dynbase',
-        '_parentargs'] + BaseSpaceImpl.state_attrs
+    state_attrs = ["_dynbase", "_parentargs"] + BaseSpaceImpl.state_attrs
 
     assert len(state_attrs) == len(set(state_attrs))
 
-    def __init__(self, parent, name, formula=None,
-                 refs=None, source=None, arguments=None):
+    def __init__(
+        self,
+        parent,
+        name,
+        formula=None,
+        refs=None,
+        source=None,
+        arguments=None,
+    ):
 
-        BaseSpaceImpl.__init__(self, parent, name,
-                               formula, refs, source, arguments)
+        BaseSpaceImpl.__init__(
+            self, parent, name, formula, refs, source, arguments
+        )
 
     def _new_space_member(self, name, is_derived):
         space = DynamicSpaceImpl(parent=self, name=name)
@@ -1350,11 +1437,16 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     def _create_refs(self, arguments=None):
         self._parentargs = self._create_parentargs()
 
-        return ImplChainMap(self, RefView,
-                                  [self.model._global_refs,
-                                   self._local_refs,
-                                   self._parentargs,
-                                   self._self_refs])
+        return ImplChainMap(
+            self,
+            RefView,
+            [
+                self.model._global_refs,
+                self._local_refs,
+                self._parentargs,
+                self._self_refs,
+            ],
+        )
 
     def _create_parentargs(self):
         if isinstance(self.parent, StaticSpaceImpl):
@@ -1384,26 +1476,39 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
 class RootDynamicSpaceImpl(DynamicSpaceImpl):
 
-    state_attrs = ['_arguments'] + DynamicSpaceImpl.state_attrs
+    state_attrs = ["_arguments"] + DynamicSpaceImpl.state_attrs
     assert len(state_attrs) == len(set(state_attrs))
 
-    def __init__(self, parent, name, formula=None,
-                 refs=None, source=None, arguments=None):
+    def __init__(
+        self,
+        parent,
+        name,
+        formula=None,
+        refs=None,
+        source=None,
+        arguments=None,
+    ):
 
-        DynamicSpaceImpl.__init__(self, parent, name,
-                                  formula, refs, source, arguments)
+        DynamicSpaceImpl.__init__(
+            self, parent, name, formula, refs, source, arguments
+        )
         self._bind_args(arguments)
 
     def _create_refs(self, arguments=None):
         self._arguments = RefDict(self, data=arguments)
         self._parentargs = self._create_parentargs()
 
-        return ImplChainMap(self, RefView,
-                                  [self.model._global_refs,
-                                   self._local_refs,
-                                   self._parentargs,
-                                   self._arguments,
-                                   self._self_refs])
+        return ImplChainMap(
+            self,
+            RefView,
+            [
+                self.model._global_refs,
+                self._local_refs,
+                self._parentargs,
+                self._arguments,
+                self._self_refs,
+            ],
+        )
 
     def _bind_args(self, args):
         self.boundargs = self.parent.formula.signature.bind(**args)
@@ -1431,8 +1536,8 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
         result = super()._baseattrs
         args = self.argvalues
         if args is not None:
-            result['argvalues'] = ', '.join([repr(arg) for arg in args])
+            result["argvalues"] = ", ".join([repr(arg) for arg in args])
         else:
-            result['argvalues'] = ''
+            result["argvalues"] = ""
 
         return result

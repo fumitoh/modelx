@@ -25,10 +25,13 @@ class DeepReferenceError(RuntimeError):
     Error raised when the chain of formula reference exceeds the limit
     specified by the user.
     """
-    message_template = dedent("""\
+
+    message_template = dedent(
+        """\
         Formula chain exceeded the {0} limit.
         Call stack traceback:
-        {1}""")
+        {1}"""
+    )
 
     def __init__(self, maxdepth, trace_msg):
         self.msg = self.message_template.format(maxdepth, trace_msg)
@@ -40,10 +43,13 @@ class NoneReturnedError(ValueError):
     Error raised when a cells return None while its allow_none
     attribute is set to False.
     """
-    message_template = dedent("""\
+
+    message_template = dedent(
+        """\
         None returned from {0}.
         Call stack traceback:
-        {1}""")
+        {1}"""
+    )
 
     def __init__(self, node, trace_msg):
         msg = self.message_template.format(get_node_repr(node), trace_msg)
@@ -56,10 +62,13 @@ class RewindStackError(RuntimeError):
     due to the original error such as zero-division caused by
     erroneous operations.
     """
-    message_template = dedent("""\
+
+    message_template = dedent(
+        """\
         Zero division occurred in {0}.
         Call stack traceback:
-        {1}""")
+        {1}"""
+    )
 
     def __init__(self, last_call, trace_msg):
         msg = self.message_template.format(last_call, trace_msg)

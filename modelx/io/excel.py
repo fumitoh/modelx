@@ -67,13 +67,14 @@ def _is_range_address(range_addr):
         max_row = max_row and int(max_row)
 
         if max_col and max_row:
-            return ((min_col <= max_col)
-                    and (min_row <= max_row)
-                    and (max_col <= 16384)
-                    and (max_row <= 1048576))
+            return (
+                (min_col <= max_col)
+                and (min_row <= max_row)
+                and (max_col <= 16384)
+                and (max_row <= 1048576)
+            )
         else:
-            return ((min_col <= 16384)
-                    and (min_row <= 1048576))
+            return (min_col <= 16384) and (min_row <= 1048576)
 
 
 def _get_range(book, range_, sheet):
@@ -95,8 +96,9 @@ def _get_range(book, range_, sheet):
     else:
         data = _get_namedrange(book, range_, sheet)
         if data is None:
-            raise ValueError("Named range '%s' not found in %s" %
-                             (range_, filename or book))
+            raise ValueError(
+                "Named range '%s' not found in %s" % (range_, filename or book)
+            )
 
     return data
 
@@ -180,16 +182,17 @@ def _get_namedrange(book, rangename, sheetname=None):
 
     def cond(namedef):
 
-        if namedef.type.upper() == 'RANGE':
+        if namedef.type.upper() == "RANGE":
             if namedef.name.upper() == rangename.upper():
 
                 if sheetname is None:
                     if not namedef.localSheetId:
                         return True
 
-                else:   # sheet local name
-                    sheet_id = [sht.upper() for sht
-                                in book.sheetnames].index(sheetname.upper())
+                else:  # sheet local name
+                    sheet_id = [sht.upper() for sht in book.sheetnames].index(
+                        sheetname.upper()
+                    )
 
                     if namedef.localSheetId == sheet_id:
                         return True
@@ -207,15 +210,16 @@ def _get_namedrange(book, rangename, sheetname=None):
             for part in tok.items:
                 if part.subtype == "RANGE":
                     m = SHEETRANGE_RE.match(part.value)
-                    if m.group('quoted'):
-                        sheet_name = m.group('quoted')
+                    if m.group("quoted"):
+                        sheet_name = m.group("quoted")
                     else:
-                        sheet_name = m.group('notquoted')
+                        sheet_name = m.group("notquoted")
 
-                    yield sheet_name, m.group('cells')
+                    yield sheet_name, m.group("cells")
 
-    namedef = next((item for item in book.defined_names.definedName
-                    if cond(item)), None)
+    namedef = next(
+        (item for item in book.defined_names.definedName if cond(item)), None
+    )
 
     if namedef is None:
         return None
@@ -236,23 +240,32 @@ def _get_namedrange(book, rangename, sheetname=None):
     else:
         return xlranges
 
-_IndexRange = namedtuple('_Index', ['begin', 'len', 'skip'])
+
+_IndexRange = namedtuple("_Index", ["begin", "len", "skip"])
 
 
 class _CellsOrientation:
     ROW = 1
     COL = COLUMN = 2
 
+
 _ROW = _CellsOrientation.ROW
 _COL = _CellsOrientation.COL
 
 
 class CellsTable:
-
-    def __init__(self, book, range_, sheet,
-                 names, params,
-                 param_order, transpose,
-                 names_ext, params_ext):
+    def __init__(
+        self,
+        book,
+        range_,
+        sheet,
+        names,
+        params,
+        param_order,
+        transpose,
+        names_ext,
+        params_ext,
+    ):
 
         self.data = _get_range(book, range_, sheet)
         self.names_idx = names
@@ -270,8 +283,9 @@ class CellsTable:
             else:
                 raise ValueError("invalid pair of name_ext and param_exit")
 
-            self.rows = _IndexRange(0, len(self.data),
-                                    [self.names_idx] + self.col_param_rows)
+            self.rows = _IndexRange(
+                0, len(self.data), [self.names_idx] + self.col_param_rows
+            )
             param_names = []
             for col in self.row_param_cols:
                 param_names.append(self.data[self.names_idx][col].value)
@@ -289,8 +303,9 @@ class CellsTable:
             else:
                 raise ValueError("invalid pair of name_ext and param_exit")
 
-            self.cols = _IndexRange(0, len(self.data[0]),
-                                    [self.names_idx] + self.row_param_cols)
+            self.cols = _IndexRange(
+                0, len(self.data[0]), [self.names_idx] + self.row_param_cols
+            )
             param_names = []
             for row in self.col_param_rows:
                 param_names.append(self.data[row][self.names_idx].value)
@@ -331,27 +346,34 @@ class CellsTable:
                     else:
                         cols_range = _IndexRange(col - col_len, col_len, [])
 
-                        yield _CellsData(self.data, name,
-                                         self.row_param_cols,
-                                         self.col_param_rows,
-                                         self.param_order,
-                                         self.rows,
-                                         cols_range,
-                                         self.orientation)
+                        yield _CellsData(
+                            self.data,
+                            name,
+                            self.row_param_cols,
+                            self.col_param_rows,
+                            self.param_order,
+                            self.rows,
+                            cols_range,
+                            self.orientation,
+                        )
                         name = next_name
                         col_len = 1
 
             if col_len > 0:
-                cols_range = _IndexRange(len(self.data[0]) - col_len,
-                                         col_len, [])
+                cols_range = _IndexRange(
+                    len(self.data[0]) - col_len, col_len, []
+                )
 
-                yield _CellsData(self.data, name,
-                                 self.row_param_cols,
-                                 self.col_param_rows,
-                                 self.param_order,
-                                 self.rows,
-                                 cols_range,
-                                 self.orientation)
+                yield _CellsData(
+                    self.data,
+                    name,
+                    self.row_param_cols,
+                    self.col_param_rows,
+                    self.param_order,
+                    self.rows,
+                    cols_range,
+                    self.orientation,
+                )
 
         elif self.orientation == _ROW:
 
@@ -360,14 +382,14 @@ class CellsTable:
             for row in range(len(self.data)):
 
                 if row in self.col_param_rows:
-                    continue    # skip param row
+                    continue  # skip param row
 
                 next_name = self.data[row][self.names_idx].value
 
                 if not next_name:
                     if name:
                         row_len += 1
-                    else:       # first row is blank
+                    else:  # first row is blank
                         raise ValueError("invalid name")
                 else:
                     if name is None or name == next_name:
@@ -376,39 +398,49 @@ class CellsTable:
                     else:
                         rows_range = _IndexRange(row - row_len, row_len, [])
 
-                        yield _CellsData(self.data, name,
-                                         self.row_param_cols,
-                                         self.col_param_rows,
-                                         self.param_order,
-                                         rows_range,
-                                         self.cols,
-                                         self.orientation)
+                        yield _CellsData(
+                            self.data,
+                            name,
+                            self.row_param_cols,
+                            self.col_param_rows,
+                            self.param_order,
+                            rows_range,
+                            self.cols,
+                            self.orientation,
+                        )
                         name = next_name
                         row_len = 1
 
-            if row_len > 0: # last cells
-                rows_range = _IndexRange(len(self.data) - row_len,
-                                         row_len, [])
+            if row_len > 0:  # last cells
+                rows_range = _IndexRange(len(self.data) - row_len, row_len, [])
 
-                yield _CellsData(self.data, name,
-                                 self.row_param_cols,
-                                 self.col_param_rows,
-                                 self.param_order,
-                                 rows_range,
-                                 self.cols,
-                                 self.orientation)
+                yield _CellsData(
+                    self.data,
+                    name,
+                    self.row_param_cols,
+                    self.col_param_rows,
+                    self.param_order,
+                    rows_range,
+                    self.cols,
+                    self.orientation,
+                )
 
         else:
             raise ValueError("invalid orientation")
 
 
 class _CellsData:
-
-    def __init__(self, data, name,
-                 row_param_cols, col_param_rows,
-                 param_order,
-                 row_range, col_range,
-                 orientation):
+    def __init__(
+        self,
+        data,
+        name,
+        row_param_cols,
+        col_param_rows,
+        param_order,
+        row_range,
+        col_range,
+        orientation,
+    ):
 
         self.data = data
         self.name = name
@@ -421,8 +453,9 @@ class _CellsData:
 
     def params_row(self):
 
-        for row in range(self.row_range.begin,
-                         self.row_range.begin + self.row_range.len):
+        for row in range(
+            self.row_range.begin, self.row_range.begin + self.row_range.len
+        ):
 
             if row in self.row_range.skip:
                 continue
@@ -431,8 +464,9 @@ class _CellsData:
 
     def params_col(self):
 
-        for col in range(self.col_range.begin,
-                         self.col_range.begin + self.col_range.len):
+        for col in range(
+            self.col_range.begin, self.col_range.begin + self.col_range.len
+        ):
 
             if col in self.col_range.skip:
                 continue
@@ -448,36 +482,42 @@ class _CellsData:
 
                 if idx < len(self.row_param_cols):
                     param.append(
-                        self.data[row][self.row_param_cols[idx]].value)
+                        self.data[row][self.row_param_cols[idx]].value
+                    )
                 else:
                     idx -= len(self.row_param_cols)
                     param.append(
-                        self.data[self.col_param_rows[idx]][col].value)
+                        self.data[self.col_param_rows[idx]][col].value
+                    )
 
             elif self.orientation == _ROW:
 
                 if idx < len(self.col_param_rows):
                     param.append(
-                        self.data[self.col_param_rows[idx]][col].value)
+                        self.data[self.col_param_rows[idx]][col].value
+                    )
                 else:
                     idx -= len(self.col_param_rows)
                     param.append(
-                        self.data[row][self.row_param_cols[idx]].value)
+                        self.data[row][self.row_param_cols[idx]].value
+                    )
 
             else:
-                raise ValueError('invalid orientation')
+                raise ValueError("invalid orientation")
 
         return param
 
     def params(self):
 
-        for row, col in itertools.product(self.params_row(),
-                                          self.params_col()):
+        for row, col in itertools.product(
+            self.params_row(), self.params_col()
+        ):
             yield self.get_param(row, col)
 
     def items(self):
 
-        for row, col in itertools.product(self.params_row(),
-                                          self.params_col()):
+        for row, col in itertools.product(
+            self.params_row(), self.params_col()
+        ):
             params = self.get_param(row, col)
             yield params, self.data[row][col].value

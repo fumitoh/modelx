@@ -5,10 +5,11 @@ from modelx.core.node import get_node
 from modelx.core.base import get_interfaces
 from modelx.core.model import SpaceGraph
 
+
 @pytest.fixture
 def simplemodel():
 
-    model = new_model(name='simplemodel')
+    model = new_model(name="simplemodel")
     space = model.new_space()
 
     @defcells
@@ -28,14 +29,14 @@ def test_parent(simplemodel):
 
 
 def test_autoname_space(simplemodel):
-    assert simplemodel.cur_space().name == 'Space1'
+    assert simplemodel.cur_space().name == "Space1"
 
 
 def test_dir(simplemodel):
     names = dir(simplemodel)
-    assert 'Space1' in names
-    assert '__builtins__' in names
-    assert 'bar' in names
+    assert "Space1" in names
+    assert "__builtins__" in names
+    assert "bar" in names
 
 
 def test_new_space(simplemodel):
@@ -45,29 +46,28 @@ def test_new_space(simplemodel):
 
 def test_mro_simple(simplemodel):
     model = simplemodel
-    C = model.new_space(name='C')
-    A = model.new_space(name='A', bases=C)
-    B = model.new_space(name='B', bases=C)
-    D = model.new_space(name='D', bases=[A, B])
+    C = model.new_space(name="C")
+    A = model.new_space(name="A", bases=C)
+    B = model.new_space(name="B", bases=C)
+    D = model.new_space(name="D", bases=[A, B])
 
     assert get_interfaces(D._impl.mro) == [D, A, B, C]
 
 
 def test_mro_complicated(simplemodel):
     model = simplemodel
-    o = model.new_space(name='o')
-    f = model.new_space(name='f', bases=o)
-    e = model.new_space(name='e', bases=o)
-    d = model.new_space(name='d', bases=o)
-    c = model.new_space(name='c', bases=[d, f])
-    b = model.new_space(name='b', bases=[e, d])
-    a = model.new_space(name='a', bases=[b, c])
+    o = model.new_space(name="o")
+    f = model.new_space(name="f", bases=o)
+    e = model.new_space(name="e", bases=o)
+    d = model.new_space(name="d", bases=o)
+    c = model.new_space(name="c", bases=[d, f])
+    b = model.new_space(name="b", bases=[e, d])
+    a = model.new_space(name="a", bases=[b, c])
 
     assert get_interfaces(a._impl.mro) == [a, b, e, c, d, f, o]
 
 
 def test_cellgraph(simplemodel):
-
     def get_predec(node):
         return simplemodel._impl.cellgraph.predecessors(node)
 
@@ -80,10 +80,10 @@ def test_cellgraph(simplemodel):
 
     for x in range(10):
         fibo = get_node(space.fibo._impl, (x,), {})
-        fibo_prev1 = get_node(space.fibo._impl, (x-1,), {})
-        fibo_prev2 = get_node(space.fibo._impl, (x-2,), {})
-        fibo_next1 = get_node(space.fibo._impl, (x+1,), {})
-        fibo_next2 = get_node(space.fibo._impl, (x+2,), {})
+        fibo_prev1 = get_node(space.fibo._impl, (x - 1,), {})
+        fibo_prev2 = get_node(space.fibo._impl, (x - 2,), {})
+        fibo_next1 = get_node(space.fibo._impl, (x + 1,), {})
+        fibo_next2 = get_node(space.fibo._impl, (x + 2,), {})
 
         if x == 0 or x == 1:
             assert list(get_predec(fibo)) == []
@@ -144,21 +144,22 @@ def test_global_ref_delattr():
     with pytest.raises(NameError):
         func1(4)
 
+
 def test_rename():
 
-    model = new_model(name='oldname')
-    model.rename('newname')
+    model = new_model(name="oldname")
+    model.rename("newname")
 
-    assert get_models()['newname'] == model
-    assert model.name == 'newname'
+    assert get_models()["newname"] == model
+    assert model.name == "newname"
 
 
 # ---- Test impl ----
 
+
 def test_get_object(simplemodel):
 
-    assert simplemodel._impl.get_object('Space1.fibo') is \
-        simplemodel._impl.spaces['Space1'].cells['fibo']
-
-
-
+    assert (
+        simplemodel._impl.get_object("Space1.fibo")
+        is simplemodel._impl.spaces["Space1"].cells["fibo"]
+    )

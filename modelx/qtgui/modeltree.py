@@ -62,6 +62,7 @@ from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 
 class BaseItem(object):
     """Base Item class for all tree item classes."""
+
     def __init__(self, data, parent=None):
 
         self.colType = 1
@@ -105,7 +106,7 @@ class BaseItem(object):
     def data(self, column):
 
         if column == 0:
-            return self.itemData['name']
+            return self.itemData["name"]
         elif column == self.colType:
             return self.getType()
         elif column == self.colParam:
@@ -133,7 +134,7 @@ class InterfaceItem(BaseItem):
 
     @property
     def objid(self):
-        return self.itemData['id']
+        return self.itemData["id"]
 
     def __eq__(self, other):
         if isinstance(other, InterfaceItem):
@@ -146,15 +147,15 @@ class InterfaceItem(BaseItem):
 
 
 class ViewItem(BaseItem):
-
     @property
     def attrid(self):
         return self.getType()
 
     def __eq__(self, other):
         if isinstance(other, ViewItem):
-            return (self.parent() == other.parent()
-                    and self.attrid == other.attrid)
+            return (
+                self.parent() == other.parent() and self.attrid == other.attrid
+            )
 
     def __hash__(self):
         return hash((self.parent().objid, self.attrid))
@@ -162,53 +163,60 @@ class ViewItem(BaseItem):
 
 class SpaceContainerItem(InterfaceItem):
     """Base Item class for Models and Spaces which inherit SpaceContainer."""
+
     def updateChild(self):
         self.childItems = self.newChildItems(self.itemData)
 
     def newChildItems(self, data):
-        return [SpaceItem(space, self)
-                for space in data['spaces']['items'].values()]
+        return [
+            SpaceItem(space, self)
+            for space in data["spaces"]["items"].values()
+        ]
+
 
 class ModelItem(SpaceContainerItem):
     """Item class for a Model (root item)"""
+
     def __init__(self, data):
         super(ModelItem, self).__init__(data, parent=None)
 
     def getType(self):
-        return 'Model'
+        return "Model"
 
     def getParams(self):
-        return ''
+        return ""
 
 
 class SpaceItem(SpaceContainerItem):
     """Item class for Space objects."""
+
     def updateChild(self):
         self.childItems.clear()
-        for space in self.itemData['static_spaces']['items'].values():
+        for space in self.itemData["static_spaces"]["items"].values():
             self.childItems.append(SpaceItem(space, self))
 
-        dynspaces = self.itemData['dynamic_spaces']['items']
+        dynspaces = self.itemData["dynamic_spaces"]["items"]
         if len(dynspaces) > 0:
             self.childItems.append(DynamicSpaceMapItem(dynspaces, self))
 
-        cellsmap = self.itemData['cells']['items']
+        cellsmap = self.itemData["cells"]["items"]
         for cells in cellsmap.values():
             self.childItems.append(CellsItem(cells, self))
 
     def getType(self):
-        return 'Space'
+        return "Space"
 
     def getParams(self):
-        args = self.itemData['argvalues']
+        args = self.itemData["argvalues"]
         if args is not None:
             return args
         else:
-            return ''
+            return ""
 
 
 class DynamicSpaceMapItem(ViewItem):
     """Item class for parent nodes of dynamic spaces of a space."""
+
     def updateChild(self):
         self.childItems.clear()
         for space in self.itemData.values():
@@ -216,30 +224,31 @@ class DynamicSpaceMapItem(ViewItem):
 
     def data(self, column):
         if column == 0:
-            return 'Dynamic Spaces'
+            return "Dynamic Spaces"
         else:
             return BaseItem.data(self, column)
 
     def getType(self):
-        return ''
+        return ""
 
     def getParams(self):
-        return self.parent().itemData['params']
+        return self.parent().itemData["params"]
 
 
 class CellsItem(InterfaceItem):
     """Item class for cells objects."""
+
     def updateChild(self):
         pass
 
     def getType(self):
-        return 'Cells'
+        return "Cells"
 
     def getParams(self):
-        return self.itemData['params']
+        return self.itemData["params"]
+
 
 class ModelTreeModel(QAbstractItemModel):
-
     def __init__(self, data, parent=None):
         super(ModelTreeModel, self).__init__(parent)
         self.rootItem = ModelItem(data)
@@ -267,8 +276,12 @@ class ModelTreeModel(QAbstractItemModel):
 
             if delItems:
                 delRows = sorted([item.row() for item in delItems])
-                delRows = [list(g) for _, g in itertools.groupby(
-                    delRows, key=lambda n, c=itertools.count(): n-next(c))]
+                delRows = [
+                    list(g)
+                    for _, g in itertools.groupby(
+                        delRows, key=lambda n, c=itertools.count(): n - next(c)
+                    )
+                ]
 
                 for rows in delRows:
                     self.removeRows(rows[0], len(rows), index)
@@ -277,8 +290,12 @@ class ModelTreeModel(QAbstractItemModel):
 
             if addItems:
                 addRows = sorted([item.row() for item in addItems])
-                addRows = [list(g) for _, g in itertools.groupby(
-                    addRows, key=lambda n, c=itertools.count(): n-next(c))]
+                addRows = [
+                    list(g)
+                    for _, g in itertools.groupby(
+                        addRows, key=lambda n, c=itertools.count(): n - next(c)
+                    )
+                ]
 
                 for rows in addRows:
                     self.insertRows(rows, newitem, index)
@@ -345,8 +362,9 @@ class ModelTreeModel(QAbstractItemModel):
         """
         source = self.getItem(parent).childItems
 
-        self.beginMoveRows(parent, index_from, index_from + length - 1,
-                           parent, index_to)
+        self.beginMoveRows(
+            parent, index_from, index_from + length - 1, parent, index_to
+        )
 
         sublist = [source.pop(index_from) for _ in range(length)]
 
@@ -389,11 +407,11 @@ class ModelTreeModel(QAbstractItemModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             # TODO: Refactor hard-coding column indexes
             if section == 0:
-                return 'Objects'
+                return "Objects"
             elif section == 1:
-                return 'Type'
+                return "Type"
             elif section == 2:
-                return 'Parameters'
+                return "Parameters"
 
         return None
 
@@ -434,7 +452,3 @@ class ModelTreeModel(QAbstractItemModel):
             parentItem = parent.internalPointer()
 
         return parentItem.childCount()
-
-
-
-

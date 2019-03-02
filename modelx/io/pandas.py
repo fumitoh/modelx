@@ -17,7 +17,7 @@ import itertools
 import pandas as pd
 import numpy as np
 
-_pd_ver = tuple(int(i) for i in pd.__version__.split('.'))[:-1]
+_pd_ver = tuple(int(i) for i in pd.__version__.split("."))[:-1]
 
 if _pd_ver < (0, 20):
     from pandas.tools.merge import MergeError
@@ -25,8 +25,9 @@ if _pd_ver < (0, 20):
     # To circumvent the BUG: reset_index with NaN in MultiIndex
     # https://github.com/pandas-dev/pandas/issues/6322
     def _reset_naindex(df):
-        nan_levels = [lv for lv, idx in enumerate(df.index.levels)
-                      if idx.size == 0]
+        nan_levels = [
+            lv for lv, idx in enumerate(df.index.levels) if idx.size == 0
+        ]
 
         for i, lv in enumerate(nan_levels):
             name = df.index.levels[lv - i].name
@@ -34,6 +35,8 @@ if _pd_ver < (0, 20):
             df.insert(0, name, np.nan)
 
         return df
+
+
 else:
     from pandas.core.reshape.merge import MergeError
 
@@ -79,7 +82,7 @@ def cellsiter_to_dataframe(cellsiter, args, drop_allna=True):
             result = df
         else:
             try:
-                result = pd.merge(result, df, how='outer')
+                result = pd.merge(result, df, how="outer")
             except MergeError:
                 # When no common column exists, i.e. all cells are scalars.
                 result = pd.concat([result, df], axis=1)
@@ -90,17 +93,25 @@ def cellsiter_to_dataframe(cellsiter, args, drop_allna=True):
                 for col in cols:
 
                     # When only either of them has object dtype
-                    if len([str(frame[col].dtype) for frame in (result, df)
-                            if str(frame[col].dtype) == 'object']) == 1:
+                    if (
+                        len(
+                            [
+                                str(frame[col].dtype)
+                                for frame in (result, df)
+                                if str(frame[col].dtype) == "object"
+                            ]
+                        )
+                        == 1
+                    ):
 
-                        if str(result[col].dtype) == 'object':
+                        if str(result[col].dtype) == "object":
                             frame = df
                         else:
                             frame = result
-                        frame[[col]] = frame[col].astype('object')
+                        frame[[col]] = frame[col].astype("object")
 
                 # Try again
-                result = pd.merge(result, df, how='outer')
+                result = pd.merge(result, df, how="outer")
 
     if result is None:
         return pd.DataFrame()
@@ -136,31 +147,36 @@ def cells_to_series(cells, args):
         data = {}
         indexes = None
 
-    elif paramlen == 0:    # Const Cells
+    elif paramlen == 0:  # Const Cells
         data = list(cells.data.values())
         indexes = [np.nan]
 
     else:
 
         if len(args) > 0:
-            defaults = tuple(param.default for param
-                             in cells.formula.signature.parameters.values())
+            defaults = tuple(
+                param.default
+                for param in cells.formula.signature.parameters.values()
+            )
             updated_args = []
             for arg in args:
 
                 if len(arg) > paramlen:
                     arg = arg[:paramlen]
                 elif len(arg) < paramlen:
-                    arg += defaults[len(arg):]
+                    arg += defaults[len(arg) :]
 
                 updated_args.append(arg)
 
-            items = [(arg, cells.data[arg]) for arg in updated_args
-                     if arg in cells.data]
+            items = [
+                (arg, cells.data[arg])
+                for arg in updated_args
+                if arg in cells.data
+            ]
         else:
             items = [(key, value) for key, value in cells.data.items()]
 
-        if not is_multidx: # Peel 1-element tuple
+        if not is_multidx:  # Peel 1-element tuple
             items = [(key[0], value) for key, value in items]
 
         if len(items) == 0:
@@ -176,6 +192,3 @@ def cells_to_series(cells, args):
         result.index.names = list(cells.formula.parameters)
 
     return result
-
-
-

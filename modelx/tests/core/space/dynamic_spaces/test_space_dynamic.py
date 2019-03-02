@@ -3,11 +3,10 @@ import pytest
 
 
 def test_dynamic_spaces():
-
     def params(x, y):
-        return {'bases': _self}
+        return {"bases": _self}
 
-    space = new_model().new_space(name='base', formula=params)
+    space = new_model().new_space(name="base", formula=params)
 
     @defcells
     def distance():
@@ -15,5 +14,4 @@ def test_dynamic_spaces():
 
     space[3, 4].distance()
 
-    assert space.dynamic_spaces == {'Space1': space[3, 4]}
-
+    assert space.dynamic_spaces == {"Space1": space[3, 4]}

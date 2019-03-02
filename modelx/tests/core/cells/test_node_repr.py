@@ -7,8 +7,8 @@ import pytest
 @pytest.fixture
 def no_values():
 
-    model = mx.new_model('Model')
-    space = model.new_space('Space')
+    model = mx.new_model("Model")
+    space = model.new_space("Space")
 
     @defcells
     def param0():
@@ -40,7 +40,7 @@ def test_node_repr(no_values):
 
     s = no_values
     assert repr(s.param0.node()) == "Model.Space.param0()"
-    assert repr(s.param1.node(1))  == "Model.Space.param1(x=1)"
+    assert repr(s.param1.node(1)) == "Model.Space.param1(x=1)"
     assert repr(s.param2.node(2, 3)) == "Model.Space.param2(x=2, y=3)"
 
 

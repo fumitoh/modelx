@@ -22,20 +22,21 @@ def test_slots(model_obj_pair):
     _, obj = model_obj_pair
 
     with pytest.raises(AttributeError):
-        object.__getattribute__(obj, '__dict__')
+        object.__getattribute__(obj, "__dict__")
 
 
 def test_baseattrs(model_obj_pair):
     _, obj = model_obj_pair
 
-    baseattrs = {'type': type(obj).__name__,
-                 'id': id(obj),
-                 'name': obj.name,
-                 'fullname': obj.fullname,
-                 'repr': obj._get_repr()}
+    baseattrs = {
+        "type": type(obj).__name__,
+        "id": id(obj),
+        "name": obj.name,
+        "fullname": obj.fullname,
+        "repr": obj._get_repr(),
+    }
 
     result = obj._baseattrs
 
     for key in baseattrs:
         assert baseattrs[key] == result[key]
-

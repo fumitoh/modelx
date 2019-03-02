@@ -14,27 +14,14 @@
 
 from textwrap import dedent
 from collections import namedtuple
-from collections.abc import (
-    Mapping,
-    Callable,
-    Sized,
-    Sequence)
+from collections.abc import Mapping, Callable, Sized, Sequence
 from itertools import combinations
 
-from modelx.core.base import (
-    Impl,
-    Derivable,
-    Interface,
-    BoundFunction)
-from modelx.core.node import (
-    OBJ, KEY, get_node, tuplize_key)
-from modelx.core.formula import (
-    Formula,
-    NULL_FORMULA)
+from modelx.core.base import Impl, Derivable, Interface, BoundFunction
+from modelx.core.node import OBJ, KEY, get_node, tuplize_key
+from modelx.core.formula import Formula, NULL_FORMULA
 from modelx.core.util import is_valid_name
-from modelx.core.errors import (
-    NoneReturnedError,
-    RewindStackError)
+from modelx.core.errors import NoneReturnedError, RewindStackError
 
 
 def convert_args(args, kwargs):
@@ -47,8 +34,9 @@ def convert_args(args, kwargs):
             break
 
     if found:
-        args = tuple(arg.value if isinstance(arg, Cells) else arg
-                     for arg in args)
+        args = tuple(
+            arg.value if isinstance(arg, Cells) else arg for arg in args
+        )
 
     if kwargs is not None:
         for key, arg in kwargs.items():
@@ -59,7 +47,6 @@ def convert_args(args, kwargs):
 
 
 class CellsMaker:
-
     def __init__(self, *, space, name):
         self.space = space  # SpaceImpl
         self.name = name
@@ -68,7 +55,7 @@ class CellsMaker:
         return self.space.new_cells(formula=func, name=self.name).interface
 
 
-ArgsValuePair = namedtuple('ArgsValuePair', ['args', 'value'])
+ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
 
 
 class Cells(Interface, Mapping, Callable):
@@ -78,6 +65,7 @@ class Cells(Interface, Mapping, Callable):
     the containing space, or by function definitions with ``defcells``
     decorator.
     """
+
     __slots__ = ()
 
     def __contains__(self, key):
@@ -110,8 +98,7 @@ class Cells(Interface, Mapping, Callable):
         self._impl.set_value(tuplize_key(self, key), value)
 
     def __iter__(self):
-
-        def inner(): # For single parameter
+        def inner():  # For single parameter
             for key in self._impl.data.keys():
                 yield key[0]
 
@@ -336,7 +323,7 @@ class Cells(Interface, Mapping, Callable):
         """A dict of members expressed in literals"""
 
         result = super()._baseattrs
-        result['params'] = ', '.join(self.parameters)
+        result["params"] = ", ".join(self.parameters)
         return result
 
 
@@ -381,8 +368,9 @@ class CellsImpl(Derivable):
 
     if_class = Cells
 
-    def __init__(self, *, space, name=None, formula=None, data=None,
-                 base=None):
+    def __init__(
+        self, *, space, name=None, formula=None, data=None, base=None
+    ):
 
         Derivable.__init__(self, system=space.system)
 
@@ -416,19 +404,24 @@ class CellsImpl(Derivable):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = ['_model',
-                   'space',
-                   'formula',
-                   'name',
-                   'data',
-                   '_namespace_impl',
-                   'altfunc'] + Derivable.state_attrs
+    state_attrs = [
+        "_model",
+        "space",
+        "formula",
+        "name",
+        "data",
+        "_namespace_impl",
+        "altfunc",
+    ] + Derivable.state_attrs
 
     assert len(state_attrs) == len(set(state_attrs))
 
     def __getstate__(self):
-        state = {key: value for key, value in self.__dict__.items()
-                 if key in self.state_attrs}
+        state = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key in self.state_attrs
+        }
 
         return state
 
@@ -443,25 +436,25 @@ class CellsImpl(Derivable):
         return self._model
 
     def __repr__(self):
-        return '<CellsImpl: %s>' % self.name
+        return "<CellsImpl: %s>" % self.name
 
     @property
     def fullname(self):
-        return self.space.fullname + '.' + self.name
+        return self.space.fullname + "." + self.name
 
     def repr_self(self, add_params=True):
         if add_params:
-            return "%s(%s)" % (self.name, ', '.join(self.formula.parameters))
+            return "%s(%s)" % (self.name, ", ".join(self.formula.parameters))
         else:
             return self.name
 
     def repr_parent(self):
-        return self.space.repr_parent() + '.' + self.space.repr_self()
+        return self.space.repr_parent() + "." + self.space.repr_self()
 
     def has_cell(self, key):
         return key in self.data
 
-    def is_scalar(self):    # TODO: Move to HasFormula
+    def is_scalar(self):  # TODO: Move to HasFormula
         return len(self.formula.parameters) == 0
 
     @property
@@ -473,8 +466,8 @@ class CellsImpl(Derivable):
 
     def inherit(self, **kwargs):
 
-        if 'clear_value' in kwargs:
-            clear_value = kwargs['clear_value']
+        if "clear_value" in kwargs:
+            clear_value = kwargs["clear_value"]
         else:
             clear_value = True
 
@@ -517,9 +510,9 @@ class CellsImpl(Derivable):
         self.formula = formula
         self.altfunc.set_update()
         self._model.spacegraph.update_subspaces_upward(
-            self.parent,
-            from_parent=False,
-            event='cells_set_formula')
+            self.parent, from_parent=False, event="cells_set_formula"
+        )
+
     # ----------------------------------------------------------------------
     # Value operations
 
@@ -542,8 +535,7 @@ class CellsImpl(Derivable):
                 if self.has_cell(key):
                     # Assignment took place inside the cell.
                     if value is not None:
-                        raise ValueError("Duplicate assignment for %s"
-                                         % key)
+                        raise ValueError("Duplicate assignment for %s" % key)
                     else:
                         value = self.data[key]
                         del self.data[key]
@@ -572,7 +564,7 @@ class CellsImpl(Derivable):
         key = node[KEY]
         keylen = len(key)
 
-        if not self.get_property('allow_none'):
+        if not self.get_property("allow_none"):
             # raise ValueError('Cells %s cannot return None' % self.name)
             tracemsg = self.system.callstack.tracemessage()
             raise NoneReturnedError(node, tracemsg)
@@ -599,8 +591,7 @@ class CellsImpl(Derivable):
             if node == self.system.callstack.last():
                 self._store_value(node, value, False)
             else:
-                raise KeyError("Assignment in cells other than %s" %
-                               node[KEY])
+                raise KeyError("Assignment in cells other than %s" % node[KEY])
 
     def _store_value(self, node, value, overwrite=False):
 
@@ -617,15 +608,14 @@ class CellsImpl(Derivable):
 
             if value is not None:
                 self.data[key] = value
-            elif self.get_property('allow_none'):
+            elif self.get_property("allow_none"):
                 self.data[key] = value
             else:
                 tracemsg = self.system.callstack.tracemessage()
                 raise NoneReturnedError(node, tracemsg)
 
         else:
-            raise ValueError("Value already exists for %s" %
-                             node[KEY])
+            raise ValueError("Value already exists for %s" % node[KEY])
 
         return value
 
@@ -660,11 +650,13 @@ class CellsImpl(Derivable):
     def to_series(self, args):
 
         from modelx.io.pandas import cells_to_series
+
         args = self.tuplize_arg_sequence(args)
         return cells_to_series(self, args)
 
     def to_frame(self, args):
         from modelx.io.pandas import cells_to_dataframe
+
         args = self.tuplize_arg_sequence(args)
         return cells_to_dataframe(self, args)
 
@@ -709,7 +701,7 @@ class CellNode:
         if self.has_value:
             return self._impl[OBJ].get_value(self._impl[KEY])
         else:
-            raise ValueError('Value not found')
+            raise ValueError("Value not found")
 
     @property
     def preds(self):
@@ -725,14 +717,16 @@ class CellNode:
     def _baseattrs(self):
         """A dict of members expressed in literals"""
 
-        result = {'type': type(self).__name__,
-                  'obj': self.cells._baseattrs,
-                  'args': self.args,
-                  'value': self.value if self.has_value else None,
-                  'predslen': len(self.preds),
-                  'succslen': len(self.succs),
-                  'repr_parent': self.cells._impl.repr_parent(),
-                  'repr': self.cells._get_repr()}
+        result = {
+            "type": type(self).__name__,
+            "obj": self.cells._baseattrs,
+            "args": self.args,
+            "value": self.value if self.has_value else None,
+            "predslen": len(self.preds),
+            "succslen": len(self.succs),
+            "repr_parent": self.cells._impl.repr_parent(),
+            "repr": self.cells._get_repr(),
+        }
 
         return result
 
@@ -741,13 +735,14 @@ class CellNode:
         name = self.cells._get_repr(fullname=True, add_params=False)
         params = self.cells._impl.formula.parameters
 
-        arglist = ', '.join('%s=%s' % (param, arg) for param, arg
-                            in zip(params, self.args))
+        arglist = ", ".join(
+            "%s=%s" % (param, arg) for param, arg in zip(params, self.args)
+        )
 
         if self.has_value:
-            return name + '(' + arglist + ')' + '=' + str(self.value)
+            return name + "(" + arglist + ")" + "=" + str(self.value)
         else:
-            return name + '(' + arglist + ')'
+            return name + "(" + arglist + ")"
 
 
 def shareable_parameters(cells):
