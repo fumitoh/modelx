@@ -570,7 +570,16 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
     # Getting and setting attributes
 
     def __setattr__(self, name, value):
-        if name in self.properties:
+        if hasattr(type(self), name):
+            attr = getattr(type(self), name)
+            if isinstance(attr, property):
+                if hasattr(attr, 'fset'):
+                    attr.fset(self, value)
+                else:
+                    raise AttributeError("%s is read-only" % name)
+            else:
+                raise AttributeError("%s is not a property" % name)
+        elif name in self.properties:
             object.__setattr__(self, name, value)
         else:
             self._impl.set_attr(name, value)
@@ -584,12 +593,7 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
     # TODO: Factor out formula related methods and properties
     #  common between Cells and Spaces
 
-    @property
-    def formula(self):
-        """Property to get, set, delete formula."""
-        return self._impl.formula
-
-    @formula.setter
+    @BaseSpace.formula.setter
     def formula(self, formula):
         self._impl.set_formula(formula)
 
