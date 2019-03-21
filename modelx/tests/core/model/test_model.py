@@ -119,6 +119,11 @@ def test_cellgraph_informula_assignment():
     assert get_node(bar._impl, (1,), {}) in nodes
 
 
+def test_refs(simplemodel):
+    assert 'bar' in simplemodel.refs
+    assert simplemodel.bar == simplemodel.refs['bar']
+
+
 def test_global_ref_attr(simplemodel):
     model = simplemodel
     space = new_space()

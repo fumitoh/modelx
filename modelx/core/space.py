@@ -70,7 +70,7 @@ class RefDict(ImplDict):
             for name, value in data.items():
                 data[name] = self.get_ref(space, name, value)
 
-        ImplDict.__init__(self, space, BaseView, data, observers)
+        ImplDict.__init__(self, space, RefView, data, observers)
 
     def set_item(self, name, ref, skip_self=False):
         ImplDict.set_item(self, name, ref, skip_self)

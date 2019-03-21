@@ -142,7 +142,7 @@ class Model(EditableSpaceContainer):
     @property
     def refs(self):
         """Return a mapping of global references."""
-        return self._impl.global_refs.mproxy
+        return self._impl.global_refs.interfaces
 
 
 class ModelImpl(EditableSpaceContainerImpl, Impl):
