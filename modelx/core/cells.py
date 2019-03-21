@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from textwrap import dedent
+import warnings
 from collections import namedtuple
 from collections.abc import Mapping, Callable, Sized, Sequence
 from itertools import combinations
@@ -478,8 +479,8 @@ class CellsImpl(Derivable):
             self.altfunc.set_update()
 
     @property
-    def module_(self):
-        return self.formula.module_
+    def module(self):
+        return self.formula.module
 
     @property
     def self_bases(self):
@@ -492,9 +493,9 @@ class CellsImpl(Derivable):
     # ----------------------------------------------------------------------
     # Formula operations
 
-    def reload(self, module_=None):
+    def reload(self, module=None):
         oldsrc = self.formula.source
-        newsrc = self.formula._reload(module_).source
+        newsrc = self.formula._reload(module).source
         if oldsrc != newsrc:
             self._model.clear_obj(self)
 

@@ -90,11 +90,11 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
         return space.interface
 
-    def import_module(self, module_, recursive=False, **params):
+    def import_module(self, module, recursive=False, **params):
         """Create a child space from an module.
 
         Args:
-            module_: a module object or name of the module object.
+            module: a module object or name of the module object.
             recursive: Not yet implemented.
             **params: arguments to pass to ``new_space``
 
@@ -107,17 +107,17 @@ class EditableSpaceContainer(BaseSpaceContainer):
         space = (
             self._impl.model.currentspace
         ) = self._impl.new_space_from_module(
-            module_, recursive=recursive, **params
+            module, recursive=recursive, **params
         )
         return get_interfaces(space)
 
-    def new_space_from_module(self, module_, recursive=False, **params):
+    def new_space_from_module(self, module, recursive=False, **params):
         """Create a child space from an module.
 
         Alias to :py:meth:`import_module`.
 
         Args:
-            module_: a module object or name of the module object.
+            module: a module object or name of the module object.
             recursive: Not yet implemented.
             **params: arguments to pass to ``new_space``
 
@@ -130,7 +130,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         space = (
             self._impl.model.currentspace
         ) = self._impl.new_space_from_module(
-            module_, recursive=recursive, **params
+            module, recursive=recursive, **params
         )
         return get_interfaces(space)
 
@@ -356,23 +356,23 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         return space
 
-    def new_space_from_module(self, module_, recursive=False, **params):
+    def new_space_from_module(self, module, recursive=False, **params):
 
-        params["source"] = module_ = get_module(module_)
+        params["source"] = module = get_module(module)
 
         if "name" not in params or params["name"] is None:
             # xxx.yyy.zzz -> zzz
-            name = params["name"] = module_.__name__.split(".")[-1]
+            name = params["name"] = module.__name__.split(".")[-1]
         else:
             name = params["name"]
 
         space = self.new_space(**params)
-        space.new_cells_from_module(module_)
+        space.new_cells_from_module(module)
 
-        if recursive and hasattr(module_, "_spaces"):
-            for name in module_._spaces:
-                submodule = module_.__name__ + "." + name
-                space.new_space_from_module(module_=submodule, recursive=True)
+        if recursive and hasattr(module, "_spaces"):
+            for name in module._spaces:
+                submodule = module.__name__ + "." + name
+                space.new_space_from_module(module=submodule, recursive=True)
 
         return space
 

@@ -76,18 +76,18 @@ def get_state_attrs(obj):
     return attrs
 
 
-def get_module(module_):
+def get_module(module):
 
-    if isinstance(module_, types.ModuleType):
+    if isinstance(module, types.ModuleType):
         pass
 
-    elif isinstance(module_, str):
-        if module_ not in sys.modules:
-            importlib.import_module(module_)
+    elif isinstance(module, str):
+        if module not in sys.modules:
+            importlib.import_module(module)
 
-        module_ = sys.modules[module_]
+        module = sys.modules[module]
 
     else:
-        raise TypeError("%s is not a module or string." % module_)
+        raise TypeError("%s is not a module or string." % module)
 
-    return module_
+    return module

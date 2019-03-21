@@ -84,7 +84,7 @@ def test_new_space_from_module_by_name(samplemodel):
 
 
 def test_create_sapce_recursive(samplemodel):
-    space = samplemodel.import_module(module_=testpkg.__name__, recursive=True)
+    space = samplemodel.import_module(module=testpkg.__name__, recursive=True)
     assert space.pkgfibo(10) == 55
     assert space.testmod.modfibo(10) == 55
     assert space.nestedpkg.nestedfibo(10) == 55

@@ -35,7 +35,7 @@ def test_space_reload(reloadtest):
 
     src = importlib.import_module(samplename)
 
-    space = model.import_module(module_=src)
+    space = model.import_module(module=src)
     assert space.foo(3) == 0
     assert "baz" in space.cells
 

@@ -198,10 +198,10 @@ class ModuleSource:
     in its ``funcs`` attribute.
     """
 
-    def __init__(self, module_):
+    def __init__(self, module):
 
-        self.name = module_.__name__
-        file = module_.__file__
+        self.name = module.__name__
+        file = module.__file__
         with open(file, "r") as srcfile:
             self.source = srcfile.read()
 
@@ -216,8 +216,8 @@ class ModuleSource:
                 srcfuncs[name] = obj
 
         self.funcs = {}
-        for name in module_.__dict__:
-            obj = getattr(module_, name)
+        for name in module.__dict__:
+            obj = getattr(module, name)
             if (
                 isinstance(obj, FunctionType)
                 and obj.__module__ == self.name
@@ -230,9 +230,9 @@ class ModuleSource:
 
 class Formula:
 
-    __slots__ = ("func", "signature", "source", "module_", "srcnames")
+    __slots__ = ("func", "signature", "source", "module", "srcnames")
 
-    def __init__(self, func, module_=None):
+    def __init__(self, func, module=None):
 
         if isinstance(func, Formula):
             self._copy_other(func)
@@ -299,10 +299,10 @@ class Formula:
 
         self.srcnames = extract_names(self.source)
 
-        if module_ is not None:
-            self.module_ = module_
+        if module is not None:
+            self.module = module
         else:
-            self.module_ = self.func.__module__
+            self.module = self.func.__module__
 
     def _copy_other(self, other):
         for attr in self.__slots__:
@@ -318,15 +318,15 @@ class Formula:
 
     def __getstate__(self):
         """Specify members to pickle."""
-        return {"source": self.source, "module_": self.module_}
+        return {"source": self.source, "module": self.module}
 
     def __setstate__(self, state):
-        self.__init__(func=state["source"], module_=state["module_"])
+        self.__init__(func=state["source"], module=state["module"])
 
     def __repr__(self):
         return self.source
 
-    def _reload(self, module_=None):
+    def _reload(self, module=None):
         """Reload the source function from the source module.
 
         **Internal use only**
@@ -348,17 +348,17 @@ class Formula:
         Returns:
             self
         """
-        if self.module_ is None:
+        if self.module is None:
             raise RuntimeError
-        elif module_ is None:
+        elif module is None:
             import importlib
 
-            module_ = ModuleSource(importlib.reload(module_))
-        elif module_.name != self.module_:
+            module = ModuleSource(importlib.reload(module))
+        elif module.name != self.module:
             raise RuntimeError
 
-        if self.name in module_.funcs:
-            func = module_.funcs[self.name]
+        if self.name in module.funcs:
+            func = module.funcs[self.name]
             self.__init__(func=func)
         else:
             self.__init__(func=NULL_FORMULA)

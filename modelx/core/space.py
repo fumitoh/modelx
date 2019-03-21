@@ -49,8 +49,8 @@ from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
 class ParamFunc(Formula):
-    def __init__(self, func, module_=None):
-        Formula.__init__(self, func, module_)
+    def __init__(self, func, module=None):
+        Formula.__init__(self, func, module)
 
 
 class SpaceDict(ImplDict):
@@ -401,19 +401,19 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         """Remove base spaces."""
         return self._impl.remove_bases(bases)
 
-    def import_funcs(self, module_):
+    def import_funcs(self, module):
         """Create a cells from a module."""
         # Outside formulas only
-        newcells = self._impl.new_cells_from_module(module_)
+        newcells = self._impl.new_cells_from_module(module)
         return get_interfaces(newcells)
 
-    def new_cells_from_module(self, module_):
+    def new_cells_from_module(self, module):
         """Create a cells from a module.
 
         Alias to :py:meth:`import_funcs`.
         """
         # Outside formulas only
-        newcells = self._impl.new_cells_from_module(module_)
+        newcells = self._impl.new_cells_from_module(module)
         return get_interfaces(newcells)
 
     def reload(self):
@@ -1147,17 +1147,17 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             )
             return cells
 
-    def new_cells_from_module(self, module_, override=True):
+    def new_cells_from_module(self, module, override=True):
         # Outside formulas only
 
-        module_ = get_module(module_)
+        module = get_module(module)
         newcells = {}
 
-        for name in dir(module_):
-            func = getattr(module_, name)
+        for name in dir(module):
+            func = getattr(module, name)
             if isinstance(func, FunctionType):
                 # Choose only the functions defined in the module.
-                if func.__module__ == module_.__name__:
+                if func.__module__ == module.__name__:
                     if name in self.namespace_impl and override:
                         self.cells[name].set_formula(func)
                         newcells[name] = self.cells[name]
@@ -1381,14 +1381,14 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         if self.source is None:
             return
 
-        module_ = importlib.reload(get_module(self.source))
-        modsrc = ModuleSource(module_)
+        module = importlib.reload(get_module(self.source))
+        modsrc = ModuleSource(module)
         funcs = modsrc.funcs
         newfuncs = set(funcs)
         oldfuncs = {
             cells.formula.name
             for cells in self.cells.values()
-            if cells.formula.module_ == module_.__name__
+            if cells.formula.module == module.__name__
         }
 
         cells_to_add = newfuncs - oldfuncs
@@ -1396,13 +1396,13 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         cells_to_update = oldfuncs & newfuncs
 
         for name in cells_to_clear:
-            self.cells[name].reload(module_=modsrc)
+            self.cells[name].reload(module=modsrc)
 
         for name in cells_to_add:
             self.new_cells(name=name, formula=funcs[name])
 
         for name in cells_to_update:
-            self.cells[name].reload(module_=modsrc)
+            self.cells[name].reload(module=modsrc)
 
 
 class DynamicSpace(BaseSpace):
