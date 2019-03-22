@@ -111,6 +111,24 @@ def is_ipython():
 
 
 class System:
+
+    def __init__(self, maxdepth=1000):
+        self.orig_settings = {}
+        self.configure_python()
+        self.callstack = CallStack(self, maxdepth)
+        self._modelnamer = AutoNamer("Model")
+        self._backupnamer = AutoNamer("_BAK")
+        self._currentmodel = None
+        self._models = {}
+        self.self = None
+
+        if is_ipython():
+            self.is_ipysetup = False
+            self.setup_ipython()
+        else:
+            self.shell = None
+            self.is_ipysetup = False
+
     def setup_ipython(self):
         """Monkey patch shell's error handler.
 
@@ -148,23 +166,6 @@ class System:
         del shell_class.default_showtraceback
 
         self.is_ipysetup = False
-
-    def __init__(self, maxdepth=1000):
-        self.orig_settings = {}
-        self.configure_python()
-        self.callstack = CallStack(self, maxdepth)
-        self._modelnamer = AutoNamer("Model")
-        self._backupnamer = AutoNamer("_BAK")
-        self._currentmodel = None
-        self._models = {}
-        self.self = None
-
-        if is_ipython():
-            self.is_ipysetup = False
-            self.setup_ipython()
-        else:
-            self.shell = None
-            self.is_ipysetup = False
 
     def configure_python(self):
         """Configure Python settings for modelx
