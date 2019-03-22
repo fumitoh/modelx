@@ -68,6 +68,15 @@ def restore_ipython():
     _system.restore_ipython()
 
 
+def set_recursion(maxdepth=1000):
+    """Set formula recursion limit.
+
+    Args:
+        maxdepth: The maximum depth of the modelx interpreter stack.
+    """
+    _system.callstack.maxdepth = maxdepth
+
+
 def new_model(name=None):
     """Create and return a new model.
 
