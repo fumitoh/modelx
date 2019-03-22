@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import warnings
 from modelx.core.base import get_impls, get_interfaces, Impl, Interface
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
@@ -90,7 +91,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
         return space.interface
 
-    def import_module(self, module, recursive=False, **params):
+    def import_module(self, module=None, recursive=False, **params):
         """Create a child space from an module.
 
         Args:
@@ -101,6 +102,14 @@ class EditableSpaceContainer(BaseSpaceContainer):
         Returns:
             The new child space created from the module.
         """
+        if module is None:
+            if "module_" in params:
+                warnings.warn(
+                    "Parameter 'module_' is deprecated. Use 'module' instead.")
+                module = params.pop("module_")
+            else:
+                raise ValueError("no module specified")
+
         if "bases" in params:
             params["bases"] = get_impls(params["bases"])
 
