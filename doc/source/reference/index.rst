@@ -16,7 +16,9 @@ Function Reference
    ~modelx.cur_model
    ~modelx.cur_space
    ~modelx.open_model
+   ~modelx.setup_ipython
    ~modelx.restore_ipython
+   ~modelx.set_recursion
 
 
 Class Reference
