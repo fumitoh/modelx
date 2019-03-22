@@ -52,6 +52,14 @@ def restore_python():
     _system.restore_python()
 
 
+def setup_ipython():
+    """Set up IPython shell for modelx.
+
+    Suppress IPython's default traceback messages upon error.
+    """
+    _system.setup_ipython()
+
+
 def restore_ipython():
     """Restore IPython' default error message.
 
