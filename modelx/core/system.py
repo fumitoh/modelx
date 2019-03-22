@@ -112,7 +112,7 @@ def is_ipython():
 
 class System:
 
-    def __init__(self, maxdepth=1000):
+    def __init__(self, maxdepth=1000, setup_shell=True):
         self.orig_settings = {}
         self.configure_python()
         self.callstack = CallStack(self, maxdepth)
@@ -122,11 +122,14 @@ class System:
         self._models = {}
         self.self = None
 
-        if is_ipython():
-            self.is_ipysetup = False
-            self.setup_ipython()
+        if setup_shell:
+            if is_ipython():
+                self.is_ipysetup = False
+                self.setup_ipython()
+            else:
+                self.shell = None
+                self.is_ipysetup = False
         else:
-            self.shell = None
             self.is_ipysetup = False
 
     def setup_ipython(self):
