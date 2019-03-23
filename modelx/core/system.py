@@ -112,7 +112,7 @@ def is_ipython():
 
 class System:
 
-    def __init__(self, maxdepth=1000, setup_shell=True):
+    def __init__(self, maxdepth=1000, setup_shell=False):
         self.orig_settings = {}
         self.configure_python()
         self.callstack = CallStack(self, maxdepth)
