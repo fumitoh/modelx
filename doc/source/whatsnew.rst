@@ -391,8 +391,9 @@ Releases: spyder-modelx
 
 v0.0.9 (24 March 2019)
 ----------------------
+- MxAnalyzer now has two tabs and supports successors as well as predecessors.
 - MxExplorer and MxDataView now support multiple MxConsoles.
-- Fix MxAnlyzer nodes holding Cells objects as their values.
+- Fix MxAnalyzer nodes holding Cells objects as their values.
 
 .. _release-mxplugin-v0.0.8:
 
