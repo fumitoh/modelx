@@ -1,6 +1,7 @@
 Reference
 =========
 
+.. _function_reference:
 
 Function Reference
 ------------------
@@ -30,6 +31,7 @@ Class Reference
 
    ~modelx.core.model.Model
    ~modelx.core.space.StaticSpace
+   ~modelx.core.space.DynamicSpace
    ~modelx.core.cells.Cells
    ~modelx.core.space.SpaceView
    ~modelx.core.space.CellsView

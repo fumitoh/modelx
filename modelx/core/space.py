@@ -179,6 +179,8 @@ class CellsView(SelectedView):
 
 
 class SpaceView(BaseView):
+    """A mapping of space names to space objects."""
+
     def __delitem__(self, name):
         space = self._data[name]._impl
         space.parent.del_space(name)
@@ -1406,7 +1408,15 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
 
 class DynamicSpace(BaseSpace):
-    pass
+    """Dynamically created space.
+
+    Dynamic spaces of a parametric space
+    are created by accessing its elements for the first time,
+    through subscription ``[]`` or call ``()`` operations on the parametric
+    space.
+
+    Dynamic spaces are not editable like static spaces.
+    """
 
 
 class DynamicSpaceImpl(BaseSpaceImpl):

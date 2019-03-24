@@ -86,7 +86,7 @@ case with any other package.
 
 By doing so, you get to use modelx API functions in ``__main__`` module.
 The entire list of modelx API functions are
-:doc:`here in the reference manual </reference/generated/modelx.core.api>`.
+:ref:`function_reference`.
 If you're not comfortable with importing modelx API functions directly into
 the global namespace of ``__main__`` module, you can alternatively import
 ``modelx`` as an abbreviated name, such as ``mx``, for example::
@@ -109,7 +109,7 @@ for the sake of explanation::
    space = new_space()
 
 
-In the first line, :py:func:`~modelx.core.api.new_model`
+In the first line, :py:func:`~modelx.new_model`
 is a modelx API function that create
 a new model and returns it.
 
@@ -125,7 +125,7 @@ Creating a Space
 
    space = new_space()
 
-:py:func:`~modelx.core.api.new_space`, in the line above creates a
+:py:func:`~modelx.new_space`, in the line above creates a
 new space in the "current" model.
 In this case, the current model is set to the one we just created.
 modelx keeping track of the current model is somewhat
@@ -153,7 +153,7 @@ the model objects::
    >>> get_models()
    {'Model1': <Model Model1>}
 
-To get the current model, use :py:func:`~modelx.core.api.cur_model`
+To get the current model, use :py:func:`~modelx.cur_model`
 without arguments.
 
 Getting Spaces
@@ -178,7 +178,7 @@ To get one space, its name is available as an attribute of the containing model:
    <Space Space1 in Model1>
 
 You can get the current space of the current model by calling
-:py:func:`~modelx.core.api.cur_space` without arguments.
+:py:func:`~modelx.cur_space` without arguments.
 
 Creating Cells
 ^^^^^^^^^^^^^^
@@ -196,7 +196,7 @@ to the Cells object that has just been created from the formula definition.
 By this definition, the cells is created in the current space in the current
 model. modelx keeps the last operated model as the current model, and
 the last operated space for each model as the current space.
-:py:func:`~modelx.core.api.cur_model` API function returns
+:py:func:`~modelx.cur_model` API function returns
 the current model,
 and :py:meth:`~modelx.core.model.Model.cur_space` method of a model holds
 its current space.
@@ -214,7 +214,7 @@ the cell::
            return fibo(n - 1) + fibo(n - 2)
 
 There are other ways to create cells by ``defcells``.
-Refer to :py:func:`~modelx.core.api.defcells` section in the reference manual
+Refer to :py:func:`~modelx.defcells` section in the reference manual
 for the details.
 
 Another way to create a cells is to use Space's
@@ -415,7 +415,7 @@ Cells
 
    You can get a subspace as an attribute of the parent space,
    or by accessing the parent space's
-   :py:meth:`spaces <modelx.core.space.SpaceContainer.spaces>`
+   :py:attr:`~modelx.core.space.StaticSpace.spaces`
    property::
 
       >>> space.spaces['Subspace1'].foo()

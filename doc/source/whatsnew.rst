@@ -34,6 +34,62 @@ Updates
 Releases: modelx
 ================
 
+.. _release-v0.0.21:
+
+v0.0.21 (23 March 2019)
+-----------------------
+Updates include refactoring to separate static and dynamic space classes,
+use tuple for CellNode implementation,
+gaining approximately 20% performance improvement.
+
+Backwards Incompatible Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Space class is now split into two separate concrete classes,
+  :class:`~core.space.StaticSpace`, :class:`~core.space.DynamicSpace` and
+  one base class :class:`~core.space.BaseSpace`.
+
+- ``module_`` parameter of the methods below are renamed to ``module``.
+
+  * :meth:`~core.space.StaticSpace.import_module`
+  * :meth:`~core.space.StaticSpace.import_funcs`
+  * :meth:`~core.space.StaticSpace.new_cells_from_module`
+  * :meth:`~core.space.StaticSpace.new_space_from_module`
+
+- Methods and properties below on Space classes are renamed to be private,
+  as these are expected not to be used directly by users for normal usage.
+
+  * :meth:`~core.space.StaticSpace._is_base`
+  * :meth:`~core.space.StaticSpace._is_sub`
+  * :meth:`~core.space.StaticSpace._is_static`
+  * :meth:`~core.space.StaticSpace._is_derived`
+  * :meth:`~core.space.StaticSpace._is_defined`
+  * :meth:`~core.space.StaticSpace._is_root`
+  * :meth:`~core.space.StaticSpace._is_dynamic`
+  * :attr:`~core.space.StaticSpace._self_cells`
+  * :attr:`~core.space.StaticSpace._derived_cells`
+  * :attr:`~core.space.StaticSpace._self_spaces`
+  * :attr:`~core.space.StaticSpace._derived_spaces`
+
+
+
+Enhancements
+~~~~~~~~~~~~
+
+- IPython error traceback message is not suppressed by default.
+  :func:`~setup_ipython` is added to suppress the default message.
+
+- :func:`~set_recursion` is added to change the maximum depth of
+  formula recursion.
+
+
+Bug Fixes
+~~~~~~~~~
+
+- Fix :attr:`~core.space.StaticSpace.formula` as setter by assignment
+  expression i.e. alias to :meth:`~core.space.StaticSpace.set_formula`.
+
+- Fix :attr:`~core.model.Model.refs`.
+
 .. _release-v0.0.20:
 
 v0.0.20 (2 February 2019)
@@ -57,7 +113,7 @@ base includes dynamics spaces.
 
 Enhancements
 ~~~~~~~~~~~~
-- Add ``name`` parameter to :func:`~core.api.open_model`.
+- Add ``name`` parameter to :func:`~open_model`.
 - Pass dynamic arguments down to its children.
 - Iterating over cells with single parameter returns values instead of tuples of single elements.
 - View's _baseattrs to not include items with `_` prefixed names.
@@ -102,7 +158,7 @@ spyder-modelx :ref:`release-mxplugin-v0.0.6`
 
 Enhancements
 ~~~~~~~~~~~~
-- :func:`~core.api.get_object` to get a modelx object from its full name.
+- :func:`~get_object` to get a modelx object from its full name.
 
 Bug Fixes
 ~~~~~~~~~
@@ -117,7 +173,7 @@ This release reflects some updates in modelx to make the new widget work.
 
 Enhancements
 ~~~~~~~~~~~~
-- :func:`~core.api.cur_model` and :func:`~core.api.cur_space` now accept
+- :func:`~cur_model` and :func:`~cur_space` now accept
   model and space objects as their arguments respectively,
   in addition to the names of model or space objects.
 
@@ -132,7 +188,7 @@ Enhancements
 
 Backwards Incompatible Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- The parameters to :func:`~core.api.cur_model` and :func:`~core.api.cur_space`
+- The parameters to :func:`~cur_model` and :func:`~cur_space`
   are renamed from ``name`` to ``model`` and ``space`` respectively,
   due to the enhancement for these functions to accept objects,
   in addition to the names of the objects.
@@ -163,7 +219,7 @@ Enhancements
 
 Bug Fixes
 ~~~~~~~~~
-- Fix crashes when :func:`~core.api.cur_model` is called with ``name``
+- Fix crashes when :func:`~cur_model` is called with ``name``
   argument to change the current model.
 
 .. _release-v0.0.13:
@@ -291,7 +347,7 @@ Enhancements
 - Add :meth:`~core.space.SpaceContainer.import_module` and :meth:`~core.space.StaticSpace.import_funcs` properties.
 - Add :attr:`~core.space.StaticSpace.all_spaces` to contain all child spaces, including dynamic spaces.
 - Add :py:attr:`~core.space.StaticSpace.self_spaces` and :py:attr:`~core.space.StaticSpace.derived_spaces` properties.
-- Add :py:func:`~core.api.configure_python` and :py:func:`~core.api.restore_python`.
+- Add :py:func:`~configure_python` and :py:func:`~restore_python`.
 - Add :py:meth:`~core.space.StaticSpace.reload` to reload the source module.
 - :py:class:`~core.model.Model` and :py:class:`~core.space.StaticSpace` to list their members on :func:`dir`.
 - Raise an error upon zero division in formulas.
@@ -324,19 +380,26 @@ Backwards Incompatible Changes
 Bug Fixes
 ~~~~~~~~~
 
-- Fix :py:func:`~core.api.open_model` to make :py:func:`~core.api.cur_model`
+- Fix :py:func:`~open_model` to make :py:func:`~cur_model`
   properly return unpickled model.
 
 
 Releases: spyder-modelx
 =======================
 
+.. _release-mxplugin-v0.0.9:
+
+v0.0.9 (24 March 2019)
+----------------------
+- MxExplorer and MxDataView now support multiple MxConsoles.
+- Fix MxAnlyzer nodes holding Cells objects as their values.
+
 .. _release-mxplugin-v0.0.8:
 
 v0.0.8 (13 January 2019)
 ------------------------
 - Fix MxAnalyzer crash.
-- MxAnalyzer can now handle Cells with no arguments
+- MxAnalyzer can now handle Cells with no arguments.
 
 .. _release-mxplugin-v0.0.7:
 

@@ -175,7 +175,7 @@ autosummary_generate = True
 autoclass_content = 'class'
 
 autodoc_default_flags = ['members', 'inherited_members',  # 'undoc-members',
-                        'show-inheritance']
+                        'show-inheritance', 'private-members']
 # , 'private-members', 'special-members']
 
 autodoc_member_order = 'bysource'
