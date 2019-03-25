@@ -40,7 +40,8 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
-              'sphinx.ext.githubpages']
+              'sphinx.ext.githubpages',
+              'sphinxcontrib.blockdiag']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -179,3 +180,5 @@ autodoc_default_flags = ['members', 'inherited_members',  # 'undoc-members',
 # , 'private-members', 'special-members']
 
 autodoc_member_order = 'bysource'
+
+blockdiag_html_image_format = 'SVG'
