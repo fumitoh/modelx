@@ -41,8 +41,8 @@ What Next
    installation
    spyder
    tutorial
-   userguide
    reference/index
+   techguide
 
 * :ref:`genindex`
 * :ref:`search`
