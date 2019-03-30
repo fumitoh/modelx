@@ -22,7 +22,7 @@ def samplemodel():
     base_space.new_cells(formula=foo_def)
 
     def formula(x0):
-        return {"bases": base_space}
+        return {"bases": _space}
 
     base_space.set_formula(formula)
 

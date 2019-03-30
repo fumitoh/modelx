@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import ast
 import warnings
 from types import FunctionType
@@ -20,6 +19,8 @@ from inspect import signature, getsource, getsourcefile
 from textwrap import dedent
 import tokenize
 import io
+
+import astor
 
 
 def fix_lamdaline(source):
@@ -169,20 +170,6 @@ def create_closure(new_value):
     return closure
 
 
-def _dummy_defcells(space=None, name=None):
-
-    if isinstance(space, FunctionType) and name is None:
-        # called as a function decorator
-        return space
-
-    else:  # called as a deco-maker
-
-        def _dummy_decorator(func):
-            return func
-
-        return _dummy_decorator
-
-
 class ModuleSource:
     """A class to hold function objects defined in a module.
 
@@ -228,6 +215,59 @@ class ModuleSource:
                 self.funcs[name] = obj
 
 
+class DropDecorator(ast.NodeTransformer):
+
+    def visit_FunctionDef(self, node):
+        node.decorator_list.clear()
+        return node
+
+
+def is_funcdef(src):
+    """True if src is a function definition"""
+
+    module_node = ast.parse(dedent(src))
+
+    if len(module_node.body) == 1 and isinstance(
+            module_node.body[0], ast.FunctionDef
+    ):
+        return True
+    else:
+        return False
+
+
+def has_lambda(src):
+    """True if only one lambda expression is included"""
+
+    module_node = ast.parse(dedent(src))
+    lambdaexp = [node for node in ast.walk(module_node)
+                 if isinstance(node, ast.Lambda)]
+
+    return bool(lambdaexp)
+
+
+def extract_lambda(src):
+
+    module_node = ast.parse(dedent(src))
+    lambdaexp = [node for node in ast.walk(module_node)
+                 if isinstance(node, ast.Lambda)]
+
+    if not lambdaexp:
+        raise ValueError("no lambda expression found")
+    elif len(lambdaexp) > 1:
+        raise ValueError("multiple lambda expressions found")
+    else:
+        lambda_node = lambdaexp[0]
+
+    lambda_node.lineno = 1
+    lambda_node.col_offset = 0
+
+    module_node = ast.Module(body=[
+        ast.Expr(value=lambda_node)
+    ])
+
+    return astor.to_source(module_node)
+
+
 class Formula:
 
     __slots__ = ("func", "signature", "source", "module", "srcnames")
@@ -238,71 +278,76 @@ class Formula:
             self._copy_other(func)
 
         elif callable(func):
-            self.func = func
-            self.signature = signature(func)
+            if module is not None:
+                self.module = module
+            else:
+                self.module = func.__module__
+
             try:
-                self.source = getsource(func)
-            except:
+                source = getsource(func)
+                found_source = True
+            except OSError:
                 warnings.warn(
                     "Cannot retrieve source code for function '%s'. "
                     "%s.source set to None." % (func.__name__, func.__name__)
                 )
+                found_source = False
+
+            if found_source:
+                self._init_from_source(source)
+                self.srcnames = extract_names(self.source)
+            else:
+                self.func = func
+                self.signature = signature(func)
                 self.source = None
+                self.srcnames = []
 
         elif isinstance(func, str):
-
-            func = dedent(func)
-            module_node = compile(
-                func, "<string>", mode="exec", flags=ast.PyCF_ONLY_AST
-            )
-
-            if len(module_node.body) == 1 and isinstance(
-                module_node.body[0], ast.FunctionDef
-            ):
-
-                funcdef = module_node.body[0]
-                funcname = funcdef.name
-                namespace = {}
-
-                if "decorator_list" in funcdef._fields:
-                    namespace["defcells"] = _dummy_defcells
-
-                exec(func, namespace)
-
-                self.func = namespace[funcname]
-                self.signature = signature(self.func)
-
-            elif len(module_node.body) == 1 and isinstance(
-                module_node.body[0].value, ast.Lambda
-            ):
-
-                funcdef = module_node.body[0].value
-                namespace = {}
-
-                # Assign the lambda to a temporary name to extract its object.
-                lambda_assignment = "_lambdafunc = " + os.linesep.join(
-                    [s for s in func.splitlines() if s]
-                )
-                # Remove blank lines.
-
-                exec(lambda_assignment, namespace)
-                self.func = namespace["_lambdafunc"]
-                self.signature = signature(self.func)
-
-            else:
-                raise ValueError("func must be a function definition")
-
-            self.source = func
-
+            self.module = module
+            self._init_from_source(func)
+            self.srcnames = extract_names(self.source)
         else:
             raise ValueError("Invalid argument func: %s" % func)
 
-        self.srcnames = extract_names(self.source)
+    def _init_from_source(self, src: str):
 
-        if module is not None:
-            self.module = module
+        if is_funcdef(src):
+            self._init_from_funcdef(src)
+        elif has_lambda(src):
+            self._init_from_lambda(src)
         else:
-            self.module = self.func.__module__
+            raise ValueError("invalid function or lambda definition")
+
+    def _init_from_funcdef(self, src: str):
+
+        module_node = ast.parse(dedent(src))
+
+        funcname = module_node.body[0].name
+        module_node = DropDecorator().visit(module_node)
+        namespace = {}
+
+        code = compile(module_node, "<string>", mode="exec")
+        exec(code, namespace)
+
+        self.func = namespace[funcname]
+        self.signature = signature(self.func)
+        self.source = src
+
+    def _init_from_lambda(self, src: str):
+
+        src = dedent(src)
+        src = extract_lambda(dedent(src))
+
+        namespace = {}
+
+        # Assign the lambda to a temporary name to extract its object.
+        lambda_assignment = "_lambdafunc = " + src
+
+        exec(lambda_assignment, namespace)
+        self.func = namespace["_lambdafunc"]
+        self.signature = signature(self.func)
+
+        self.source = src
 
     def _copy_other(self, other):
         for attr in self.__slots__:
