@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import token
 import ast
 import warnings
 from types import FunctionType
@@ -20,7 +21,7 @@ from textwrap import dedent
 import tokenize
 import io
 
-import astor
+import asttokens
 
 
 def fix_lamdaline(source):
@@ -215,21 +216,6 @@ class ModuleSource:
                 self.funcs[name] = obj
 
 
-class DropDecorator(ast.NodeTransformer):
-
-    def __init__(self, name=None):
-        self.name = name
-        super().__init__()
-
-    def visit_FunctionDef(self, node):
-        node.decorator_list.clear()
-
-        if self.name:
-            node.name = self.name
-
-        return node
-
-
 def is_funcdef(src):
     """True if src is a function definition"""
 
@@ -243,6 +229,54 @@ def is_funcdef(src):
         return False
 
 
+def remove_decorator(source: str):
+    """Remove decorators from function definition"""
+    lines = source.splitlines()
+    atok = asttokens.ASTTokens(source, parse=True)
+
+    for node in ast.walk(atok.tree):
+        if isinstance(node, ast.FunctionDef):
+            break
+
+    if node.decorator_list:
+        deco_first = node.decorator_list[0]
+        deco_last = node.decorator_list[-1]
+        line_first = atok.tokens[deco_first.first_token.index - 1].start[0]
+        line_last = atok.tokens[deco_last.last_token.index + 1].start[0]
+
+        lines = lines[:line_first - 1] + lines[line_last:]
+
+    return "\n".join(lines) + "\n"
+
+
+def replace_funcname(source: str, name: str):
+    """Replace function name"""
+
+    lines = source.splitlines()
+    atok = asttokens.ASTTokens(source, parse=True)
+
+    for node in ast.walk(atok.tree):
+        if isinstance(node, ast.FunctionDef):
+            break
+
+    i = node.first_token.index
+    for i in range(node.first_token.index, node.last_token.index):
+        if (atok.tokens[i].type == token.NAME
+                and atok.tokens[i].string == "def"):
+            break
+
+    lineno, col_begin = atok.tokens[i + 1].start
+    lineno_end, col_end = atok.tokens[i + 1].end
+
+    assert lineno == lineno_end
+
+    lines[lineno-1] = (
+            lines[lineno-1][:col_begin] + name + lines[lineno-1][col_end:]
+    )
+
+    return "\n".join(lines) + "\n"
+
+
 def has_lambda(src):
     """True if only one lambda expression is included"""
 
@@ -253,27 +287,15 @@ def has_lambda(src):
     return bool(lambdaexp)
 
 
-def extract_lambda(src):
+def extract_lambda(source: str):
 
-    module_node = ast.parse(dedent(src))
-    lambdaexp = [node for node in ast.walk(module_node)
-                 if isinstance(node, ast.Lambda)]
+    atok = asttokens.ASTTokens(source, parse=True)
 
-    if not lambdaexp:
-        raise ValueError("no lambda expression found")
-    elif len(lambdaexp) > 1:
-        raise ValueError("multiple lambda expressions found")
-    else:
-        lambda_node = lambdaexp[0]
+    for node in ast.walk(atok.tree):
+        if isinstance(node, ast.Lambda):
+            break
 
-    lambda_node.lineno = 1
-    lambda_node.col_offset = 0
-
-    module_node = ast.Module(body=[
-        ast.Expr(value=lambda_node)
-    ])
-
-    return astor.to_source(module_node)
+    return source[node.first_token.startpos:node.last_token.endpos]
 
 
 class Formula:
@@ -329,12 +351,13 @@ class Formula:
     def _init_from_funcdef(self, src: str, name: str):
 
         module_node = ast.parse(dedent(src))
-
         funcname = name or module_node.body[0].name
-        module_node = DropDecorator(name).visit(module_node)
-        namespace = {}
+        src = remove_decorator(dedent(src))
+        if name:
+            src = replace_funcname(src, name)
 
-        code = compile(module_node, "<string>", mode="exec")
+        namespace = {}
+        code = compile(src, "<string>", mode="exec")
         exec(code, namespace)
 
         self.func = namespace[funcname]
@@ -343,12 +366,11 @@ class Formula:
 
     def _init_from_lambda(self, src: str, name: str):
 
-        newsrc = extract_lambda(dedent(src))
+        src = extract_lambda(dedent(src))
 
         namespace = {}
-
         # Assign the lambda to a temporary name to extract its object.
-        lambda_assignment = "_lambdafunc = " + newsrc
+        lambda_assignment = "_lambdafunc = " + src
 
         exec(lambda_assignment, namespace)
         self.func = namespace["_lambdafunc"]

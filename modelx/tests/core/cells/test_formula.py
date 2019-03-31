@@ -32,8 +32,7 @@ def test_formula_source(testspace):
     assert repr(s.func1_code.formula) == repr(s.func1_src.formula)
 
     assert s.lambda1_code[2] == s.lambda1_src[2]
-    assert (s.lambda1_code.formula.source ==
-            '    s.new_cells(name="lambda1_code", formula=lambda x: 3 * x)\n')
+    assert (s.lambda1_code.formula.source == "lambda x: 3 * x")
     assert s.lambda1_src.formula.source == "lambda x: 3 * x"
 
 
