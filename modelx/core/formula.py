@@ -217,8 +217,16 @@ class ModuleSource:
 
 class DropDecorator(ast.NodeTransformer):
 
+    def __init__(self, name=None):
+        self.name = name
+        super().__init__()
+
     def visit_FunctionDef(self, node):
         node.decorator_list.clear()
+
+        if self.name:
+            node.name = self.name
+
         return node
 
 
@@ -272,7 +280,7 @@ class Formula:
 
     __slots__ = ("func", "signature", "source", "module", "srcnames")
 
-    def __init__(self, func, module=None):
+    def __init__(self, func, name=None, module=None):
 
         if isinstance(func, Formula):
             self._copy_other(func)
@@ -294,7 +302,7 @@ class Formula:
                 found_source = False
 
             if found_source:
-                self._init_from_source(source)
+                self._init_from_source(source, name)
                 self.srcnames = extract_names(self.source)
             else:
                 self.func = func
@@ -304,26 +312,26 @@ class Formula:
 
         elif isinstance(func, str):
             self.module = module
-            self._init_from_source(func)
+            self._init_from_source(func, name)
             self.srcnames = extract_names(self.source)
         else:
             raise ValueError("Invalid argument func: %s" % func)
 
-    def _init_from_source(self, src: str):
+    def _init_from_source(self, src: str, name: str):
 
         if is_funcdef(src):
-            self._init_from_funcdef(src)
+            self._init_from_funcdef(src, name)
         elif has_lambda(src):
-            self._init_from_lambda(src)
+            self._init_from_lambda(src, name)
         else:
             raise ValueError("invalid function or lambda definition")
 
-    def _init_from_funcdef(self, src: str):
+    def _init_from_funcdef(self, src: str, name: str):
 
         module_node = ast.parse(dedent(src))
 
-        funcname = module_node.body[0].name
-        module_node = DropDecorator().visit(module_node)
+        funcname = name or module_node.body[0].name
+        module_node = DropDecorator(name).visit(module_node)
         namespace = {}
 
         code = compile(module_node, "<string>", mode="exec")
@@ -333,20 +341,22 @@ class Formula:
         self.signature = signature(self.func)
         self.source = src
 
-    def _init_from_lambda(self, src: str):
+    def _init_from_lambda(self, src: str, name: str):
 
-        src = dedent(src)
-        src = extract_lambda(dedent(src))
+        newsrc = extract_lambda(dedent(src))
 
         namespace = {}
 
         # Assign the lambda to a temporary name to extract its object.
-        lambda_assignment = "_lambdafunc = " + src
+        lambda_assignment = "_lambdafunc = " + newsrc
 
         exec(lambda_assignment, namespace)
         self.func = namespace["_lambdafunc"]
-        self.signature = signature(self.func)
 
+        if name:
+            self.func.__name__ = name
+
+        self.signature = signature(self.func)
         self.source = src
 
     def _copy_other(self, other):

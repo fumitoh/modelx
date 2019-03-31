@@ -49,8 +49,7 @@ from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
 class ParamFunc(Formula):
-    def __init__(self, func, module=None):
-        Formula.__init__(self, func, module)
+    __slots__ = ()
 
 
 class SpaceDict(ImplDict):
