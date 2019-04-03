@@ -1105,8 +1105,7 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         name,
         formula=None,
         refs=None,
-        source=None,
-        arguments=None,
+        source=None
     ):
 
         BaseSpaceImpl.__init__(self, parent, name, formula, refs, source)
