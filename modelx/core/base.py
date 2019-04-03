@@ -154,6 +154,10 @@ class Impl:
             for lz in self.lazy_evals:
                 lz.get_updated()
 
+    @property
+    def fullname(self):
+        return self.parent.fullname + "." + self.name
+
     def get_fullname(self, omit_model=False):
 
         fullname = self.name

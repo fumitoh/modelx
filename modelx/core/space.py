@@ -720,10 +720,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         raise NotImplementedError
 
     @property
-    def fullname(self):
-        return self.parent.fullname + "." + self.name
-
-    @property
     def model(self):
         return self.parent.model
 
