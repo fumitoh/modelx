@@ -22,6 +22,8 @@ def no_values():
     def param2(x, y):
         return x * y
 
+    space.formula = lambda i: None
+
     yield space
     model.close()
 
@@ -50,3 +52,12 @@ def test_node_repr_has_values(has_values):
     assert repr(s.param0.node()) == "Model.Space.param0()=0"
     assert repr(s.param1.node(1)) == "Model.Space.param1(x=1)=1"
     assert repr(s.param2.node(2, 3)) == "Model.Space.param2(x=2, y=3)=6"
+
+
+def test_node_repr_dynspace(no_values):
+
+    s = no_values[1]
+
+    assert repr(s.param0.node()) == "Model.Space[1].param0()"
+    assert repr(s.param1.node(1)) == "Model.Space[1].param1(x=1)"
+    assert repr(s.param2.node(2, 3)) == "Model.Space[1].param2(x=2, y=3)"
