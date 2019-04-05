@@ -84,9 +84,14 @@ The plugin is available as a separate Python package named ``spyder-modelx``.
 The supported version of Spyder is 3.2.5 or newer. The plugin does not
 work with Spyder versions older than 3.2.5.
 
-To install the plugin, run the following command in the command prompt::
+``spyder-modelx`` package is available on PyPI, and
+can be installed using ``pip`` command.
 
-    $ pip install spyder-modelx
+If you're using Anaconda distribution,
+run the following command in Anaconda command prompt to install the plugin
+after installing ``modelx``::
+
+    $ pip install --no-deps spyder-modelx
 
 If Spyder is running while the plugin gets installed, close Spyder once
 and restart it to bring the plugin into effect.
