@@ -68,7 +68,7 @@ def test_multiple_inheritance(samplemodel):
 def test_fullname(samplemodel):
 
     space = samplemodel.spaces["derived_space"]
-    assert space._impl.get_fullname() == "samplemodel.derived_space"
+    assert space.fullname == "samplemodel.derived_space"
 
 
 def test_new_space_from_module(samplemodel):

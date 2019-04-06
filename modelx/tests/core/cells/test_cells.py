@@ -289,12 +289,12 @@ def test_parameters(sample_space):
 
 
 # --------------------------------------------------------------------------
-# Test _impl methods
+# Test fullname
 
 
 def test_fullname(sample_space):
     assert (
-        sample_space.fibo._impl.get_fullname()
+        sample_space.fibo.fullname
         == "samplemodel.samplespace.fibo"
     )
 

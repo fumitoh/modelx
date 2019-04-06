@@ -231,7 +231,7 @@ def test_mro_root(testmodel):
 
 
 def test_fullname(testmodel):
-    assert cur_space()._impl.get_fullname() == "testmodel.testspace"
+    assert cur_space().fullname == "testmodel.testspace"
 
 
 def test_fullname_omit_model(testmodel):
