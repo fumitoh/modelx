@@ -1034,25 +1034,13 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         return "<SpaceImpl: " + self.fullname + ">"
 
     def repr_self(self, add_params=True):
-
-        if add_params and isinstance(self, RootDynamicSpaceImpl):
-            args = [repr(arg) for arg in get_interfaces(self.argvalues)]
-            param = ", ".join(args)
-            return "%s[%s]" % (self.parent.name, param)
-        else:
-            return self.name
+        return self.name
 
     def repr_parent(self):
-
-        if isinstance(self, RootDynamicSpaceImpl):
-            return self.parent.repr_parent()
+        if self.parent.repr_parent():
+            return self.parent.repr_parent() + "." + self.parent.repr_self()
         else:
-            if self.parent.repr_parent():
-                return (
-                    self.parent.repr_parent() + "." + self.parent.repr_self()
-                )
-            else:
-                return self.parent.repr_self()
+            return self.parent.repr_self()
 
     def __getstate__(self):
         state = {
@@ -1549,3 +1537,15 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
             result["argvalues"] = ""
 
         return result
+
+    def repr_parent(self):
+        return self.parent.repr_parent()
+
+    def repr_self(self, add_params=True):
+
+        if add_params:
+            args = [repr(arg) for arg in get_interfaces(self.argvalues)]
+            param = ", ".join(args)
+            return "%s[%s]" % (self.parent.name, param)
+        else:
+            return self.name
