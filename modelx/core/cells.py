@@ -439,10 +439,6 @@ class CellsImpl(Derivable):
     def __repr__(self):
         return "<CellsImpl: %s>" % self.name
 
-    @property
-    def fullname(self):
-        return self.space.fullname + "." + self.name
-
     def repr_self(self, add_params=True):
         if add_params:
             return "%s(%s)" % (self.name, ", ".join(self.formula.parameters))
