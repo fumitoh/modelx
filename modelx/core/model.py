@@ -214,10 +214,6 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         return ""
 
     @property
-    def fullname(self):
-        return self.name
-
-    @property
     def model(self):
         return self
 

@@ -154,25 +154,21 @@ class Impl:
             for lz in self.lazy_evals:
                 lz.get_updated()
 
-    @property
-    def fullname(self):
-        return self.parent.fullname + "." + self.name
-
     def get_fullname(self, omit_model=False):
 
-        fullname = self.name
-        parent = self.parent
-        while True:
-            fullname = parent.name + "." + fullname
-            if parent.is_space():
-                parent = parent.parent
+        if self.parent:
+            result = self.parent.get_fullname(False) + "." + self.name
+            if omit_model:
+                separated = result.split(".")
+                separated.pop(0)
+                return ".".join(separated)
             else:
-                if omit_model:
-                    separated = fullname.split(".")
-                    separated.pop(0)
-                    fullname = ".".join(separated)
-
-                return fullname
+                return result
+        else:
+            if omit_model:
+                return ""
+            else:
+                return self.name
 
     def get_repr(self, fullname=False, add_params=True):
 
@@ -367,7 +363,7 @@ class Interface:
         each element in the string is the name of the parent object
         of the next one joined by a dot.
         """
-        return self._impl.fullname
+        return self._impl.get_fullname()
 
     @property
     def parent(self):
