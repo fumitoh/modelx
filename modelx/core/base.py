@@ -119,14 +119,6 @@ class Impl:
         self.allow_none = None
         self.lazy_evals = None
 
-    @property
-    def repr_string(self):
-        """String to called by Interface.__repr__"""
-        if self.repr_parent():
-            return "%s in %s" % (self.repr_self(), self.repr_parent())
-        else:
-            return self.repr_self()
-
     def repr_self(self, add_params=True):
         raise NotImplementedError
 
@@ -390,7 +382,12 @@ class Interface:
 
     def __repr__(self):
         type_ = self.__class__.__name__
-        return "<%s %s>" % (type_, self._impl.repr_string)
+        if self.parent:
+            return "<%s %s in %s>" % (
+                type_, self._impl.repr_self(), self._impl.repr_parent()
+            )
+        else:
+            return "<%s %s>" % (type_, self._impl.repr_self())
 
     def __getnewargs__(self):
         return (self._impl,)
