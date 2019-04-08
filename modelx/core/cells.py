@@ -437,7 +437,7 @@ class CellsImpl(Derivable):
         return self._model
 
     # ----------------------------------------------------------------------
-    # repr methos
+    # repr methods
 
     def __repr__(self):
         return "<CellsImpl: %s>" % self.name
