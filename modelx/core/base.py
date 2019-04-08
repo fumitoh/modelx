@@ -119,12 +119,6 @@ class Impl:
         self.allow_none = None
         self.lazy_evals = None
 
-    def repr_self(self, add_params=True):
-        raise NotImplementedError
-
-    def repr_parent(self):
-        raise NotImplementedError
-
     def get_property(self, name):
         prop = getattr(self, name)
         if prop is None:
@@ -162,16 +156,25 @@ class Impl:
             else:
                 return self.name
 
+    def restore_state(self, system):
+        """Called after unpickling to restore some attributes manually."""
+        self.system = system
+
+    # ----------------------------------------------------------------------
+    # repr methods
+
+    def repr_self(self, add_params=True):
+        raise NotImplementedError
+
+    def repr_parent(self):
+        raise NotImplementedError
+
     def get_repr(self, fullname=False, add_params=True):
 
         if fullname:
             return self.repr_parent() + "." + self.repr_self(add_params)
         else:
             return self.repr_self(add_params)
-
-    def restore_state(self, system):
-        """Called after unpickling to restore some attributes manually."""
-        self.system = system
 
 
 class _DummyBuiltins:

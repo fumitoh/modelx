@@ -1028,10 +1028,10 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             return space
 
     # ----------------------------------------------------------------------
-    # Space properties
+    # repr methods
 
     def __repr__(self):
-        return "<SpaceImpl: " + self.fullname + ">"
+        return "<SpaceImpl: " + self.name + ">"
 
     def repr_self(self, add_params=True):
         return self.name
@@ -1041,6 +1041,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             return self.parent.repr_parent() + "." + self.parent.repr_self()
         else:
             return self.parent.repr_self()
+
+    # ----------------------------------------------------------------------
+    # Space properties
 
     def __getstate__(self):
         state = {
@@ -1537,6 +1540,9 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
             result["argvalues"] = ""
 
         return result
+
+    # ----------------------------------------------------------------------
+    # repr methods
 
     def repr_parent(self):
         return self.parent.repr_parent()
