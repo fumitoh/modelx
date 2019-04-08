@@ -160,6 +160,9 @@ class Impl:
         """Called after unpickling to restore some attributes manually."""
         self.system = system
 
+    def is_model(self):
+        return self.parent is None
+
     # ----------------------------------------------------------------------
     # repr methods
 

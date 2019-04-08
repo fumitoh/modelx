@@ -258,12 +258,6 @@ class BaseSpaceContainerImpl:
     # ----------------------------------------------------------------------
     # Properties
 
-    def is_model(self):
-        return self.parent is None
-
-    def is_space(self):
-        return not self.is_model()
-
     @property
     def model(self):
         return NotImplementedError
