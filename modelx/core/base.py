@@ -156,6 +156,14 @@ class Impl:
             else:
                 return self.name
 
+    @property
+    def evalrepr(self):
+        """Evaluable repr"""
+        if self.is_model():
+            return self.get_fullname()
+        else:
+            return self.parent.evalrepr + "." + self.name
+
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
         self.system = system
@@ -456,6 +464,10 @@ class Interface:
 
     def _get_repr(self, fullname=False, add_params=True):
         return self._impl.get_repr(fullname, add_params)
+
+    @property
+    def _evalrepr(self):
+        return self._impl.evalrepr
 
 
 class LazyEval:

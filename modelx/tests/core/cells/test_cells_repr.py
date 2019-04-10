@@ -12,6 +12,9 @@ def testmodel():
     m.Parent.Child.formula = lambda y, z: None
     m.Parent.Child.foo.formula = lambda i: 2 * i
 
+    m.new_space('NoArgs').new_cells('foo')
+    m.NoArgs.formula = lambda: None
+
     return m
 
 
@@ -50,3 +53,11 @@ def test_fullname(testmodel, fullname, add_params, expected):
         fullname=fullname,
         add_params=add_params
     ) == expected
+
+
+def test_evalrepr(testmodel):
+    m = testmodel
+    assert m.Parent.Child.foo._evalrepr == "Model.Parent.Child.foo"
+    assert (m.Parent[1].Child[2, 3].foo._evalrepr
+            == "Model.Parent(1).Child(2, 3).foo")
+    assert m.NoArgs().foo._evalrepr == "Model.NoArgs().foo"
