@@ -54,7 +54,7 @@ def test_deep_reference_error():
     from modelx.core import mxsys
 
     last_maxdepth = mxsys.callstack.maxdepth
-    mxsys.callstack.maxdepth = 3
+    set_recursion(3)
 
     errfunc = dedent(
         """\
@@ -77,7 +77,7 @@ def test_deep_reference_error():
     3: ErrModel.ErrSpace.erronerous(x=4, y=0)"""
     )
 
-    mxsys.callstack.maxdepth = last_maxdepth
+    set_recursion(last_maxdepth)
     assert errinfo.value.args[0] == errmsg
 
 
@@ -105,7 +105,6 @@ def test_rename_same_name():
     with pytest.warns(UserWarning):
         m2 = new_model("dupname")
 
-    print(get_models())
     assert "dupname_BAK" in m1.name
     assert m1.name in get_models()
 

@@ -516,8 +516,22 @@ class CellsImpl(Derivable):
     # ----------------------------------------------------------------------
     # Value operations
 
-    def eval_formula(self, node):
-        return self.altfunc.get_updated().altfunc(*node[KEY])
+    def on_eval_formula(self, key):
+
+        value = self.altfunc.get_updated().altfunc(*key)
+
+        if self.has_cell(key):
+            # Assignment took place inside the cell.
+            if value is not None:
+                raise ValueError("Duplicate assignment for %s" % key)
+            else:
+                value = self.data[key]
+                del self.data[key]
+                value = self._store_value(key, value, False)
+        else:
+            value = self._store_value(key, value, False)
+
+        return value
 
     def get_value(self, args, kwargs=None):
 
@@ -526,32 +540,11 @@ class CellsImpl(Derivable):
 
         if self.has_cell(key):
             value = self.data[key]
-
         else:
-            self.system.callstack.append(node)
-            try:
-                value = self.eval_formula(node)
-
-                if self.has_cell(key):
-                    # Assignment took place inside the cell.
-                    if value is not None:
-                        raise ValueError("Duplicate assignment for %s" % key)
-                    else:
-                        value = self.data[key]
-                        del self.data[key]
-                        value = self._store_value(node, value, False)
-                else:
-                    value = self._store_value(node, value, False)
-
-            except ZeroDivisionError:
-                tracemsg = self.system.callstack.tracemessage()
-                raise RewindStackError(node, tracemsg)
-
-            finally:
-                self.system.callstack.pop()
+            value = self.system.execution.eval_cell(node)
 
         graph = self._model.cellgraph
-        if not self.system.callstack.is_empty():
+        if self.system.callstack:
             graph.add_path([node, self.system.callstack.last()])
         else:
             graph.add_node(node)
@@ -583,25 +576,24 @@ class CellsImpl(Derivable):
     def set_value(self, args, value):
 
         node = get_node(self, *convert_args(args, {}))
-
-        if self.system.callstack.is_empty():
-            self._store_value(node, value, True)
-            self._model.cellgraph.add_node(node)
-        else:
-            if node == self.system.callstack.last():
-                self._store_value(node, value, False)
-            else:
-                raise KeyError("Assignment in cells other than %s" % node[KEY])
-
-    def _store_value(self, node, value, overwrite=False):
-
         key = node[KEY]
+
+        if self.system.callstack:
+            if node == self.system.callstack.last():
+                self._store_value(key, value, False)
+            else:
+                raise KeyError("Assignment in cells other than %s" % key)
+        else:
+            self._store_value(key, value, True)
+            self._model.cellgraph.add_node(node)
+
+    def _store_value(self, key, value, overwrite=False):
 
         if isinstance(value, Cells):
             if value._impl.is_scalar():
                 value = value._impl.single_value
 
-        if not node[OBJ].has_cell(key) or overwrite:
+        if not self.has_cell(key) or overwrite:
 
             if overwrite:
                 self.clear_value(*key)
@@ -612,10 +604,10 @@ class CellsImpl(Derivable):
                 self.data[key] = value
             else:
                 tracemsg = self.system.callstack.tracemessage()
-                raise NoneReturnedError(node, tracemsg)
+                raise NoneReturnedError(get_node(self, key, None), tracemsg)
 
         else:
-            raise ValueError("Value already exists for %s" % node[KEY])
+            raise ValueError("Value already exists for %s" % key)
 
         return value
 

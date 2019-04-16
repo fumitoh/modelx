@@ -15,7 +15,4 @@
 from modelx.core.system import System as _System
 
 
-# Limit maxdepth to 500 if stack overflows on Python 64-bit anaconda
-# Ref: https://bugs.python.org/issue32570
-# TODO: Need more robust approach
-mxsys = _System(maxdepth=1000)
+mxsys = _System()

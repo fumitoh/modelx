@@ -13,25 +13,101 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import math
 import warnings
 import pickle
+import threading
 from collections import deque
 from modelx.core.node import get_node_repr
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError
+from modelx.core.node import OBJ, KEY
+from modelx.core.errors import RewindStackError
 
 
-class Executive:
-    pass
+class Execution:
+
+    def __init__(self, system, maxdepth=None):
+
+        # Use thread to increase stack size and deepen callstack
+        # Ref: https://bugs.python.org/issue32570
+        threading.stack_size(0xFFFFFFF)
+
+        self.system = system
+        self.callstack = CallStack(maxdepth)
+        self.thread = None
+        self.initnode = None
+
+    def eval_cell(self, node):
+
+        if not self.thread:
+            # (self.thread is None) == not self.callstack must be always True
+            return self._start_thread(node)
+        else:
+            return self._eval_formula(node)
+
+    class ExecThread(threading.Thread):
+
+        def __init__(self, execution):
+            self.execution = execution
+            self.buffer = None
+            super().__init__()
+
+        def run(self):
+            try:
+                self.buffer = self.execution._eval_formula(
+                    self.execution.initnode)
+            except:
+                self.execution.exception = sys.exc_info()
+
+    def _start_thread(self, node):
+        self.initnode = node
+        self.exception = None
+        self.thread = Execution.ExecThread(self)
+        try:
+            self.thread.start()
+            self.thread.join()
+            assert not self.callstack
+
+            if self.exception:
+                raise self.exception[1].with_traceback(
+                    self.exception[2]
+                )
+            else:
+                return self.thread.buffer
+
+        finally:
+            self.initnode = None
+            self.thread = None
+
+    def _eval_formula(self, node):
+
+        self.callstack.append(node)
+        cells, key = node[OBJ], node[KEY]
+
+        try:
+            return cells.on_eval_formula(key)
+
+        except ZeroDivisionError:
+            tracemsg = self.callstack.tracemessage()
+            raise RewindStackError(node, tracemsg)
+
+        finally:
+            self.callstack.pop()
 
 
 class CallStack(deque):
-    def __init__(self, system, maxdepth):
-        self._succ = None
-        self._system = system
-        self.maxdepth = maxdepth
-        self.last_tracebacklimit = None
+
+    default_maxdepth = 65000
+
+    def __init__(self, maxdepth=None):
+
+        if maxdepth:
+            self.maxdepth = maxdepth
+        else:
+            self.maxdepth = self.default_maxdepth
+
         deque.__init__(self)
 
     def last(self):
@@ -40,18 +116,9 @@ class CallStack(deque):
     def is_empty(self):
         return len(self) == 0
 
-    def enter_stacking(self):
-        pass
-
-    def exit_stacking(self):
-        """Not used. Left for future enhancement."""
-        pass
-
     def append(self, item):
-        if self.is_empty():
-            self.enter_stacking()
 
-        elif len(self) > self.maxdepth:
+        if len(self) > self.maxdepth:
             raise DeepReferenceError(self.maxdepth, self.tracemessage())
         deque.append(self, item)
 
@@ -112,10 +179,11 @@ def is_ipython():
 
 class System:
 
-    def __init__(self, maxdepth=1000, setup_shell=False):
+    def __init__(self, maxdepth=None, setup_shell=False):
         self.orig_settings = {}
         self.configure_python()
-        self.callstack = CallStack(self, maxdepth)
+        self.execution = Execution(self, maxdepth)
+        self.callstack = self.execution.callstack
         self._modelnamer = AutoNamer("Model")
         self._backupnamer = AutoNamer("_BAK")
         self._currentmodel = None
@@ -178,7 +246,7 @@ class System:
         orig = self.orig_settings
 
         orig["sys.recursionlimit"] = sys.getrecursionlimit()
-        sys.setrecursionlimit(10000)
+        sys.setrecursionlimit(10**6)
 
         orig["showwarning"] = warnings.showwarning
         warnings.showwarning = custom_showwarning
@@ -198,6 +266,7 @@ class System:
             warnings.showwarning = orig["showwarning"]
 
         orig.clear()
+        threading.stack_size()
 
     def new_model(self, name=None):
 
