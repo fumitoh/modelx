@@ -32,7 +32,6 @@ class Execution:
 
         # Use thread to increase stack size and deepen callstack
         # Ref: https://bugs.python.org/issue32570
-        threading.stack_size(0xFFFFFFF)
 
         self.system = system
         self.callstack = CallStack(maxdepth)
@@ -179,8 +178,13 @@ def is_ipython():
 
 class System:
 
+    orig_settings = {
+        "sys.recursionlimit": sys.getrecursionlimit(),
+        "showwarning": warnings.showwarning
+    }
+
     def __init__(self, maxdepth=None, setup_shell=False):
-        self.orig_settings = {}
+
         self.configure_python()
         self.execution = Execution(self, maxdepth)
         self.callstack = self.execution.callstack
@@ -243,13 +247,9 @@ class System:
 
         The error handler is configured later.
         """
-        orig = self.orig_settings
-
-        orig["sys.recursionlimit"] = sys.getrecursionlimit()
         sys.setrecursionlimit(10**6)
-
-        orig["showwarning"] = warnings.showwarning
         warnings.showwarning = custom_showwarning
+        threading.stack_size(0xFFFFFFF)
 
     def restore_python(self):
         """Restore Python settings to the original states"""

@@ -1,3 +1,4 @@
+import sys
 from textwrap import dedent
 from modelx.core.api import *
 from modelx.core.errors import DeepReferenceError
@@ -82,14 +83,11 @@ def test_deep_reference_error():
 
 
 def test_configure_python():
-    import sys
-
-    assert sys.getrecursionlimit() == 10000
-    # assert sys.tracebacklimit == 0
+    configure_python()
+    assert sys.getrecursionlimit() == 10**6
 
 
 def test_restore_python():
-    import sys
 
     restore_python()
 
