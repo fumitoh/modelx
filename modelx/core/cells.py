@@ -327,6 +327,14 @@ class Cells(Interface, Mapping, Callable):
         result["params"] = ", ".join(self.parameters)
         return result
 
+    @property
+    def _is_derived(self):
+        return self._impl.is_derived
+
+    @property
+    def _is_defined(self):
+        return not self._impl.is_derived
+
 
 class CellsImpl(Derivable):
     """

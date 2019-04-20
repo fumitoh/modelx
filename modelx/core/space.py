@@ -222,6 +222,11 @@ class BaseSpace(BaseSpaceContainer):
         """List of base classes."""
         return get_interfaces(self._impl.bases)
 
+    @property
+    def _direct_bases(self):
+        """Directly inherited base classes"""
+        return get_interfaces(self._impl.direct_bases)
+
     def _is_base(self, other):
         """True if the space is a base space of ``other``, False otherwise."""
         return self._impl.is_base(other._impl)
@@ -312,6 +317,11 @@ class BaseSpace(BaseSpaceContainer):
     def refs(self):
         """A map associating names to objects accessible by the names."""
         return self._impl.refs.interfaces
+
+    @property
+    def _self_refs(self):
+        """A mapping associating names to self refs."""
+        return self._impl.self_refs.interfaces
 
     @property
     def formula(self):
@@ -760,7 +770,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
     @property
     def direct_bases(self):
         """Return an iterator over direct base spaces"""
-        return self.model.spacegraph.predecessors(self)
+        return list(self.model.spacegraph.predecessors(self))
 
     @property
     def self_bases(self):
