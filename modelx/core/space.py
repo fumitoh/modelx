@@ -930,7 +930,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             if isinstance(formula, ParamFunc):
                 self.formula = formula
             else:
-                self.formula = ParamFunc(formula)
+                self.formula = ParamFunc(formula, name="_formula")
             self.altfunc = BoundFunction(self)
         else:
             raise ValueError("formula already assigned.")
