@@ -31,7 +31,13 @@ from modelx.core.base import (
     SelectedView,
     BoundFunction,
 )
-from modelx.core.node import node_get_args, tuplize_key, get_node, OBJ, KEY
+from modelx.core.node import (
+    node_get_args,
+    tuplize_key,
+    get_node,
+    OBJ,
+    KEY
+)
 from modelx.core.spacecontainer import (
     BaseSpaceContainer,
     BaseSpaceContainerImpl,

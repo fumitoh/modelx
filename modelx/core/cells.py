@@ -386,21 +386,25 @@ class CellsImpl(Derivable):
         self._model = space.model
         self.space = self.parent = space
 
-        if base is not None:
-            self.formula = base.formula
-        elif formula is None:
-            self.formula = NULL_FORMULA
-        else:
-            self.formula = Formula(formula)
-
-        if base is not None:
+        if base:
             self.name = base.name
         elif is_valid_name(name):
             self.name = name
-        elif is_valid_name(self.formula.name):
-            self.name = self.formula.name
+        elif formula:
+            name = Formula(formula).name
+            if is_valid_name(name):
+                self.name = name
+            else:
+                self.name = space.cellsnamer.get_next(space.namespace)
         else:
             self.name = space.cellsnamer.get_next(space.namespace)
+
+        if base:
+            self.formula = base.formula
+        elif formula is None:
+            self.formula = Formula(NULL_FORMULA, name=self.name)
+        else:
+            self.formula = Formula(formula, name=self.name)
 
         self.data = {}
         if data is None:
@@ -514,7 +518,7 @@ class CellsImpl(Derivable):
         if self.parent.is_dynamic():
             raise ValueError("cannot set formula in dynamic space")
         self._model.clear_obj(self)
-        formula = Formula(func)
+        formula = Formula(func, name=self.name)
         self.formula = formula
         self.altfunc.set_update()
         self._model.spacegraph.update_subspaces_upward(

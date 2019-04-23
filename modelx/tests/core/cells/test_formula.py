@@ -29,7 +29,10 @@ def test_formula_source(testspace):
     s = testspace
 
     assert s.func1_code[2] == s.func1_src[2]
-    assert repr(s.func1_code.formula) == repr(s.func1_src.formula)
+
+    # Compare other than function name line
+    assert (repr(s.func1_code.formula).split("\n")[1:]
+            == repr(s.func1_src.formula).split("\n")[1:])
 
     assert s.lambda1_code[2] == s.lambda1_src[2]
     assert (s.lambda1_code.formula.source == "lambda x: 3 * x")
