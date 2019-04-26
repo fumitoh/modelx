@@ -619,7 +619,7 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         self._impl.set_formula(formula)
 
 
-class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
+class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     """Read-only base Space class
 
     * Cells container
@@ -650,8 +650,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
             "source",
             "altfunc",
         ]
-        + BaseSpaceContainerImpl.state_attrs
         + Derivable.state_attrs
+        + BaseSpaceContainerImpl.state_attrs
+        + Impl.state_attrs
     )
 
     assert len(state_attrs) == len(set(state_attrs))
@@ -665,9 +666,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
         source=None,
         arguments=None,
     ):
-
+        Impl.__init__(self, system=parent.system)
         BaseSpaceContainerImpl.__init__(self)
-        Derivable.__init__(self, parent.system)
+        Derivable.__init__(self)
 
         self.name = name
         self.parent = parent
@@ -1071,7 +1072,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
 
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
-        super().restore_state(system)
+        Impl.restore_state(self, system)
         BaseSpaceContainerImpl.restore_state(self, system)
 
         for cells in self._cells.values():

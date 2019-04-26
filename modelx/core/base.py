@@ -195,12 +195,11 @@ class _DummyBuiltins:
     pass
 
 
-class Derivable(Impl):
+class Derivable:
 
-    state_attrs = ["_is_derived"] + Impl.state_attrs
+    state_attrs = ["_is_derived"]
 
-    def __init__(self, system, interface=None):
-        Impl.__init__(self, system, interface)
+    def __init__(self):
         self._is_derived = None  # must be initialized after __init__.
 
     @property
@@ -251,12 +250,14 @@ class Derivable(Impl):
         raise NotImplementedError
 
 
-class ReferenceImpl(Derivable):
+class ReferenceImpl(Derivable, Impl):
 
-    state_attrs = Derivable.state_attrs
+    state_attrs = Impl.state_attrs + Derivable.state_attrs
+    assert len(state_attrs) == len(set(state_attrs))
 
     def __init__(self, parent, name, value, base=None):
-        Derivable.__init__(self, parent.system, interface=value)
+        Impl.__init__(self, parent.system, interface=value)
+        Derivable.__init__(self)
 
         self.parent = parent
         self.model = parent.model

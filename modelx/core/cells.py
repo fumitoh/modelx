@@ -336,7 +336,7 @@ class Cells(Interface, Mapping, Callable):
         return not self._impl.is_derived
 
 
-class CellsImpl(Derivable):
+class CellsImpl(Derivable, Impl):
     """
     Data container optionally with a formula to set its own values.
 
@@ -377,11 +377,23 @@ class CellsImpl(Derivable):
 
     if_class = Cells
 
+    state_attrs = [
+        "_model",
+        "space",
+        "formula",
+        "name",
+        "data",
+        "_namespace_impl",
+        "altfunc",
+    ] + Derivable.state_attrs + Impl.state_attrs
+
+    assert len(state_attrs) == len(set(state_attrs))
+
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None
     ):
-
-        Derivable.__init__(self, system=space.system)
+        Impl.__init__(self, system=space.system)
+        Derivable.__init__(self)
 
         self._model = space.model
         self.space = self.parent = space
@@ -418,18 +430,6 @@ class CellsImpl(Derivable):
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
-
-    state_attrs = [
-        "_model",
-        "space",
-        "formula",
-        "name",
-        "data",
-        "_namespace_impl",
-        "altfunc",
-    ] + Derivable.state_attrs
-
-    assert len(state_attrs) == len(set(state_attrs))
 
     def __getstate__(self):
         state = {
