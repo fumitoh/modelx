@@ -20,7 +20,7 @@ from itertools import combinations
 
 from modelx.core.base import Impl, Derivable, Interface, BoundFunction
 from modelx.core.node import OBJ, KEY, get_node, tuplize_key
-from modelx.core.formula import Formula, NULL_FORMULA
+from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError, RewindStackError
 
@@ -402,7 +402,9 @@ class CellsImpl(Derivable):
         if base:
             self.formula = base.formula
         elif formula is None:
-            self.formula = Formula(NULL_FORMULA, name=self.name)
+            self.formula = NullFormula(NULL_FORMULA, name=self.name)
+        elif isinstance(formula, Formula):
+            self.formula = formula.__class__(formula, name=self.name)
         else:
             self.formula = Formula(formula, name=self.name)
 
@@ -515,8 +517,11 @@ class CellsImpl(Derivable):
         if self.parent.is_dynamic():
             raise ValueError("cannot set formula in dynamic space")
         self._model.clear_obj(self)
-        formula = Formula(func, name=self.name)
-        self.formula = formula
+        if isinstance(func, Formula):
+            klass = func.__class__
+        else:
+            klass = Formula
+        self.formula = klass(func, name=self.name)
         self.altfunc.set_update()
         self._model.spacegraph.update_subspaces_upward(
             self.parent, from_parent=False, event="cells_set_formula"

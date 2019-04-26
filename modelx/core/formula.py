@@ -446,4 +446,8 @@ class Formula:
         return {"source": self.source}
 
 
-NULL_FORMULA = Formula("lambda: None")
+class NullFormula(Formula):
+    """Formula sub class for NULL_FORMULA"""
+
+
+NULL_FORMULA = NullFormula("lambda: None")
