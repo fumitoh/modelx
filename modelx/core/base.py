@@ -187,6 +187,9 @@ class Impl:
         else:
             return self.repr_self(add_params)
 
+    def __repr__(self):
+        return "%s: %s" % (repr(self.__class__), self.name)
+
 
 class _DummyBuiltins:
     pass
@@ -246,12 +249,6 @@ class Derivable(Impl):
 
     def inherit(self, **kwargs):
         raise NotImplementedError
-
-    def __repr__(self):
-        if self.parent.is_model():
-            return self.name
-        else:
-            return repr(self.parent) + "." + self.name
 
 
 class ReferenceImpl(Derivable):

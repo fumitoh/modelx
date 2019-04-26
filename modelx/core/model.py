@@ -204,9 +204,6 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         for node in removed:
             del node[OBJ].data[node[KEY]]
 
-    def __repr__(self):
-        return self.name
-
     def repr_self(self, add_params=True):
         return self.name
 

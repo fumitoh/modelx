@@ -1046,9 +1046,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl):
     # ----------------------------------------------------------------------
     # repr methods
 
-    def __repr__(self):
-        return "<SpaceImpl: " + self.name + ">"
-
     def repr_self(self, add_params=True):
         return self.name
 
