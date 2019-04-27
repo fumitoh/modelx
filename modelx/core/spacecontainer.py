@@ -396,7 +396,11 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         import modelx.io.excel as xl
 
-        param_order = space_param_order + cells_param_order
+        if space_param_order is None:
+            # if [] then dynamic space without params
+            param_order = cells_param_order
+        else:
+            param_order = space_param_order + cells_param_order
 
         cellstable = xl.CellsTable(
             book,
@@ -410,20 +414,25 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             param_rows,
         )
 
-        space_params = cellstable.param_names[: len(space_param_order)]
-        cells_params = cellstable.param_names[len(space_param_order) :]
-
-        if space_params:
-            space_sig = "=None, ".join(space_params) + "=None"
+        if space_param_order is None:
+            cells_params = cellstable.param_names
+            param_func = None
         else:
-            space_sig = ""
+            space_params = cellstable.param_names[:len(space_param_order)]
+            cells_params = cellstable.param_names[len(space_param_order):]
+
+            if space_params:
+                space_sig = "=None, ".join(space_params) + "=None"
+            else:
+                space_sig = ""
+
+            param_func = "def _param_func(" + space_sig + "): pass"
 
         if cells_params:
             cells_sig = "=None, ".join(cells_params) + "=None"
         else:
             cells_sig = ""
 
-        param_func = "def _param_func(" + space_sig + "): pass"
         blank_func = "def _blank_func(" + cells_sig + "): pass"
 
         space = self.new_space(name=name, formula=param_func)
@@ -434,13 +443,19 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         # Split for-loop to avoid clearing the preceding cells
         # each time a new cells is created in the base space.
 
-        for cellsdata in cellstable.items():
-            for args, value in cellsdata.items():
-                space_args = args[: len(space_params)]
-                cells_args = args[len(space_params) :]
-                subspace = space.get_dynspace(space_args)
-                cells = subspace.cells[cellsdata.name]
-                cells.set_value(cells_args, value)
+        if space_param_order is None:
+            for cellsdata in cellstable.items():
+                for args, value in cellsdata.items():
+                    cells = space.cells[cellsdata.name]
+                    cells.set_value(args, value)
+        else:
+            for cellsdata in cellstable.items():
+                for args, value in cellsdata.items():
+                    space_args = args[:len(space_params)]
+                    cells_args = args[len(space_params):]
+                    subspace = space.get_dynspace(space_args)
+                    cells = subspace.cells[cellsdata.name]
+                    cells.set_value(cells_args, value)
 
         return space
 
