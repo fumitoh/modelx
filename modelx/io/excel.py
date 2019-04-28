@@ -241,7 +241,7 @@ def _get_namedrange(book, rangename, sheetname=None):
         return xlranges
 
 
-_IndexRange = namedtuple("_Index", ["begin", "len", "skip"])
+_IndexRange = namedtuple("_IndexRange", ["begin", "len", "skip"])
 
 
 class _CellsOrientation:
