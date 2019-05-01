@@ -933,14 +933,19 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     # Dynamic Space Operation
 
     def set_formula(self, formula):
-        if self.formula is None:
-            if isinstance(formula, ParamFunc):
-                self.formula = formula
-            else:
-                self.formula = ParamFunc(formula, name="_formula")
-            self.altfunc = BoundFunction(self)
+
+        if formula is None:
+            if self.formula is not None:
+                self.altfunc = self.formula = None
         else:
-            raise ValueError("formula already assigned.")
+            if self.formula is None:
+                if isinstance(formula, ParamFunc):
+                    self.formula = formula
+                else:
+                    self.formula = ParamFunc(formula, name="_formula")
+                self.altfunc = BoundFunction(self)
+            else:
+                raise ValueError("formula already assigned.")
 
     def eval_formula(self, node):
         return self.altfunc.get_updated().altfunc(*node[KEY])
