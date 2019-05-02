@@ -850,19 +850,20 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             selfmap = getattr(self, attr)
             basemap = ChainMap(*[getattr(base, attr) for base in self.bases])
             for name in basemap:
-                if name not in self.namespace_impl:
-                    selfmap[name] = self._new_member(
-                        attr, name, is_derived=True
-                    )
-                    clear_value = False
-                else:
-                    if "clear_value" in kwargs:
-                        clear_value = kwargs["clear_value"]
+                if name not in selfmap or selfmap[name].is_derived:
+                    if name not in self.namespace_impl:
+                        selfmap[name] = self._new_member(
+                            attr, name, is_derived=True
+                        )
+                        clear_value = False
                     else:
-                        clear_value = True
+                        if "clear_value" in kwargs:
+                            clear_value = kwargs["clear_value"]
+                        else:
+                            clear_value = True
 
-                kwargs["clear_value"] = clear_value
-                selfmap[name].inherit(**kwargs)
+                    kwargs["clear_value"] = clear_value
+                    selfmap[name].inherit(**kwargs)
 
             names = set(selfmap) - set(basemap)
             for name in names:

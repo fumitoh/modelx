@@ -68,34 +68,48 @@ def test_new_del_basemember_lv2ly2(new_member):
         assert "C" not in A
 
 
-@pytest.mark.parametrize("new_descents", [True, False])
-def test_add_remove_bases_lv4ly2(new_descents):
+@pytest.mark.parametrize("atavistic", [True, False])
+def test_add_remove_bases_lv4ly2(atavistic):
     """
-    A <--B
-    |    |
-    C(*) C
-    |    |
-    D(*) D
-    |    |
-    E*   E
+    atavistic: True      atavistic: False
+
+    start/end	         start/end
+    A    B	         A    B
+    |    |	              |
+    C    C	              C
+    |    |	              |
+    D    D	              D
+         |	              |
+         E	              E
+
+    add_bases	         add_base
+    A <--B	         A <--B
+    |    |	         |    |
+    C    C	         C*   C
+    |    |	         |    |
+    D    D	         D*   D
+    |    |	         |    |
+    E*   E	         E*   E
+
+    remove_bases         remove_bases
     """
     model = mx.new_model()
     B = model.new_space("B")
     E = B.new_space("C").new_space("D").new_space("E")
     A = model.new_space("A")
-    if new_descents:
-        D = A.new_space("C").new_space("D")
+    if atavistic:
+        A.new_space("C").new_space("D")
     A.add_bases(B)
     assert "E" in A.spaces["C"].spaces["D"].spaces
     A.remove_bases(B)
-    if new_descents:
+    if atavistic:
         assert "E" not in A.spaces["C"].spaces["D"].spaces
     else:
         assert "C" not in A.spaces
 
 
-@pytest.mark.parametrize("new_descents", [True, False])
-def test_new_del_basemember_lv4ly2(new_descents):
+@pytest.mark.parametrize("atavistic", [True, False])
+def test_new_del_basemember_lv4ly2(atavistic):
     """
     A <--B
     |    |
@@ -109,7 +123,7 @@ def test_new_del_basemember_lv4ly2(new_descents):
     B = model.new_space("B")
     E = B.new_space("C").new_space("D").new_space("E")
     A = model.new_space("A")
-    if new_descents:
+    if atavistic:
         D = A.new_space("C").new_space("D")
     A.add_bases(B)
     assert "E" in A.spaces["C"].spaces["D"].spaces
@@ -314,7 +328,6 @@ def test_circler_nonerror():
         B --->E
 
     """
-
     model = mx.new_model()
     A = model.new_space("A")
     B = A.new_space("B")
@@ -327,3 +340,33 @@ def test_circler_nonerror():
 
     assert A.bases == [D]
     assert E.bases == [B]
+
+
+def test_add_bases_to_defined():
+    """
+       A     B
+       |     |
+       foo   foo
+
+       A <---B
+       |     |
+       foo   foo
+    """
+
+    def foo_base():
+        return "base"
+
+    def foo_sub():
+        return "sub"
+
+    m = mx.new_model()
+
+    A = m.new_space("A")
+    A.new_cells(name="foo", formula=foo_sub)
+
+    B = m.new_space("B")
+    B.new_cells(name="foo", formula=foo_base)
+
+    B.add_bases(A)
+    assert B.foo() == "base"
+    assert A.foo() == "sub"

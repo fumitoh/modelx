@@ -510,12 +510,20 @@ class CellsImpl(Derivable, Impl):
             self._model.clear_obj(self)
 
     def clear_formula(self):
+
+        if self.is_derived:
+            self.is_derived = False
+
         self.set_formula(NULL_FORMULA)
 
     def set_formula(self, func):
 
         if self.parent.is_dynamic():
             raise ValueError("cannot set formula in dynamic space")
+
+        if self.is_derived:
+            self.is_derived = False
+
         self._model.clear_obj(self)
         if isinstance(func, Formula):
             klass = func.__class__
