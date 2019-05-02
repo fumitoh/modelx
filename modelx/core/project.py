@@ -139,27 +139,27 @@ def import_model(model_path):
     """Import model from source directory"""
 
     model_path = pathlib.Path(model_path)
-    constructs = _parse_dir(model_path)
+    instructions = _parse_dir(model_path)
     model = mx.get_models()[model_path.name]
 
-    def run_selected(constructs, methods):
+    def run_selected(instructions, methods):
         pos = 0
-        while pos < len(constructs):
-            c = constructs[pos]
+        while pos < len(instructions):
+            c = instructions[pos]
             if c.method in methods:
                 c.build()
-                constructs.pop(pos)
+                instructions.pop(pos)
             else:
                 pos += 1
 
-    run_selected(constructs, ["set_formula", "new_cells"])
-    run_selected(constructs, ["add_bases"])
-    run_selected(constructs, ["__setattr__"])
+    run_selected(instructions, ["set_formula", "new_cells"])
+    run_selected(instructions, ["add_bases"])
+    run_selected(instructions, ["__setattr__"])
 
     return model
 
 
-class _Construct:
+class _Instruction:
 
     def __init__(self, obj, method, args=(), kwargs=None, arghook=None):
         self.obj = obj
@@ -210,7 +210,7 @@ def _parse_source(path_, obj):
     atok = asttokens.ASTTokens(src, parse=True)
 
     def parse_stmt(node):
-        """Return (list of) constructs"""
+        """Return (list of) instructions"""
         if isinstance(node, ast.FunctionDef):
             if node.name == "_formula":
                 method = "set_formula"
@@ -232,7 +232,7 @@ def _parse_source(path_, obj):
                 deflines.append(node.last_token.line.rstrip())
                 funcdef = "\n".join(deflines)
 
-            return _Construct(
+            return _Instruction(
                 obj=obj,
                 method=method,
                 kwargs={"formula": funcdef}
@@ -247,7 +247,7 @@ def _parse_source(path_, obj):
                 if val == "None":
                     val = None
                 kwargs = {"formula": val}
-                return _Construct(obj=obj, method=method, kwargs=kwargs)
+                return _Instruction(obj=obj, method=method, kwargs=kwargs)
 
             elif node.first_token.string == "_refs":
                 refs = json.loads(
@@ -264,7 +264,7 @@ def _parse_source(path_, obj):
 
                 result = []
                 for key, val in refs.items():
-                    result.append(_Construct(
+                    result.append(_Instruction(
                         obj=obj,
                         method="__setattr__",
                         args=(key, val),
@@ -285,7 +285,7 @@ def _parse_source(path_, obj):
 
                     return args, kwargs
 
-                return _Construct(
+                return _Instruction(
                     obj=obj,
                     method="add_bases",
                     args=bases,
@@ -293,7 +293,7 @@ def _parse_source(path_, obj):
 
             else:
                 # lambda cells definition
-                return _Construct(
+                return _Instruction(
                     obj=obj,
                     method="new_cells",
                     kwargs={
@@ -305,7 +305,7 @@ def _parse_source(path_, obj):
     result = []
     for stmt in atok.tree.body:
         stmt = parse_stmt(stmt)
-        if isinstance(stmt, _Construct):
+        if isinstance(stmt, _Instruction):
             result.append(stmt)
         elif isinstance(stmt, collections.Sequence):
             result.extend(stmt)
