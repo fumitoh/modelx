@@ -267,16 +267,6 @@ class BaseSpace(BaseSpaceContainer):
         return self._impl.cells.interfaces
 
     @property
-    def _self_cells(self):
-        """A mapping that associates names to cells defined in the space"""
-        return self._impl.self_cells.interfaces
-
-    @property
-    def _derived_cells(self):
-        """A mapping associating names to derived cells."""
-        return self._impl.derived_cells.interfaces
-
-    @property
     def all_spaces(self):
         """A mapping associating names to all(static and dynamic) spaces."""
         return self._impl.spaces.interfaces
