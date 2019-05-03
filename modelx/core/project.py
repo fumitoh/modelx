@@ -61,8 +61,10 @@ def export_model(model: Model, root_path):
 
     with open(path_ / "_model.py", "w") as f:
         f.write("_refs = " + _RefViewEncoder(
-            ensure_ascii=False, indent=4).encode(model.refs)
-                )
+            owner=model,
+            ensure_ascii=False,
+            indent=4
+        ).encode(model.refs))
 
     # Create Space.py
     for space in gen:
@@ -101,7 +103,9 @@ def _export_space(space: BaseSpace, file):
         f.write(
             "_bases = " +
             _BaseEncoder(
-                ensure_ascii=False, indent=4
+                owner=space,
+                ensure_ascii=False,
+                indent=4
             ).encode(space._direct_bases)
         )
         f.write("\n\n")
@@ -113,25 +117,47 @@ def _export_space(space: BaseSpace, file):
         f.write(
             "_refs = " +
             _RefViewEncoder(
-                ensure_ascii=False, indent=4
+                owner=space,
+                ensure_ascii=False,
+                indent=4
             ).encode(space._self_refs)
         )
 
 
 class _RefViewEncoder(json.JSONEncoder):
     """JSON encoder for converting refs"""
+
+    def __init__(self, owner, ensure_ascii, indent):
+        json.JSONEncoder.__init__(
+            self,
+            ensure_ascii=ensure_ascii,
+            indent=indent
+        )
+        self.owner = owner
+
     def encode(self, refview):
         # Not adding meta data to refview itself
         # Exclude system names, which starts with "_"
-        data = {key: _encode_refs(value) for key, value in refview.items()
+        data = {key: _encode_refs(value, self.owner.fullname)
+                for key, value in refview.items()
                 if key[0] != "_"}
         return super(_RefViewEncoder, self).encode(data)
 
 
 class _BaseEncoder(json.JSONEncoder):
     """JSON encoder for storing list of base spaces"""
+
+    def __init__(self, owner, ensure_ascii, indent):
+        json.JSONEncoder.__init__(
+            self,
+            ensure_ascii=ensure_ascii,
+            indent=indent
+        )
+        self.owner = owner
+
     def encode(self, data):
-        data = [base.fullname for base in data]
+        data = [abs_to_rel(base.fullname, self.owner.fullname)
+                for base in data]
         return super().encode(data)
 
 
@@ -250,9 +276,13 @@ def _parse_source(path_, obj):
                 return _Instruction(obj=obj, method=method, kwargs=kwargs)
 
             elif node.first_token.string == "_refs":
+
+                def bound_decode_refs(data):
+                    return _decode_refs(data, obj.fullname)
+
                 refs = json.loads(
                     atok.get_text(node.value),
-                    object_hook=_decode_refs
+                    object_hook=bound_decode_refs
                 )
 
                 def refhook(args, kwargs):
@@ -275,7 +305,7 @@ def _parse_source(path_, obj):
             elif node.first_token.string == "_bases":
 
                 bases = [
-                    _RefData(base) for base in
+                    _RefData(rel_to_abs(base, obj.fullname)) for base in
                     ast.literal_eval(atok.get_text(node.value))
                 ]
 
@@ -315,7 +345,7 @@ def _parse_source(path_, obj):
     return result
 
 
-def _encode_refs(obj):
+def _encode_refs(obj, namespace):
 
     default_types = [str, Number, bool]
 
@@ -347,19 +377,19 @@ def _encode_refs(obj):
     elif isinstance(obj, Interface):
         result.update({
             "__encoding": "Interface",
-            "__value": obj._evalrepr,
+            "__value": abs_to_rel(obj._evalrepr, namespace),
         })
 
     elif isinstance(obj, collections.Sequence):
         result.update({
             "__encoding": "Sequence",
-            "__value": [_encode_refs(item) for item in obj],
+            "__value": [_encode_refs(item, namespace) for item in obj],
         })
     elif isinstance(obj, collections.Mapping):
         result.update({
             "__encoding": "Mapping",
             "__value": [
-                (_encode_refs(key), _encode_refs(value))
+                (_encode_refs(key, namespace), _encode_refs(value, namespace))
                 for key, value in obj.items()
             ],
         })
@@ -369,16 +399,18 @@ def _encode_refs(obj):
     return result
 
 
-def _decode_refs(data):
+_MXDATA_ATTRS = ["__module", "__type", "__encoding", "__value"]
+
+
+def is_mxdata(data):
+    return (len(data) == len(_MXDATA_ATTRS)
+            and all(key in data for key in _MXDATA_ATTRS))
+
+
+def _decode_refs(data, namespace):
     """``data`` is {} components in json expression from the inner most"""
 
-    metadata = ["__module", "__type", "__encoding", "__value"]
-
-    def is_meta(data):
-        return (len(data) == len(metadata)
-                and all(key in data for key in metadata))
-
-    if not is_meta(data):
+    if not is_mxdata(data):
         return data
 
     module = data["__module"]
@@ -394,7 +426,7 @@ def _decode_refs(data):
         type_ = _get_type(type_)
         return type_({key: value for key, value in value})
     elif encode == "Interface":
-        return _RefData(evalrepr=value)
+        return _RefData(evalrepr=rel_to_abs(value, namespace))
     elif encode == "Module":
         return importlib.import_module(value)
     elif encode == "Value":

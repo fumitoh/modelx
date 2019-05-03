@@ -36,15 +36,10 @@ def compare_space(src, trg, compare_subspace=True):
 def compare_ref(src, trg):
 
     if isinstance(src, Interface):
-        pass
+        assert src.fullname.split(".")[1:] == trg.fullname.split(".")[1:]
     else:
         assert src == trg
 
 
 def compare_cells(src, trg):
-    if src.name == "IntAccumCF":
-        if trg.parent.name == "OuterProj":
-            print(src.formula.source)
-            print(trg.formula.source)
-
     assert src.formula.source == trg.formula.source
