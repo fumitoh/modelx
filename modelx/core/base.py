@@ -102,11 +102,11 @@ class Impl:
     special methods that are meant for changing the behaviour of operations
     for users."""
 
-    state_attrs = ["interface", "parent", "allow_none", "lazy_evals"]
+    state_attrs = ["interface", "parent", "allow_none", "lazy_evals", "_doc"]
 
     if_cls = None  # Override in sub classes if interface class exists
 
-    def __init__(self, system, interface=None):
+    def __init__(self, system, interface=None, doc=None):
 
         if self.if_cls:
             self.interface = self.if_cls(self)
@@ -118,6 +118,7 @@ class Impl:
         self.name = None
         self.allow_none = None
         self.lazy_evals = None
+        self._doc = doc
 
     def get_property(self, name):
         prop = getattr(self, name)
@@ -170,6 +171,13 @@ class Impl:
 
     def is_model(self):
         return self.parent is None
+
+    # ----------------------------------------------------------------------
+    # repr methods
+
+    @property
+    def doc(self):
+        return self._doc
 
     # ----------------------------------------------------------------------
     # repr methods
@@ -391,6 +399,10 @@ class Interface:
         For models, this property is themselves.
         """
         return self._impl.model.interface
+
+    @property
+    def doc(self):
+        return self._impl.doc
 
     def __repr__(self):
         type_ = self.__class__.__name__

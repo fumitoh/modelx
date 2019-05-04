@@ -15,7 +15,7 @@
 import json, types, collections, importlib, builtins, pathlib, shutil
 import ast
 from collections import namedtuple
-import tokenize
+import token, tokenize
 from numbers import Number
 import modelx as mx
 from modelx.core.model import Model
@@ -60,6 +60,10 @@ def export_model(model: Model, root_path):
     create_path(path_, created)
 
     with open(path_ / "_model.py", "w") as f:
+
+        if model.doc is not None:
+            f.write("\"\"\"" + model.doc + "\"\"\"")
+
         f.write("_refs = " + _RefViewEncoder(
             owner=model,
             ensure_ascii=False,
@@ -96,6 +100,9 @@ def _export_space(space: BaseSpace, file):
                 if cells._is_defined]
 
     with open(file, "w") as f:
+
+        if space.doc is not None:
+            f.write("\"\"\"" + space.doc + "\"\"\"\n\n")
 
         f.write(format_formula(space))
         f.write("\n\n")
@@ -178,7 +185,7 @@ def import_model(model_path):
             else:
                 pos += 1
 
-    run_selected(instructions, ["set_formula", "new_cells"])
+    run_selected(instructions, ["fset", "set_formula", "new_cells"])
     run_selected(instructions, ["add_bases"])
     run_selected(instructions, ["__setattr__"])
 
@@ -258,11 +265,11 @@ def _parse_source(path_, obj):
                 deflines.append(node.last_token.line.rstrip())
                 funcdef = "\n".join(deflines)
 
-            return _Instruction(
+            return [_Instruction(
                 obj=obj,
                 method=method,
                 kwargs={"formula": funcdef}
-            )
+            )]
 
         if isinstance(node, ast.Assign):
 
@@ -273,7 +280,7 @@ def _parse_source(path_, obj):
                 if val == "None":
                     val = None
                 kwargs = {"formula": val}
-                return _Instruction(obj=obj, method=method, kwargs=kwargs)
+                return [_Instruction(obj=obj, method=method, kwargs=kwargs)]
 
             elif node.first_token.string == "_refs":
 
@@ -315,32 +322,36 @@ def _parse_source(path_, obj):
 
                     return args, kwargs
 
-                return _Instruction(
+                return [_Instruction(
                     obj=obj,
                     method="add_bases",
                     args=bases,
-                    arghook=basehook)
+                    arghook=basehook)]
 
             else:
                 # lambda cells definition
-                return _Instruction(
+                return [_Instruction(
                     obj=obj,
                     method="new_cells",
                     kwargs={
                         "name": atok.get_text(node.targets[0]),
                         "formula": atok.get_text(node.value)
                     }
-                )
+                )]
 
     result = []
-    for stmt in atok.tree.body:
-        stmt = parse_stmt(stmt)
-        if isinstance(stmt, _Instruction):
-            result.append(stmt)
-        elif isinstance(stmt, collections.Sequence):
-            result.extend(stmt)
+    for i, stmt in enumerate(atok.tree.body):
+
+        if (i == 0 and isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Str)):
+            inst = _Instruction(
+                obj=type(obj).doc,
+                method="fset",
+                args=(obj, stmt.value.s)
+            )
+            result.append(inst)
         else:
-            raise RuntimeError("must not happen")
+            result.extend(parse_stmt(stmt))
 
     return result
 

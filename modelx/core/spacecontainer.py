@@ -281,15 +281,20 @@ class BaseSpaceContainerImpl:
         name=None,
         formula=None,
         refs=None,
-        arguments=None,
         source=None,
+        doc=None,
         is_derived=False,
     ):
 
         from modelx.core.space import StaticSpaceImpl
 
         space = StaticSpaceImpl(
-            parent=self, name=name, formula=formula, refs=refs, source=source
+            parent=self,
+            name=name,
+            formula=formula,
+            refs=refs,
+            source=source,
+            doc=doc
         )
         space.is_derived = is_derived
 
@@ -313,7 +318,8 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         refs=None,
         source=None,
         is_derived=False,
-        prefix=""
+        prefix="",
+        doc=None
     ):
         """Create a new child space.
 
@@ -344,6 +350,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             formula=formula,
             refs=refs,
             source=source,
+            doc=doc,
             is_derived=is_derived,
         )
         self._set_space(space)
@@ -368,6 +375,9 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             name = params["name"] = module.__name__.split(".")[-1]
         else:
             name = params["name"]
+
+        if "doc" not in params:
+            params["doc"] = module.__doc__
 
         space = self.new_space(**params)
         space.new_cells_from_module(module)

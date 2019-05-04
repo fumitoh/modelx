@@ -20,6 +20,7 @@ import pickle
 import networkx as nx
 
 from modelx.core.base import (
+    Interface,
     Impl,
     get_interfaces,
     ImplDict,
@@ -115,6 +116,10 @@ class Model(EditableSpaceContainer):
     def close(self):
         """Close the model."""
         self._impl.close()
+
+    @Interface.doc.setter
+    def doc(self, value):
+        self._impl.doc = value
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes
@@ -213,6 +218,10 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
     @property
     def model(self):
         return self
+
+    @Impl.doc.setter
+    def doc(self, value):
+        self._doc = value
 
     @property
     def global_refs(self):

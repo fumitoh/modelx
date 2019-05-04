@@ -3,6 +3,8 @@ from modelx.core.base import Interface
 
 def compare_model(src, trg):
 
+    assert src.doc == trg.doc
+
     compare_views(src.spaces, trg.spaces, compare_each=compare_space)
     compare_views(src.refs, trg.refs, compare_each=compare_ref)
 
@@ -27,6 +29,10 @@ def compare_views(src, trg, compare_each):
 
 def compare_space(src, trg, compare_subspace=True):
 
+    assert src.doc == trg.doc
+    if src.formula:
+        assert src.formula.source == trg.formula.source
+
     compare_views(src.cells, trg.cells, compare_each=compare_cells)
     compare_views(src.refs, trg.refs, compare_each=compare_ref)
     if compare_subspace:
@@ -42,4 +48,6 @@ def compare_ref(src, trg):
 
 
 def compare_cells(src, trg):
+
+    assert src.doc == trg.doc
     assert src.formula.source == trg.formula.source

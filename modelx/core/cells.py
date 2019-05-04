@@ -489,6 +489,13 @@ class CellsImpl(Derivable, Impl):
             self.altfunc.set_update()
 
     @property
+    def doc(self):
+        if self._doc is None:
+            return self.formula.func.__doc__
+        else:
+            return self._doc
+
+    @property
     def module(self):
         return self.formula.module
 

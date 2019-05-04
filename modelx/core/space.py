@@ -21,6 +21,7 @@ from modelx.core.base import (
     # ObjectArgs,
     get_impls,
     get_interfaces,
+    Interface,
     Impl,
     ReferenceImpl,
     NullImpl,
@@ -608,6 +609,9 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         """Set if the parameter function."""
         self._impl.set_formula(formula)
 
+    @Interface.doc.setter
+    def doc(self, value):
+        self._impl.doc = value
 
 class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     """Read-only base Space class
@@ -655,8 +659,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         refs=None,
         source=None,
         arguments=None,
+        doc=None
     ):
-        Impl.__init__(self, system=parent.system)
+        Impl.__init__(self, system=parent.system, doc=doc)
         BaseSpaceContainerImpl.__init__(self)
         Derivable.__init__(self)
 
@@ -800,6 +805,10 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             self.update_mro = False
 
         return self._mro_cache
+
+    @Impl.doc.setter
+    def doc(self, value):
+        self._doc = value
 
     def is_base(self, other):
         return self in other.bases
@@ -1102,10 +1111,18 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         name,
         formula=None,
         refs=None,
-        source=None
+        source=None,
+        doc=None
     ):
-
-        BaseSpaceImpl.__init__(self, parent, name, formula, refs, source)
+        BaseSpaceImpl.__init__(
+            self,
+            parent=parent,
+            name=name,
+            formula=formula,
+            refs=refs,
+            source=source,
+            doc=doc
+        )
 
         self._refs = ImplChainMap(
             self,
@@ -1431,10 +1448,11 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         refs=None,
         source=None,
         arguments=None,
+        doc=None
     ):
 
         BaseSpaceImpl.__init__(
-            self, parent, name, formula, refs, source, arguments
+            self, parent, name, formula, refs, source, arguments, doc
         )
 
     def _new_space_member(self, name, is_derived):
@@ -1496,10 +1514,11 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
         refs=None,
         source=None,
         arguments=None,
+        doc=None
     ):
 
         DynamicSpaceImpl.__init__(
-            self, parent, name, formula, refs, source, arguments
+            self, parent, name, formula, refs, source, arguments, doc
         )
         self._bind_args(arguments)
 
