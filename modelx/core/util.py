@@ -66,12 +66,12 @@ def get_state_attrs(obj):
     mro = list(reversed(getmro(type(obj))))
     mro.remove(object)
     attrs = {}
-    for klass in mro:
-        klass_attrs = {}
-        for attr in klass.state_attrs:
-            klass_attrs[attr] = getattr(obj, attr)
+    for cls in mro:
+        cls_attrs = {}
+        for attr in cls.state_attrs:
+            cls_attrs[attr] = getattr(obj, attr)
 
-        attrs.update(klass_attrs)
+        attrs.update(cls_attrs)
 
     return attrs
 

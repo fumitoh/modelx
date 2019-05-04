@@ -375,7 +375,7 @@ class CellsImpl(Derivable, Impl):
         data: array-like, dict, pandas.DataSeries or scalar values.
     """
 
-    if_class = Cells
+    if_cls = Cells
 
     state_attrs = [
         "_model",
@@ -526,10 +526,10 @@ class CellsImpl(Derivable, Impl):
 
         self._model.clear_obj(self)
         if isinstance(func, Formula):
-            klass = func.__class__
+            cls = func.__class__
         else:
-            klass = Formula
-        self.formula = klass(func, name=self.name)
+            cls = Formula
+        self.formula = cls(func, name=self.name)
         self.altfunc.set_update()
         self._model.spacegraph.update_subspaces_upward(
             self.parent, from_parent=False, event="cells_set_formula"

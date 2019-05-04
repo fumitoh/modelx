@@ -352,16 +352,16 @@ def _encode_refs(obj, namespace):
     if any(isinstance(obj, type_) for type_ in default_types):
         return obj
 
-    klass = type(obj)
+    cls = type(obj)
     builtins_name = type(int).__module__
-    if klass.__module__ is not None and klass.__module__ != builtins_name:
-        module = klass.__module__
+    if cls.__module__ is not None and cls.__module__ != builtins_name:
+        module = cls.__module__
     else:
         module = ""
 
     result = {
         "__module": module,
-        "__type": klass.__qualname__
+        "__type": cls.__qualname__
     }
 
     if obj is None:
@@ -394,7 +394,7 @@ def _encode_refs(obj, namespace):
             ],
         })
     else:
-        raise TypeError("Type %s not supported by JSON" % str(klass))
+        raise TypeError("Type %s not supported by JSON" % str(cls))
 
     return result
 

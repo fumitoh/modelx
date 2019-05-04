@@ -11,7 +11,7 @@ def compare_views(src, trg, compare_each):
 
     assert len(src) == len(trg)
 
-    # Oder of items not tested
+    # Order of items not tested
     assert set(src) == set(trg)
     for name_src, val_src in src.items():
         compare_each(val_src, trg[name_src])

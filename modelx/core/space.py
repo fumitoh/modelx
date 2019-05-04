@@ -1088,7 +1088,7 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     * ref assignment
     """
 
-    if_class = StaticSpace
+    if_cls = StaticSpace
     state_attrs = (
         ["_dynamic_subs"]
         + BaseSpaceImpl.state_attrs
@@ -1417,7 +1417,7 @@ class DynamicSpace(BaseSpace):
 class DynamicSpaceImpl(BaseSpaceImpl):
     """The implementation of Dynamic Space class."""
 
-    if_class = DynamicSpace
+    if_cls = DynamicSpace
 
     state_attrs = ["_dynbase", "_parentargs"] + BaseSpaceImpl.state_attrs
 
