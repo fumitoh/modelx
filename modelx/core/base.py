@@ -402,6 +402,12 @@ class Interface:
 
     @property
     def doc(self):
+        """Description string
+
+        When models or spaces are imported from modules,
+        taken from modules docstring.
+        For cells, set to its formula's docstring.
+        """
         return self._impl.doc
 
     def __repr__(self):
