@@ -3,8 +3,9 @@ but users may ask questions to troubleshoot problems that they're having using m
 
 If you would like to post a question for troubleshooting, follow the guidelines below:
 
-* Before posting an issue, make sure the trouble is relevant to modelx or spyder-modelx.
-* Make sure the title of your issue summarizes your question accurately. 
+* Before posting an issue, make efforts to solve the issue on your own, by careflully examining code and error messages, or by searching on the web for example.
+* Before posting an issue, make sure the isue is specific to modelx or spyder-modelx.
+* Make sure the title of your issue represents your question well. 
 * Make sure you describe your issue in detail so that others can understand exactly what trouble you're having.
 * Adding sample code or error messages will greatly help illustrating your trouble.
 * When inserting code or error messages in your commnets, format the code or errors using Markdown markups.
