@@ -428,6 +428,18 @@ class Interface:
     def __setstate__(self, state):
         object.__setattr__(self, "_impl", state)
 
+    def set_property(self, name: str, value):
+        """Set property ``name``
+
+        Set ``value`` to property ``name`` of an interface.
+        Equivalent to ``x.name = value``,
+        where x is a Model/Space/Cells object.
+        """
+        if name in self.properties:
+            getattr(Interface, name).fset(self, value)
+        else:
+            raise ValueError("property %s not defined")
+
     @property
     def allow_none(self):
         """Whether a cells can have None as its value.
