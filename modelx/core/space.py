@@ -675,7 +675,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         if isinstance(source, ModuleType):
             self.source = source.__name__
         else:
-            self.source = None
+            self.source = source
 
         # ------------------------------------------------------------------
         # Construct member containers

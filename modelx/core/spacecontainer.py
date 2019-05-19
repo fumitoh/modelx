@@ -445,7 +445,22 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         blank_func = "def _blank_func(" + cells_sig + "): pass"
 
-        space = self.new_space(name=name, formula=param_func)
+        source = {
+            "method": "new_space_from_excel",
+            "args": [book, range_],
+            "kwargs": {
+                "sheet": sheet,
+                "name": name,
+                "names_row": names_row,
+                "param_cols": param_cols,
+                "space_param_order": space_param_order,
+                "cells_param_order": cells_param_order,
+                "transpose": transpose,
+                "names_col": names_col,
+                "param_rows": param_rows
+            }
+        }
+        space = self.new_space(name=name, formula=param_func, source=source)
 
         for cellsdata in cellstable.items():
             space.new_cells(name=cellsdata.name, formula=blank_func)

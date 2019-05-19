@@ -25,6 +25,46 @@ from modelx.core.cells import Cells
 import asttokens
 
 
+class _Instruction:
+
+    def __init__(self, obj, method, args=(), kwargs=None, arghook=None):
+        self.obj = obj
+        self.method = method
+        self.args = args
+        if kwargs is None:
+            kwargs = {}
+        self.kwargs = kwargs
+        self.arghook = arghook
+
+    def run(self):
+
+        if self.arghook:
+            args, kwargs = self.arghook(self.args, self.kwargs)
+        else:
+            args, kwargs = self.args, self.kwargs
+
+        getattr(self.obj, self.method)(*args, **kwargs)
+
+
+class _InstructionList(list):
+
+    def run_selected(self, methods, pop_items=True):
+
+        if pop_items:
+            list_ = self
+        else:
+            list_ = self.copy()
+
+        pos = 0
+        while pos < len(list_):
+            c = list_[pos]
+            if c.method in methods:
+                c.run()
+                list_.pop(pos)
+            else:
+                pos += 1
+
+
 def export_model(model: Model, root_path):
     """Export model to directory.
 
@@ -64,19 +104,40 @@ def export_model(model: Model, root_path):
         if model.doc is not None:
             f.write("\"\"\"" + model.doc + "\"\"\"")
 
+        write_allow_none(model, f)
+
         f.write("_refs = " + _RefViewEncoder(
             owner=model,
             ensure_ascii=False,
             indent=4
         ).encode(model.refs))
+        f.write("\n\n")
+
+        write_method(model, f)
 
     # Create Space.py
     for space in gen:
-        space_path = "/".join(space.parent.fullname.split("."))
+        if not has_method(space):
+            space_path = "/".join(space.parent.fullname.split("."))
+            path_ = root_path / space_path
+            create_path(path_, created)
+            _export_space(space, path_ / (space.name + ".py"))
 
-        path_ = root_path / space_path
-        create_path(path_, created)
-        _export_space(space, path_ / (space.name + ".py"))
+
+def has_method(space):
+    src = space._impl.source
+    return (src and "method" in src
+            and src["method"] == "new_space_from_excel")
+
+
+def write_method(obj, file):
+    for obj in obj.spaces.values():
+        if has_method(obj):
+            file.write("_method = " + json.JSONEncoder(
+                ensure_ascii=False,
+                indent=4
+            ).encode(obj._impl.source))
+            file.write("\n\n")
 
 
 def _export_space(space: BaseSpace, file):
@@ -96,9 +157,6 @@ def _export_space(space: BaseSpace, file):
         else:
             return target + " = None"
 
-    formulas = [format_formula(cells) for cells in space.cells.values()
-                if cells._is_defined]
-
     with open(file, "w") as f:
 
         if space.doc is not None:
@@ -107,19 +165,27 @@ def _export_space(space: BaseSpace, file):
         f.write(format_formula(space))
         f.write("\n\n")
 
-        f.write(
-            "_bases = " +
-            _BaseEncoder(
-                owner=space,
-                ensure_ascii=False,
-                indent=4
-            ).encode(space._direct_bases)
-        )
-        f.write("\n\n")
-
-        for formula in formulas:
-            f.write(formula)
+        if space._direct_bases:
+            f.write(
+                "_bases = " +
+                _BaseEncoder(
+                    owner=space,
+                    ensure_ascii=False,
+                    indent=4
+                ).encode(space._direct_bases)
+            )
             f.write("\n\n")
+
+        write_allow_none(space, f)
+
+        for cells in space.cells.values():
+            if cells._is_defined:
+                f.write(format_formula(cells))
+                if cells.allow_none is not None:
+                    f.write("\n")
+                    f.write(cells.name + ".allow_none = "
+                            + json.JSONEncoder().encode(cells.allow_none))
+                f.write("\n\n")
 
         f.write(
             "_refs = " +
@@ -129,6 +195,15 @@ def _export_space(space: BaseSpace, file):
                 indent=4
             ).encode(space._self_refs)
         )
+        f.write("\n\n")
+
+        write_method(space, f)
+
+
+def write_allow_none(obj, file):
+    if obj.allow_none is not None:
+        s = "_allow_none = " + json.JSONEncoder().encode(obj.allow_none)
+        file.write(s + "\n\n")
 
 
 class _RefViewEncoder(json.JSONEncoder):
@@ -175,41 +250,15 @@ def import_model(model_path):
     instructions = _parse_dir(model_path)
     model = mx.get_models()[model_path.name]
 
-    def run_selected(instructions, methods):
-        pos = 0
-        while pos < len(instructions):
-            c = instructions[pos]
-            if c.method in methods:
-                c.build()
-                instructions.pop(pos)
-            else:
-                pos += 1
-
-    run_selected(instructions, ["fset", "set_formula", "new_cells"])
-    run_selected(instructions, ["add_bases"])
-    run_selected(instructions, ["__setattr__"])
+    instructions.run_selected(["fset",
+                               "set_formula",
+                               "set_property",
+                               "new_cells",
+                               "new_space_from_excel"])
+    instructions.run_selected(["add_bases"])
+    instructions.run_selected(["__setattr__"])
 
     return model
-
-
-class _Instruction:
-
-    def __init__(self, obj, method, args=(), kwargs=None, arghook=None):
-        self.obj = obj
-        self.method = method
-        self.args = args
-        if kwargs is None:
-            kwargs = {}
-        self.kwargs = kwargs
-        self.arghook = arghook
-
-    def build(self):
-        if self.arghook:
-            args, kwargs = self.arghook(self.args, self.kwargs)
-        else:
-            args, kwargs = self.args, self.kwargs
-
-        getattr(self.obj, self.method)(*args, **kwargs)
 
 
 _RefData = namedtuple("_RefData", ["evalrepr"])
@@ -217,7 +266,7 @@ _RefData = namedtuple("_RefData", ["evalrepr"])
 
 def _parse_dir(path_: pathlib.Path, target=None):
 
-    result = []
+    result = _InstructionList()
     if target is None:
         target = model = mx.new_model(path_.name)
         result.extend(_parse_source(path_ / "_model.py", model))
@@ -327,6 +376,26 @@ def _parse_source(path_, obj):
                     method="add_bases",
                     args=bases,
                     arghook=basehook)]
+
+            elif node.first_token.string == "_method":
+
+                _method = json.loads(
+                    atok.get_text(node.value)
+                )
+                return [_Instruction(
+                    obj=obj,
+                    method=_method["method"],
+                    args=_method["args"],
+                    kwargs=_method["kwargs"]
+                )]
+
+            elif node.first_token.string == "_allow_none":
+                args = json.loads(atok.get_text(node.value))
+                return [_Instruction(
+                  obj=obj,
+                  method="set_property",
+                  args=["allow_none", args]
+                )]
 
             else:
                 # lambda cells definition
