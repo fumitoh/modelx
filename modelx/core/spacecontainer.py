@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import warnings
+import pathlib
 from modelx.core.base import get_impls, get_interfaces, Impl, Interface
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
@@ -447,7 +448,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         source = {
             "method": "new_space_from_excel",
-            "args": [book, range_],
+            "args": [str(pathlib.Path(book).absolute()), range_],
             "kwargs": {
                 "sheet": sheet,
                 "name": name,
