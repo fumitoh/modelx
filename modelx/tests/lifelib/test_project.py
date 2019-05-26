@@ -1,5 +1,7 @@
 import sys
+import os
 import pathlib
+import importlib
 import pytest
 from modelx.core.project import (
     export_model,
@@ -7,36 +9,65 @@ from modelx.core.project import (
 import modelx as mx
 from modelx.testing import testutil
 
+_PROJECTS = ["simplelife",
+             "nestedlife",
+             "ifrs17sim",
+             "solvency2"]
+
 class SysPath:
 
-    def __init__(self, module):
-
-        self.module = module
-        self.parent_path = pathlib.Path(module.__file__).parent
+    def __init__(self, path_):
+        self.path_ = path_
 
     def __enter__(self):
-        sys.path.insert(0, str(self.parent_path))
+        sys.path.insert(0, str(self.path_))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.path.pop(0)
 
 
-def test_with_lifelib(tmp_path):
+@pytest.fixture
+def testpaths(tmp_path):
 
-    from lifelib.projects.ifrs17sim import ifrs17sim
+    path1 = tmp_path / "build"
+    path1.mkdir()
 
-    with SysPath(ifrs17sim):
+    path2 = tmp_path / "write"
+    path2.mkdir()
 
-        m = ifrs17sim.build()
-        m.hoge = "hoge"
-        m.foo = 1
-        m.bar = m.OuterProj
-        m.OuterProj.new_cells(formula=lambda x: 3 * x)
-        m.none = None
+    return path1, path2
 
-        path_ = tmp_path / "temp"
-        path_.mkdir()
 
-        export_model(m, path_)
-        m2 = import_model(path_ / "ifrs17sim")
-        testutil.compare_model(m, m2)
+# @pytest.mark.skip()
+@pytest.mark.parametrize("project", _PROJECTS)
+def test_with_lifelib(testpaths, project):
+
+    build_path, write_path = testpaths
+
+    from lifelib.commands import create
+
+    testproj = project + "_test"
+    projpath = build_path / testproj
+
+    create.main([
+        "--template",
+        project,
+        str(projpath)
+    ])
+
+    with SysPath(str(projpath.parent)):
+
+        module = importlib.import_module(testproj + "." + project)
+
+        with SysPath(str(projpath)):
+
+            m = module.build()
+            m.hoge = "hoge"
+            m.foo = 1
+            m.bar = m.Input
+            m.Input.new_cells(formula=lambda x: 3 * x)
+            m.none = None
+
+            export_model(m, str(write_path))
+            m2 = import_model(str(write_path / project))
+            testutil.compare_model(m, m2)
