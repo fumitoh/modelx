@@ -113,7 +113,8 @@ def export_model(model: Model, root_path):
         ).encode(model.refs))
         f.write("\n\n")
 
-        write_method(model, f)
+        for space in model.spaces.values():
+            write_method(space, f)
 
     # Create Space.py
     for space in gen:
@@ -124,20 +125,23 @@ def export_model(model: Model, root_path):
             _export_space(space, path_ / (space.name + ".py"))
 
 
-def has_method(space):
-    src = space._impl.source
+_METHODS = ["new_space_from_excel",
+            "new_cells_from_excel"]
+
+
+def has_method(obj: Interface):
+    src = obj._impl.source
     return (src and "method" in src
-            and src["method"] == "new_space_from_excel")
+            and src["method"] in _METHODS )
 
 
 def write_method(obj, file):
-    for obj in obj.spaces.values():
-        if has_method(obj):
-            file.write("_method = " + json.JSONEncoder(
-                ensure_ascii=False,
-                indent=4
-            ).encode(obj._impl.source))
-            file.write("\n\n")
+    if has_method(obj):
+        file.write("_method = " + json.JSONEncoder(
+            ensure_ascii=False,
+            indent=4
+        ).encode(obj._impl.source))
+        file.write("\n\n")
 
 
 def _export_space(space: BaseSpace, file):
@@ -180,12 +184,15 @@ def _export_space(space: BaseSpace, file):
 
         for cells in space.cells.values():
             if cells._is_defined:
-                f.write(format_formula(cells))
-                if cells.allow_none is not None:
-                    f.write("\n")
-                    f.write(cells.name + ".allow_none = "
-                            + json.JSONEncoder().encode(cells.allow_none))
-                f.write("\n\n")
+                if has_method(cells):
+                    write_method(cells, f)
+                else:
+                    f.write(format_formula(cells))
+                    if cells.allow_none is not None:
+                        f.write("\n")
+                        f.write(cells.name + ".allow_none = "
+                                + json.JSONEncoder().encode(cells.allow_none))
+                    f.write("\n\n")
 
         f.write(
             "_refs = " +
@@ -197,7 +204,8 @@ def _export_space(space: BaseSpace, file):
         )
         f.write("\n\n")
 
-        write_method(space, f)
+        for child in space.spaces.values():
+            write_method(child, f)
 
 
 def write_allow_none(obj, file):
@@ -254,7 +262,8 @@ def import_model(model_path):
                                "set_formula",
                                "set_property",
                                "new_cells",
-                               "new_space_from_excel"])
+                               "new_space_from_excel",
+                               "new_cells_from_excel"])
     instructions.run_selected(["add_bases"])
     instructions.run_selected(["__setattr__"])
 

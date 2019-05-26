@@ -390,13 +390,15 @@ class CellsImpl(Derivable, Impl):
     assert len(state_attrs) == len(set(state_attrs))
 
     def __init__(
-        self, *, space, name=None, formula=None, data=None, base=None
+        self, *, space, name=None, formula=None, data=None, base=None,
+        source=None
     ):
         Impl.__init__(self, system=space.system)
         Derivable.__init__(self)
 
         self._model = space.model
         self.space = self.parent = space
+        self.source = source
 
         if base:
             self.name = base.name

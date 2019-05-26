@@ -14,6 +14,7 @@
 
 import sys
 import importlib
+import pathlib
 from collections import Sequence, ChainMap
 from types import FunctionType, ModuleType
 
@@ -827,8 +828,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         else:
             self._static_spaces.set_item(space.name, space)
 
-    def _new_cells(self, name, formula, is_derived):
-        cells = CellsImpl(space=self, name=name, formula=formula)
+    def _new_cells(self, name, formula, is_derived, source=None):
+        cells = CellsImpl(space=self, name=name, formula=formula,
+                          source=source)
         self._cells.set_item(cells.name, cells)
         cells.is_derived = is_derived
         return cells
@@ -1149,12 +1151,13 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         self.model.spacegraph.add_space(space)
         return space
 
-    def new_cells(self, name=None, formula=None, is_derived=False):
+    def new_cells(self, name=None, formula=None, is_derived=False,
+                  source=None):
 
         if name in self.namespace:
             raise ValueError("'%s' already exist" % name)
         else:
-            cells = self._new_cells(name, formula, is_derived)
+            cells = self._new_cells(name, formula, is_derived, source=source)
             cells.inherit()
             self.model.spacegraph.update_subspaces_upward(
                 self, from_parent=False, event="new_cells"
@@ -1233,8 +1236,23 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
         blank_func = "def _blank_func(" + sig + "): pass"
 
+        source = {
+            "method": "new_cells_from_excel",
+            "args": [str(pathlib.Path(book).absolute()), range_],
+            "kwargs": {
+                "sheet": sheet,
+                "names_row": names_row,
+                "param_cols": param_cols,
+                "param_order": param_order,
+                "transpose": transpose,
+                "names_col": names_col,
+                "param_rows": param_rows
+            }
+        }
+
         for cellsdata in cellstable.items():
-            cells = self.new_cells(name=cellsdata.name, formula=blank_func)
+            cells = self.new_cells(name=cellsdata.name, formula=blank_func,
+                                   source=source)
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
 
