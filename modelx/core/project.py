@@ -16,6 +16,7 @@ import json, types, collections, importlib, builtins, pathlib, shutil
 import ast
 from collections import namedtuple
 import token, tokenize
+import shutil
 from numbers import Number
 import modelx as mx
 from modelx.core.model import Model
@@ -114,7 +115,7 @@ def export_model(model: Model, root_path):
         f.write("\n\n")
 
         for space in model.spaces.values():
-            write_method(space, f)
+            write_method(space, f, copy_file=True, path_=path_)
 
     # Create Space.py
     for space in gen:
@@ -135,16 +136,22 @@ def has_method(obj: Interface):
             and src["method"] in _METHODS )
 
 
-def write_method(obj, file):
+def write_method(obj, file, copy_file=True, path_=None):
     if has_method(obj):
+        src = obj._impl.source.copy()
+        if copy_file:
+            srcpath = pathlib.Path(src["args"][0])
+            shutil.copyfile(str(srcpath), str(path_.joinpath(srcpath.name)))
+            src["args"][0] = srcpath.name
+
         file.write("_method = " + json.JSONEncoder(
             ensure_ascii=False,
             indent=4
-        ).encode(obj._impl.source))
+        ).encode(src))
         file.write("\n\n")
 
 
-def _export_space(space: BaseSpace, file):
+def _export_space(space: BaseSpace, file: pathlib.Path):
 
     def format_formula(obj):
 
@@ -185,7 +192,7 @@ def _export_space(space: BaseSpace, file):
         for cells in space.cells.values():
             if cells._is_defined:
                 if has_method(cells):
-                    write_method(cells, f)
+                    write_method(cells, f, copy_file=True, path_=file.parent)
                 else:
                     f.write(format_formula(cells))
                     if cells.allow_none is not None:
@@ -205,7 +212,7 @@ def _export_space(space: BaseSpace, file):
         f.write("\n\n")
 
         for child in space.spaces.values():
-            write_method(child, f)
+            write_method(child, f, copy_file=True, path_=file.parent)
 
 
 def write_allow_none(obj, file):
@@ -388,6 +395,12 @@ def _parse_source(path_, obj):
 
             elif node.first_token.string == "_method":
 
+                def excelhook(args, kwargs):
+                    # path_ is free variable
+                    # Add path to file name
+                    args[0] = str(path_.with_name(args[0]))
+                    return args, kwargs
+
                 _method = json.loads(
                     atok.get_text(node.value)
                 )
@@ -395,7 +408,8 @@ def _parse_source(path_, obj):
                     obj=obj,
                     method=_method["method"],
                     args=_method["args"],
-                    kwargs=_method["kwargs"]
+                    kwargs=_method["kwargs"],
+                    arghook=excelhook
                 )]
 
             elif node.first_token.string == "_allow_none":
