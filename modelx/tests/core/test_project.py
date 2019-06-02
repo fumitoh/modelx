@@ -1,7 +1,7 @@
 import pytest
 from modelx.core.project import (
-    export_model,
-    import_model)
+    write_model,
+    read_model)
 from modelx.testing import testutil
 import modelx as mx
 
@@ -30,12 +30,12 @@ def testmodel():
     return m
 
 
-def test_export_import(testmodel, tmp_path):
+def test_read_write_model(testmodel, tmp_path):
 
     path_ = tmp_path / "testdir"
     path_.mkdir()
-    export_model(testmodel, path_)
-    m = import_model(path_ / testmodel.name)
+    write_model(testmodel, path_)
+    m = read_model(path_)
 
     testutil.compare_model(testmodel, m)
 

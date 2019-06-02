@@ -4,8 +4,8 @@ import pathlib
 import importlib
 import pytest
 from modelx.core.project import (
-    export_model,
-    import_model)
+    write_model,
+    read_model)
 import modelx as mx
 from modelx.testing import testutil
 
@@ -68,6 +68,6 @@ def test_with_lifelib(testpaths, project):
             m.Input.new_cells(formula=lambda x: 3 * x)
             m.none = None
 
-            export_model(m, str(write_path))
-            m2 = import_model(str(write_path / project))
+            write_model(m, str(write_path / project))
+            m2 = read_model(str(write_path / project))
             testutil.compare_model(m, m2)

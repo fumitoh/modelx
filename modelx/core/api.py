@@ -32,6 +32,7 @@ from modelx.core.cells import CellsMaker as _CellsMaker
 from modelx.core.space import BaseSpace as _Space
 from modelx.core.model import Model as _Model
 from modelx.core.base import get_interfaces as _get_interfaces
+from modelx.core.project import write_model, read_model
 
 
 def configure_python():

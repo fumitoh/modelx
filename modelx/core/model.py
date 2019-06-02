@@ -105,9 +105,10 @@ class Model(EditableSpaceContainer):
 
     __slots__ = ()
 
-    def rename(self, name):
+    def rename(self, name, rename_old=False):
         """Rename the model itself"""
-        self._impl.system.rename_model(new_name=name, old_name=self.name)
+        self._impl.system.rename_model(
+            new_name=name, old_name=self.name, rename_old=rename_old)
 
     def save(self, filepath):
         """Save the model to a file."""
@@ -120,6 +121,10 @@ class Model(EditableSpaceContainer):
     @Interface.doc.setter
     def doc(self, value):
         self._impl.doc = value
+
+    def write(self, root_path):
+        from modelx.core.project import write_model
+        write_model(self, root_path)
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes

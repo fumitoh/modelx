@@ -277,13 +277,20 @@ class System:
         self.models[self._currentmodel.name] = self._currentmodel
         return self._currentmodel
 
-    def rename_model(self, new_name, old_name):
-        result = self.models[old_name].rename(new_name)
-        if result:
-            self.models[new_name] = self.models.pop(old_name)
-            return True
-        else:
+    def rename_model(self, new_name, old_name, rename_old=False):
+
+        if new_name == old_name:
             return False
+        else:
+            if rename_old and new_name in self.models:
+                self._rename_samename(new_name)
+
+            result = self.models[old_name].rename(new_name)
+            if result:
+                self.models[new_name] = self.models.pop(old_name)
+                return True
+            else:
+                return False
 
     def _rename_samename(self, name):
         backupname = self._backupnamer.get_next(self.models, prefix=name)

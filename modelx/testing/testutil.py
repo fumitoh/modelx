@@ -4,6 +4,7 @@ from modelx.core.base import Interface
 def compare_model(src, trg):
 
     assert src.doc == trg.doc
+    assert src.name[:len(trg.name)] == trg.name  # Exclude _BAKn
 
     compare_views(src.spaces, trg.spaces, compare_each=compare_space)
     compare_views(src.refs, trg.refs, compare_each=compare_ref)

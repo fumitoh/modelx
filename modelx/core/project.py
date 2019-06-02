@@ -15,7 +15,7 @@
 import json, types, collections, importlib, builtins, pathlib, shutil
 import ast
 from collections import namedtuple
-import token, tokenize
+import tokenize
 import shutil
 from numbers import Number
 import modelx as mx
@@ -49,7 +49,7 @@ class _Instruction:
 
 class _InstructionList(list):
 
-    def run_selected(self, methods, pop_items=True):
+    def run_selected(self, methods, obj=None, pop_items=True):
 
         if pop_items:
             list_ = self
@@ -59,21 +59,21 @@ class _InstructionList(list):
         pos = 0
         while pos < len(list_):
             c = list_[pos]
-            if c.method in methods:
+            if ((obj is None) or (c.obj is obj)) and (c.method in methods):
                 c.run()
                 list_.pop(pos)
             else:
                 pos += 1
 
 
-def export_model(model: Model, root_path):
+def write_model(model, root_path):
     """Export model to directory.
 
     Create a directory with the name of ``model`` under ``root_path``,
     export model as source files.
     """
 
-    root_path = pathlib.Path(root_path)
+    root_ = pathlib.Path(root_path)
 
     def visit_spaces(model):
         """Generator yielding spaces in breadth-first order"""
@@ -97,15 +97,17 @@ def export_model(model: Model, root_path):
             created.append(path_)
 
     # Create _model.py
-    path_ = root_path / model.fullname
-    create_path(path_, created)
+    create_path(root_, created)
 
-    with open(path_ / "_model.py", "w") as f:
+    with open(root_ / "_model.py", "w") as f:
 
         if model.doc is not None:
             f.write("\"\"\"" + model.doc + "\"\"\"")
 
-        write_allow_none(model, f)
+        f.write("_name = " + json.JSONEncoder().encode(model.name))
+        f.write("\n\n")
+
+        _write_allow_none(model, f)
 
         f.write("_refs = " + _RefViewEncoder(
             owner=model,
@@ -115,29 +117,29 @@ def export_model(model: Model, root_path):
         f.write("\n\n")
 
         for space in model.spaces.values():
-            write_method(space, f, copy_file=True, path_=path_)
+            _write_method(space, f, copy_file=True, path_=root_)
 
     # Create Space.py
     for space in gen:
-        if not has_method(space):
-            space_path = "/".join(space.parent.fullname.split("."))
-            path_ = root_path / space_path
+        if not _has_method(space):
+            space_path = "/".join(space.parent.fullname.split(".")[1:])
+            path_ = root_ / space_path
             create_path(path_, created)
-            _export_space(space, path_ / (space.name + ".py"))
+            _write_space(space, path_ / (space.name + ".py"))
 
 
 _METHODS = ["new_space_from_excel",
             "new_cells_from_excel"]
 
 
-def has_method(obj: Interface):
+def _has_method(obj: Interface):
     src = obj._impl.source
     return (src and "method" in src
             and src["method"] in _METHODS )
 
 
-def write_method(obj, file, copy_file=True, path_=None):
-    if has_method(obj):
+def _write_method(obj, file, copy_file=True, path_=None):
+    if _has_method(obj):
         src = obj._impl.source.copy()
         if copy_file:
             srcpath = pathlib.Path(src["args"][0])
@@ -151,7 +153,7 @@ def write_method(obj, file, copy_file=True, path_=None):
         file.write("\n\n")
 
 
-def _export_space(space: BaseSpace, file: pathlib.Path):
+def _write_space(space: BaseSpace, file: pathlib.Path):
 
     def format_formula(obj):
 
@@ -187,12 +189,12 @@ def _export_space(space: BaseSpace, file: pathlib.Path):
             )
             f.write("\n\n")
 
-        write_allow_none(space, f)
+        _write_allow_none(space, f)
 
         for cells in space.cells.values():
             if cells._is_defined:
-                if has_method(cells):
-                    write_method(cells, f, copy_file=True, path_=file.parent)
+                if _has_method(cells):
+                    _write_method(cells, f, copy_file=True, path_=file.parent)
                 else:
                     f.write(format_formula(cells))
                     if cells.allow_none is not None:
@@ -212,10 +214,10 @@ def _export_space(space: BaseSpace, file: pathlib.Path):
         f.write("\n\n")
 
         for child in space.spaces.values():
-            write_method(child, f, copy_file=True, path_=file.parent)
+            _write_method(child, f, copy_file=True, path_=file.parent)
 
 
-def write_allow_none(obj, file):
+def _write_allow_none(obj, file):
     if obj.allow_none is not None:
         s = "_allow_none = " + json.JSONEncoder().encode(obj.allow_none)
         file.write(s + "\n\n")
@@ -258,12 +260,11 @@ class _BaseEncoder(json.JSONEncoder):
         return super().encode(data)
 
 
-def import_model(model_path):
+def read_model(model_path):
     """Import model from source directory"""
 
     model_path = pathlib.Path(model_path)
-    instructions = _parse_dir(model_path)
-    model = mx.get_models()[model_path.name]
+    instructions, model = _parse_dir(model_path)
 
     instructions.run_selected(["fset",
                                "set_formula",
@@ -295,9 +296,9 @@ def _parse_dir(path_: pathlib.Path, target=None):
     for subdir in path_.iterdir():
         if subdir.is_dir():
             next_target = target.spaces[subdir.name]
-            result.extend(_parse_dir(subdir, target=next_target))
+            result.extend(_parse_dir(subdir, target=next_target)[0])
 
-    return result
+    return result, target
 
 
 def _parse_source(path_, obj):
@@ -338,7 +339,16 @@ def _parse_source(path_, obj):
 
         if isinstance(node, ast.Assign):
 
-            if node.first_token.string == "_formula":
+            if node.first_token.string == "_name":
+                method = "rename"
+                val = ast.literal_eval(atok.get_text(node.value))
+                _Instruction(obj=obj,
+                             method=method,
+                             args=(val,),
+                             kwargs={"rename_old": True}).run()
+                return []
+
+            elif node.first_token.string == "_formula":
                 # lambda formula definition
                 method = "set_formula"
                 val = atok.get_text(node.value)
@@ -505,7 +515,7 @@ def _encode_refs(obj, namespace):
 _MXDATA_ATTRS = ["__module", "__type", "__encoding", "__value"]
 
 
-def is_mxdata(data):
+def _is_mxdata(data):
     return (len(data) == len(_MXDATA_ATTRS)
             and all(key in data for key in _MXDATA_ATTRS))
 
@@ -513,7 +523,7 @@ def is_mxdata(data):
 def _decode_refs(data, namespace):
     """``data`` is {} components in json expression from the inner most"""
 
-    if not is_mxdata(data):
+    if not _is_mxdata(data):
         return data
 
     module = data["__module"]
