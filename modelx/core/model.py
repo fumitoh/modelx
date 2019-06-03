@@ -123,6 +123,14 @@ class Model(EditableSpaceContainer):
         self._impl.doc = value
 
     def write(self, model_path):
+        """Write model to files.
+
+        This method performs the :py:func:`~modelx.write_model`
+        on self. See :py:func:`~modelx.write_model` section for the details.
+
+        Args:
+            model_path(str): Folder(directory) path where the model is saved.
+        """
         from modelx.core.project import write_model
         write_model(self, model_path)
 

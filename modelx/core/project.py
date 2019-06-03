@@ -67,10 +67,44 @@ class _InstructionList(list):
 
 
 def write_model(model, model_path):
-    """Export model to directory.
+    """Write model to files.
 
-    Create a directory with the name of ``model`` under ``root_path``,
-    export model as source files.
+    Write ``model`` to text files in a folder(directory) tree at ``model_path``.
+
+    Model attributes, such as its name and refs, are output in the file
+    named *_model.py*, directly under `model_path`.
+    For each space in the model, a text file is created with the same name
+    as the space with ".py" extension. The tree structure of the spaces
+    is represented by the tree of folders, i.e. child spaces
+    of a space is stored in a folder named the space.
+
+    Generated text files are Python pseudo-scripts, i.e. they are
+    syntactically correct but semantically not-correct Python scripts,
+    that can only be interpreted through :py:func:`~read_model` function.
+
+    Dynamic spaces and cells values are not stored.
+
+    For spaces and cells created
+    by :py:meth:`~modelx.core.space.StaticSpace.new_space_from_excel` and
+    :py:meth:`~modelx.core.space.StaticSpace.new_cells_from_excel`,
+    the source Excel files are copied into the same directory where
+    the text files for the spaces the methods are associated with are located.
+    Then when the model is read by :py:func:`~read_model` function,
+    the methods are invoked to create the spaces or cells.
+
+    Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
+
+    Todo:
+        This function and :py:meth:`~modelx.core.model.Model.write` method
+        do not work property in combination with
+        :py:meth:`~modelx.core.space.StaticSpace.new_cells_from_excel`,
+        when :py:meth:`~modelx.core.space.StaticSpace.new_cells_from_excel`
+        creates more than one cells at a time.
+
+    Args:
+        model: Model object to write
+        model_path(str): Folder path where the model will be output.
+
     """
 
     root_ = pathlib.Path(model_path)
@@ -261,7 +295,19 @@ class _BaseEncoder(json.JSONEncoder):
 
 
 def read_model(model_path):
-    """Import model from source directory"""
+    """Read model from files.
+
+    Read model form a folder(directory) tree ``model_path``.
+    The model must be saved by :py:func:`~write_model` function or
+    :py:meth:`~modelx.core.model.Model.write` method.
+
+    Args:
+        model_path(str): A folder(directory) path where model is stored.
+
+    Returns:
+        A Model object constructed from the files.
+
+    """
 
     model_path = pathlib.Path(model_path)
     instructions, model = _parse_dir(model_path)
