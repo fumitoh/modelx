@@ -20,8 +20,8 @@ Reference:
       twine upload dist/modelx-0.X.Y*
  7. Clean up build dir.
       python setup.py clean --all
- 8. Increment version number and add 'dev' in __init__.py.
- 9. Commit your changes and push to master again:
+ 8. Build the docs on https://readthedocs.org/projects/modelx/.
+ 9. Increment version number and add 'dev' in __init__.py.
+ 10. Commit your changes and push to master again:
       git commit -a -m "DIST: Bump version back to dev"
       git push
- 10. Build the docs on https://readthedocs.org/projects/modelx/.
