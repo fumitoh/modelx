@@ -16,6 +16,8 @@ Function Reference
    ~modelx.get_object
    ~modelx.cur_model
    ~modelx.cur_space
+   ~modelx.write_model
+   ~modelx.read_model
    ~modelx.open_model
    ~modelx.setup_ipython
    ~modelx.restore_ipython
