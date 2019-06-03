@@ -122,9 +122,9 @@ class Model(EditableSpaceContainer):
     def doc(self, value):
         self._impl.doc = value
 
-    def write(self, root_path):
+    def write(self, model_path):
         from modelx.core.project import write_model
-        write_model(self, root_path)
+        write_model(self, model_path)
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes

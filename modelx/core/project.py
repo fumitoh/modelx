@@ -66,14 +66,14 @@ class _InstructionList(list):
                 pos += 1
 
 
-def write_model(model, root_path):
+def write_model(model, model_path):
     """Export model to directory.
 
     Create a directory with the name of ``model`` under ``root_path``,
     export model as source files.
     """
 
-    root_ = pathlib.Path(root_path)
+    root_ = pathlib.Path(model_path)
 
     def visit_spaces(model):
         """Generator yielding spaces in breadth-first order"""
