@@ -13,7 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 
-VERSION = (0, 0, 22, "dev")
+VERSION = (0, 0, 22)
 __version__ = ".".join([str(x) for x in VERSION])
 from modelx.core.api import *  # must come after __version__ assignment.
 from modelx.qtgui.api import *
