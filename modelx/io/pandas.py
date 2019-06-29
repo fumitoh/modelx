@@ -17,6 +17,9 @@ import itertools
 import pandas as pd
 import numpy as np
 
+from modelx.core.node import tuplize_key
+from modelx.core.util import is_valid_name
+
 _pd_ver = tuple(int(i) for i in pd.__version__.split("."))[:-1]
 
 if _pd_ver < (0, 20):
@@ -192,3 +195,47 @@ def cells_to_series(cells, args):
         result.index.names = list(cells.formula.parameters)
 
     return result
+
+
+def new_cells_from_series(self, series, name, param):
+
+    if is_valid_name(name):
+        pass
+    else:
+        if is_valid_name(series.name):
+            name = series.name
+
+    param_len = series.index.nlevels
+
+    if param_len == 1 and isinstance(param, str):
+        param = [param]
+
+    param_names = list(series.index.names)
+
+    if param:
+        param = param + [None] * max(param_len - len(param), 0)
+        param_names = [
+            param[i] if is_valid_name(param[i]) else n
+            for i, n in enumerate(param_names)
+        ]
+
+    if not all([is_valid_name(n) for n in param_names]):
+        raise ValueError("invalid parameter names")
+
+    if any(series.index.duplicated()):
+        raise ValueError("duplicated index values exist")
+
+    if param_names:
+        sig = "=None, ".join(param_names) + "=None"
+    else:
+        sig = ""
+
+    blank_func = "def _blank_func(" + sig + "): pass"
+
+    cells = self.new_cells(name=name, formula=blank_func)
+
+    for i, v in series.items():
+        cells.set_value(tuplize_key(cells, i), v)
+
+    return cells
+

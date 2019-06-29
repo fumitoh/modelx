@@ -549,6 +549,36 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
             param_rows,
         )
 
+    def new_cells_from_series(self, series, name=None, param=None):
+        """Create a new cells from Pandas Series.
+
+        Create and return a new cells created from Pandas Series object
+        passed as argument ``series``.
+        Keys an values of the cells data are copied from ``series``.
+        If ``series`` has its name, the cells name is set to the name,
+        but can be overwritten by ``name`` parameter.
+        ``series`` can have MultiIndex. If the index(es) of ``series``
+        has/have name(s), the parameter name(s) of the cells is/are
+        set to the name(s), but can be overwritten by ``param``
+        parameter. If the index(es) of ``series`` has/have no name(s),
+        and ``param`` is not given, error is raised.
+        Error is raised when ``series`` has duplicated indexes.
+
+        Args:
+            series: Pandas Series object
+            name (str, optional): cells name.
+                If ``series`` has a valid name and this ``name`` is not given,
+                the name is used. If ``series`` does not have a name and
+                this ``name`` is not given, the cells is named automatically.
+            param: sequence of strings to set parameter name(s).
+                A single string can also be passed to set a single parameter
+                name when ``series`` has a single
+                level index (i.e. not MultiIndex).
+
+        """
+        return get_interfaces(self._impl.new_cells_from_series(
+            series, name, param))
+
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells
 
@@ -1255,6 +1285,10 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
                                    source=source)
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
+
+    def new_cells_from_series(self, series, name, param):
+        from modelx.io.pandas import new_cells_from_series
+        return new_cells_from_series(self, series, name, param)
 
     # --- Reference creation -------------------------------------
 
