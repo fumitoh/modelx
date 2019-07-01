@@ -579,6 +579,43 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         return get_interfaces(self._impl.new_cells_from_series(
             series, name, param))
 
+    def new_cells_from_frame(self, frame, names=None, param=None):
+        """Create multiple cells from Pandas DataFrame.
+
+        Create one or multiple cells from a DataFrame object passed in
+        the parameter ``frame``.
+
+        ``frame`` can have MultiIndex as its index, but
+        must have a single level index (i.e. not MultiIndex)
+        as its columns.
+        A new cells is created for each column of the ``frame``.
+        If the values ``frame`` columns are strings valid for cells names,
+        or if they can be converted into valid cell names
+        through :func:`str` function, then these strings are used to set
+        the cells names. Those cells names can be overwritten by a sequence
+        of strings passed to ``name`` parameter. You can overwrite
+        the names selectively by setting to ``None`` the elements of
+        the sequence that you do not wish to overwrite.
+
+        ``frame`` can have MultiIndex as its index.
+        If the index(es) of ``frame``
+        has/have name(s), the parameter name(s) of the cells is/are
+        set to the name(s), but can be overwritten by ``param``
+        parameter. If the index(es) of ``frame`` has/have no name(s),
+        and ``param`` is not given, error is raised.
+
+        Error is raised when ``frame`` has duplicated columns or indexes.
+
+        Args:
+            frame: Pandas DataFrame object
+            names: Sequence of strings to set cells names.
+            param: Sequence of strings to set parameter name(s).
+                A single string can also be passed to set a single parameter
+                name when ``frame`` has a single
+                level index (i.e. not MultiIndex).
+        """
+        self._impl.new_cells_from_frame(frame, names, param)
+
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells
 
@@ -1289,6 +1326,10 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def new_cells_from_series(self, series, name, param):
         from modelx.io.pandas import new_cells_from_series
         return new_cells_from_series(self, series, name, param)
+
+    def new_cells_from_frame(self, frame, names, param):
+        from modelx.io.pandas import new_cells_from_frame
+        return new_cells_from_frame(self, frame, names, param)
 
     # --- Reference creation -------------------------------------
 

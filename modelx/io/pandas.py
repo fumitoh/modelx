@@ -197,20 +197,13 @@ def cells_to_series(cells, args):
     return result
 
 
-def new_cells_from_series(self, series, name, param):
-
-    if is_valid_name(name):
-        pass
-    else:
-        if is_valid_name(series.name):
-            name = series.name
-
-    param_len = series.index.nlevels
+def _get_param_names(obj, param):
+    param_len = obj.index.nlevels
 
     if param_len == 1 and isinstance(param, str):
         param = [param]
 
-    param_names = list(series.index.names)
+    param_names = list(obj.index.names)
 
     if param:
         param = param + [None] * max(param_len - len(param), 0)
@@ -222,20 +215,62 @@ def new_cells_from_series(self, series, name, param):
     if not all([is_valid_name(n) for n in param_names]):
         raise ValueError("invalid parameter names")
 
-    if any(series.index.duplicated()):
-        raise ValueError("duplicated index values exist")
+    return param_names
+
+
+def _get_param_func(obj, param):
+
+    param_names = _get_param_names(obj, param)
 
     if param_names:
         sig = "=None, ".join(param_names) + "=None"
     else:
         sig = ""
 
-    blank_func = "def _blank_func(" + sig + "): pass"
+    return "def _blank_func(" + sig + "): pass"
 
-    cells = self.new_cells(name=name, formula=blank_func)
+
+def new_cells_from_series(self, series, name, param):
+
+    if is_valid_name(name):
+        pass
+    else:
+        if is_valid_name(series.name):
+            name = series.name
+
+    cells = self.new_cells(name=name, formula=_get_param_func(series, param))
 
     for i, v in series.items():
         cells.set_value(tuplize_key(cells, i), v)
 
     return cells
 
+
+def new_cells_from_frame(self, frame, names, param):
+
+    if frame.columns.nlevels > 1:
+        raise ValueError("columns must not be MultiIndex")
+
+    cells_names = [str(c) for c in frame.columns]
+
+    if names:
+        cells_names = cells_names + [None] * max(
+            len(cells_names) - len(names), 0)
+        cells_names = [
+            names[i] if is_valid_name(names[i]) else n
+            for i, n in enumerate(cells_names)
+        ]
+
+    for name in cells_names:
+        if not is_valid_name(name):
+            raise ValueError("%s is not a valid name" % name)
+        else:
+            if name in self.namespace:
+                raise ValueError("%s already exists" % s)
+
+    for i, c in enumerate(frame.columns):
+        new_cells_from_series(
+            self,
+            frame[c],
+            name=cells_names[i],
+            param=param)

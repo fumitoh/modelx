@@ -50,7 +50,7 @@ _system_defined_names = re.compile(r"^_.*")
 
 def is_valid_name(word):
 
-    if word is None:
+    if not isinstance(word, str):
         return False
 
     if word.isidentifier() and not keyword.iskeyword(word):
