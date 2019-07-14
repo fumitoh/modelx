@@ -15,6 +15,7 @@
 import sys
 import importlib
 import pathlib
+import uuid
 from collections import Sequence, ChainMap
 from types import FunctionType, ModuleType
 
@@ -1261,6 +1262,7 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         transpose=False,
         names_col=None,
         param_rows=None,
+        call_id=None
     ):
         """Create multiple cells from an Excel range.
 
@@ -1313,7 +1315,8 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
                 "param_order": param_order,
                 "transpose": transpose,
                 "names_col": names_col,
-                "param_rows": param_rows
+                "param_rows": param_rows,
+                "call_id": call_id or str(uuid.uuid4())
             }
         }
 

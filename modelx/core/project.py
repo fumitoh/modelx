@@ -28,6 +28,7 @@ import asttokens
 _METHODS = ["new_space_from_excel",
             "new_cells_from_excel"]
 
+
 class _Instruction:
 
     def __init__(self, obj, method, args=(), kwargs=None, arghook=None):
@@ -73,6 +74,7 @@ class ModelWriter:
     def __init__(self, model: Model, path: pathlib.Path):
         self.model = model
         self.root = path
+        self.call_ids = []
 
     def write_model(self):
 
@@ -97,44 +99,52 @@ class ModelWriter:
                 path_.mkdir()
                 created.append(path_)
 
-        # Create _model.py
         create_path(self.root, created)
 
-        with open(self.root / "_model.py", "w") as f:
+        try:
+            # Create _model.py
+            with open(self.root / "_model.py", "w") as f:
 
-            if model.doc is not None:
-                f.write("\"\"\"" + model.doc + "\"\"\"")
+                if model.doc is not None:
+                    f.write("\"\"\"" + model.doc + "\"\"\"")
 
-            f.write("_name = " + json.JSONEncoder().encode(model.name))
-            f.write("\n\n")
+                f.write("_name = " + json.JSONEncoder().encode(model.name))
+                f.write("\n\n")
 
-            self._write_allow_none(model, f)
+                self._write_allow_none(model, f)
 
-            f.write("_refs = " + _RefViewEncoder(
-                owner=model,
-                ensure_ascii=False,
-                indent=4
-            ).encode(model.refs))
-            f.write("\n\n")
+                f.write("_refs = " + _RefViewEncoder(
+                    owner=model,
+                    ensure_ascii=False,
+                    indent=4
+                ).encode(model.refs))
+                f.write("\n\n")
 
-            for space in model.spaces.values():
-                self._write_method(space, f, copy_file=True, path_=self.root)
+                for space in model.spaces.values():
+                    self._write_method(
+                        space, f, copy_file=True, path_=self.root)
 
-        # Create Space.py
-        for space in gen:
-            if not self._has_method(space):
-                space_path = "/".join(space.parent.fullname.split(".")[1:])
-                path_ = self.root / space_path
-                create_path(path_, created)
-                self._write_space(space, path_ / (space.name + ".py"))
+            # Create Space.py
+            for space in gen:
+                if not self._has_method(space):
+                    space_path = "/".join(space.parent.fullname.split(".")[1:])
+                    path_ = self.root / space_path
+                    create_path(path_, created)
+                    self._write_space(space, path_ / (space.name + ".py"))
+        finally:
+            self.call_ids = []
 
     def _has_method(self, obj: Interface):
         src = obj._impl.source
         return (src and "method" in src
-                and src["method"] in _METHODS )
+                and src["method"] in _METHODS)
+
+    def _has_new_callid(self, obj: Interface):
+        src = obj._impl.source
+        return src["kwargs"]["call_id"] not in self.call_ids
 
     def _write_method(self, obj, file, copy_file=True, path_=None):
-        if self._has_method(obj):
+        if self._has_method(obj) and self._has_new_callid(obj):
             src = obj._impl.source.copy()
             if copy_file:
                 srcpath = pathlib.Path(src["args"][0])
@@ -149,6 +159,7 @@ class ModelWriter:
                 indent=4
             ).encode(src))
             file.write("\n\n")
+            self.call_ids.append(src["kwargs"]["call_id"])
 
     def _write_space(self, space: BaseSpace, file: pathlib.Path):
 
@@ -400,7 +411,9 @@ class ModelReader:
 
         return result, target
 
-    def _parse_source(self, path_, obj):
+    def _parse_source(self, path_, obj: Interface):
+
+        impl = obj._impl
 
         with open(path_, "r") as f:
             src = f.read()
@@ -431,7 +444,7 @@ class ModelReader:
                     funcdef = "\n".join(deflines)
 
                 return [_Instruction(
-                    obj=obj,
+                    obj=impl,
                     method=method,
                     kwargs={"formula": funcdef}
                 )]
@@ -455,7 +468,7 @@ class ModelReader:
                         val = None
                     kwargs = {"formula": val}
                     return [
-                        _Instruction(obj=obj, method=method, kwargs=kwargs)
+                        _Instruction(obj=impl, method=method, kwargs=kwargs)
                     ]
 
                 elif node.first_token.string == "_refs":
@@ -516,7 +529,7 @@ class ModelReader:
                         atok.get_text(node.value)
                     )
                     return [_Instruction(
-                        obj=obj,
+                        obj=impl,
                         method=_method["method"],
                         args=_method["args"],
                         kwargs=_method["kwargs"],
@@ -534,7 +547,7 @@ class ModelReader:
                 else:
                     # lambda cells definition
                     return [_Instruction(
-                        obj=obj,
+                        obj=impl,
                         method="new_cells",
                         kwargs={
                             "name": atok.get_text(node.targets[0]),

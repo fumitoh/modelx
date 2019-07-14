@@ -14,6 +14,7 @@
 
 import warnings
 import pathlib
+import uuid
 from modelx.core.base import get_impls, get_interfaces, Impl, Interface
 from modelx.core.util import AutoNamer, is_valid_name, get_module
 
@@ -403,6 +404,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         transpose=False,
         names_col=None,
         param_rows=None,
+        call_id=None
     ):
 
         import modelx.io.excel as xl
@@ -458,7 +460,8 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                 "cells_param_order": cells_param_order,
                 "transpose": transpose,
                 "names_col": names_col,
-                "param_rows": param_rows
+                "param_rows": param_rows,
+                "call_id": call_id or str(uuid.uuid4()),
             }
         }
         space = self.new_space(name=name, formula=param_func, source=source)
