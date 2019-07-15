@@ -12,6 +12,8 @@ def make_sample1(name, param_names):
     return pd.Series(np.random.rand(3), index=index, name=name)
 
 
+method_names = ["new_cells_from_series", "new_cells_from_pandas"]
+
 # Element of param_sampleN list:
 #   sample make function,
 #   name arg to pd.Series,
@@ -58,19 +60,16 @@ def sample_series(request):
     return make_series(series_name, series_param), cells_name, cells_param
 
 
-def test_new_cells_from_series(sample_model, sample_series):
+@pytest.mark.parametrize("method", method_names)
+def test_new_cells_from_series(sample_model, sample_series, method):
     space = sample_model.new_space()
     series, name, param = sample_series
 
     if not any(series.index.names) and not param:
         with pytest.raises(ValueError):
-            space.new_cells_from_series(series=series,
-                                        cells=name,
-                                        param=param)
+            getattr(space, method)(series, cells=name, param=param)
     else:
-        cells = space.new_cells_from_series(series=series,
-                                            cells=name,
-                                            param=param)
+        cells = getattr(space, method)(series, cells=name, param=param)
         assert cells.series.equals(series)
         if name:
             assert cells.name == name

@@ -550,6 +550,31 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
             param_rows,
         )
 
+    def new_cells_from_pandas(self, obj, cells=None, param=None):
+        """Create new cells from Pandas Series or DataFrame object.
+
+        This method is a convenience function and can take either
+        Series and DataFrame object and calls either
+        :meth:`new_cells_from_series` or :meth:`new_cells_from_frame`
+        depending on the type of ``obj``.
+
+        Args:
+            obj: Pandas Series or DataFrame object
+            cells: Cells name(s). See :meth:`new_cells_from_series` or
+                :meth:`new_cells_from_frame`.
+            param: Parameter name(s). See :meth:`new_cells_from_series` or
+                :meth:`new_cells_from_frame`.
+
+        """
+        import pandas as pd
+
+        if isinstance(obj, pd.DataFrame):
+            return self.new_cells_from_frame(obj, cells, param)
+        elif isinstance(obj, pd.Series):
+            return self.new_cells_from_series(obj, cells, param)
+        else:
+            raise ValueError("obj is not Series or DataFrame")
+
     def new_cells_from_series(self, series, cells=None, param=None):
         """Create a new cells from Pandas Series.
 

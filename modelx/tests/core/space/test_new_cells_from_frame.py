@@ -1,3 +1,4 @@
+from itertools import product
 import pytest
 
 import pandas as pd
@@ -11,6 +12,8 @@ def make_sample1(columns, idx_names):
     index = pd.Index([1,2,3], name=idx_names)
     return pd.DataFrame(np.random.rand(3, 2), index=index, columns=columns)
 
+
+method_names = ["new_cells_from_frame", "new_cells_from_pandas"]
 
 param_sample1 = [
     [make_sample1, ["Col1", "Col2"], "x", None, None],
@@ -37,6 +40,10 @@ param_sample2 = [
     [make_sample2, ["Col1", None], [None, "y"], [None, "Col2"], ["x", None]],
 ]
 
+param_list = [
+    [m] + p for m, p
+    in product(method_names, param_sample1 + param_sample2)]
+
 
 @pytest.fixture(scope="session")
 def sample_model():
@@ -44,15 +51,15 @@ def sample_model():
 
 
 @pytest.mark.parametrize(
-    "make_df, columns, idx_names, cells_names, param_names",
-    param_sample1 + param_sample2)
+    "method, make_df, columns, idx_names, cells_names, param_names",
+    param_list)
 def test_new_cells_from_frame(
         sample_model,
-        make_df, columns, idx_names, cells_names, param_names):
+        method, make_df, columns, idx_names, cells_names, param_names):
 
     df = make_df(columns, idx_names)
     space = sample_model.new_space()
-    space.new_cells_from_frame(df, cells=cells_names, param=param_names)
+    getattr(space, method)(df, cells=cells_names, param=param_names)
 
     if int(pd.__version__.split(".")[0]) < 24:
         assert np.array_equal(space.frame.values, df.values)
