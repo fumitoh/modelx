@@ -550,14 +550,14 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
             param_rows,
         )
 
-    def new_cells_from_series(self, series, name=None, param=None):
+    def new_cells_from_series(self, series, cells=None, param=None):
         """Create a new cells from Pandas Series.
 
         Create and return a new cells created from Pandas Series object
         passed as argument ``series``.
         Keys an values of the cells data are copied from ``series``.
         If ``series`` has its name, the cells name is set to the name,
-        but can be overwritten by ``name`` parameter.
+        but can be overwritten by ``cells`` parameter.
         ``series`` can have MultiIndex. If the index(es) of ``series``
         has/have name(s), the parameter name(s) of the cells is/are
         set to the name(s), but can be overwritten by ``param``
@@ -567,10 +567,10 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
 
         Args:
             series: Pandas Series object
-            name (str, optional): cells name.
-                If ``series`` has a valid name and this ``name`` is not given,
+            cells (str, optional): cells name.
+                If ``series`` has a valid name and this ``cells`` is not given,
                 the name is used. If ``series`` does not have a name and
-                this ``name`` is not given, the cells is named automatically.
+                this ``cells`` is not given, the cells is named automatically.
             param: sequence of strings to set parameter name(s).
                 A single string can also be passed to set a single parameter
                 name when ``series`` has a single
@@ -578,9 +578,9 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
 
         """
         return get_interfaces(self._impl.new_cells_from_series(
-            series, name, param))
+            series, cells, param))
 
-    def new_cells_from_frame(self, frame, names=None, param=None):
+    def new_cells_from_frame(self, frame, cells=None, param=None):
         """Create multiple cells from Pandas DataFrame.
 
         Create one or multiple cells from a DataFrame object passed in
@@ -594,7 +594,7 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         or if they can be converted into valid cell names
         through :func:`str` function, then these strings are used to set
         the cells names. Those cells names can be overwritten by a sequence
-        of strings passed to ``name`` parameter. You can overwrite
+        of strings passed to ``cells`` parameter. You can overwrite
         the names selectively by setting to ``None`` the elements of
         the sequence that you do not wish to overwrite.
 
@@ -609,13 +609,13 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
 
         Args:
             frame: Pandas DataFrame object
-            names: Sequence of strings to set cells names.
+            cells: Sequence of strings to set cells names.
             param: Sequence of strings to set parameter name(s).
                 A single string can also be passed to set a single parameter
                 name when ``frame`` has a single
                 level index (i.e. not MultiIndex).
         """
-        self._impl.new_cells_from_frame(frame, names, param)
+        self._impl.new_cells_from_frame(frame, cells, param)
 
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells

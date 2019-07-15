@@ -52,7 +52,7 @@ def test_new_cells_from_frame(
 
     df = make_df(columns, idx_names)
     space = sample_model.new_space()
-    space.new_cells_from_frame(df, names=cells_names, param=param_names)
+    space.new_cells_from_frame(df, cells=cells_names, param=param_names)
 
     if int(pd.__version__.split(".")[0]) < 24:
         assert np.array_equal(space.frame.values, df.values)

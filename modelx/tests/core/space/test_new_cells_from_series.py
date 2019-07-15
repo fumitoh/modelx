@@ -65,11 +65,11 @@ def test_new_cells_from_series(sample_model, sample_series):
     if not any(series.index.names) and not param:
         with pytest.raises(ValueError):
             space.new_cells_from_series(series=series,
-                                        name=name,
+                                        cells=name,
                                         param=param)
     else:
         cells = space.new_cells_from_series(series=series,
-                                            name=name,
+                                            cells=name,
                                             param=param)
         assert cells.series.equals(series)
         if name:
