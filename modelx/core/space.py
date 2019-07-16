@@ -642,6 +642,42 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         """
         self._impl.new_cells_from_frame(frame, cells, param)
 
+    def new_cells_from_csv(
+            self, filepath, cells=None, param=None, *args, **kwargs):
+        """Create cells from a comma-separated values (csv) file.
+
+        This method internally calls Pandas `read_csv`_ function,
+        and creates cells by passing
+        the returned DataFrame object to :meth:`new_cells_from_pandas`.
+        The ``filepath`` argument to this method is passed to
+        to `read_csv`_ as ``filepath_or_buffer``,
+        and the user can pass other arguments to `read_csv`_ by
+        supplying those arguments to this method as
+        variable-length parameters,
+        ``args`` and ``kargs``.
+
+        .. _read_csv:
+            https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
+
+        Args:
+            filepath (str, path object, or file-like object): Path to the file.
+            cells: Sequence of strings to set cells name. string is also
+                accepted if `read_csv`_ returns a Series because of
+                its ``squeeze`` parameter set to ``True``.
+            param: Sequence of strings to set parameter name(s).
+                A single string can also be passed to set a single parameter
+                name when ``frame`` has a single
+                level index (i.e. not MultiIndex).
+            args: Any positional arguments to be passed to `read_csv`_.
+            kwargs: Any keyword arguments to be passed to `read_csv`_.
+        """
+        import pandas as pd
+
+        return self.new_cells_from_pandas(
+            pd.read_csv(filepath, *args, **kwargs),
+            cells=cells,
+            param=param)
+
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells
 
