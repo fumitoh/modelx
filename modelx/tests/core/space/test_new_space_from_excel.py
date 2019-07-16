@@ -10,7 +10,7 @@ test_path = (
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def testmodel():
     return new_model()
 
