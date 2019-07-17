@@ -266,7 +266,7 @@ def new_cells_from_frame(self, frame, names, param):
             raise ValueError("%s is not a valid name" % name)
         else:
             if name in self.namespace:
-                raise ValueError("%s already exists" % s)
+                raise ValueError("%s already exists" % name)
 
     for i, c in enumerate(frame.columns):
         new_cells_from_series(
