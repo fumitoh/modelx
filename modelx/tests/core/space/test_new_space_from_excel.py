@@ -14,7 +14,44 @@ test_path = (
 def testmodel():
     return new_model()
 
-# -- SpaceContainer --
+
+@pytest.mark.parametrize(
+    "range_, transpose", [("C9:E25", False),
+                          ("C36:S38", True)]
+)
+def test_single_param(testmodel, range_, transpose):
+
+    space = testmodel.new_space_from_excel(
+        book=test_path,
+        range_=range_,
+        sheet="TestTables",
+        transpose=transpose
+    )
+
+    for i in range(16):
+        assert space.Cells1[i] == 1000 + i
+        assert space.Cells2[i] == 2000 + i
+
+
+@pytest.mark.parametrize(
+    "range_, transpose", [("H9:K25", False),
+                          ("C42:S45", True)]
+)
+def test_multi_param(testmodel, range_, transpose):
+
+    space = testmodel.new_space_from_excel(
+        book=test_path,
+        range_=range_,
+        sheet="TestTables",
+        param_cols=[0, 1],
+        transpose=transpose
+    )
+
+    for i in range(16):
+        assert space.Cells1[i, 100+i] == 1000 + i
+        assert space.Cells2[i, 100+i] == 2000 + i
+
+
 
 @pytest.mark.parametrize(
     "range_, transpose", [("C3:H24", False), ("C32:X37", True)]
