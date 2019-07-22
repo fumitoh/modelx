@@ -91,3 +91,13 @@ def get_module(module):
         raise TypeError("%s is not a module or string." % module)
 
     return module
+
+
+def get_param_func(param_names):
+
+    if param_names:
+        sig = "=None, ".join(param_names) + "=None"
+    else:
+        sig = ""
+
+    return "def _param_func(" + sig + "): pass"

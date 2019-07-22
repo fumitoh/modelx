@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 
 from modelx.core.node import tuplize_key
-from modelx.core.util import is_valid_name
+from modelx.core.util import is_valid_name, get_param_func
 
 _pd_ver = tuple(int(i) for i in pd.__version__.split("."))[:-1]
 
@@ -198,6 +198,7 @@ def cells_to_series(cells, args):
 
 
 def _get_param_names(obj, param):
+    """Get list of param names from Series or DataFrame and ``param``"""
     param_len = obj.index.nlevels
 
     if param_len == 1 and isinstance(param, str):
@@ -218,18 +219,6 @@ def _get_param_names(obj, param):
     return param_names
 
 
-def _get_param_func(obj, param):
-
-    param_names = _get_param_names(obj, param)
-
-    if param_names:
-        sig = "=None, ".join(param_names) + "=None"
-    else:
-        sig = ""
-
-    return "def _blank_func(" + sig + "): pass"
-
-
 def new_cells_from_series(self, series, name, param):
 
     if is_valid_name(name):
@@ -238,7 +227,9 @@ def new_cells_from_series(self, series, name, param):
         if is_valid_name(series.name):
             name = series.name
 
-    cells = self.new_cells(name=name, formula=_get_param_func(series, param))
+    cells = self.new_cells(
+        name=name,
+        formula=get_param_func(_get_param_names(series, param)))
 
     for i, v in series.items():
         cells.set_value(tuplize_key(cells, i), v)
@@ -246,20 +237,21 @@ def new_cells_from_series(self, series, name, param):
     return cells
 
 
-def new_cells_from_frame(self, frame, names, param):
+def _overwrite_colnames(self, frame, names):
 
     if frame.columns.nlevels > 1:
         raise ValueError("columns must not be MultiIndex")
 
-    cells_names = [str(c) for c in frame.columns]
+    cells_names = list(frame.columns)
 
-    if names:
-        cells_names = cells_names + [None] * max(
+    if names is not None:
+        is_overwritten = [is_valid_name(n) for n in names] + [False] * max(
             len(cells_names) - len(names), 0)
         cells_names = [
-            names[i] if is_valid_name(names[i]) else n
-            for i, n in enumerate(cells_names)
-        ]
+            names[i] if is_overwritten[i] else n
+            for i, n in enumerate(cells_names)]
+    else:
+        is_overwritten = [False] * len(cells_names)
 
     for name in cells_names:
         if not is_valid_name(name):
@@ -268,9 +260,97 @@ def new_cells_from_frame(self, frame, names, param):
             if name in self.namespace:
                 raise ValueError("%s already exists" % name)
 
+    return cells_names
+
+
+def new_cells_from_frame(self, frame, names, param):
+
+    cells_names = _overwrite_colnames(self, frame, names)
+
     for i, c in enumerate(frame.columns):
         new_cells_from_series(
             self,
             frame[c],
             name=cells_names[i],
             param=param)
+
+
+def new_space_from_pandas(
+        self, obj, space, cells, param, space_params, cells_params):
+
+    param_names = _get_param_names(obj, param)
+
+    def normalize_params(paramlist):
+        """Covert index elements to str"""
+        return [p if isinstance(p, str) else param_names[p]
+                for p in paramlist]
+
+    if space_params is None:
+        if cells_params is None:
+            cells_params = param_names
+        else:
+            cells_params = normalize_params(cells_params)
+            if set(param_names) == set(cells_params):
+                pass
+            else:
+                raise ValueError("invalid cells_params")
+    else:
+        space_params = normalize_params(space_params)
+        if cells_params is None:
+            cells_params = [p for p in param_names if p not in space_params]
+        else:
+            cells_params = normalize_params(cells_params)
+
+            if (set(space_params) | set(cells_params) == set(param_names)
+                    and len(set(space_params) & set(cells_params)) == 0):
+                pass
+            else:
+                raise ValueError("invalid cells_params")
+
+    if space_params is None:
+        space_func = None
+    else:
+        space_func = get_param_func(space_params)
+
+    newspace = self.new_space(name=space, formula=space_func)
+
+    if isinstance(obj, pd.Series):
+        obj = obj.to_frame()
+
+    cells_names = _overwrite_colnames(self, obj, names=cells)
+
+    for c in cells_names:
+        newspace.new_cells(name=c, formula=get_param_func(cells_params))
+
+    cells_paramidxs = [param_names.index(p) for p in cells_params
+                       if p in param_names]
+
+    if space_params is not None:
+        space_paramsidxs = [param_names.index(p) for p in space_params
+                            if p in param_names]
+
+    def idx_to_arg(idx):
+
+        cargs = tuple(idx[i] for i in cells_paramidxs)
+        if space_params is not None:
+            sargs = tuple(idx[i] for i in space_paramsidxs)
+        else:
+            sargs = None
+
+        return sargs, cargs
+
+    if space_params is None:
+        for idx in obj.index:
+            _, cargs = idx_to_arg(idx if obj.index.nlevels > 1 else (idx,))
+            for i, col in enumerate(obj.columns):
+                cells = newspace.cells[cells_names[i]]
+                cells.set_value(cargs, obj.at[idx, col])
+    else:
+        for idx in obj.index:
+            sargs, cargs = idx_to_arg(idx if obj.index.nlevels > 1 else (idx,))
+            for i, col in enumerate(obj.columns):
+                subspace = newspace.get_dynspace(sargs)
+                cells = subspace.cells[cells_names[i]]
+                cells.set_value(cargs, obj.at[idx, col])
+
+    return newspace

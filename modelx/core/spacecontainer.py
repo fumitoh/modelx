@@ -16,7 +16,7 @@ import warnings
 import pathlib
 import uuid
 from modelx.core.base import get_impls, get_interfaces, Impl, Interface
-from modelx.core.util import AutoNamer, is_valid_name, get_module
+from modelx.core.util import AutoNamer, is_valid_name, get_module, get_param_func
 
 
 class BaseSpaceContainer(Interface):
@@ -219,6 +219,41 @@ class EditableSpaceContainer(BaseSpaceContainer):
         )
 
         return get_interfaces(space)
+
+    def new_space_from_pandas(
+            self, obj, space=None, cells=None, param=None,
+            space_params=None, cells_params=None):
+        """Create child spaces from Pandas DataFrame or Series.
+
+        Create a space named ``space`` and optionally
+        and cells in it from Pandas DataFrame or Series passed in ``obj``.
+        If ``space`` is not given, the space is named ``SpaceN`` where
+        ``N`` is automatically given by modelx.
+        Parameter names are taken from ``obj`` indexes, unless ``param``
+        is given to override index names.
+
+        ``obj`` can have MultiIndex as its index.
+        If the index(es) of ``obj``
+        has/have name(s), the parameter name(s) of the cells is/are
+        set to the name(s), but can be overwritten by ``param``
+        parameter. If the index(es) of ``obj`` has/have no name(s),
+        and ``param`` is not given, error is raised.
+
+        Args:
+            obj: DataFrame or Series.
+            space: Space name.
+            param: Sequence of strings to set parameter name(s).
+                A single string can also be passed to set a single parameter
+                name when ``frame`` has a single
+                level index (i.e. not MultiIndex).
+            space_params: Sequence of strings or integers to specify
+                space parameters by name or index.
+            cells_params: Sequence of strings or integers to specify
+                cells parameters by name or index.
+        """
+        return get_interfaces(self._impl.new_space_from_pandas(
+            obj, space, cells, param, space_params, cells_params
+        ))
 
 
 class BaseSpaceContainerImpl:
@@ -433,20 +468,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         else:
             space_params = cellstable.param_names[:len(space_param_order)]
             cells_params = cellstable.param_names[len(space_param_order):]
-
-            if space_params:
-                space_sig = "=None, ".join(space_params) + "=None"
-            else:
-                space_sig = ""
-
-            param_func = "def _param_func(" + space_sig + "): pass"
-
-        if cells_params:
-            cells_sig = "=None, ".join(cells_params) + "=None"
-        else:
-            cells_sig = ""
-
-        blank_func = "def _blank_func(" + cells_sig + "): pass"
+            param_func = get_param_func(space_params)
 
         source = {
             "method": "new_space_from_excel",
@@ -467,7 +489,8 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         space = self.new_space(name=name, formula=param_func, source=source)
 
         for cellsdata in cellstable.items():
-            space.new_cells(name=cellsdata.name, formula=blank_func)
+            space.new_cells(name=cellsdata.name,
+                            formula=get_param_func(cells_params))
 
         # Split for-loop to avoid clearing the preceding cells
         # each time a new cells is created in the base space.
@@ -487,6 +510,13 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                     cells.set_value(cells_args, value)
 
         return space
+
+    def new_space_from_pandas(self, obj, space, cells, param,
+                              space_params, cells_params):
+        from modelx.io.pandas import new_space_from_pandas
+
+        return new_space_from_pandas(self, obj, space, cells, param,
+                                     space_params, cells_params)
 
     def del_space(self, name):
         space = self.spaces.del_item(name)

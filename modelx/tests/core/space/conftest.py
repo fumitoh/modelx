@@ -42,3 +42,12 @@ def sample_frame(request):
     df = make_df(columns, idx_names)
 
     return df, columns, idx_names, cells_names, param_names
+
+
+@pytest.fixture(params=param_sample2)
+def sample_frame_multindex(request):
+
+    make_df, columns, idx_names, cells_names, param_names = request.param
+    df = make_df(columns, idx_names)
+
+    return df, columns, idx_names, cells_names, param_names
