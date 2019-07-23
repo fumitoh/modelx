@@ -553,94 +553,42 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
     def new_cells_from_pandas(self, obj, cells=None, param=None):
         """Create new cells from Pandas Series or DataFrame object.
 
-        This method is a convenience function and can take either
-        Series and DataFrame object and calls either
-        :meth:`new_cells_from_series` or :meth:`new_cells_from_frame`
-        depending on the type of ``obj``.
+        Return new cells created from Pandas Series or DataFrame object
+        passed as ``obj``.
+
+        ``obj`` can either be a Series or a DataFrame. If ``obj``
+        is a Series, a single cells is created. The cells' name is taken
+        from the Series' name, but can be overwritten if a valid name
+        is passed as ``cells``.
+
+        If ``obj`` is a DataFrame, a cells is created for each column.
+        The cells' names can be overwritten by a sequence of valid names
+        passed as ``cells``
+
+        Keys and values of the cells data are copied from ``obj``.
+
+        ``obj`` can have MultiIndex. If the index(es) of ``obj``
+        has/have name(s), the parameter name(s) of the cells is/are
+        set to the name(s), but can be overwritten by ``param``
+        parameter. If the index(es) of ``obj`` has/have no name(s),
+        and ``param`` is not given, error is raised.
+        Error is raised when ``obj`` has duplicated indexes.
 
         Args:
             obj: Pandas Series or DataFrame object
-            cells: Cells name(s). See :meth:`new_cells_from_series` or
-                :meth:`new_cells_from_frame`.
-            param: Parameter name(s). See :meth:`new_cells_from_series` or
-                :meth:`new_cells_from_frame`.
-
-        """
-        import pandas as pd
-
-        if isinstance(obj, pd.DataFrame):
-            return self.new_cells_from_frame(obj, cells, param)
-        elif isinstance(obj, pd.Series):
-            return self.new_cells_from_series(obj, cells, param)
-        else:
-            raise ValueError("obj is not Series or DataFrame")
-
-    def new_cells_from_series(self, series, cells=None, param=None):
-        """Create a new cells from Pandas Series.
-
-        Create and return a new cells created from Pandas Series object
-        passed as argument ``series``.
-        Keys an values of the cells data are copied from ``series``.
-        If ``series`` has its name, the cells name is set to the name,
-        but can be overwritten by ``cells`` parameter.
-        ``series`` can have MultiIndex. If the index(es) of ``series``
-        has/have name(s), the parameter name(s) of the cells is/are
-        set to the name(s), but can be overwritten by ``param``
-        parameter. If the index(es) of ``series`` has/have no name(s),
-        and ``param`` is not given, error is raised.
-        Error is raised when ``series`` has duplicated indexes.
-
-        Args:
-            series: Pandas Series object
             cells (str, optional): cells name.
-                If ``series`` has a valid name and this ``cells`` is not given,
-                the name is used. If ``series`` does not have a name and
+                If ``obj`` has a valid name and this ``cells`` is not given,
+                the name is used. If ``obj`` does not have a name and
                 this ``cells`` is not given, the cells is named automatically.
             param: sequence of strings to set parameter name(s).
                 A single string can also be passed to set a single parameter
-                name when ``series`` has a single
+                name when ``obj`` has a single
                 level index (i.e. not MultiIndex).
 
+        Returns:
+            New cells if ``obj`` is a Series, CellsView if ``obj`` is DataFrame.
         """
-        return get_interfaces(self._impl.new_cells_from_series(
-            series, cells, param))
-
-    def new_cells_from_frame(self, frame, cells=None, param=None):
-        """Create multiple cells from Pandas DataFrame.
-
-        Create one or multiple cells from a DataFrame object passed in
-        the parameter ``frame``.
-
-        ``frame`` can have MultiIndex as its index, but
-        must have a single level index (i.e. not MultiIndex)
-        as its columns.
-        A new cells is created for each column of the ``frame``.
-        If the values ``frame`` columns are strings valid for cells names,
-        or if they can be converted into valid cell names
-        through :func:`str` function, then these strings are used to set
-        the cells names. Those cells names can be overwritten by a sequence
-        of strings passed to ``cells`` parameter. You can overwrite
-        the names selectively by setting to ``None`` the elements of
-        the sequence that you do not wish to overwrite.
-
-        ``frame`` can have MultiIndex as its index.
-        If the index(es) of ``frame``
-        has/have name(s), the parameter name(s) of the cells is/are
-        set to the name(s), but can be overwritten by ``param``
-        parameter. If the index(es) of ``frame`` has/have no name(s),
-        and ``param`` is not given, error is raised.
-
-        Error is raised when ``frame`` has duplicated columns or indexes.
-
-        Args:
-            frame: Pandas DataFrame object
-            cells: Sequence of strings to set cells names.
-            param: Sequence of strings to set parameter name(s).
-                A single string can also be passed to set a single parameter
-                name when ``frame`` has a single
-                level index (i.e. not MultiIndex).
-        """
-        self._impl.new_cells_from_frame(frame, cells, param)
+        return self._impl.new_cells_from_pandas(obj, cells, param)
 
     def new_cells_from_csv(
             self, filepath, cells=None, param=None, *args, **kwargs):
@@ -1387,13 +1335,9 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
 
-    def new_cells_from_series(self, series, name, param):
-        from modelx.io.pandas import new_cells_from_series
-        return new_cells_from_series(self, series, name, param)
-
-    def new_cells_from_frame(self, frame, names, param):
-        from modelx.io.pandas import new_cells_from_frame
-        return new_cells_from_frame(self, frame, names, param)
+    def new_cells_from_pandas(self, obj, cells, param):
+        from modelx.io.pandas import new_cells_from_pandas
+        return new_cells_from_pandas(self, obj, cells, param)
 
     # --- Reference creation -------------------------------------
 

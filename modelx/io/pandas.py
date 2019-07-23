@@ -263,16 +263,22 @@ def _overwrite_colnames(self, frame, names):
     return cells_names
 
 
-def new_cells_from_frame(self, frame, names, param):
+def new_cells_from_pandas(self, obj, cells, param):
 
-    cells_names = _overwrite_colnames(self, frame, names)
+    if isinstance(obj, pd.Series):
+        return new_cells_from_series(self, obj, cells, param).interface
 
-    for i, c in enumerate(frame.columns):
-        new_cells_from_series(
-            self,
-            frame[c],
-            name=cells_names[i],
-            param=param)
+    else:
+        cells_names = _overwrite_colnames(self, obj, cells)
+
+        for i, c in enumerate(obj.columns):
+            new_cells_from_series(
+                self,
+                obj[c],
+                name=cells_names[i],
+                param=param)
+
+        return self.interface.cells[cells_names]
 
 
 def new_space_from_pandas(

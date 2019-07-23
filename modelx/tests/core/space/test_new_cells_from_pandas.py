@@ -4,15 +4,13 @@ from itertools import product
 import pandas as pd
 import numpy as np
 import modelx as mx
-
+from modelx.core.util import is_valid_name
 
 def make_sample1(name, param_names):
     """Series with Index"""
     index = pd.Index([1,2,3], name=param_names)
     return pd.Series(np.random.rand(3), index=index, name=name)
 
-
-method_names = ["new_cells_from_series", "new_cells_from_pandas"]
 
 # Element of param_sampleN list:
 #   sample make function,
@@ -60,18 +58,36 @@ def sample_series(request):
     return make_series(series_name, series_param), cells_name, cells_param
 
 
-@pytest.mark.parametrize("method", method_names)
-def test_new_cells_from_series(sample_model, sample_series, method):
+def test_new_cells_from_series(sample_model, sample_series):
     space = sample_model.new_space()
     series, name, param = sample_series
 
     if not any(series.index.names) and not param:
         with pytest.raises(ValueError):
-            getattr(space, method)(series, cells=name, param=param)
+            space.new_cells_from_pandas(series, cells=name, param=param)
     else:
-        cells = getattr(space, method)(series, cells=name, param=param)
+        cells = space.new_cells_from_pandas(series, cells=name, param=param)
         assert cells.series.equals(series)
         if name:
             assert cells.name == name
         if param:
             assert cells.parameters == tuple(param)
+
+
+def test_new_cells_from_frame(sample_model, sample_frame):
+
+    df, cells_names, param_names = sample_frame
+    space = sample_model.new_space()
+    space.new_cells_from_pandas(df, cells=cells_names, param=param_names)
+
+    if int(pd.__version__.split(".")[0]) < 24:
+        assert np.array_equal(space.frame.values, df.values)
+    else:
+        assert np.array_equal(space.frame.to_numpy(), df.to_numpy())
+
+    names = tuple(c if is_valid_name(c) else cells_names[i]
+                  for i, c in enumerate(df.columns))
+    params = tuple(p or param_names[i] for i, p in enumerate(df.index.names))
+
+    assert tuple(space.frame.columns) == names
+    assert tuple(space.frame.index.names) == params
