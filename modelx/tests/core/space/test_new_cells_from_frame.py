@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 import modelx as mx
-
+from modelx.core.util import is_valid_name
 
 method_names = ["new_cells_from_frame", "new_cells_from_pandas"]
 
@@ -17,7 +17,7 @@ def sample_model():
 @pytest.mark.parametrize("method", method_names)
 def test_new_cells_from_frame(sample_model, sample_frame, method):
 
-    df, columns, idx_names, cells_names, param_names = sample_frame
+    df, cells_names, param_names = sample_frame
     space = sample_model.new_space()
     getattr(space, method)(df, cells=cells_names, param=param_names)
 
@@ -26,15 +26,9 @@ def test_new_cells_from_frame(sample_model, sample_frame, method):
     else:
         assert np.array_equal(space.frame.to_numpy(), df.to_numpy())
 
-    if columns:
-        names = tuple(c or cells_names[i] for i, c in enumerate(columns))
-    else:
-        names = tuple(cells_names)
-
-    if idx_names:
-        params = tuple(p or param_names[i] for i, p in enumerate(idx_names))
-    else:
-        params = tuple(param_names)
+    names = tuple(c if is_valid_name(c) else cells_names[i]
+                  for i, c in enumerate(df.columns))
+    params = tuple(p or param_names[i] for i, p in enumerate(df.index.names))
 
     assert tuple(space.frame.columns) == names
     assert tuple(space.frame.index.names) == params
