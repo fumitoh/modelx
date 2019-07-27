@@ -255,6 +255,45 @@ class EditableSpaceContainer(BaseSpaceContainer):
             obj, space, cells, param, space_params, cells_params
         ))
 
+    def new_space_from_csv(
+            self, filepath, space=None, cells=None, param=None,
+            space_params=None, cells_params=None, *args, **kwargs):
+        """Create spaces from from a comma-separated values (csv) file.
+
+        This method internally calls Pandas `read_csv`_ function,
+        and creates cells by passing
+        the returned DataFrame object to :meth:`new_space_from_pandas`.
+        The ``filepath`` argument to this method is passed to
+        to `read_csv`_ as ``filepath_or_buffer``,
+        and the user can pass other arguments to `read_csv`_ by
+        supplying those arguments to this method as
+        variable-length parameters,
+        ``args`` and ``kargs``.
+
+        .. _read_csv:
+            https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
+
+        Args:
+            filepath (str, path object, or file-like object): Path to the file.
+            space: Sequence of strings to set cells name. string is also
+                accepted if `read_csv`_ returns a Series because of
+                its ``squeeze`` parameter set to ``True``.
+            cells: Sequence of strings to overwrite headers for cells names.
+            param: Sequence of strings to set parameter name(s).
+                A single string can also be passed to set a single parameter
+                name when ``frame`` has a single
+                level index (i.e. not MultiIndex).
+            space_params: Sequence of strings or integers to specify
+                space parameters by name or index.
+            cells_params: Sequence of strings or integers to specify
+                cells parameters by name or index.
+            args: Any positional arguments to be passed to `read_csv`_.
+            kwargs: Any keyword arguments to be passed to `read_csv`_.
+        """
+        return self._impl.new_space_from_csv(
+            filepath, space, cells, param,
+            space_params, cells_params, args, kwargs).interface
+
 
 class BaseSpaceContainerImpl:
     """Base class of Model and Space to work as container of spaces.
@@ -517,6 +556,16 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         return new_space_from_pandas(self, obj, space, cells, param,
                                      space_params, cells_params)
+
+    def new_space_from_csv(self, filepath, space, cells, param,
+            space_params, cells_params, args, kwargs):
+        from modelx.io.pandas import new_space_from_pandas
+        import pandas as pd
+
+        return new_space_from_pandas(
+            self, pd.read_csv(filepath, *args, **kwargs),
+            space, cells, param,
+            space_params, cells_params)
 
     def del_space(self, name):
         space = self.spaces.del_item(name)
