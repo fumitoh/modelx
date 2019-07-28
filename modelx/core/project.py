@@ -29,9 +29,36 @@ _METHODS = ["new_space_from_excel",
             "new_cells_from_excel"]
 
 
+def refhook(inst):
+    args, kwargs = inst.args, inst.kwargs
+
+    if args:
+        key, val = args
+        val = _restore_ref(val)
+        args = (key, val)
+    return args, kwargs
+
+
+def basehook(inst):
+    args, kwargs = inst.args, inst.kwargs
+
+    if args:
+        args = _restore_ref(args)
+
+    return args, kwargs
+
+
+def excelhook(inst):
+    args, kwargs = inst.args, inst.kwargs
+    args[0] = str(inst.path_.with_name(args[0]))
+    return args, kwargs
+
+
 class _Instruction:
 
-    def __init__(self, obj, method, args=(), kwargs=None, arghook=None):
+    def __init__(self, path_, obj, method, args=(), kwargs=None, arghook=None):
+
+        self.path_ = path_
         self.obj = obj
         self.method = method
         self.args = args
@@ -43,7 +70,7 @@ class _Instruction:
     def run(self):
 
         if self.arghook:
-            args, kwargs = self.arghook(self.args, self.kwargs)
+            args, kwargs = self.arghook(self)
         else:
             args, kwargs = self.args, self.kwargs
 
@@ -444,6 +471,7 @@ class ModelReader:
                     funcdef = "\n".join(deflines)
 
                 return [_Instruction(
+                    path_=path_,
                     obj=impl,
                     method=method,
                     kwargs={"formula": funcdef}
@@ -454,10 +482,12 @@ class ModelReader:
                 if node.first_token.string == "_name":
                     method = "rename"
                     val = ast.literal_eval(atok.get_text(node.value))
-                    _Instruction(obj=obj,
-                                 method=method,
-                                 args=(val,),
-                                 kwargs={"rename_old": True}).run()
+                    _Instruction(
+                        path_=path_,
+                        obj=obj,
+                        method=method,
+                        args=(val,),
+                        kwargs={"rename_old": True}).run()
                     return []
 
                 elif node.first_token.string == "_formula":
@@ -468,7 +498,11 @@ class ModelReader:
                         val = None
                     kwargs = {"formula": val}
                     return [
-                        _Instruction(obj=impl, method=method, kwargs=kwargs)
+                        _Instruction(
+                            path_=path_,
+                            obj=impl,
+                            method=method,
+                            kwargs=kwargs)
                     ]
 
                 elif node.first_token.string == "_refs":
@@ -481,16 +515,10 @@ class ModelReader:
                         object_hook=bound_decode_refs
                     )
 
-                    def refhook(args, kwargs):
-                        if args:
-                            key, val = args
-                            val = self._restore_ref(val)
-                            args = (key, val)
-                        return args, kwargs
-
                     result = []
                     for key, val in refs.items():
                         result.append(_Instruction(
+                            path_=path_,
                             obj=obj,
                             method="__setattr__",
                             args=(key, val),
@@ -505,13 +533,8 @@ class ModelReader:
                         ast.literal_eval(atok.get_text(node.value))
                     ]
 
-                    def basehook(args, kwargs):
-                        if args:
-                            args = self._restore_ref(args)
-
-                        return args, kwargs
-
                     return [_Instruction(
+                        path_=path_,
                         obj=obj,
                         method="add_bases",
                         args=bases,
@@ -519,16 +542,11 @@ class ModelReader:
 
                 elif node.first_token.string == "_method":
 
-                    def excelhook(args, kwargs):
-                        # path_ is free variable
-                        # Add path to file name
-                        args[0] = str(path_.with_name(args[0]))
-                        return args, kwargs
-
                     _method = json.loads(
                         atok.get_text(node.value)
                     )
                     return [_Instruction(
+                        path_=path_,
                         obj=impl,
                         method=_method["method"],
                         args=_method["args"],
@@ -539,14 +557,16 @@ class ModelReader:
                 elif node.first_token.string == "_allow_none":
                     args = json.loads(atok.get_text(node.value))
                     return [_Instruction(
-                      obj=obj,
-                      method="set_property",
-                      args=["allow_none", args]
+                        path_=path_,
+                        obj=obj,
+                        method="set_property",
+                        args=["allow_none", args]
                     )]
 
                 else:
                     # lambda cells definition
                     return [_Instruction(
+                        path_=path_,
                         obj=impl,
                         method="new_cells",
                         kwargs={
@@ -561,6 +581,7 @@ class ModelReader:
             if (i == 0 and isinstance(stmt, ast.Expr)
                     and isinstance(stmt.value, ast.Str)):
                 inst = _Instruction(
+                    path_=path_,
                     obj=type(obj).doc,
                     method="fset",
                     args=(obj, stmt.value.s)
@@ -611,23 +632,24 @@ class ModelReader:
         else:
             raise RuntimeError("must not happen")
 
-    def _restore_ref(self, obj):
-        """Restore ref from _RefData in nested container"""
-        if isinstance(obj, _RefData):
-            return mx.get_object(obj.evalrepr)
 
-        elif isinstance(obj, str):
-            return obj
+def _restore_ref(obj):
+    """Restore ref from _RefData in nested container"""
+    if isinstance(obj, _RefData):
+        return mx.get_object(obj.evalrepr)
 
-        elif isinstance(obj, collections.Sequence):
-            return type(obj)(self._restore_ref(value) for value in obj)
+    elif isinstance(obj, str):
+        return obj
 
-        elif isinstance(obj, collections.Mapping):
-            return type(obj)(
-                (key, self._restore_ref(val)) for key, val in obj.items())
+    elif isinstance(obj, collections.Sequence):
+        return type(obj)(_restore_ref(value) for value in obj)
 
-        else:
-            return obj
+    elif isinstance(obj, collections.Mapping):
+        return type(obj)(
+            (key, _restore_ref(val)) for key, val in obj.items())
+
+    else:
+        return obj
 
 
 def read_model(model_path):
