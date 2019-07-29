@@ -551,21 +551,49 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         return space
 
     def new_space_from_pandas(self, obj, space, cells, param,
-                              space_params, cells_params):
+                              space_params, cells_params, call_id=None):
         from modelx.io.pandas import new_space_from_pandas
+
+        source = {
+            "method": "new_space_from_pandas",
+            "args": [obj],
+            "kwargs": {
+                "space": space,
+                "cells": cells,
+                "param": param,
+                "space_params": space_params,
+                "cells_params": cells_params,
+                "call_id": call_id or str(uuid.uuid4())
+            }
+        }
 
         return new_space_from_pandas(self, obj, space, cells, param,
-                                     space_params, cells_params)
+                                     space_params, cells_params, source)
 
     def new_space_from_csv(self, filepath, space, cells, param,
-            space_params, cells_params, args, kwargs):
+            space_params, cells_params, args, kwargs, call_id=None):
         from modelx.io.pandas import new_space_from_pandas
         import pandas as pd
+
+        source = {
+            "method": "new_space_from_csv",
+            "args": [filepath],
+            "kwargs": {
+                "space": space,
+                "cells": cells,
+                "param": param,
+                "space_params": space_params,
+                "cells_params": cells_params,
+                "args": args,
+                "kwargs": kwargs,
+                "call_id": call_id or str(uuid.uuid4())
+            }
+        }
 
         return new_space_from_pandas(
             self, pd.read_csv(filepath, *args, **kwargs),
             space, cells, param,
-            space_params, cells_params)
+            space_params, cells_params, source)
 
     def del_space(self, name):
         space = self.spaces.del_item(name)

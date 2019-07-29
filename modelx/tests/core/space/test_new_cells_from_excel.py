@@ -4,10 +4,7 @@ import sys
 import os
 
 from modelx import *
-
-test_path = (
-    os.path.dirname(sys.modules[__name__].__file__) + "/../data/testdata.xlsx"
-)
+from .. import XL_TESTDATA
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +19,7 @@ def test_new_cells_from_excel(testmodel, range_, orientation):
 
     space = testmodel.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -44,7 +41,7 @@ def test_new_cells_from_excel_multparams(testmodel, range_, orientation):
 
     space = testmodel.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -67,7 +64,7 @@ def test_new_cells_from_excel_extparams(testmodel, range_, orientation):
 
     space = testmodel.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -92,7 +89,7 @@ def test_new_cells_from_excel_multextparams(testmodel, range_, orientation):
 
     space = testmodel.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -122,7 +119,7 @@ def test_new_cells_from_excel_const(testmodel, range_, transpose):
 
     space = testmodel.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -142,7 +139,7 @@ def test_new_cells_from_excel_empty_prams(testmodel, range_, transpose):
 
     space = testmodel.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,

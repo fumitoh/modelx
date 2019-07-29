@@ -25,8 +25,29 @@ from modelx.core.base import Interface
 from modelx.core.cells import Cells
 import asttokens
 
-_METHODS = ["new_space_from_excel",
-            "new_cells_from_excel"]
+
+def _write_file(obj, path_):
+    src = obj._impl.source.copy()
+    srcpath = pathlib.Path(src["args"][0])
+    shutil.copyfile(
+        str(srcpath),
+        str(path_.joinpath(srcpath.name))
+    )
+    src["args"][0] = srcpath.name
+    return src
+
+
+def _read_file():
+    pass
+
+
+def write_pandas(obj, path_: pathlib.Path):
+    src = obj._impl.source.copy()
+    data = src["args"][0]
+    filename = obj.name + ".data"
+    data.to_pickle(str(path_.joinpath(filename)))
+    src["args"][0] = filename
+    return src
 
 
 def refhook(inst):
@@ -48,13 +69,42 @@ def basehook(inst):
     return args, kwargs
 
 
-def excelhook(inst):
+def filehook(inst):
     args, kwargs = inst.args, inst.kwargs
     args[0] = str(inst.path_.with_name(args[0]))
     return args, kwargs
 
 
+def pandashook(inst):
+    import pandas as pd
+    args, kwargs = inst.args, inst.kwargs
+    filepath = str(inst.path_.with_name(args[0]))
+    args[0] = pd.read_pickle(filepath)
+    return args, kwargs
+
+
 class _Instruction:
+
+    _METHODS = {
+        "new_space_from_excel": {
+            "writer": _write_file,
+            "reader": filehook},
+        "new_cells_from_excel": {
+            "writer": _write_file,
+            "reader": filehook},
+        "new_space_from_csv": {
+            "writer": _write_file,
+            "reader": filehook},
+        "new_cells_from_csv": {
+            "writer": _write_file,
+            "reader": filehook},
+        "new_space_from_pandas": {
+            "writer": write_pandas,
+            "reader": pandashook},
+        "new_cells_from_pandas": {
+            "writer": write_pandas,
+            "reader": pandashook}
+    }
 
     def __init__(self, path_, obj, method, args=(), kwargs=None, arghook=None):
 
@@ -65,7 +115,14 @@ class _Instruction:
         if kwargs is None:
             kwargs = {}
         self.kwargs = kwargs
-        self.arghook = arghook
+
+        if arghook is None:
+            if method in self._METHODS:
+                self.arghook = self._METHODS[method]["reader"]
+            else:
+                self.arghook = None
+        else:
+            self.arghook = arghook
 
     def run(self):
 
@@ -149,7 +206,7 @@ class ModelWriter:
 
                 for space in model.spaces.values():
                     self._write_method(
-                        space, f, copy_file=True, path_=self.root)
+                        space, f, path_=self.root)
 
             # Create Space.py
             for space in gen:
@@ -164,22 +221,19 @@ class ModelWriter:
     def _has_method(self, obj: Interface):
         src = obj._impl.source
         return (src and "method" in src
-                and src["method"] in _METHODS)
+                and src["method"] in _Instruction._METHODS)
 
     def _has_new_callid(self, obj: Interface):
         src = obj._impl.source
         return src["kwargs"]["call_id"] not in self.call_ids
 
-    def _write_method(self, obj, file, copy_file=True, path_=None):
+    def _write_method(self, obj, file, path_):
+
         if self._has_method(obj) and self._has_new_callid(obj):
-            src = obj._impl.source.copy()
-            if copy_file:
-                srcpath = pathlib.Path(src["args"][0])
-                shutil.copyfile(
-                    str(srcpath),
-                    str(path_.joinpath(srcpath.name))
-                )
-                src["args"][0] = srcpath.name
+
+            src = obj._impl.source
+            writer = _Instruction._METHODS[src["method"]]["writer"]
+            src = writer(obj, path_)
 
             file.write("_method = " + json.JSONEncoder(
                 ensure_ascii=False,
@@ -232,7 +286,6 @@ class ModelWriter:
                         self._write_method(
                             cells,
                             f,
-                            copy_file=True,
                             path_=file.parent)
                     else:
                         f.write(format_formula(cells))
@@ -255,7 +308,7 @@ class ModelWriter:
             f.write("\n\n")
 
             for child in space.spaces.values():
-                self._write_method(child, f, copy_file=True, path_=file.parent)
+                self._write_method(child, f, path_=file.parent)
 
     def _write_allow_none(self, obj, file):
         if obj.allow_none is not None:
@@ -407,12 +460,11 @@ class ModelReader:
 
         instructions, model = self._parse_dir()
 
-        instructions.run_methods(["fset",
-                                   "set_formula",
-                                   "set_property",
-                                   "new_cells",
-                                   "new_space_from_excel",
-                                   "new_cells_from_excel"])
+        instructions.run_methods([
+            "fset",
+            "set_formula",
+            "set_property",
+            "new_cells"] + list(_Instruction._METHODS.keys()))
         instructions.run_methods(["add_bases"])
         instructions.run_methods(["__setattr__"])
 
@@ -550,8 +602,7 @@ class ModelReader:
                         obj=impl,
                         method=_method["method"],
                         args=_method["args"],
-                        kwargs=_method["kwargs"],
-                        arghook=excelhook
+                        kwargs=_method["kwargs"]
                     )]
 
                 elif node.first_token.string == "_allow_none":

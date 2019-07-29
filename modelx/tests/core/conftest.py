@@ -35,7 +35,7 @@ param_sample2 = [
 ]
 
 
-@pytest.fixture(params=param_sample1 + param_sample2)
+@pytest.fixture(scope="session", params=param_sample1 + param_sample2)
 def sample_frame(request):
 
     make_df, columns, idx_names, cells_names, param_names = request.param
@@ -44,7 +44,7 @@ def sample_frame(request):
     return df, cells_names, param_names
 
 
-@pytest.fixture(params=param_sample2)
+@pytest.fixture(scope="session", params=param_sample2)
 def sample_frame_multindex(request):
 
     make_df, columns, idx_names, cells_names, param_names = request.param

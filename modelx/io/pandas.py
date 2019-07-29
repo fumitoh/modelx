@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import itertools
+import uuid
 
 import pandas as pd
 import numpy as np
@@ -219,7 +220,7 @@ def _get_param_names(obj, param):
     return param_names
 
 
-def new_cells_from_series(self, series, name, param):
+def _new_cells_from_series(self, series, name, param, source):
 
     if is_valid_name(name):
         pass
@@ -229,7 +230,9 @@ def new_cells_from_series(self, series, name, param):
 
     cells = self.new_cells(
         name=name,
-        formula=get_param_func(_get_param_names(series, param)))
+        formula=get_param_func(_get_param_names(series, param)),
+        source=source
+    )
 
     for i, v in series.items():
         cells.set_value(tuplize_key(cells, i), v)
@@ -263,26 +266,29 @@ def _overwrite_colnames(self, frame, names):
     return cells_names
 
 
-def new_cells_from_pandas(self, obj, cells, param):
+def new_cells_from_pandas(self, obj, cells, param, source):
 
     if isinstance(obj, pd.Series):
-        return new_cells_from_series(self, obj, cells, param).interface
+        return _new_cells_from_series(
+            self, obj, cells, param, source).interface
 
     else:
         cells_names = _overwrite_colnames(self, obj, cells)
 
         for i, c in enumerate(obj.columns):
-            new_cells_from_series(
+            _new_cells_from_series(
                 self,
                 obj[c],
                 name=cells_names[i],
-                param=param)
+                param=param,
+                source=source
+            )
 
         return self.interface.cells[cells_names]
 
 
 def new_space_from_pandas(
-        self, obj, space, cells, param, space_params, cells_params):
+        self, obj, space, cells, param, space_params, cells_params, source):
 
     param_names = _get_param_names(obj, param)
 
@@ -318,7 +324,7 @@ def new_space_from_pandas(
     else:
         space_func = get_param_func(space_params)
 
-    newspace = self.new_space(name=space, formula=space_func)
+    newspace = self.new_space(name=space, formula=space_func, source=source)
 
     if isinstance(obj, pd.Series):
         obj = obj.to_frame()

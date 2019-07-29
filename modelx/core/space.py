@@ -1335,9 +1335,20 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
 
-    def new_cells_from_pandas(self, obj, cells, param):
+    def new_cells_from_pandas(self, obj, cells, param, call_id=None):
         from modelx.io.pandas import new_cells_from_pandas
-        return new_cells_from_pandas(self, obj, cells, param)
+
+        source = {
+            "method": "new_cells_from_pandas",
+            "args": [obj],
+            "kwargs": {
+                "cells": cells,
+                "param": param,
+                "call_id": call_id or str(uuid.uuid4())
+            }
+        }
+
+        return new_cells_from_pandas(self, obj, cells, param, source)
 
     # --- Reference creation -------------------------------------
 

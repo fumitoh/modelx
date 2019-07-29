@@ -5,10 +5,7 @@ import os
 
 from modelx.testing.testutil import compare_model
 import modelx as mx
-
-test_path = (
-    os.path.dirname(sys.modules[__name__].__file__) + "/../data/testdata.xlsx"
-)
+from .. import XL_TESTDATA
 
 @pytest.fixture(
     params=[("C9:E25", False), ("C36:S38", True)])
@@ -17,7 +14,7 @@ def single_param(request, tmp_path):
 
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -51,7 +48,7 @@ def multiple_prams(request, tmp_path):
     range_, orientation = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -85,7 +82,7 @@ def extra_params(request, tmp_path):
     range_, orientation = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -121,7 +118,7 @@ def extra_multiple_prams(request, tmp_path):
     range_, orientation = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -161,7 +158,7 @@ def consts(request, tmp_path):
     range_, orientation = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,
@@ -191,7 +188,7 @@ def empty_params(request, tmp_path):
     range_, orientation = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         names_row=0,

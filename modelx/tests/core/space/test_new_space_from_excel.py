@@ -4,10 +4,7 @@ import sys
 import os
 
 from modelx import *
-
-test_path = (
-    os.path.dirname(sys.modules[__name__].__file__) + "/../data/testdata.xlsx"
-)
+from .. import XL_TESTDATA
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +19,7 @@ def testmodel():
 def test_single_param(testmodel, range_, transpose):
 
     space = testmodel.new_space_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         transpose=transpose
@@ -40,7 +37,7 @@ def test_single_param(testmodel, range_, transpose):
 def test_multi_param(testmodel, range_, transpose):
 
     space = testmodel.new_space_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestTables",
         param_cols=[0, 1],
@@ -59,7 +56,7 @@ def test_multi_param(testmodel, range_, transpose):
 def test_new_space_from_excel(testmodel, range_, transpose):
 
     space = testmodel.new_space_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestSpaceTables",
         names_row=0,
@@ -93,7 +90,7 @@ def test_new_space_from_excel(testmodel, range_, transpose):
 def test_new_space_from_excel_const(testmodel, range_, transpose):
 
     space = testmodel.new_space_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestSpaceTables",
         names_row=0,

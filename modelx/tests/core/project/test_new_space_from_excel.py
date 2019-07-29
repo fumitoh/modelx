@@ -6,9 +6,7 @@ import os
 from modelx.testing.testutil import compare_model
 import modelx as mx
 
-test_path = (
-    os.path.dirname(sys.modules[__name__].__file__) + "/../data/testdata.xlsx"
-)
+from .. import XL_TESTDATA
 
 
 @pytest.fixture(params=[("C3:H24", False), ("C32:X37", True)])
@@ -16,7 +14,7 @@ def extra_params(request, tmp_path):
     range_, orientation = request.param
     model = mx.new_model()
     space = model.new_space_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestSpaceTables",
         name="TestSpace",
@@ -62,7 +60,7 @@ def consts(request, tmp_path):
     range_, orientation = request.param
     model = mx.new_model()
     space = model.new_space_from_excel(
-        book=test_path,
+        book=XL_TESTDATA,
         range_=range_,
         sheet="TestSpaceTables",
         name="TestSpace",

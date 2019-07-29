@@ -1,11 +1,11 @@
 import pytest
 
 from modelx import *
-from . import (
-    ONE_PARAM_SAMPLE,
-    TWO_PARAMS_SAMPLE,
-    ONE_PARAM_ONE_COL_SAMPLE,
-    IRIS_SAMPLE)
+from .. import (
+    CSV_SINGLE_PARAM,
+    CSV_MULTI_PARAMS,
+    CSV_SINGLE_PARAM_SINGLE_COL,
+    CSV_IRIS)
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +22,7 @@ def test_one_param(testmodel, parent, param, index_col, usecols):
 
     parent = testmodel if parent == "model" else testmodel.new_space()
     space = parent.new_space_from_csv(
-        ONE_PARAM_SAMPLE,
+        CSV_SINGLE_PARAM,
         param=param,
         index_col=index_col,
         usecols=usecols
@@ -42,7 +42,7 @@ def test_two_params(testmodel, parent, param, index_col, usecols):
 
     parent = testmodel if parent == "model" else testmodel.new_space()
     space = parent.new_space_from_csv(
-        TWO_PARAMS_SAMPLE,
+        CSV_MULTI_PARAMS,
         param=param,
         index_col=index_col,
         usecols=usecols
@@ -62,7 +62,7 @@ def test_space_param(
         testmodel, parent, param, space_params, index_col, usecols):
     parent = testmodel if parent == "model" else testmodel.new_space()
     space = parent.new_space_from_csv(
-        TWO_PARAMS_SAMPLE,
+        CSV_MULTI_PARAMS,
         param=param,
         space_params=space_params,
         index_col=index_col,
@@ -88,7 +88,7 @@ def test_one_param_one_col(testmodel, parent, param, index_col):
 
     parent = testmodel if parent == "model" else testmodel.new_space()
     space = parent.new_space_from_csv(
-        ONE_PARAM_ONE_COL_SAMPLE,
+        CSV_SINGLE_PARAM_SINGLE_COL,
         param=param,
         index_col=index_col,
     )
@@ -103,10 +103,10 @@ def test_one_param_one_col(testmodel, parent, param, index_col):
 def test_iris(testmodel, parent):
 
     import pandas as pd
-    df = pd.read_csv(IRIS_SAMPLE)
+    df = pd.read_csv(CSV_IRIS)
     df.index.name = "Param"
 
     parent = testmodel if parent == "model" else testmodel.new_space()
-    space = parent.new_space_from_csv(IRIS_SAMPLE, param="Param")
+    space = parent.new_space_from_csv(CSV_IRIS, param="Param")
 
     assert df.equals(space.frame)
