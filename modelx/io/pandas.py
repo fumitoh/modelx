@@ -235,7 +235,10 @@ def _new_cells_from_series(self, series, name, param, source):
     )
 
     for i, v in series.items():
-        cells.set_value(tuplize_key(cells, i), v)
+        cells.set_value(
+            tuplize_key(cells, i),
+            v.item() if isinstance(v, np.generic) else v
+        )
 
     return cells
 
@@ -355,14 +358,22 @@ def new_space_from_pandas(
         for idx in obj.index:
             _, cargs = idx_to_arg(idx if obj.index.nlevels > 1 else (idx,))
             for i, col in enumerate(obj.columns):
+                v = obj.at[idx, col]
                 cells = newspace.cells[cells_names[i]]
-                cells.set_value(cargs, obj.at[idx, col])
+                cells.set_value(
+                    cargs,
+                    v.item() if isinstance(v, np.generic) else v
+                )
     else:
         for idx in obj.index:
             sargs, cargs = idx_to_arg(idx if obj.index.nlevels > 1 else (idx,))
             for i, col in enumerate(obj.columns):
+                v = obj.at[idx, col]
                 subspace = newspace.get_dynspace(sargs)
                 cells = subspace.cells[cells_names[i]]
-                cells.set_value(cargs, obj.at[idx, col])
+                cells.set_value(
+                    cargs,
+                    v.item() if isinstance(v, np.generic) else v
+                )
 
     return newspace
