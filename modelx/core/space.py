@@ -619,12 +619,14 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
             args: Any positional arguments to be passed to `read_csv`_.
             kwargs: Any keyword arguments to be passed to `read_csv`_.
         """
-        import pandas as pd
 
-        return self.new_cells_from_pandas(
-            pd.read_csv(filepath, *args, **kwargs),
+        return self._impl.new_cells_from_csv(
+            filepath,
             cells=cells,
-            param=param)
+            param=param,
+            args=args,
+            kwargs=kwargs
+        )
 
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells
@@ -1349,6 +1351,26 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         }
 
         return new_cells_from_pandas(self, obj, cells, param, source)
+
+    def new_cells_from_csv(
+            self, filepath, cells, param, args, kwargs, call_id=None):
+        import pandas as pd
+        from modelx.io.pandas import new_cells_from_pandas
+
+        source = {
+            "method": "new_cells_from_csv",
+            "args": [filepath],
+            "kwargs": {
+                "cells": cells,
+                "param": param,
+                "args": args,
+                "kwargs": kwargs,
+                "call_id": call_id or str(uuid.uuid4())
+            }
+        }
+
+        return new_cells_from_pandas(
+            self, pd.read_csv(filepath, *args, **kwargs), cells, param, source)
 
     # --- Reference creation -------------------------------------
 
