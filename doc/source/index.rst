@@ -42,7 +42,6 @@ What Next
    spyder
    tutorial
    reference/index
-   techguide
 
 * :ref:`genindex`
 * :ref:`search`

@@ -39,3 +39,12 @@ Class Reference
    ~modelx.core.space.CellsView
    ~modelx.core.cells.CellNode
 
+
+Specifications
+--------------
+
+.. toctree::
+   :maxdepth: 1
+
+   techspec
+   model_structure

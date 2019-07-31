@@ -94,8 +94,3 @@ Spaces that are in dynamic space trees cannot be base spaces of other spaces.
 
 Dynamic spaces are not inherited, i.e. if a static ascendant space of dynamic spaces are inherited,
 no derived spaces in the sub space are created, that correspond to the dynamic spaces in the base space.
-
-.. toctree::
-   :maxdepth: 2
-
-   model_structure
