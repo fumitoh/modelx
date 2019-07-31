@@ -8,6 +8,12 @@ modelx
 .. image:: https://img.shields.io/pypi/pyversions/modelx
     :target: https://pypi.org/project/modelx/
 
+.. image:: https://img.shields.io/pypi/v/modelx
+    :target: https://pypi.org/project/modelx/
+
+.. image:: https://img.shields.io/pypi/l/modelx
+    :target: https://github.com/fumitoh/modelx/blob/master/LICENSE.LESSER.txt
+
 
 .. Overview Begin
 

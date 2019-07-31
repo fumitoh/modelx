@@ -12,7 +12,7 @@ from codecs import open
 from os import path
 
 DISTNAME = 'modelx'
-LICENSE = 'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)'
+LICENSE = 'LGPLv3'
 AUTHOR = "Fumito Hamamura"
 EMAIL = "fumito.ham@gmail.com"
 URL = "https://github.com/fumitoh/modelx"
