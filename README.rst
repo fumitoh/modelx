@@ -2,6 +2,13 @@ modelx
 ======
 *Escape from spreadsheet models!*
 
+.. image:: https://travis-ci.org/fumitoh/modelx.svg?branch=master
+    :target: https://travis-ci.org/fumitoh/modelx
+
+.. image:: https://img.shields.io/pypi/pyversions/modelx
+    :target: https://pypi.org/project/modelx/
+
+
 .. Overview Begin
 
 What is modelx?
