@@ -1,6 +1,12 @@
 Reference
 =========
 
+.. toctree::
+   :maxdepth: 1
+
+   importing_data
+   saving_model
+
 .. _function_reference:
 
 Function Reference
@@ -40,11 +46,11 @@ Class Reference
    ~modelx.core.cells.CellNode
 
 
-Specifications
---------------
+Miscellaneous
+-------------
 
 .. toctree::
    :maxdepth: 1
 
-   techspec
+   techguide
    model_structure
