@@ -5,7 +5,7 @@ Reference
    :maxdepth: 1
 
    importing_data
-   saving_model
+   saving_models
 
 .. _function_reference:
 

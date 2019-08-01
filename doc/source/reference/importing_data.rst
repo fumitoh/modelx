@@ -4,43 +4,54 @@ Importing Data
 modelx allows you to create Spaces or Cells populated with data
 from data sources.
 
+.. contents:: Contents
+   :depth: 1
+   :local:
+
+
 Supported data sources
 ----------------------
 
-The supported types of data sources are as Excel files, CSV files,
-Pandas DataFrame and Series objects.
+The supported types of data sources are:
 
-Creating Cells from data sources
---------------------------------
+* Excel files
+* Comma-separated values (CSV) files
+* Pandas DataFrame and Series objects
 
-There are two methods for each type of the data sources.
-One of them is ``new_cells_from_*`` (where ``*`` is
-one of the supported data source types).
-This is Space's method, and created cells populated with
-values from the data source.
+Methods to create Cells from data sources
+-----------------------------------------
 
-Creating Spaces and Cells from data sources
--------------------------------------------
+The following methods of StaticSpace create cells from the data sources.
 
-The other method is ``new_space_from_*``.
-Models and Spaces have this method.
-This method creates a StaticSpace and optionally DynamicSpaces
-of the StaticSpace, and then Cells in the Static/Dynamic Spaces.
+.. currentmodule:: modelx.core.space
+
+* :meth:`StaticSpace.new_cells_from_excel`
+* :meth:`StaticSpace.new_cells_from_csv`
+* :meth:`StaticSpace.new_cells_from_pandas`
 
 
-Importing Excel files
----------------------
+Methods to create Spaces and Cells from data sources
+----------------------------------------------------
 
-Importing CSV files
--------------------
+The methods below create a StaticSpace and optionally DynamicSpaces
+in the Model or StaticSpace, and then creates Cells in the Static/Dynamic Spaces
+with values imported from the data sources.
 
+.. currentmodule:: modelx.core.model
 
+**Model methods**
 
+* :meth:`Model.new_space_from_excel`
+* :meth:`Model.new_space_from_csv`
+* :meth:`Model.new_space_from_pandas`
 
-Importing Pandas objects
-------------------------
+.. currentmodule:: modelx.core.space
 
+**StaticSpace methods**
 
+* :meth:`StaticSpace.new_space_from_excel`
+* :meth:`StaticSpace.new_space_from_csv`
+* :meth:`StaticSpace.new_space_from_pandas`
 
 
 Saving models with data sources
@@ -54,10 +65,9 @@ from Pandas DataFrame or Series objects, those objects are serialized
 and saved as binary files in the model folder.
 
 If data source files or objects are modified after the creation of
-Space and Cells, before the model is written to the files,
+Space and Cells before the model is written to the files,
 the data sources are saved reflecting the changes.
-
-See "saving_models.rst" section for more details.
+See :doc:`saving_models` section for more details.
 
 
 
