@@ -24,7 +24,7 @@ or by::
     from modelx import *
 
 """
-import ast
+import ast as _ast
 from types import FunctionType as _FunctionType
 
 from modelx.core import mxsys as _system
@@ -210,7 +210,7 @@ def _get_node(name: str, args: str):
     Not Used. Left for future reference purpose.
     """
     obj = get_object(name)
-    args = ast.literal_eval(args)
+    args = _ast.literal_eval(args)
     if not isinstance(args, tuple):
         args = (args,)
 
