@@ -1,4 +1,4 @@
-import itertools
+import sys
 import pytest
 import modelx as mx
 
@@ -36,6 +36,15 @@ def savetestmodel(testmodel, tmpdir_factory):
     file = str(tmpdir_factory.mktemp("data").join("test_open_model.mx"))
     model.save(file)
     return model, file
+
+
+def test_get_models(testmodel):
+    assert mx.get_models() == {testmodel.name: testmodel}
+
+
+if sys.version_info >= (3, 7):
+    def test_getattr__(testmodel):
+        assert mx.models == mx.get_models()
 
 
 def test_get_object(testmodel):

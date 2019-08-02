@@ -24,6 +24,7 @@ or by::
     from modelx import *
 
 """
+import sys as _sys
 import ast as _ast
 from types import FunctionType as _FunctionType
 
@@ -188,8 +189,21 @@ def defcells(space=None, name=None, *funcs):
 
 
 def get_models():
-    """Returns a dict that maps model names to models."""
+    """Returns a dict that maps model names to models.
+
+    From Python 3.7, ``models`` attribute of ``modelx`` module
+    is available as an alias for this function.
+    """
     return _get_interfaces(_system.models)
+
+
+if _sys.version_info >= (3, 7):
+    def __getattr__(name):
+
+        if name == "models":
+            return get_models()
+
+        raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 def get_object(name: str):
