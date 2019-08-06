@@ -10,7 +10,7 @@ def sample_objects():
 @pytest.fixture(params=range(3))
 def model_obj_pair(request, sample_objects):
     m, s, c = msc = sample_objects
-    yield m, msc[request.param]
+    return m, msc[request.param]
 
 
 def test_property_model(model_obj_pair):
