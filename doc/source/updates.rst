@@ -91,7 +91,7 @@ Updates
   modelx v0.0.10 is released.
 
 * *20 April 2018:*
-  The :doc:`techguide` section is added.
+  The :doc:`reference/techguide` section is added.
 
 
 -------

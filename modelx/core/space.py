@@ -537,6 +537,9 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
                 The elements of the sequence are the indexes of ``param_cols``
                 elements, and optionally the index of ``param_rows`` elements
                 shifted by the length of ``param_cols``.
+
+        See Also:
+            :meth:`new_space_from_excel`: Create Spaces and Cells from Excel file.
         """
         return self._impl.new_cells_from_excel(
             book,
@@ -587,6 +590,9 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
 
         Returns:
             New cells if ``obj`` is a Series, CellsView if ``obj`` is DataFrame.
+
+        See Also:
+            :meth:`new_space_from_pandas`: Create Spaces and Cells from DataFrame or Series.
         """
         return self._impl.new_cells_from_pandas(obj, cells, param)
 
@@ -618,6 +624,9 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
                 level index (i.e. not MultiIndex).
             args: Any positional arguments to be passed to `read_csv`_.
             kwargs: Any keyword arguments to be passed to `read_csv`_.
+
+        See Also:
+            :meth:`new_space_from_csv`: Create Spaces and Cells from CSV.
         """
 
         return self._impl.new_cells_from_csv(
