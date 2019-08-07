@@ -57,9 +57,9 @@ with values imported from the data sources.
 Saving models with data sources
 -------------------------------
 
-When the user writes models with
+If the user writes models to files and the model contains
 Spaces and Cells created from the data source files (Excel or CSV files),
-those files are copied into the model folder/directory.
+those data source files are copied into the model folder/directory.
 If a model contains Spaces and Cells created
 from Pandas DataFrame or Series objects, those objects are serialized
 and saved as binary files in the model folder.
