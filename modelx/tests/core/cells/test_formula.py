@@ -19,7 +19,8 @@ def testspace():
     s.new_cells(name="func1_code", formula=func1)
     s.new_cells(name="func1_src", formula=src_func1)
 
-    s.new_cells(name="lambda1_code", formula=lambda x: 3 * x)
+    s.new_cells(name="lambda1_code",
+                formula=lambda x: 3 * x)
     s.new_cells(name="lambda1_src", formula="lambda x: 3 * x")
 
     return s

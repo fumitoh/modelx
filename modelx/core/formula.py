@@ -16,7 +16,7 @@ import token
 import ast
 import warnings
 from types import FunctionType
-from inspect import signature, getsource, getsourcefile
+from inspect import signature, getsource, getsourcefile, findsource
 from textwrap import dedent
 import tokenize
 import io
@@ -216,8 +216,11 @@ class ModuleSource:
                 self.funcs[name] = obj
 
 
-def is_funcdef(src):
-    """True if src is a function definition"""
+def is_funcdef(src: str):
+    """True if src is a function definition
+
+    ``src`` must be a valid Python statement
+    """
 
     module_node = ast.parse(dedent(src))
 
@@ -287,7 +290,11 @@ def has_lambda(src):
     return bool(lambdaexp)
 
 
-def extract_lambda(source: str):
+def is_lambda(func: FunctionType):
+    return func.__code__.co_name == "<lambda>"
+
+
+def extract_lambda_from_source(source: str):
 
     atok = asttokens.ASTTokens(source, parse=True)
 
@@ -296,6 +303,31 @@ def extract_lambda(source: str):
             break
 
     return source[node.first_token.startpos:node.last_token.endpos]
+
+
+def extract_lambda_from_func(func: FunctionType):
+    """Get source from function/lambda expression.
+
+    inspect.getsource returns entire lines including tokens following
+    the lambda extraction, so undocumented inspect.findsource
+    is used.
+    """
+    lines, row = findsource(func)  # inspect.findsource is not documented.
+    src = "".join(lines)
+    atok = asttokens.ASTTokens(src, parse=True)
+
+    lambdas = list(n for n in ast.walk(atok.tree)
+                   if isinstance(n, ast.Lambda) and
+                   n.lineno == row + 1)     # row is 0-indexed
+
+    if len(lambdas) == 1:
+        node = lambdas[0]
+        return src[node.first_token.startpos:node.last_token.endpos]
+
+    elif len(lambdas) > 0:
+        raise ValueError("more than 1 lambda expressions found")
+    else:
+        raise ValueError("no lambda expression found")
 
 
 class Formula:
@@ -307,26 +339,21 @@ class Formula:
         if isinstance(func, Formula):
             self._copy_other(func)
 
-        elif callable(func):
+        elif isinstance(func, FunctionType):
             if module is not None:
                 self.module = module
             else:
                 self.module = func.__module__
 
             try:
-                source = getsource(func)
-                found_source = True
+                self._init_from_func(func, name)
+                self.srcnames = extract_names(self.source)
+
             except OSError:
                 warnings.warn(
                     "Cannot retrieve source code for function '%s'. "
                     "%s.source set to None." % (func.__name__, func.__name__)
                 )
-                found_source = False
-
-            if found_source:
-                self._init_from_source(source, name)
-                self.srcnames = extract_names(self.source)
-            else:
                 self.func = func
                 self.signature = signature(func)
                 self.source = None
@@ -339,11 +366,20 @@ class Formula:
         else:
             raise ValueError("Invalid argument func: %s" % func)
 
+    def _init_from_func(self, func: FunctionType, name: str):
+
+        if is_lambda(func):
+            src = extract_lambda_from_func(func)
+            self._init_from_lambda(src, name)
+        else:
+            self._init_from_funcdef(getsource(func), name)
+
     def _init_from_source(self, src: str, name: str):
 
         if is_funcdef(src):
             self._init_from_funcdef(src, name)
         elif has_lambda(src):
+            src = extract_lambda_from_source(dedent(src))
             self._init_from_lambda(src, name)
         else:
             raise ValueError("invalid function or lambda definition")
@@ -365,8 +401,6 @@ class Formula:
         self.source = src
 
     def _init_from_lambda(self, src: str, name: str):
-
-        src = extract_lambda(dedent(src))
 
         namespace = {}
         # Assign the lambda to a temporary name to extract its object.
