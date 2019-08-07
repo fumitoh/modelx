@@ -33,13 +33,13 @@ def test_repr_model(repr_test):
 
 
 def test_repr_space(repr_test):
-    assert repr(repr_test.ReprSpace) == "<StaticSpace ReprSpace in ReprModel>"
+    assert repr(repr_test.ReprSpace) == "<UserSpace ReprSpace in ReprModel>"
 
 
 def test_repr_suspace(repr_test):
     assert (
         repr(repr_test.ReprSpace.ReprChild)
-        == "<StaticSpace ReprChild in ReprModel.ReprSpace>"
+        == "<UserSpace ReprChild in ReprModel.ReprSpace>"
     )
 
 

@@ -867,7 +867,7 @@ class BoundFunction(LazyEval):
     def __init__(self, owner):
         """Create altered function from owner's formula.
 
-        owner is a StaticSpaceImpl or CellsImpl, which has formula, and
+        owner is a UserSpaceImpl or CellsImpl, which has formula, and
         namespace_impl as its members.
         """
         LazyEval.__init__(self, [])

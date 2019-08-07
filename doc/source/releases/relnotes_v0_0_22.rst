@@ -43,23 +43,23 @@ Enhancements
   :py:func:`~read_model` function.
 * The maximum depth of formula recursion is extended from 1000 to 65000 by default.
 * Add ``set_property`` method to :py:class:`~core.model.Model`,
-  :py:class:`~core.space.StaticSpace`,
+  :py:class:`~core.space.UserSpace`,
   :py:class:`~core.cells.Cells`.
 * Add ``doc`` method to :py:class:`~core.model.Model`,
-  :py:class:`~core.space.StaticSpace`,
+  :py:class:`~core.space.UserSpace`,
   :py:class:`~core.cells.Cells`.
-* :py:meth:`~core.space.StaticSpace.new_space_from_excel` can now
+* :py:meth:`~core.space.UserSpace.new_space_from_excel` can now
   create a static space when ``space_param_order`` is not given.
 
 
 Backward Incompatible Changes
 =============================
-* Remove :py:attr:`~core.space.StaticSpace._self_cells` and
-  :py:attr:`~core.space.StaticSpace._derived_cells`
-  from :py:class:`~core.space.StaticSpace`
+* Remove :py:attr:`~core.space.UserSpace._self_cells` and
+  :py:attr:`~core.space.UserSpace._derived_cells`
+  from :py:class:`~core.space.UserSpace`
 
 Bug Fixes
 =========
-* Fix :py:meth:`~core.space.StaticSpace.add_bases` and
+* Fix :py:meth:`~core.space.UserSpace.add_bases` and
   :py:meth:`~core.cells.Cells.set_formula`.
 

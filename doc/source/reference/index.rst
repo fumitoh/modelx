@@ -32,7 +32,7 @@ Class Reference
    :template: mxclass.rst
 
    ~modelx.core.model.Model
-   ~modelx.core.space.StaticSpace
+   ~modelx.core.space.UserSpace
    ~modelx.core.space.DynamicSpace
    ~modelx.core.cells.Cells
    ~modelx.core.space.SpaceView

@@ -95,7 +95,7 @@ class Model(EditableSpaceContainer):
     """Top-level container in modelx object hierarchy.
 
     Model instances are the top-level objects and directly contain
-    :py:class:`StaticSpace <modelx.core.space.StaticSpace>` objects, which in turn
+    :py:class:`UserSpace <modelx.core.space.UserSpace>` objects, which in turn
     contain other spaces or
     :py:class:`Cells <modelx.core.cells.Cells>` objects.
 

@@ -122,8 +122,8 @@ def _to_frame_inner(cellsiter, args):
 class CellsView(SelectedView):
     """A mapping of cells names to cells objects.
 
-    CellsView objects are returned by :attr:`StaticSpace.cells` property.
-    When :attr:`StaticSpace.cells` is called without subscription(``[]`` operator),
+    CellsView objects are returned by :attr:`UserSpace.cells` property.
+    When :attr:`UserSpace.cells` is called without subscription(``[]`` operator),
     the returned CellsView contains all the cells in the space.
 
     CellsView supports a normal subscription(``[]``) operation with one
@@ -246,7 +246,7 @@ class BaseSpace(BaseSpaceContainer):
 
     def _is_static(self):
         """True if the space is a static space, False if dynamic."""
-        return isinstance(self._impl, StaticSpaceImpl)
+        return isinstance(self._impl, UserSpaceImpl)
 
     def _is_derived(self):
         """True if the space is a derived space, False otherwise."""
@@ -377,10 +377,10 @@ class BaseSpace(BaseSpaceContainer):
         return result
 
 
-class StaticSpace(BaseSpace, EditableSpaceContainer):
+class UserSpace(BaseSpace, EditableSpaceContainer):
     """Container of cells, other spaces, and cells namespace.
 
-    StaticSpace objects can contain cells and other spaces.
+    UserSpace objects can contain cells and other spaces.
     Spaces have mappings of names to objects that serve as global namespaces
     of the formulas of the cells in the spaces.
     """
@@ -648,7 +648,7 @@ class StaticSpace(BaseSpace, EditableSpaceContainer):
         elif isinstance(item, Cells):
             return item._impl in self._impl.cells.values()
 
-        elif isinstance(item, StaticSpace):
+        elif isinstance(item, UserSpace):
             return item._impl in self._impl.spaces.values()
 
         else:
@@ -1115,7 +1115,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             else:
                 if "bases" in space_args:
                     bases = get_impls(space_args["bases"])
-                    if isinstance(bases, StaticSpaceImpl):
+                    if isinstance(bases, UserSpaceImpl):
                         space_args["bases"] = [bases]
                     elif bases is None:
                         space_args["bases"] = [self]  # Default
@@ -1171,14 +1171,14 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         return _to_frame_inner(self.cells, args)
 
 
-class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
+class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     """Editable base Space class
 
     * cell creation
     * ref assignment
     """
 
-    if_cls = StaticSpace
+    if_cls = UserSpace
     state_attrs = (
         ["_dynamic_subs"]
         + BaseSpaceImpl.state_attrs
@@ -1413,7 +1413,7 @@ class StaticSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         """Implementation of attribute deletion
 
         ``del space.name`` by user script
-        Called from ``StaticSpace.__delattr__``
+        Called from ``UserSpace.__delattr__``
         """
         if name in self.namespace:
             if name in self.cells:
@@ -1610,7 +1610,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         )
 
     def _create_parentargs(self):
-        if isinstance(self.parent, StaticSpaceImpl):
+        if isinstance(self.parent, UserSpaceImpl):
             parentargs = []
         elif isinstance(self.parent, RootDynamicSpaceImpl):
             parentargs = [self.parent._arguments, self.parent._parentargs]

@@ -116,7 +116,7 @@ def defcells(space=None, name=None, *funcs):
 
     Convenience decorator/function to create new cells directly from function
     definitions or function objects substituting for calling
-    :py:meth:`new_cells <modelx.core.space.StaticSpace.new_cells>`
+    :py:meth:`new_cells <modelx.core.space.UserSpace.new_cells>`
     method of the parent space.
 
     There are 3 ways to use ``defcells`` to define cells from functions.

@@ -335,8 +335,8 @@ def write_model(model, model_path):
     Dynamic spaces and cells values are not stored.
 
     For spaces and cells created
-    by :py:meth:`~modelx.core.space.StaticSpace.new_space_from_excel` and
-    :py:meth:`~modelx.core.space.StaticSpace.new_cells_from_excel`,
+    by :py:meth:`~modelx.core.space.UserSpace.new_space_from_excel` and
+    :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`,
     the source Excel files are copied into the same directory where
     the text files for the spaces the methods are associated with are located.
     Then when the model is read by :py:func:`~read_model` function,
@@ -347,8 +347,8 @@ def write_model(model, model_path):
     Todo:
         This function and :py:meth:`~modelx.core.model.Model.write` method
         do not work property in combination with
-        :py:meth:`~modelx.core.space.StaticSpace.new_cells_from_excel`,
-        when :py:meth:`~modelx.core.space.StaticSpace.new_cells_from_excel`
+        :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`,
+        when :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`
         creates more than one cells at a time.
 
     Args:
