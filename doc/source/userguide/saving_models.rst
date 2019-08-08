@@ -12,9 +12,6 @@ By "Pickling", a model is saved into a single file as a byte stream.
 It is like taking a snapshot of a model.
 "Pickling" is meant for a short-term storage.
 
-
-
-* :class:`~core.model.Model`
 * :meth:`~core.model.Model.save`
 * :func:`open_model`
 

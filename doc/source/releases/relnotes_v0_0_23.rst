@@ -59,7 +59,7 @@ Other Enhancements
   the same execution of
   :meth:`~core.space.UserSpace.new_cells_from_excel` method.
 
-* Added :attr:`models`, an alias for :func:`get_models`
+* Added :attr:`modelx.models` attribute, an alias for :func:`get_models`
 
 Backward Incompatible Changes
 =============================

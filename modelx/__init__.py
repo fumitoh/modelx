@@ -12,6 +12,12 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Attributes defined in the top level module.
+
+Attributes:
+    models (dict): Alias for :func:`get_models`.
+
+"""
 
 VERSION = (0, 0, 23, "dev")
 __version__ = ".".join([str(x) for x in VERSION])

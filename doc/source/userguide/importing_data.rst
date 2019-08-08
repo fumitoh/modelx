@@ -67,7 +67,7 @@ and saved as binary files in the model folder.
 If data source files or objects are modified after the creation of
 Space and Cells before the model is written to the files,
 the data sources are saved reflecting the changes.
-See :doc:`saving_models` section for more details.
+.. See :doc:`saving_models` section for more details.
 
 
 

@@ -1,12 +1,6 @@
 Reference
 =========
 
-.. toctree::
-   :maxdepth: 1
-
-   importing_data
-   saving_models
-
 .. _function_reference:
 
 Function Reference
@@ -15,6 +9,7 @@ Function Reference
 .. autosummary::
    :toctree: generated/
 
+   ~modelx
    ~modelx.new_model
    ~modelx.new_space
    ~modelx.defcells
