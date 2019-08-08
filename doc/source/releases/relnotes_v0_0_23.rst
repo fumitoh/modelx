@@ -1,7 +1,7 @@
 .. currentmodule:: modelx
 
 ==============================
-modelx v0.0.23 (x August 2019)
+modelx v0.0.23 (9 August 2019)
 ==============================
 
 .. contents:: What's new in v0.0.23
