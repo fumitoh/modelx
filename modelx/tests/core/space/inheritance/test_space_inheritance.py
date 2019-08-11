@@ -178,11 +178,9 @@ def test_space_new_cells_override(testspaces):
         else:
             return fibo(x - 1) + fibo(x - 2)
 
-    # cells = target.new_cells(name='fibo', formula=fibo_new)
     cells = target.cells["fibo"]
+    assert cells._is_derived
     cells.set_formula(fibo_new)
 
-    # assert 'fibo' not in target.derived_cells
-    # assert target.self_cells['fibo'] is cells
-    # assert not cells.is_derived()
+    assert cells._is_defined
     assert cells(2) == 3
