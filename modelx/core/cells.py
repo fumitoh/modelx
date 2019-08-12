@@ -540,7 +540,7 @@ class CellsImpl(Derivable, Impl):
             cls = Formula
         self.formula = cls(func, name=self.name)
         self.altfunc.set_update()
-        self._model.spacegraph.update_subspaces_upward(
+        self._model.spacemgr.graph.update_subspaces_upward(
             self.parent, from_parent=False, event="cells_set_formula"
         )
 

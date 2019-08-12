@@ -861,7 +861,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     @property
     def direct_bases(self):
         """Return an iterator over direct base spaces"""
-        return list(self.model.spacegraph.predecessors(self))
+        return list(self.model.spacemgr.graph.predecessors(self))
 
     @property
     def self_bases(self):
@@ -890,7 +890,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     @property
     def mro(self):
         if self.update_mro:
-            self._mro_cache = self.model.spacegraph.get_mro(self)
+            self._mro_cache = self.model.spacemgr.graph.get_mro(self)
             self.update_mro = False
 
         return self._mro_cache
@@ -970,7 +970,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
                 if member.is_derived:
                     selfmap.del_item(name)
                     if attr == "static_spaces":
-                        self.model.spacegraph.remove_node(member)
+                        self.model.spacemgr.graph.remove_node(member)
                 else:
                     member.inherit(**kwargs)
 
@@ -1236,7 +1236,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def _new_space_member(self, name, is_derived):
         space = self._new_space(name, is_derived=is_derived)
         self._set_space(space)
-        self.model.spacegraph.add_space(space)
+        self.model.spacemgr.graph.add_space(space)
         return space
 
     def new_cells(self, name=None, formula=None, is_derived=False,
@@ -1247,7 +1247,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         else:
             cells = self._new_cells(name, formula, is_derived, source=source)
             cells.inherit()
-            self.model.spacegraph.update_subspaces_upward(
+            self.model.spacemgr.graph.update_subspaces_upward(
                 self, from_parent=False, event="new_cells"
             )
             return cells
@@ -1386,7 +1386,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def new_ref(self, name, value, is_derived=False):
         ref = self._new_ref(name, value, is_derived)
         ref.inherit()
-        self.model.spacegraph.update_subspaces(self)
+        self.model.spacemgr.graph.update_subspaces(self)
         return ref
 
     # ----------------------------------------------------------------------
@@ -1450,16 +1450,16 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         return self.mro[1:]
 
     def add_bases(self, bases):
-        self.model.spacegraph.check_mro(bases)
+        self.model.spacemgr.graph.check_mro(bases)
         for other in bases:
-            self.model.spacegraph.add_edge(other, self)
+            self.model.spacemgr.graph.add_edge(other, self)
         self.inherit()
-        self.model.spacegraph.update_subspaces(self)
+        self.model.spacemgr.graph.update_subspaces(self)
 
     def remove_base(self, other):  # TODO: Replace this with remove bases
-        self.model.spacegraph.remove_edge(other, self)
+        self.model.spacemgr.graph.remove_edge(other, self)
         self.inherit()
-        self.model.spacegraph.update_subspaces(self)
+        self.model.spacemgr.graph.update_subspaces(self)
 
     def remove_bases(self, bases):  # bases are interfaces
         for base in get_impls(bases):
@@ -1480,9 +1480,9 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
                 )
             else:
                 self.static_spaces.del_item(name)
-                self.model.spacegraph.remove_node(space)
+                self.model.spacemgr.graph.remove_node(space)
                 self.inherit()
-                self.model.spacegraph.update_subspaces(self)
+                self.model.spacemgr.graph.update_subspaces(self)
                 # TODO: Destroy space
 
         elif name in self.dynamic_spaces:
@@ -1502,7 +1502,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             cells = self.cells[name]
             self.cells.del_item(name)
             self.inherit()
-            self.model.spacegraph.update_subspaces(self)
+            self.model.spacemgr.graph.update_subspaces(self)
 
         elif name in self.dynamic_spaces:
             cells = self.dynamic_spaces.pop(name)

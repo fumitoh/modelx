@@ -173,7 +173,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
         self.cellgraph = DependencyGraph()
         self.lexdep = DependencyGraph()  # Lexical dependency
-        self.spacegraph = SpaceGraph()
+        self.spacemgr = SpaceManager(self)
         self.currentspace = None
 
         if not name:
@@ -274,7 +274,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             "_dynamic_bases",
             "_dynamic_bases_inverse",
             "_dynamic_base_namer",
-            "spacegraph",
+            "spacemgr",
         ]
         + BaseSpaceContainerImpl.state_attrs
         + Impl.state_attrs
@@ -375,7 +375,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         except KeyError:
             name = self._dynamic_base_namer.get_next(self._dynamic_bases)
             base = self._new_space(name=name)
-            self.spacegraph.add_space(base)
+            self.spacemgr.graph.add_space(base)
             self._dynamic_bases[name] = base
             self._dynamic_bases_inverse[bases] = base
             base.add_bases(bases)
@@ -387,7 +387,7 @@ class SpaceGraph(nx.DiGraph):
         self.add_node(space)
         self.update_subspaces(space)
 
-    def add_edge(self, basespace, subspace):
+    def add_edge(self, basespace, subspace, **attr):
 
         if basespace.has_linealrel(subspace):
             if not isinstance(subspace, DynamicSpaceImpl):
@@ -519,3 +519,11 @@ class SpaceGraph(nx.DiGraph):
             if subspace is self._start_space:
                 raise ValueError("Cyclic inheritance")
             self.update_subspaces(subspace, False, **kwargs)
+
+
+class SpaceManager:
+
+    def __init__(self, model):
+        self.model = model
+        self.graph = SpaceGraph()
+

@@ -3,7 +3,6 @@ import pytest
 from modelx.core.api import *
 from modelx.core.node import get_node
 from modelx.core.base import get_interfaces
-from modelx.core.model import SpaceGraph
 
 
 @pytest.fixture

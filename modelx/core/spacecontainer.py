@@ -440,7 +440,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         )
         self._set_space(space)
 
-        self.model.spacegraph.add_space(space)
+        self.model.spacemgr.graph.add_space(space)
 
         # Set up direct base spaces and mro
         if bases is not None:
@@ -606,6 +606,6 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
     def del_space(self, name):
         space = self.spaces.del_item(name)
-        self.model.spacegraph.remove_node(space)
+        self.model.spacemgr.graph.remove_node(space)
         for space in self.spaces.values():
             space.inherit()
