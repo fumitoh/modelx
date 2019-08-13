@@ -807,16 +807,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         if formula is not None:
             self.set_formula(formula)
 
-        # ------------------------------------------------------------------
-        # For repr of LazyEvalDict, LazyEvalImpl
-
-        self._cells.debug_name = "_cells"
-        self._static_spaces.debug_name = "_static_spaces"
-        self._dynamic_spaces.debug_name = "_dynamic_spaces"
-        self._self_refs.debug_name = "_self_refs"
-        self._refs.debug_name = "_refs"
-        self._namespace_impl.debug_name = "_namespace_impl"
-
     def _create_refs(self, arguments=None):
         raise NotImplementedError
 

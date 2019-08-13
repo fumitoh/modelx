@@ -196,7 +196,7 @@ class Impl:
             return self.repr_self(add_params)
 
     def __repr__(self):
-        return "%s: %s" % (repr(self.__class__), self.name)
+        return self.get_repr(fullname=True, add_params=True)
 
 
 class _DummyBuiltins:
@@ -705,15 +705,6 @@ class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
         self._update_order()
         self._update_interfaces()
 
-    def __repr__(self):
-        if hasattr(self, "debug_name"):
-            name = self.debug_name
-        else:
-            name = ""
-        return (
-            repr(self.owner.fullname) + ":" + repr(self.__class__) + ":" + name
-        )
-
 
 class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
     def __init__(
@@ -729,14 +720,6 @@ class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
         self._update_order()
         self._update_interfaces()
 
-    def __repr__(self):
-        if hasattr(self, "debug_name"):
-            name = self.debug_name
-        else:
-            name = ""
-        return (
-            repr(self.owner.fullname) + ":" + repr(self.__class__) + ":" + name
-        )
 
 
 # The code below is modified from UserDict in Python's standard library.
