@@ -6,6 +6,12 @@ python:
   - "3.6"
   - "3.7"
   - "3.8-dev"
+env:
+  - NETWORKX_VERSION=2.0
+  - NETWORKX_VERSION=2.1
+  - NETWORKX_VERSION=2.2
+  - NETWORKX_VERSION=2.3
+
 install:
   - pip install -r requirements-travis.txt
 script:

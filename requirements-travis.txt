@@ -1,4 +1,4 @@
-networkx
+networkx == ${NETWORKX_VERSION}
 asttokens
 pandas
 numpy
