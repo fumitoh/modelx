@@ -54,6 +54,7 @@ class SpaceGraph(nx.DiGraph):
             self.derive_tree(e)
 
     def get_absbases(self):
+        """Get absolute base nodes"""
         result = set(self.edges)
         for e in self.edges:
             tail, head = e
@@ -83,6 +84,7 @@ class SpaceGraph(nx.DiGraph):
             que.extend(e for e in edges if e not in visited)
 
     def derive_tree(self, edge):
+        """Create derived node under the head of edge from the tail of edge"""
         tail, head = edge
 
         tail_len = len(tail.split("."))
@@ -100,10 +102,13 @@ class SpaceGraph(nx.DiGraph):
 
         self.add_edges_from(derived, type="derived")
 
-    def get_subgraph(self, node):
-
-        nodes, _ = self.get_nodeset(node, set())
-        return type(self).copy(self.subgraph(nodes))
+    def get_subgraph(self, *nodes):
+        """Get sub graph with nodes reachable form ``node``"""
+        result = set()
+        for node in nodes:
+            nodeset, _ = self.get_nodeset(node, set())
+            result.update(nodeset)
+        return type(self).copy(self.subgraph(result))
 
     def get_nodeset(self, node, processed):
         """Get a subset of self.
@@ -142,7 +147,11 @@ class SpaceGraph(nx.DiGraph):
         return next((n for n in parents if self.is_endpoint(n)), node)
 
     def get_treenodes(self, node, include_self=True):
-        result = set([node]) if include_self else set()
+        """Get the child nodes of ``node``.
+
+        All child nodes must be included in ``self``.
+        """
+        result = {node} if include_self else set()
         return result.union(
             n for n in self.nodes if n[:len(node) + 1] == (node + "."))
 
@@ -150,8 +159,8 @@ class SpaceGraph(nx.DiGraph):
         return set(n for n in nodes if self.is_endpoint(n, edge))
 
     def get_otherends(self, nodes, edge="any"):
-        l = [set(self.get_neighbors(n, edge)) for n in nodes]
-        return set().union(*l)
+        otherends = [set(self.get_neighbors(n, edge)) for n in nodes]
+        return set().union(*otherends)
 
     def get_neighbors(self, node, edge):
         if edge == "in":
@@ -187,6 +196,48 @@ class SpaceGraph(nx.DiGraph):
         for s in spaces:
             name = s.get_fullname(omit_model=True)
             self.add_node(name, space=s)
+
+
+class SpaceManager:
+
+    def __init__(self):
+        self._inherit_graph = SpaceGraph()
+        self._derived_graph = SpaceGraph()
+
+    def new_space(self, space,):
+        """Create a new space."""
+        name = space.get_fullname(omit_model=True)
+        self._inherit_graph.add_node(name, space=space)
+
+        self._inherit_graph = nx.compose(
+            self._inherit_graph, self._derived_graph)
+
+    def add_bases(self, space, *bases):
+        space_name = space.get_fullname(omit_model=True)
+        if space_name not in self._inherit_graph:
+            raise ValueError("Space '%s' not found" % space_name)
+
+        base_names = [base.get_fullname(omit_model=True) for base in bases]
+
+        for base in base_names:
+            if base not in self._inherit_graph:
+                raise ValueError("Space '%s' not found" % base)
+
+        sub_inhg = self._inherit_graph.get_subgraph(base_names)
+        sub_inhg_last = sub_inhg.copy()
+        sub_derg_last = sub_inhg_last.copy()
+
+        for base in base_names:
+            sub_inhg.add_edge(base, space_name)
+
+        sub_derg = sub_inhg.derive_edges()
+        self._inherit_graph.remove_nodes_from(sub_inhg_last.nodes)
+        self._inherit_graph = nx.compose(self._inherit_graph,
+                                         sub_inhg)
+
+        self._derived_graph.remove_nodes_from(sub_derg_last.nodes)
+        self._derived_graph = nx.compose(self._derived_graph,
+                                         sub_derg)
 
 
 if __name__ == "__main__":
