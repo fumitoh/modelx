@@ -90,7 +90,6 @@ class SpaceGraph(nx.DiGraph):
         tail_len = len(tail.split("."))
         head_len = len(head.split("."))
 
-        debug = self.get_treenodes(tail, include_self=False)
         # Remove parent
         bases = set(".".join(n.split(".")[tail_len:])
                     for n in self.get_treenodes(tail, include_self=False))
@@ -100,7 +99,12 @@ class SpaceGraph(nx.DiGraph):
         # missing = bases - subs
         derived = set((tail + "." + n, head + "." + n) for n in bases)
 
-        self.add_edges_from(derived, type="derived")
+        for e in derived:
+            if e not in self.edges:
+                t, h = e
+                if h not in self.nodes:
+                    self.add_node(h, type="derived")
+                self.add_edge(t, h, type="derived")
 
     def get_subgraph(self, *nodes):
         """Get sub graph with nodes reachable form ``node``"""
