@@ -49,9 +49,11 @@ class SpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def derive_edges(self):
+    def get_derived_graph(self):
+        g = type(self).copy(self)
         for e in self.visit_edges():
-            self.derive_tree(e)
+            g.derive_tree(e)
+        return g
 
     def get_absbases(self):
         """Get absolute base nodes"""
@@ -59,29 +61,31 @@ class SpaceGraph(nx.DiGraph):
         for e in self.edges:
             tail, head = e
             if self.get_endpoints(
-                    self.get_treenodes(
+                    self.visit_treenodes(
                         self.get_topnode(tail)), edge="in"):
                 result.remove(e)
 
         return result
 
-    def visit_edges(self):
+    def visit_edges(self, *start):
         """Generator yielding edges in breadth-first order"""
-        que = list(self.get_absbases())
+        if not start:
+            start = self.get_absbases()
+
+        que = list(start)
         visited = set()
         while que:
             e = que.pop(0)
-            yield e
-
-            visited.add(e)
+            if e not in visited:
+                yield e
+                visited.add(e)
             _, head = e
-            edges = self.out_edges(
-                self.get_endpoints(
-                    self.get_treenodes(
-                        self.get_topnode(head)
-                    ), edge="out"))
-
-            que.extend(e for e in edges if e not in visited)
+            edges = []
+            for n in self.visit_treenodes(self.get_topnode(head, edge="out")):
+                if self.is_endpoint(n, edge="out"):
+                    edges.extend(oe for oe in self.out_edges(n)
+                                 if oe not in visited)
+            que += edges
 
     def derive_tree(self, edge):
         """Create derived node under the head of edge from the tail of edge"""
@@ -92,9 +96,9 @@ class SpaceGraph(nx.DiGraph):
 
         # Remove parent
         bases = set(".".join(n.split(".")[tail_len:])
-                    for n in self.get_treenodes(tail, include_self=False))
+                    for n in self.visit_treenodes(tail, include_self=False))
         subs = set(".".join(n.split(".")[head_len:])
-                   for n in self.get_treenodes(head, include_self=False))
+                   for n in self.visit_treenodes(head, include_self=False))
 
         # missing = bases - subs
         derived = set((tail + "." + n, head + "." + n) for n in bases)
@@ -103,7 +107,7 @@ class SpaceGraph(nx.DiGraph):
             if e not in self.edges:
                 t, h = e
                 if h not in self.nodes:
-                    self.add_node(h, type="derived")
+                    self.add_node(h, type="derived", status="created")
                 self.add_edge(t, h, type="derived")
 
     def get_subgraph(self, *nodes):
@@ -112,7 +116,31 @@ class SpaceGraph(nx.DiGraph):
         for node in nodes:
             nodeset, _ = self.get_nodeset(node, set())
             result.update(nodeset)
-        return type(self).copy(self.subgraph(result))
+        subg = type(self).copy(self.subgraph(result))
+
+        for n in subg.nodes:
+            subg.nodes[n]["status"] = "copied"
+
+        return subg
+
+    def get_updated(self, subgraph, nodeset=None, keep_self=True):
+        """Return a new space graph with nodeset removed and subgraph added
+
+        subgraph's status attribute is removed.
+        """
+        if nodeset is None:
+            nodeset = subgraph.nodes
+
+        if keep_self:
+            src = self.copy()
+        else:
+            src = self
+
+        for n in subgraph.nodes:
+            del subgraph.nodes[n]['status']
+
+        src.remove_nodes_from(nodeset)
+        return nx.compose(src, subgraph)
 
     def get_nodeset(self, node, processed):
         """Get a subset of self.
@@ -127,9 +155,8 @@ class SpaceGraph(nx.DiGraph):
         3. Find node sets.
         4. For each endpoint in the child nodes, repeat from 1.
         """
-
         top = self.get_topnode(node)
-        tree = self.get_treenodes(top)
+        tree = set(self.visit_treenodes(top))
         ends = self.get_endpoints(tree)
 
         neighbors = self.get_otherends(ends) - processed
@@ -142,22 +169,40 @@ class SpaceGraph(nx.DiGraph):
         return result, processed
 
     def get_parent_nodes(self, node: str, include_self=True):
+        """Get ancestors of ``node`` in order"""
         split = node.split(".")
-        size = len(split) if include_self else len(split) - 1
-        return [".".join(split[:i + 1]) for i in range(len(split))][:size]
+        maxlen = len(split) if include_self else len(split) - 1
 
-    def get_topnode(self, node):
-        parents = self.get_parent_nodes(node)
-        return next((n for n in parents if self.is_endpoint(n)), node)
+        result = []
+        for i in range(maxlen, 0, -1):
+            n = ".".join(split[:i])
+            if n in self.nodes:
+                result.insert(0, n)
+            else:
+                break
+        return result
 
-    def get_treenodes(self, node, include_self=True):
-        """Get the child nodes of ``node``.
-
-        All child nodes must be included in ``self``.
+    def get_topnode(self, node, edge="any"):
+        """Get the highest node that is an ancestor of the ``node``.
+        If none exits, return ``node``.
         """
-        result = {node} if include_self else set()
-        return result.union(
-            n for n in self.nodes if n[:len(node) + 1] == (node + "."))
+        parents = self.get_parent_nodes(node)
+        return next((n for n in parents if self.is_endpoint(n, edge)), node)
+
+
+    def visit_treenodes(self, node, include_self=True):
+
+        que = [node]
+        while que:
+            n = que.pop(0)
+            if n != node or include_self:
+                yield n
+
+            childs = [ch for ch in self.nodes
+                      if ch[:len(n) + 1] == (n + ".")
+                      and len(n.split(".")) + 1 == len(ch.split("."))]
+
+            que += childs
 
     def get_endpoints(self, nodes, edge="any"):
         return set(n for n in nodes if self.is_endpoint(n, edge))
@@ -186,7 +231,7 @@ class SpaceGraph(nx.DiGraph):
         else:
             raise ValueError
 
-    def add_bases(self, space, *bases):
+    def dbg_add_bases(self, space, *bases):
         space_name = space.get_fullname(omit_model=True)
         if space_name not in self:
             self.add_node(space_name, space=space)
@@ -196,7 +241,7 @@ class SpaceGraph(nx.DiGraph):
                 self.add_node(base_name, space=base)
             self.add_edge(base_name, space_name)
 
-    def add_spaces(self, *spaces):
+    def dbg_add_spaces(self, *spaces):
         for s in spaces:
             name = s.get_fullname(omit_model=True)
             self.add_node(name, space=s)
@@ -268,12 +313,12 @@ if __name__ == "__main__":
     m.new_space("E").new_space("G")
     m.new_space("F").new_space("B").new_space("D")
 
-    g.add_spaces(
+    g.dbg_add_spaces(
         *get_impls(
             [m.A, m.C, m.C.B, m.C.B.D, m.F, m.F.B, m.F.B.D, m.E, m.E.G]))
-    g.add_bases(m.A._impl, m.C.B._impl)
-    g.add_bases(m.C._impl, m.F._impl)
-    g.add_bases(m.C.B.D._impl, m.E._impl)
+    g.dbg_add_bases(m.A._impl, m.C.B._impl)
+    g.dbg_add_bases(m.C._impl, m.F._impl)
+    g.dbg_add_bases(m.C.B.D._impl, m.E._impl)
     retult, _ = g.get_nodeset("A", set())
 
     nodes = ["A", "C", "C.B", "C.B.D", "E", "E.G", "F", "F.B", "F.B.D"]
@@ -283,10 +328,10 @@ if __name__ == "__main__":
     print(g.get_nodeset("C.B", set())[0])
     sg = g.get_subgraph("C.B")
 
-    g.get_nodeset("F.B", set())[0]
-    sg.derive_edges()
+    print(g.get_nodeset("F.B", set())[0])
+    dg = sg.get_derived_graph()
 
-    for e in sg.edges:
-        print(e, sg.edges[e])
+    for e in dg.edges:
+        print(e, dg.edges[e])
 
-    print(sg.get_mro('C.B.D'))
+    print(dg.get_mro('C.B.D'))
