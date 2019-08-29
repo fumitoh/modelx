@@ -290,6 +290,12 @@ class ReferenceImpl(Derivable, Impl):
 
         self.__dict__.update(state)
 
+    def repr_parent(self):
+        return self.parent.repr_parent() + "." + self.parent.repr_self()
+
+    def repr_self(self, add_params=True):
+        return self.name
+
     @property
     def self_bases(self):
         return []
