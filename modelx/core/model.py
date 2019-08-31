@@ -16,6 +16,8 @@ import builtins
 import itertools
 from textwrap import dedent
 import pickle
+from collections import ChainMap
+import copy
 
 import networkx as nx
 
@@ -34,7 +36,12 @@ from modelx.core.spacecontainer import (
     EditableSpaceContainerImpl,
     EditableSpaceContainer,
 )
-from modelx.core.space import DynamicSpaceImpl, SpaceView, RefDict
+from modelx.core.space import (
+    UserSpaceImpl,
+    DynamicSpaceImpl,
+    SpaceView,
+    RefDict
+)
 from modelx.core.util import is_valid_name, AutoNamer
 
 
@@ -164,7 +171,6 @@ class Model(EditableSpaceContainer):
 
 
 class ModelImpl(EditableSpaceContainerImpl, Impl):
-
     if_cls = Model
 
     def __init__(self, *, system, name):
@@ -521,9 +527,526 @@ class SpaceGraph(nx.DiGraph):
             self.update_subspaces(subspace, False, **kwargs)
 
 
+class NewSpaceGraph(nx.DiGraph):
+    """New implementation of inheritance graph
+
+    Node state:
+        copied: Copied into sub graph
+        defined: Node created but space yet to create
+        created: Space created
+        updated: Existing space updated
+        unchanged: Existing space confirmed unchanged
+    """
+
+    def get_mro(self, node):
+        """Calculate the Method Resolution Order of bases using the C3 algorithm.
+
+        Code modified from
+        http://code.activestate.com/recipes/577748-calculate-the-mro-of-a-class/
+
+        Args:
+            bases: sequence of direct base spaces.
+
+        Returns:
+            mro as a list of bases including node itself
+        """
+        seqs = [self.get_mro(base)
+                for base in self.predecessors(node)
+                ] + [list(self.predecessors(node))]
+        res = []
+        while True:
+            non_empty = list(filter(None, seqs))
+
+            if not non_empty:
+                # Nothing left to process, we're done.
+                res.insert(0, node)
+                return res
+
+            for seq in non_empty:  # Find merge candidates among seq heads.
+                candidate = seq[0]
+                not_head = [s for s in non_empty if candidate in s[1:]]
+                if not_head:
+                    # Reject the candidate.
+                    candidate = None
+                else:
+                    break
+
+            if not candidate:  # Better to return None instead of error?
+                raise TypeError(
+                    "inconsistent hierarchy, no C3 MRO is possible"
+                )
+
+            res.append(candidate)
+
+            for seq in non_empty:
+                # Remove candidate.
+                if seq[0] == candidate:
+                    del seq[0]
+
+    def get_derived_graph(self, on_edge=None):
+        g = type(self).copy(self)
+        for e in self.visit_edges():
+            g.derive_tree(e, on_edge)
+        return g
+
+    def get_absbases(self):
+        """Get absolute base nodes"""
+        result = set(self.edges)
+        for e in self.edges:
+            tail, head = e
+            if self.get_endpoints(
+                    self.visit_treenodes(
+                        self.get_topnode(tail)), edge="in"):
+                result.remove(e)
+
+        return result
+
+    def visit_edges(self, *start):
+        """Generator yielding edges in breadth-first order"""
+        if not start:
+            start = self.get_absbases()
+
+        que = list(start)
+        visited = set()
+        while que:
+            e = que.pop(0)
+            if e not in visited:
+                yield e
+                visited.add(e)
+            _, head = e
+            edges = []
+            for n in self.visit_treenodes(self.get_topnode(head, edge="out")):
+                if self.is_endpoint(n, edge="out"):
+                    edges.extend(oe for oe in self.out_edges(n)
+                                 if oe not in visited)
+            que += edges
+
+    def derive_tree(self, edge, on_edge=None):
+        """Create derived node under the head of edge from the tail of edge"""
+        tail, head = edge
+
+        tail_len = len(tail.split("."))
+        head_len = len(head.split("."))
+
+        # Remove parent
+        bases = list(".".join(n.split(".")[tail_len:])
+                    for n in self.visit_treenodes(tail, include_self=False))
+        subs = list(".".join(n.split(".")[head_len:])
+                   for n in self.visit_treenodes(head, include_self=False))
+
+        # missing = bases - subs
+        derived = list((tail + "." + n, head + "." + n) for n in bases)
+
+        for e in derived:
+            if e not in self.edges:
+                t, h = e
+                if h not in self.nodes:
+                    self.add_node(h, mode="derived", state="defined")
+                self.add_edge(t, h, mode="derived")
+            if on_edge:
+                on_edge(self, e)
+
+    def subgraph_from_nodes(self, nodes, on_backup=None):
+        """Get sub graph with nodes reachable form ``node``"""
+        result = set()
+        for node in nodes:
+            if node in self.nodes:
+                nodeset, _ = self.get_nodeset(node, set())
+                result.update(nodeset)
+        subg = type(self).copy(self.subgraph(result))
+
+        for n in subg.nodes:
+            subg.nodes[n]["state"] = "copied"
+            if on_backup:
+                subg.nodes[n]["backup"] = on_backup(self, n)
+
+        return subg
+
+    def subgraph_from_state(self, state):
+        nodes = set(n for n in self if self.nodes[n]["state"] == state)
+        return type(self).copy(self.subgraph(nodes))
+
+    def get_updated(self, subgraph, nodeset=None, keep_self=True,
+                    on_restore=None):
+        """Return a new space graph with nodeset removed and subgraph added
+
+        subgraph's state attribute is removed.
+        """
+        if nodeset is None:
+            nodeset = subgraph.nodes
+
+        if keep_self:
+            src = self.copy()
+        else:
+            src = self
+
+        for n in subgraph.nodes:
+            del subgraph.nodes[n]["state"]
+
+        src.remove_nodes_from(nodeset)
+
+        if on_restore:
+            for n in self.nodes:
+                on_restore(subgraph, n)
+
+        return nx.compose(src, subgraph)
+
+    def get_nodeset(self, node, processed):
+        """Get a subset of self.
+
+        Get a subset of self such that the subset contains
+        nodes connected to ``node`` either through inheritance or composition.
+
+        0. Prepare an emptly node set
+        1. Get the top endopoint in the tree that ``node`` is in, or ``node``
+           if none.
+        2. Add to the node set all the child nodes of the top endpoint.
+        3. Find node sets.
+        4. For each endpoint in the child nodes, repeat from 1.
+        """
+        top = self.get_topnode(node)
+        tree = set(self.visit_treenodes(top))
+        ends = self.get_endpoints(tree)
+
+        neighbors = self.get_otherends(ends) - processed
+        processed.update(ends)
+        result = tree.copy()
+        for n in neighbors:
+            ret_res, _ = self.get_nodeset(n, processed)
+            result.update(ret_res)
+
+        return result, processed
+
+    def get_parent_nodes(self, node: str, include_self=True):
+        """Get ancestors of ``node`` in order"""
+        split = node.split(".")
+        maxlen = len(split) if include_self else len(split) - 1
+
+        result = []
+        for i in range(maxlen, 0, -1):
+            n = ".".join(split[:i])
+            if n in self.nodes:
+                result.insert(0, n)
+            else:
+                break
+        return result
+
+    def get_topnode(self, node, edge="any"):
+        """Get the highest node that is an ancestor of the ``node``.
+        If none exits, return ``node``.
+        """
+        parents = self.get_parent_nodes(node)
+        return next((n for n in parents if self.is_endpoint(n, edge)), node)
+
+    def visit_treenodes(self, node, include_self=True):
+        que = [node]
+        while que:
+            n = que.pop(0)
+            if n != node or include_self:
+                yield n
+            childs = [ch for ch in self.nodes
+                      if ch[:len(n) + 1] == (n + ".")
+                      and len(n.split(".")) + 1 == len(ch.split("."))]
+            que += childs
+
+    def get_endpoints(self, nodes, edge="any"):
+        return set(n for n in nodes if self.is_endpoint(n, edge))
+
+    def get_otherends(self, nodes, edge="any"):
+        otherends = [set(self.get_neighbors(n, edge)) for n in nodes]
+        return set().union(*otherends)
+
+    def get_neighbors(self, node, edge):
+        if edge == "in":
+            return self.predecessors(node)
+        elif edge == "out":
+            return self.successors(node)
+        else:
+            return itertools.chain(
+                self.predecessors(node), self.successors(node))
+
+    def is_endpoint(self, node, edge="any"):
+        if edge == "out":
+            return bool(self.out_edges(node))
+        elif edge == "in":
+            return bool(self.in_edges(node))
+        elif edge == "any":
+            return bool(self.out_edges(node) or
+                        self.in_edges(node))
+        else:
+            raise ValueError
+
+    def dbg_add_bases(self, space, *bases):
+        space_name = space.get_fullname(omit_model=True)
+        if space_name not in self:
+            self.add_node(space_name, space=space)
+        for base in bases:
+            base_name = base.get_fullname(omit_model=True)
+            if base_name not in self:
+                self.add_node(base_name, space=base)
+            self.add_edge(base_name, space_name)
+
+    def dbg_add_spaces(self, *spaces):
+        for s in spaces:
+            name = s.get_fullname(omit_model=True)
+            self.add_node(name, space=s)
+
+
 class SpaceManager:
 
     def __init__(self, model):
         self.model = model
         self.graph = SpaceGraph()
+        self._inheritance = NewSpaceGraph()
+        self._graph = NewSpaceGraph()
+
+    def can_add(self, parent, name, klass):
+
+        if parent is self.model:
+            return name not in parent.namespace
+
+        else:  # parent is UserSpaceImpl
+            if name in parent.namespace:
+                return False
+            else:
+                node = parent.get_fullname(omit_model=True)
+                descs = nx.descendants(self._graph, node)
+                for desc in descs:
+                    ns = self._graph.nodes[desc]['space'].namespace
+                    if desc in ns and not isinstance(ns[desc], klass):
+                        return False
+                return True
+
+    def new_space(
+            self,
+            parent,
+            name=None,
+            bases=None,
+            formula=None,
+            refs=None,
+            source=None,
+            prefix="",
+            doc=None
+    ):
+        """Create a new child space.
+
+        Args:
+            name (str): Name of the space. If omitted, the space is
+                created automatically.
+            bases: If specified, the new space becomes a derived space of
+                the `base` space.
+            formula: Function whose parameters used to set space parameters.
+            refs: a mapping of refs to be added.
+            source: A source module from which cell definitions are read.
+            prefix: Prefix to the autogenerated name when name is None.
+        """
+        if name is None:
+            while True:
+                name = parent.spacenamer.get_next(parent.namespace, prefix)
+                if self.can_add(parent, name, UserSpaceImpl):
+                    break
+
+        elif not self.can_add(parent, name, UserSpaceImpl):
+            raise ValueError("Cannot create space '%s'" % name)
+
+        if not prefix and not is_valid_name(name):
+            raise ValueError("Invalid name '%s'." % name)
+
+        if bases is None:
+            bases = []
+        elif isinstance(bases, UserSpaceImpl):
+            bases = [bases]
+
+        if parent.is_model():
+            node = name
+            pnode = []
+        else:
+            node = parent.get_fullname(omit_model=True) + "." + name
+            pnode = [parent.get_fullname(omit_model=True)]
+
+        nodes = pnode + [
+            b.get_fullname(omit_model=True) for b in bases]
+
+        subg_inh = self._inheritance.subgraph_from_nodes(
+            nodes, self.backup_hook)
+        subg = subg_inh.get_derived_graph()
+
+        newsubg_inh = subg_inh.copy()
+
+        space = UserSpaceImpl(
+            parent,
+            name,
+            formula=formula,
+            refs=refs,
+            source=source,
+            doc=doc)
+        parent._set_space(space)
+
+        newsubg_inh.add_node(
+            node, mode="defined", state="defined", space=space)
+
+        for b in bases:
+            base = b.get_fullname(omit_model=True)
+            newsubg_inh.add_edge(base, node, mode="defined")
+
+        if not nx.is_directed_acyclic_graph(newsubg_inh):
+            raise ValueError("cyclic inheritance")
+
+        newsubg_inh.get_mro(node)  # Check if MRO is possible
+        newsubg = newsubg_inh.get_derived_graph(on_edge=self.derive_hook)
+        # Add derived spaces back to newsubg_inh
+        newsubg_inh = nx.compose(newsubg_inh,
+                                 newsubg.subgraph_from_state("created"))
+
+        if not nx.is_directed_acyclic_graph(newsubg):
+            raise ValueError("cyclic inheritance")
+
+        # Check if MRO is possible for each node in sub graph
+        for n in nx.descendants(newsubg, node):
+            newsubg.get_mro(n)
+
+        self._inheritance = self._inheritance.get_updated(
+            newsubg_inh, nodeset=subg_inh.nodes, keep_self=False
+        )
+        self._graph = self._graph.get_updated(
+            newsubg, nodeset=subg.nodes, keep_self=False
+        )
+        return space
+
+    def backup_hook(self, graph, node):
+        space = graph.nodes[node]["space"]
+        state = space.__getstate__()
+        return copy.copy(state)
+
+    def restore_hook(self, graph, node):
+        space = graph.nodes[node]["space"]
+        space.__setstate__(graph.nodes[node]["backup"])
+
+    def derive_hook(self, graph, edge):
+        tail, head = edge
+        state = graph.nodes[head]["state"]
+        # mro = graph.get_mro(head)
+        parent_node = ".".join(head.split(".")[:-1])
+        name = head.split(".")[-1]
+        parent = graph.nodes[parent_node]["space"]
+
+        if state == "defined":
+            space = UserSpaceImpl(
+                parent,
+                name
+                # formula=formula,
+                # refs=refs,
+                # source=source,
+                # doc=doc
+            )
+            parent._set_space(space)
+            space._is_derived = True
+            graph.nodes[head]["space"] = space
+            graph.nodes[head]["state"] = "created"
+
+        self.inherit(head, graph)
+
+    def inherit(self, node, subg: NewSpaceGraph, **kwargs):
+
+        space = subg.nodes[node]["space"]
+        mode = subg.nodes[node]["mode"]
+        mro = subg.get_mro(node)
+        space.set_formula(subg.nodes[mro[1]]["space"].formula)
+
+        attrs = ("cells", "self_refs")
+
+        for attr in attrs:
+            selfdict = getattr(space, attr)
+            basedict = ChainMap(*[getattr(subg.nodes[base]["space"], attr)
+                                 for base in subg.get_mro(node)[1:]])
+
+            missing = set(basedict) - set(selfdict)
+            shared = set(selfdict) & set(basedict)
+            diffs = set(selfdict) - set(basedict)
+
+            for name in missing & shared:
+                base = next(b[name] for b in basedict
+                            if name in b and b[name].is_defined)
+
+                if name in missing:
+                    selfdict[name] = space._new_member(
+                        attr, name, is_derived=True)
+
+                if selfdict[name].is_derived:
+                    if "clear_value" not in kwargs:
+                        kwargs["clear_value"] = True
+                    selfdict[name].inherit(**kwargs)
+
+            if space.is_derived:
+                for name in diffs:
+                    selfdict.del_item(name)
+
+        for dynspace in space._dynamic_subs:
+            dynspace.inherit(**kwargs)
+
+    def add_bases(self, space, *bases):
+        """Add bases to space in graph
+        """
+        node = space.get_fullname(omit_model=True)
+
+        if node not in self._inheritance:
+            raise ValueError("Space '%s' not found" % node)
+
+        basenodes = [base.get_fullname(omit_model=True) for base in bases]
+
+        for base in basenodes:
+            if base not in self._inheritance:
+                raise ValueError("Space '%s' not found" % base)
+
+        subg_inh = self._inheritance.subgraph_from_nodes([node] + basenodes)
+        newsubg_inh = subg_inh.copy()
+
+        for b in basenodes:
+            newsubg_inh.add_edge(b, node, mode="defined")
+
+        for p in newsubg_inh.get_parent_nodes(node):
+            newsubg_inh.nodes[p]["mode"] = "defined"
+
+        if not nx.is_directed_acyclic_graph(newsubg_inh):
+            raise ValueError("cyclic inheritance")
+
+        for n in itertools.chain({node}, nx.descendants(newsubg_inh, node)):
+            newsubg_inh.get_mro(n)
+
+        newsubg = newsubg_inh.derive_edges()
+
+        if not nx.is_directed_acyclic_graph(newsubg):
+            raise ValueError("cyclic inheritance")
+
+        for desc in itertools.chain(
+                {node},
+                nx.descendants(newsubg, node)):
+
+            mro = newsubg.get_mro(desc)
+            for n in mro[::-1]:
+                pass
+                # TODO
+
+            # Check name conflict between spaces, cells, refs
+            members = {
+                attr: set().union(getattr(s, attr) for s in mro)
+                for attr in ["spaces", "cells", "refs"]
+            }
+            if not set().intersection(names for names in members.values()):
+                raise NameError("name conflict")
+
+        # ---------------------------------
+
+        sub_inhg_last = subg_inh.copy()
+        sub_derg_last = sub_inhg_last.copy()
+
+        for base in basenodes:
+            subg_inh.add_edge(base, node)
+
+        sub_derg = subg_inh.derive_edges()
+        self._inheritance.remove_nodes_from(sub_inhg_last.nodes)
+        self._inheritance = nx.compose(self._inheritance, subg_inh)
+
+        self._graph.remove_nodes_from(sub_derg_last.nodes)
+        self._graph = nx.compose(self._graph, sub_derg)
 
