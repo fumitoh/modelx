@@ -894,9 +894,6 @@ class SpaceManager:
 
         newsubg_inh.get_mro(node)  # Check if MRO is possible
         newsubg = newsubg_inh.get_derived_graph(on_edge=self.derive_hook)
-        # Add derived spaces back to newsubg_inh
-        newsubg_inh = nx.compose(newsubg_inh,
-                                 newsubg.subgraph_from_state("created"))
 
         if not nx.is_directed_acyclic_graph(newsubg):
             raise ValueError("cyclic inheritance")
@@ -905,13 +902,24 @@ class SpaceManager:
         for n in nx.descendants(newsubg, node):
             newsubg.get_mro(n)
 
+        self.apply_subgraph(newsubg_inh, newsubg, subg_inh, subg)
+
+        return space
+
+    def apply_subgraph(self, newsubg_inh, newsubg, subg_inh, subg):
+
+        # Add derived spaces back to newsubg_inh
+        created = newsubg.subgraph_from_state("created")
+        if created:
+            created.remove_edges_from(list(created.edges))
+        newsubg_inh = nx.compose(newsubg_inh, created)
+
         self._inheritance = self._inheritance.get_updated(
             newsubg_inh, nodeset=subg_inh.nodes, keep_self=False
         )
         self._graph = self._graph.get_updated(
             newsubg, nodeset=subg.nodes, keep_self=False
         )
-        return space
 
     def backup_hook(self, graph, node):
         space = graph.nodes[node]["space"]
@@ -999,6 +1007,7 @@ class SpaceManager:
                 raise ValueError("Space '%s' not found" % base)
 
         subg_inh = self._inheritance.subgraph_from_nodes([node] + basenodes)
+        subg = subg_inh.get_derived_graph()
         newsubg_inh = subg_inh.copy()
 
         for b in basenodes:
@@ -1013,7 +1022,7 @@ class SpaceManager:
         for n in itertools.chain({node}, nx.descendants(newsubg_inh, node)):
             newsubg_inh.get_mro(n)
 
-        newsubg = newsubg_inh.derive_edges()
+        newsubg = newsubg_inh.get_derived_graph(on_edge=self.derive_hook)
 
         if not nx.is_directed_acyclic_graph(newsubg):
             raise ValueError("cyclic inheritance")
@@ -1023,30 +1032,18 @@ class SpaceManager:
                 nx.descendants(newsubg, node)):
 
             mro = newsubg.get_mro(desc)
-            for n in mro[::-1]:
-                pass
-                # TODO
 
             # Check name conflict between spaces, cells, refs
-            members = {
-                attr: set().union(getattr(s, attr) for s in mro)
-                for attr in ["spaces", "cells", "refs"]
-            }
-            if not set().intersection(names for names in members.values()):
-                raise NameError("name conflict")
+            members = {}
+            for attr in ["spaces", "cells", "refs"]:
+                namechain = []
+                for sname in mro:
+                    space = newsubg.nodes[sname]["space"]
+                    namechain.append(set(getattr(space, attr).keys()))
+                members[attr] = set().union(*namechain)
 
-        # ---------------------------------
+            conflict = set().intersection(*[n for n in members.values()])
+            if conflict:
+                raise NameError("name conflict: %s" % conflict)
 
-        sub_inhg_last = subg_inh.copy()
-        sub_derg_last = sub_inhg_last.copy()
-
-        for base in basenodes:
-            subg_inh.add_edge(base, node)
-
-        sub_derg = subg_inh.derive_edges()
-        self._inheritance.remove_nodes_from(sub_inhg_last.nodes)
-        self._inheritance = nx.compose(self._inheritance, subg_inh)
-
-        self._graph.remove_nodes_from(sub_derg_last.nodes)
-        self._graph = nx.compose(self._graph, sub_derg)
-
+        self.apply_subgraph(newsubg_inh, newsubg, subg_inh, subg)
