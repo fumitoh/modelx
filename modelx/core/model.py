@@ -583,10 +583,10 @@ class NewSpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def get_derived_graph(self, on_edge=None):
+    def get_derived_graph(self, on_edge=None, on_remove=None):
         g = type(self).copy(self)
         for e in self.visit_edges():
-            g.derive_tree(e, on_edge)
+            g.derive_tree(e, on_edge, on_remove)
         return g
 
     def get_absbases(self):
@@ -621,7 +621,7 @@ class NewSpaceGraph(nx.DiGraph):
                                  if oe not in visited)
             que += edges
 
-    def derive_tree(self, edge, on_edge=None):
+    def derive_tree(self, edge, on_edge=None, on_remove=None):
         """Create derived node under the head of edge from the tail of edge"""
         tail, head = edge
 
@@ -646,6 +646,15 @@ class NewSpaceGraph(nx.DiGraph):
             if on_edge:
                 on_edge(self, e)
 
+        for n in subs:
+            if n not in bases:
+                n = head + "." + n
+                if self.nodes[n]["mode"] == "derived":
+                    if not list(self.predecessors(n)):
+                        self.remove_node(n)
+                        if on_remove:
+                            on_remove(self, n)
+
     def subgraph_from_nodes(self, nodes, on_backup=None):
         """Get sub graph with nodes reachable form ``node``"""
         result = set()
@@ -663,6 +672,7 @@ class NewSpaceGraph(nx.DiGraph):
         return subg
 
     def subgraph_from_state(self, state):
+        """Get sub graph with nodes with ``state``"""
         nodes = set(n for n in self if self.nodes[n]["state"] == state)
         return type(self).copy(self.subgraph(nodes))
 
@@ -902,11 +912,11 @@ class SpaceManager:
         for n in nx.descendants(newsubg, node):
             newsubg.get_mro(n)
 
-        self.apply_subgraph(newsubg_inh, newsubg, subg_inh, subg)
+        self.update_graphs(newsubg_inh, newsubg, subg_inh, subg)
 
         return space
 
-    def apply_subgraph(self, newsubg_inh, newsubg, subg_inh, subg):
+    def update_graphs(self, newsubg_inh, newsubg, remove_inh, remove):
 
         # Add derived spaces back to newsubg_inh
         created = newsubg.subgraph_from_state("created")
@@ -915,10 +925,10 @@ class SpaceManager:
         newsubg_inh = nx.compose(newsubg_inh, created)
 
         self._inheritance = self._inheritance.get_updated(
-            newsubg_inh, nodeset=subg_inh.nodes, keep_self=False
+            newsubg_inh, nodeset=remove_inh, keep_self=False
         )
         self._graph = self._graph.get_updated(
-            newsubg, nodeset=subg.nodes, keep_self=False
+            newsubg, nodeset=remove, keep_self=False
         )
 
     def backup_hook(self, graph, node):
@@ -931,6 +941,7 @@ class SpaceManager:
         space.__setstate__(graph.nodes[node]["backup"])
 
     def derive_hook(self, graph, edge):
+        """Callback passed as on_edge parameter"""
         tail, head = edge
         state = graph.nodes[head]["state"]
         # mro = graph.get_mro(head)
@@ -952,6 +963,17 @@ class SpaceManager:
             graph.nodes[head]["space"] = space
             graph.nodes[head]["state"] = "created"
 
+        self.inherit(head, graph)
+
+    def remove_hook(self, graph, node):
+        parent_node = ".".join(node.split(".")[:-1])
+        name = node.split(".")[-1]
+        parent = graph.nodes[parent_node]["space"]
+        parent.static_spaces.del_item(name)
+        
+    def inherit_hook(self, graph, edge):
+        """Callback passed as on_edge parameter"""
+        tail, head = edge
         self.inherit(head, graph)
 
     def inherit(self, node, subg: NewSpaceGraph, **kwargs):
@@ -1046,4 +1068,32 @@ class SpaceManager:
             if conflict:
                 raise NameError("name conflict: %s" % conflict)
 
-        self.apply_subgraph(newsubg_inh, newsubg, subg_inh, subg)
+        self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
+
+    def del_defined_space(self, parent, name):
+
+        if parent.is_model():
+            node = name
+        else:
+            node = parent.get_fullname(omit_model=True) + "." + name
+
+        if node not in self._inheritance:
+            raise ValueError("Space '%s' not found" % node)
+        elif self._inheritance.nodes[node]["mode"] == "derived":
+            raise ValueError("cannot delete derived space")
+
+        subg_inh = self._inheritance.subgraph_from_nodes(
+            [node], self.backup_hook)
+        subg = subg_inh.get_derived_graph()
+
+        newsubg_inh = subg_inh.copy()
+        newsubg_inh.remove_nodes_from(set(newsubg_inh.visit_treenodes(node)))
+        newsubg = newsubg_inh.get_derived_graph(
+            on_edge=self.inherit_hook,
+            on_remove=self.remove_hook
+        )
+        for n in set(newsubg_inh.nodes):
+            if n not in newsubg:
+                newsubg_inh.remove_node(n)
+        self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
+
