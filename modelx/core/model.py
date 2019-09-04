@@ -1018,13 +1018,9 @@ class SpaceManager:
         """Add bases to space in graph
         """
         node = space.get_fullname(omit_model=True)
-
-        if node not in self._inheritance:
-            raise ValueError("Space '%s' not found" % node)
-
         basenodes = [base.get_fullname(omit_model=True) for base in bases]
 
-        for base in basenodes:
+        for base in [node] + basenodes:
             if base not in self._inheritance:
                 raise ValueError("Space '%s' not found" % base)
 
@@ -1069,6 +1065,55 @@ class SpaceManager:
                 raise NameError("name conflict: %s" % conflict)
 
         self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
+
+    def del_bases(self, space, *bases):
+
+        node = space.get_fullname(omit_model=True)
+        basenodes = [base.get_fullname(omit_model=True) for base in bases]
+
+        for base in [node] + basenodes:
+            if base not in self._inheritance:
+                raise ValueError("Space '%s' not found" % base)
+
+        subg_inh = self._inheritance.subgraph_from_nodes([node] + basenodes)
+        subg = subg_inh.get_derived_graph()
+        newsubg_inh = subg_inh.copy()
+
+        for b in basenodes:
+            newsubg_inh.remove_edge(b, node)
+
+        if not nx.is_directed_acyclic_graph(newsubg_inh):
+            raise ValueError("cyclic inheritance")
+
+        for n in itertools.chain({node}, nx.descendants(newsubg_inh, node)):
+            newsubg_inh.get_mro(n)
+
+        newsubg = newsubg_inh.get_derived_graph(on_edge=self.derive_hook)
+
+        if not nx.is_directed_acyclic_graph(newsubg):
+            raise ValueError("cyclic inheritance")
+
+        for desc in itertools.chain(
+                {node},
+                nx.descendants(newsubg, node)):
+
+            mro = newsubg.get_mro(desc)
+
+            # Check name conflict between spaces, cells, refs
+            members = {}
+            for attr in ["spaces", "cells", "refs"]:
+                namechain = []
+                for sname in mro:
+                    space = newsubg.nodes[sname]["space"]
+                    namechain.append(set(getattr(space, attr).keys()))
+                members[attr] = set().union(*namechain)
+
+            conflict = set().intersection(*[n for n in members.values()])
+            if conflict:
+                raise NameError("name conflict: %s" % conflict)
+
+        self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
+
 
     def del_defined_space(self, parent, name):
 
