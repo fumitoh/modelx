@@ -42,6 +42,7 @@ from modelx.core.space import (
     SpaceView,
     RefDict
 )
+from modelx.core.cells import CellsImpl
 from modelx.core.util import is_valid_name, AutoNamer
 
 
@@ -583,9 +584,9 @@ class NewSpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def get_derived_graph(self, on_edge=None, on_remove=None):
+    def get_derived_graph(self, on_edge=None, on_remove=None, start=()):
         g = type(self).copy(self)
-        for e in self.visit_edges():
+        for e in self.visit_edges(*start):
             g.derive_tree(e, on_edge, on_remove)
         return g
 
@@ -625,12 +626,14 @@ class NewSpaceGraph(nx.DiGraph):
         """Create derived node under the head of edge from the tail of edge"""
         tail, head = edge
 
-        tail_len = len(tail.split("."))
-        head_len = len(head.split("."))
-
-        # Remove parent
-        bases = list(".".join(n.split(".")[tail_len:])
+        if tail:
+            tail_len = len(tail.split("."))
+            bases = list(".".join(n.split(".")[tail_len:])
                     for n in self.visit_treenodes(tail, include_self=False))
+        else:
+            bases = []
+
+        head_len = len(head.split("."))
         subs = list(".".join(n.split(".")[head_len:])
                    for n in self.visit_treenodes(head, include_self=False))
 
@@ -918,6 +921,9 @@ class SpaceManager:
 
     def update_graphs(self, newsubg_inh, newsubg, remove_inh, remove):
 
+        newsubg_inh.remove_nodes_from(
+            set(n for n in newsubg_inh if n not in newsubg))
+
         # Add derived spaces back to newsubg_inh
         created = newsubg.subgraph_from_state("created")
         if created:
@@ -968,9 +974,12 @@ class SpaceManager:
     def remove_hook(self, graph, node):
         parent_node = ".".join(node.split(".")[:-1])
         name = node.split(".")[-1]
-        parent = graph.nodes[parent_node]["space"]
-        parent.static_spaces.del_item(name)
-        
+        if parent_node:
+            parent = graph.nodes[parent_node]["space"]
+            parent.static_spaces.del_item(name)
+        else:
+            self.model.del_space(name)
+
     def inherit_hook(self, graph, edge):
         """Callback passed as on_edge parameter"""
         tail, head = edge
@@ -1088,7 +1097,11 @@ class SpaceManager:
         for n in itertools.chain({node}, nx.descendants(newsubg_inh, node)):
             newsubg_inh.get_mro(n)
 
-        newsubg = newsubg_inh.get_derived_graph(on_edge=self.derive_hook)
+        newsubg = newsubg_inh.get_derived_graph(
+            on_edge=self.derive_hook,
+            on_remove=self.remove_hook,
+            start=[("", node)]
+        )
 
         if not nx.is_directed_acyclic_graph(newsubg):
             raise ValueError("cyclic inheritance")
@@ -1114,13 +1127,13 @@ class SpaceManager:
 
         self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
 
-
     def del_defined_space(self, parent, name):
 
         if parent.is_model():
-            node = name
+            node =  name
         else:
-            node = parent.get_fullname(omit_model=True) + "." + name
+            pnode = parent.get_fullname(omit_model=True)
+            node = pnode + "." + name
 
         if node not in self._inheritance:
             raise ValueError("Space '%s' not found" % node)
@@ -1132,10 +1145,19 @@ class SpaceManager:
         subg = subg_inh.get_derived_graph()
 
         newsubg_inh = subg_inh.copy()
-        newsubg_inh.remove_nodes_from(set(newsubg_inh.visit_treenodes(node)))
+        succs = list(newsubg_inh.successors(node))
+
+        # Remove node and its child tree
+        children = set()
+        for child in newsubg_inh.visit_treenodes(node):
+            children.add(child)
+            self.remove_hook(newsubg_inh, child)
+
+        newsubg_inh.remove_nodes_from(children)
         newsubg = newsubg_inh.get_derived_graph(
             on_edge=self.inherit_hook,
-            on_remove=self.remove_hook
+            on_remove=self.remove_hook,
+            start=[("", node) for node in succs]
         )
         for n in set(newsubg_inh.nodes):
             if n not in newsubg:
