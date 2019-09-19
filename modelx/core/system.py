@@ -35,38 +35,46 @@ class Execution:
 
         self.system = system
         self.callstack = CallStack(maxdepth)
-        self.thread = None
+        self.thread = Execution.ExecThread(self)
+        self.thread.daemon = True
+        self.thread.start()
         self.initnode = None
 
     def eval_cell(self, node):
 
-        if not self.thread:
-            # (self.thread is None) == not self.callstack must be always True
-            return self._start_thread(node)
-        else:
+        if self.thread.signal_start.is_set():
             return self._eval_formula(node)
+        else:
+            return self._start_exec(node)
 
     class ExecThread(threading.Thread):
 
         def __init__(self, execution):
             self.execution = execution
             self.buffer = None
+            self.signal_start = threading.Event()
+            self.signal_stop = threading.Event()
             super().__init__()
 
         def run(self):
-            try:
-                self.buffer = self.execution._eval_formula(
-                    self.execution.initnode)
-            except:
-                self.execution.exception = sys.exc_info()
+            while True:
+                self.signal_start.wait()
+                try:
+                    self.buffer = self.execution._eval_formula(
+                        self.execution.initnode)
+                except:
+                    self.execution.exception = sys.exc_info()
 
-    def _start_thread(self, node):
+                self.signal_start.clear()
+                self.signal_stop.set()
+
+    def _start_exec(self, node):
         self.initnode = node
         self.exception = None
-        self.thread = Execution.ExecThread(self)
         try:
-            self.thread.start()
-            self.thread.join()
+            self.thread.signal_start.set()
+            self.thread.signal_stop.wait()
+            self.thread.signal_stop.clear()
             assert not self.callstack
 
             if self.exception:
@@ -78,7 +86,6 @@ class Execution:
 
         finally:
             self.initnode = None
-            self.thread = None
 
     def _eval_formula(self, node):
 
