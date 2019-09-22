@@ -48,6 +48,7 @@ from modelx.core.space import (
 from modelx.core.cells import CellsImpl
 from modelx.core.util import is_valid_name, AutoNamer
 
+_nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
 
 class DependencyGraph(nx.DiGraph):
     """Directed Graph of ObjectArgs"""
@@ -403,6 +404,10 @@ class SpaceGraph(nx.DiGraph):
         unchanged: Existing space confirmed unchanged
     """
 
+    def fresh_copy(self):   # Only for networkx -2.1
+        """Overriding Graph.fresh_copy"""
+        return SpaceGraph()
+
     def ordered_preds(self, node):
         edges = [(self.edges[e]["index"], e) for e in self.in_edges(node)]
         return [e[0] for i, e in sorted(edges, key=lambda elm: elm[0])]
@@ -464,7 +469,7 @@ class SpaceGraph(nx.DiGraph):
                     del seq[0]
 
     def get_derived_graph(self, on_edge=None, on_remove=None, start=()):
-        g = type(self).copy(self)
+        g = self.copy_as_spacegraph(self)
         for e in self.visit_edges(*start):
             g.derive_tree(e, on_edge, on_remove)
         return g
@@ -567,7 +572,8 @@ class SpaceGraph(nx.DiGraph):
             if node in self.nodes:
                 nodeset, _ = self.get_nodeset(node, set())
                 result.update(nodeset)
-        subg = type(self).copy(self.subgraph(result))
+
+        subg = self.copy_as_spacegraph(self.subgraph(result))
 
         for n in subg.nodes:
             subg.nodes[n]["state"] = "copied"
@@ -579,7 +585,7 @@ class SpaceGraph(nx.DiGraph):
     def subgraph_from_state(self, state):
         """Get sub graph with nodes with ``state``"""
         nodes = set(n for n in self if self.nodes[n]["state"] == state)
-        return type(self).copy(self.subgraph(nodes))
+        return self.copy_as_spacegraph(self.subgraph(nodes))
 
     def get_updated(self, subgraph, nodeset=None, keep_self=True,
                     on_restore=None):
@@ -591,7 +597,7 @@ class SpaceGraph(nx.DiGraph):
             nodeset = subgraph.nodes
 
         if keep_self:
-            src = self.copy()
+            src = self.copy_as_spacegraph(self)
         else:
             src = self
 
@@ -732,6 +738,25 @@ class SpaceGraph(nx.DiGraph):
     def get_mode(self, node):
         return self.nodes[node]["mode"]
 
+    def copy_as_spacegraph(self, g):
+
+        def copy(klass, graph, as_view=False):
+
+            if as_view is True:
+                return nx.graphviews.DiGraphView(graph)
+            G = klass()
+            G.graph.update(graph.graph)
+            G.add_nodes_from((n, d.copy()) for n, d in graph._node.items())
+            G.add_edges_from((u, v, datadict.copy())
+                             for u, nbrs in graph._adj.items()
+                             for v, datadict in nbrs.items())
+            return G
+
+        if _nxver < (2, 2):
+            return copy(type(self), g)
+        else:
+            return type(self).copy(g)
+
 
 class SpaceManager:
 
@@ -813,7 +838,7 @@ class SpaceManager:
             nodes, self.backup_hook)
         subg = subg_inh.get_derived_graph()
 
-        newsubg_inh = subg_inh.copy()
+        newsubg_inh = subg_inh.copy_as_spacegraph(subg_inh)
 
         space = UserSpaceImpl(
             parent,
