@@ -477,17 +477,17 @@ class CellsImpl(Derivable, Impl):
         else:
             raise ValueError("%s not a scalar" % self.name)
 
-    def inherit(self, **kwargs):
+    def inherit(self, bases, **kwargs):
 
         if "clear_value" in kwargs:
             clear_value = kwargs["clear_value"]
         else:
             clear_value = True
 
-        if self.bases:
+        if bases:
             if clear_value:
                 self._model.clear_obj(self)
-            self.formula = self.bases[0].formula
+            self.formula = bases[0].formula
             self.altfunc.set_update()
 
     @property
@@ -500,10 +500,6 @@ class CellsImpl(Derivable, Impl):
     @property
     def module(self):
         return self.formula.module
-
-    @property
-    def self_bases(self):
-        return []
 
     @staticmethod
     def _get_members(other):
@@ -540,9 +536,8 @@ class CellsImpl(Derivable, Impl):
             cls = Formula
         self.formula = cls(func, name=self.name)
         self.altfunc.set_update()
-        self._model.spacegraph.update_subspaces_upward(
-            self.parent, from_parent=False, event="cells_set_formula"
-        )
+
+        self._model.spacemgr.update_subs(self.parent)
 
     # ----------------------------------------------------------------------
     # Value operations

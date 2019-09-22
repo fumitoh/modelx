@@ -196,7 +196,7 @@ class Impl:
             return self.repr_self(add_params)
 
     def __repr__(self):
-        return "%s: %s" % (repr(self.__class__), self.name)
+        return self.get_repr(fullname=True, add_params=True)
 
 
 class _DummyBuiltins:
@@ -231,30 +231,13 @@ class Derivable:
 
     @property
     def bases(self):
-        return self.self_bases + self.parent_bases
-
-    @property
-    def parent_bases(self):
-        if self.parent.is_model():
-            return []
-        else:
-            parent_bases = self.parent.bases
-            result = []
-            for space in parent_bases:
-                bases = self._get_members(space)
-                if self.name in bases:
-                    result.append(bases[self.name])
-            return result
+        return self.model.spacemgr.get_deriv_bases(self)
 
     @staticmethod
     def _get_members(other):
         raise NotImplementedError
 
-    @property
-    def self_bases(self):
-        raise NotImplementedError
-
-    def inherit(self, **kwargs):
+    def inherit(self, bases, **kwargs):
         raise NotImplementedError
 
 
@@ -290,25 +273,27 @@ class ReferenceImpl(Derivable, Impl):
 
         self.__dict__.update(state)
 
-    @property
-    def self_bases(self):
-        return []
+    def repr_parent(self):
+        return self.parent.repr_parent() + "." + self.parent.repr_self()
+
+    def repr_self(self, add_params=True):
+        return self.name
 
     @staticmethod
     def _get_members(other):
         return other.self_refs
 
-    def inherit(self, **kwargs):
+    def inherit(self, bases, **kwargs):
 
         if "clear_value" in kwargs:
             clear_value = kwargs["clear_value"]
         else:
             clear_value = True
 
-        if self.bases:
+        if bases:
             if clear_value:
                 self.model.clear_obj(self)
-            self.interface = self.bases[0].interface
+            self.interface = bases[0].interface
 
 
 class NullImpl(Impl):
@@ -705,15 +690,6 @@ class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
         self._update_order()
         self._update_interfaces()
 
-    def __repr__(self):
-        if hasattr(self, "debug_name"):
-            name = self.debug_name
-        else:
-            name = ""
-        return (
-            repr(self.owner.fullname) + ":" + repr(self.__class__) + ":" + name
-        )
-
 
 class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
     def __init__(
@@ -729,14 +705,6 @@ class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
         self._update_order()
         self._update_interfaces()
 
-    def __repr__(self):
-        if hasattr(self, "debug_name"):
-            name = self.debug_name
-        else:
-            name = ""
-        return (
-            repr(self.owner.fullname) + ":" + repr(self.__class__) + ":" + name
-        )
 
 
 # The code below is modified from UserDict in Python's standard library.

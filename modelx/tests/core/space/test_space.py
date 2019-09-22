@@ -226,11 +226,6 @@ if sys.version_info >= (3, 6, 0):
 # ----- Testing _impl  ----
 
 
-def test_mro_root(testmodel):
-    space = cur_space()
-    assert [space._impl] == space._impl.mro
-
-
 def test_fullname(testmodel):
     assert cur_space().fullname == "testmodel.testspace"
 

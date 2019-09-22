@@ -3,7 +3,6 @@ import pytest
 from modelx.core.api import *
 from modelx.core.node import get_node
 from modelx.core.base import get_interfaces
-from modelx.core.model import SpaceGraph
 
 
 @pytest.fixture
@@ -51,7 +50,7 @@ def test_mro_simple(simplemodel):
     B = model.new_space(name="B", bases=C)
     D = model.new_space(name="D", bases=[A, B])
 
-    assert get_interfaces(D._impl.mro) == [D, A, B, C]
+    assert model._impl.spacemgr._graph.get_mro("D") == ["D", "A", "B", "C"]
 
 
 def test_mro_complicated(simplemodel):
@@ -64,7 +63,9 @@ def test_mro_complicated(simplemodel):
     b = model.new_space(name="b", bases=[e, d])
     a = model.new_space(name="a", bases=[b, c])
 
-    assert get_interfaces(a._impl.mro) == [a, b, e, c, d, f, o]
+    assert model._impl.spacemgr._graph.get_mro("a") == (
+        ["a", "b", "e", "c", "d", "f", "o"]
+    )
 
 
 def test_cellgraph(simplemodel):
