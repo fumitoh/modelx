@@ -36,7 +36,19 @@ def cells4(i):
 
 @pytest.fixture
 def build_sample_dynamic_model():
-    """2 level multi-base dynamic space model"""
+    """2 level multi-base dynamic space model
+
+    Base1       Base2                Parent[x]
+      |           |------+            |--------+
+      |           |      |            |        |
+    cells1      cells2  Child[y]     Base1    Base2
+                         |
+                         |------------+
+                         |            |
+                        ChildBase1   ChildBase2
+                         |            |
+                        cells3       cells4
+    """
 
     model = mx.new_model(name="sample_dynamic_model")
 
@@ -80,7 +92,10 @@ def test_shared_dynamic_bases(sample_dynamic_model):
     """
 
     parent = sample_dynamic_model.Parent
-    shared_bases = parent[1].Child[0].bases
+    p1 = parent[1]
+    ci = p1.Child._impl
+    c0 = p1.Child[0]
+    shared_bases = c0.bases
 
     for i, j in itertools.product(range(1, 4), range(3)):
         assert parent[i].Child[j].bases == shared_bases

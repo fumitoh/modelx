@@ -234,7 +234,8 @@ class BaseSpace(BaseSpaceContainer):
     @property
     def _direct_bases(self):
         """Directly inherited base classes"""
-        return get_interfaces(self._impl.direct_bases)
+        return get_interfaces(
+            self._impl.model.spacemgr.get_direct_bases(self._impl))
 
     def _is_base(self, other):
         """True if the space is a base space of ``other``, False otherwise."""
@@ -849,41 +850,15 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     # --- Inheritance properties ---
 
     @property
-    def direct_bases(self):
+    def bases(self):
         """Return an iterator over direct base spaces"""
-        return list(self.model.spacemgr.graph.predecessors(self))
-
-    @property
-    def self_bases(self):
-        raise NotImplementedError
-
-    # Overridden temporarily to add dynamic spaces
-    @property
-    def parent_bases(self):
-        if self.parent.is_model():
-            return []
-        elif self in self.parent.dynamic_spaces.values():
-            return []
-        else:
-            parent_bases = self.parent.bases
-            result = []
-            for space in parent_bases:
-                bases = self._get_members(space)
-                if self.name in bases:
-                    result.append(bases[self.name])
-            return result
+        node = self.get_fullname(omit_model=True)
+        spaces = self.model.spacemgr.get_deriv_bases(self)
+        return spaces
 
     @staticmethod
     def _get_members(other):
         return other.static_spaces
-
-    @property
-    def mro(self):
-        if self.update_mro:
-            self._mro_cache = self.model.spacemgr.graph.get_mro(self)
-            self.update_mro = False
-
-        return self._mro_cache
 
     @Impl.doc.setter
     def doc(self, value):
@@ -921,51 +896,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
 
     # ----------------------------------------------------------------------
     # Reference operation
-
-    def inherit(self, **kwargs):
-
-        if "event" in kwargs:
-            event = kwargs["event"]
-        else:
-            event = None
-
-        if self.bases and self.bases[0].formula is not None:
-            if not isinstance(self, RootDynamicSpaceImpl):
-                if event != "new_cells" and event != "cells_set_formula":
-                    self.set_formula(self.bases[0].formula)
-
-        attrs = ("cells", "self_refs", "static_spaces")
-        for attr in attrs:
-            selfmap = getattr(self, attr)
-            basemap = ChainMap(*[getattr(base, attr) for base in self.bases])
-            for name in basemap:
-                if name not in selfmap or selfmap[name].is_derived:
-                    if name not in self.namespace_impl:
-                        selfmap[name] = self._new_member(
-                            attr, name, is_derived=True
-                        )
-                        clear_value = False
-                    else:
-                        if "clear_value" in kwargs:
-                            clear_value = kwargs["clear_value"]
-                        else:
-                            clear_value = True
-
-                    kwargs["clear_value"] = clear_value
-                    selfmap[name].inherit(**kwargs)
-
-            names = set(selfmap) - set(basemap)
-            for name in names:
-                member = selfmap[name]
-                if member.is_derived:
-                    selfmap.del_item(name)
-                    if attr == "static_spaces":
-                        self.model.spacemgr.graph.remove_node(member)
-                else:
-                    member.inherit(**kwargs)
-
-        for dynspace in self._dynamic_subs:
-            dynspace.inherit(**kwargs)
 
     def _new_space_member(self, name, is_derived):
         raise NotImplementedError
@@ -1126,7 +1056,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             space_args["arguments"] = node_get_args(node)
             space = self._new_dynspace(**space_args)
             self.param_spaces[key] = space
-            space.inherit(clear_value=False)
+            space.inherit([space._dynbase], clear_value=False)
             return space
 
     # ----------------------------------------------------------------------
@@ -1226,21 +1156,12 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def _new_space_member(self, name, is_derived):
         space = self._new_space(name, is_derived=is_derived)
         self._set_space(space)
-        self.model.spacemgr.graph.add_space(space)
         return space
 
     def new_cells(self, name=None, formula=None, is_derived=False,
                   source=None):
-
-        if name in self.namespace:
-            raise ValueError("'%s' already exist" % name)
-        else:
-            cells = self._new_cells(name, formula, is_derived, source=source)
-            cells.inherit()
-            self.model.spacemgr.graph.update_subspaces_upward(
-                self, from_parent=False, event="new_cells"
-            )
-            return cells
+        return self.model.spacemgr.new_cells(
+            self, name, formula, is_derived, source)
 
     def new_cells_from_module(self, module, override=True):
         # Outside formulas only
@@ -1374,10 +1295,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     # --- Reference creation -------------------------------------
 
     def new_ref(self, name, value, is_derived=False):
-        ref = self._new_ref(name, value, is_derived)
-        ref.inherit()
-        self.model.spacemgr.graph.update_subspaces(self)
-        return ref
+        return self.model.spacemgr.new_ref(self, name, value, is_derived)
 
     # ----------------------------------------------------------------------
     # Attribute access
@@ -1435,25 +1353,11 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     # ----------------------------------------------------------------------
     # Inheritance
 
-    @property
-    def self_bases(self):
-        return self.mro[1:]
-
     def add_bases(self, bases):
-        self.model.spacemgr.graph.check_mro(bases)
-        for other in bases:
-            self.model.spacemgr.graph.add_edge(other, self)
-        self.inherit()
-        self.model.spacemgr.graph.update_subspaces(self)
-
-    def remove_base(self, other):  # TODO: Replace this with remove bases
-        self.model.spacemgr.graph.remove_edge(other, self)
-        self.inherit()
-        self.model.spacemgr.graph.update_subspaces(self)
+        self.model.spacemgr.add_bases(self, bases)
 
     def remove_bases(self, bases):  # bases are interfaces
-        for base in get_impls(bases):
-            self.remove_base(base)
+        self.model.spacemgr.remove_bases(self, get_impls(bases))
 
     # --- Member deletion -------------------------------------
 
@@ -1469,11 +1373,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
                     "%s has derived spaces" % repr(space.interface)
                 )
             else:
-                self.static_spaces.del_item(name)
-                self.model.spacemgr.graph.remove_node(space)
-                self.inherit()
-                self.model.spacemgr.graph.update_subspaces(self)
-                # TODO: Destroy space
+                self.model.spacemgr.del_defined_space(self, name)
 
         elif name in self.dynamic_spaces:
             # TODO: Destroy space
@@ -1489,25 +1389,21 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         ``del space.cells['name']``
         """
         if name in self.cells:
-            cells = self.cells[name]
-            self.cells.del_item(name)
-            self.inherit()
-            self.model.spacemgr.graph.update_subspaces(self)
+            self.model.spacemgr.del_cells(self, name)
 
         elif name in self.dynamic_spaces:
             cells = self.dynamic_spaces.pop(name)
             self.dynamic_spaces.set_update()
+            NullImpl(cells)
 
         else:
             raise KeyError("Cells '%s' does not exist" % name)
 
-        NullImpl(cells)
 
     def del_ref(self, name):
 
         if name in self.self_refs:
-            del self.self_refs[name]
-            self.self_refs.set_update()
+            self.model.spacemgr.del_ref(self, name)
         elif name in self.is_derived:
             raise KeyError("Derived ref '%s' cannot be deleted" % name)
         elif name in self.arguments:
@@ -1551,6 +1447,40 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
 
+    def inherit(self, bases, **kwargs):
+
+        if bases and self.is_derived:
+            self.set_formula(bases[0].formula)
+
+        attrs = ("cells", "self_refs")
+
+        for attr in attrs:
+            selfdict = getattr(self, attr)
+            basedict = ChainMap(*[getattr(b, attr) for b in bases])
+
+            missing = set(basedict) - set(selfdict)
+            shared = set(selfdict) & set(basedict)
+            diffs = set(selfdict) - set(basedict)
+
+            for name in missing | shared:
+
+                if name in missing:
+                    selfdict[name] = self._new_member(
+                        attr, name, is_derived=True)
+
+                if selfdict[name].is_derived:
+                    if "clear_value" not in kwargs:
+                        kwargs["clear_value"] = True
+
+                    bs = [bm[name] for bm in basedict.maps if name in bm]
+                    selfdict[name].inherit(bs, **kwargs)
+
+            for name in diffs:
+                if selfdict[name].is_derived:
+                    selfdict.del_item(name)
+
+        self._dynamic_subs.clear()
+
 
 class DynamicSpace(BaseSpace):
     """Dynamically created space.
@@ -1587,6 +1517,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         BaseSpaceImpl.__init__(
             self, parent, name, formula, refs, source, arguments, doc
         )
+        self._dynbase = None
 
     def _new_space_member(self, name, is_derived):
         space = DynamicSpaceImpl(parent=self, name=name)
@@ -1619,10 +1550,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         return ImplChainMap(self, None, parentargs)
 
     @property
-    def self_bases(self):
-        return []
-
-    @property
     def arguments(self):
         return self._arguments.get_updated()
 
@@ -1632,6 +1559,58 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     def is_dynamic(self):
         return True
+
+    @property
+    def bases(self):
+        if self._dynbase:
+            return [self._dynbase]
+        else:
+            return []
+
+    def inherit(self, bases, **kwargs):
+
+        if "event" in kwargs:
+            event = kwargs["event"]
+        else:
+            event = None
+
+        if bases[0].formula is not None:
+            if not isinstance(self, RootDynamicSpaceImpl):
+                if event != "new_cells" and event != "cells_set_formula":
+                    self.set_formula(bases[0].formula)
+
+        self._dynbase = bases[0]
+
+        attrs = ("cells", "self_refs", "static_spaces")
+        for attr in attrs:
+            selfmap = getattr(self, attr)
+            basemap = ChainMap(*[getattr(base, attr) for base in bases])
+            for name in basemap:
+                if name not in selfmap or selfmap[name].is_derived:
+                    if name not in self.namespace_impl:
+                        selfmap[name] = self._new_member(
+                            attr, name, is_derived=True
+                        )
+                        clear_value = False
+                    else:
+                        if "clear_value" in kwargs:
+                            clear_value = kwargs["clear_value"]
+                        else:
+                            clear_value = True
+
+                    kwargs["clear_value"] = clear_value
+                    bs = [bmap[name] for bmap in basemap.maps
+                             if name in bmap]
+
+                    selfmap[name].inherit(bs, **kwargs)
+
+            names = set(selfmap) - set(basemap)
+            for name in names:
+                member = selfmap[name]
+                if member.is_derived:
+                    selfmap.del_item(name)
+                else:
+                    member.inherit([], **kwargs)
 
 
 class RootDynamicSpaceImpl(DynamicSpaceImpl):
@@ -1675,13 +1654,6 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
         self.boundargs = self.parent.formula.signature.bind(**args)
         self.argvalues = tuple(self.boundargs.arguments.values())
         self.argvalues_if = tuple(get_interfaces(self.argvalues))
-
-    @property
-    def self_bases(self):
-        if self._dynbase is not None:
-            return self._dynbase.mro
-        else:
-            return []
 
     def restore_state(self, system):
 

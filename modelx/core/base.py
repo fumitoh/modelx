@@ -231,30 +231,13 @@ class Derivable:
 
     @property
     def bases(self):
-        return self.self_bases + self.parent_bases
-
-    @property
-    def parent_bases(self):
-        if self.parent.is_model():
-            return []
-        else:
-            parent_bases = self.parent.bases
-            result = []
-            for space in parent_bases:
-                bases = self._get_members(space)
-                if self.name in bases:
-                    result.append(bases[self.name])
-            return result
+        return self.model.spacemgr.get_deriv_bases(self)
 
     @staticmethod
     def _get_members(other):
         raise NotImplementedError
 
-    @property
-    def self_bases(self):
-        raise NotImplementedError
-
-    def inherit(self, **kwargs):
+    def inherit(self, bases, **kwargs):
         raise NotImplementedError
 
 
@@ -296,25 +279,21 @@ class ReferenceImpl(Derivable, Impl):
     def repr_self(self, add_params=True):
         return self.name
 
-    @property
-    def self_bases(self):
-        return []
-
     @staticmethod
     def _get_members(other):
         return other.self_refs
 
-    def inherit(self, **kwargs):
+    def inherit(self, bases, **kwargs):
 
         if "clear_value" in kwargs:
             clear_value = kwargs["clear_value"]
         else:
             clear_value = True
 
-        if self.bases:
+        if bases:
             if clear_value:
                 self.model.clear_obj(self)
-            self.interface = self.bases[0].interface
+            self.interface = bases[0].interface
 
 
 class NullImpl(Impl):

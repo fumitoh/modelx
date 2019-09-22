@@ -9,6 +9,14 @@ def testmodel():
 
 
 def test_set_formula_base(testmodel):
+    """
+
+        derived<------base
+           |           |
+           |           |
+           f1*         f1
+
+    """
 
     base = new_space("base")
 
