@@ -739,21 +739,29 @@ class SpaceGraph(nx.DiGraph):
         return self.nodes[node]["mode"]
 
     def copy_as_spacegraph(self, g):
+        """Copy g as SpaceGraph.
 
-        def copy(klass, graph, as_view=False):
-
-            if as_view is True:
-                return nx.graphviews.DiGraphView(graph)
-            G = klass()
-            G.graph.update(graph.graph)
-            G.add_nodes_from((n, d.copy()) for n, d in graph._node.items())
-            G.add_edges_from((u, v, datadict.copy())
-                             for u, nbrs in graph._adj.items()
-                             for v, datadict in nbrs.items())
-            return G
-
+        This method is only for compatibility with networkx 2.1 or older.
+        Overriding fresh_copy method is also needed.
+        G can be a sub graph view.
+        """
         if _nxver < (2, 2):
+            # modified from https://github.com/networkx/networkx/blob/networkx-2.1/networkx/classes/digraph.py#L1080-L1167
+
+            def copy(klass, graph, as_view=False):
+
+                if as_view is True:
+                    return nx.graphviews.DiGraphView(graph)
+                G = klass()
+                G.graph.update(graph.graph)
+                G.add_nodes_from((n, d.copy()) for n, d in graph._node.items())
+                G.add_edges_from((u, v, datadict.copy())
+                                 for u, nbrs in graph._adj.items()
+                                 for v, datadict in nbrs.items())
+                return G
+
             return copy(type(self), g)
+
         else:
             return type(self).copy(g)
 
