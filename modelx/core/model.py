@@ -747,6 +747,7 @@ class SpaceGraph(nx.DiGraph):
         """
         if _nxver < (2, 2):
             # modified from https://github.com/networkx/networkx/blob/networkx-2.1/networkx/classes/digraph.py#L1080-L1167
+            # See LICENSES/NETWORKX_LICENSE.txt
 
             def copy(klass, graph, as_view=False):
 
