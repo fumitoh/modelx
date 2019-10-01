@@ -1,6 +1,7 @@
 from textwrap import dedent
 import pytest
 import pickle
+import builtins
 
 from modelx.core.api import *
 from modelx.core import mxsys
@@ -110,3 +111,16 @@ def test_pickle_parameters(pickletest_dynamicspace):
 
     model, check = pickletest_dynamicspace
     assert model.Space1.parameters == ("x",)
+
+
+def test_pickle_module(tmp_path):
+
+    import numpy
+    m, s = new_model(), new_space("TestModule")
+    m.np = numpy
+    m.save(tmp_path / "pickle_module.mx")
+    m = open_model(tmp_path / "pickle_module.mx")
+    assert m.np is numpy
+    assert m.TestModule.np is numpy
+    assert m.__builtins__ is builtins
+    assert m.TestModule.__builtins__ is builtins

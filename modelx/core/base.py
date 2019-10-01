@@ -14,7 +14,8 @@
 
 import sys
 import builtins
-from types import FunctionType
+import importlib
+from types import FunctionType, ModuleType
 from collections import Sequence, ChainMap, Mapping, UserDict, OrderedDict
 from inspect import BoundArguments
 from modelx.core.formula import create_closure
@@ -199,6 +200,7 @@ class Impl:
         return self.get_repr(fullname=True, add_params=True)
 
 
+# For backward compatibility with -v0.0.23
 class _DummyBuiltins:
     pass
 
@@ -241,10 +243,47 @@ class Derivable:
         raise NotImplementedError
 
 
+class _BasePickler:
+
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = self.convert(value)
+
+    @classmethod
+    def condition(cls, value):
+        raise NotImplementedError
+
+    def convert(self, value):
+        raise NotImplementedError
+
+    def restore(self):
+        raise NotImplementedError
+
+
+class _ModulePickler(_BasePickler):
+
+    __slots__ = ()
+
+    @classmethod
+    def condition(cls, value):
+        return isinstance(value, ModuleType)
+
+    def convert(self, value):
+        for k, v in sys.modules.items():
+            if value is v:
+                return k
+        raise ValueError("must not happen")
+
+    def restore(self):
+        return importlib.import_module(self.value)
+
+
 class ReferenceImpl(Derivable, Impl):
 
     state_attrs = Impl.state_attrs + Derivable.state_attrs
     assert len(state_attrs) == len(set(state_attrs))
+    picklers = []    # List of _BasePickler sub classes
 
     def __init__(self, parent, name, value, base=None):
         Impl.__init__(self, parent.system, interface=value)
@@ -260,16 +299,22 @@ class ReferenceImpl(Derivable, Impl):
             for key, value in self.__dict__.items()
             if key in self.state_attrs
         }
+        value = state["interface"]
 
-        if state["interface"] is builtins:
-            state["interface"] = _DummyBuiltins()
+        for pickler in ReferenceImpl.picklers:
+            if pickler.condition(value):
+                state["interface"] = pickler(value)
 
         return state
 
     def __setstate__(self, state):
 
         if isinstance(state["interface"], _DummyBuiltins):
+            # For backward compatibility with -v0.0.23
             state["interface"] = builtins
+        else:
+            if isinstance(state["interface"], _BasePickler):
+                state["interface"] = state["interface"].restore()
 
         self.__dict__.update(state)
 
@@ -294,6 +339,9 @@ class ReferenceImpl(Derivable, Impl):
             if clear_value:
                 self.model.clear_obj(self)
             self.interface = bases[0].interface
+
+
+ReferenceImpl.picklers.append(_ModulePickler)
 
 
 class NullImpl(Impl):
