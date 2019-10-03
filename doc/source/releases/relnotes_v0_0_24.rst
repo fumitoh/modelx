@@ -28,7 +28,7 @@ Enhancements
 
 Bug Fixes
 =========
-* Getting cells values from the shell iteratively was taking too slow
+* Getting cells values from the shell iteratively was too slow
   (`GitHub #12`_)
 
 .. _GitHub #12: https://github.com/fumitoh/modelx/issues/12
