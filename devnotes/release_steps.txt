@@ -12,7 +12,7 @@ Reference:
       git push
  4. Tag the release and push tags:
       git tag v0.X.Y
-      git push origin --tags
+      git push [origin] --tags
  5. Build source and binary wheels for pypi:
       python setup.py sdist
       python setup.py bdist_wheel
