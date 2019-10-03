@@ -30,14 +30,17 @@ def testmodel():
     return m
 
 
-def test_read_write_model(testmodel, tmp_path):
+@pytest.mark.parametrize("name", [None, "renamed"])
+def test_read_write_model(testmodel, tmp_path, name):
 
     path_ = tmp_path / "testdir"
     path_.mkdir()
     write_model(testmodel, path_)
-    m = read_model(path_)
+    m = read_model(path_, name=name)
 
-    testutil.compare_model(testmodel, m)
+    assert m.name == (name if name else "TestModel")
+    if name is None:
+        testutil.compare_model(testmodel, m)
 
 
 

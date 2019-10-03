@@ -455,9 +455,11 @@ class ModelReader:
 
     def __init__(self, path: pathlib.Path):
         self.path = path
+        self.kwargs = None
 
-    def read_model(self):
+    def read_model(self, **kwargs):
 
+        self.kwargs = kwargs
         instructions, model = self._parse_dir()
 
         instructions.run_methods([
@@ -533,7 +535,10 @@ class ModelReader:
 
                 if node.first_token.string == "_name":
                     method = "rename"
-                    val = ast.literal_eval(atok.get_text(node.value))
+                    if "name" in self.kwargs and self.kwargs["name"]:
+                        val = self.kwargs["name"]
+                    else:
+                        val = ast.literal_eval(atok.get_text(node.value))
                     _Instruction(
                         path_=path_,
                         obj=obj,
@@ -703,7 +708,7 @@ def _restore_ref(obj):
         return obj
 
 
-def read_model(model_path):
+def read_model(model_path, name=None):
     """Read model from files.
 
     Read model form a folder(directory) tree ``model_path``.
@@ -717,7 +722,9 @@ def read_model(model_path):
         A Model object constructed from the files.
 
     """
-    return ModelReader(pathlib.Path(model_path)).read_model()
+
+    kwargs = {"name": name} if name else {}
+    return ModelReader(pathlib.Path(model_path)).read_model(**kwargs)
 
 
 _RefData = namedtuple("_RefData", ["evalrepr"])
