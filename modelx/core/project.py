@@ -717,6 +717,7 @@ def read_model(model_path, name=None):
 
     Args:
         model_path(str): A folder(directory) path where model is stored.
+        name(str, optional): Model name to overwrite the saved name.
 
     Returns:
         A Model object constructed from the files.
