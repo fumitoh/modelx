@@ -187,7 +187,7 @@ class ModelWriter:
 
         try:
             # Create _model.py
-            with open(self.root / "_model.py", "w") as f:
+            with open(self.root / "_model.py", "w", encoding="utf-8") as f:
 
                 if model.doc is not None:
                     f.write("\"\"\"" + model.doc + "\"\"\"")
@@ -259,7 +259,7 @@ class ModelWriter:
             else:
                 return target + " = None"
 
-        with open(file, "w") as f:
+        with open(file, "w", encoding="utf-8") as f:
 
             if space.doc is not None:
                 f.write("\"\"\"" + space.doc + "\"\"\"\n\n")
@@ -496,7 +496,7 @@ class ModelReader:
 
         impl = obj._impl
 
-        with open(path_, "r") as f:
+        with open(path_, "r", encoding="utf-8") as f:
             src = f.read()
 
         atok = asttokens.ASTTokens(src, parse=True)
