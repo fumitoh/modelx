@@ -13,7 +13,6 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-import math
 import warnings
 import pickle
 import threading

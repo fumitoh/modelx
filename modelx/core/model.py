@@ -14,9 +14,7 @@
 
 import builtins
 import itertools
-from textwrap import dedent
 import pickle
-from collections import ChainMap
 import copy
 
 import networkx as nx
@@ -39,9 +37,7 @@ from modelx.core.spacecontainer import (
     EditableSpaceContainer,
 )
 from modelx.core.space import (
-    BaseSpaceImpl,
     UserSpaceImpl,
-    DynamicSpaceImpl,
     SpaceView,
     RefDict
 )

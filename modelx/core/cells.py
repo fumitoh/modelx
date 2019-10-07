@@ -12,17 +12,15 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from textwrap import dedent
-import warnings
 from collections import namedtuple
-from collections.abc import Mapping, Callable, Sized, Sequence
+from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import Impl, Derivable, Interface, BoundFunction
 from modelx.core.node import OBJ, KEY, get_node, tuplize_key
 from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
 from modelx.core.util import is_valid_name
-from modelx.core.errors import NoneReturnedError, RewindStackError
+from modelx.core.errors import NoneReturnedError
 
 
 def convert_args(args, kwargs):

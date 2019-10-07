@@ -15,8 +15,8 @@
 import warnings
 import pathlib
 import uuid
-from modelx.core.base import get_impls, get_interfaces, Impl, Interface
-from modelx.core.util import AutoNamer, is_valid_name, get_module, get_param_func
+from modelx.core.base import get_impls, get_interfaces, Interface
+from modelx.core.util import AutoNamer, get_module, get_param_func
 
 
 class BaseSpaceContainer(Interface):
