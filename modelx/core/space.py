@@ -25,7 +25,6 @@ from modelx.core.base import (
     get_interfaces,
     Interface,
     Impl,
-    ReferenceImpl,
     NullImpl,
     Derivable,
     ImplDict,
@@ -34,6 +33,7 @@ from modelx.core.base import (
     SelectedView,
     BoundFunction,
 )
+from modelx.core.reference import ReferenceImpl
 from modelx.core.node import (
     node_get_args,
     tuplize_key,

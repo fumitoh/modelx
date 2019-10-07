@@ -26,10 +26,10 @@ from modelx.core.base import (
     ImplDict,
     ImplChainMap,
     BaseView,
-    ReferenceImpl,
     Derivable,
     NullImpl
 )
+from modelx.core.reference import ReferenceImpl
 from modelx.core.node import OBJ, KEY, get_node, node_has_key
 from modelx.core.spacecontainer import (
     BaseSpaceContainerImpl,
@@ -179,7 +179,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         EditableSpaceContainerImpl.__init__(self)
 
         self.cellgraph = DependencyGraph()
-        self.lexdep = DependencyGraph()  # Lexical dependency
+        # self.lexdep = DependencyGraph()  # Lexical dependency
         self.spacemgr = SpaceManager(self)
         self.currentspace = None
 
@@ -275,7 +275,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         [
             "name",
             "cellgraph",
-            "lexdep",
+            # "lexdep",
             "_namespace",
             "_global_refs",
             "_dynamic_bases",
