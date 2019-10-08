@@ -101,3 +101,44 @@ def get_param_func(param_names):
         sig = ""
 
     return "def _param_func(" + sig + "): pass"
+
+
+class ReorderableDict(dict):
+
+    def index(self, value):
+        for i, v in enumerate(self.keys()):
+            if value == v:
+                return i
+        raise ValueError("%s not found" % value)
+
+    def at(self, index):
+        for i, k in enumerate(self.keys()):
+            if i == index:
+                return k
+        raise IndexError("index out of range")
+
+    def move(self, index_from, index_to, length=1):
+
+        total_len = len(self)
+
+        if index_from < total_len:
+            length = min(total_len - index_from, length)
+        else:
+            raise IndexError("index out of range")
+
+        if total_len - length < index_to:
+            raise IndexError("index out of range")
+
+        if index_from == index_to:
+            return
+        elif index_from > index_to:
+            self._move_to_last(index_to, index_from - index_to)
+            self._move_to_last(index_to + length, total_len - index_from - length)
+        elif index_from < index_to:
+            self._move_to_last(index_from, length)
+            self._move_to_last(index_to, total_len - length - index_to)
+
+    def _move_to_last(self, index_from, length):
+        for _ in range(length):
+            key = self.at(index_from)
+            self[key] = self.pop(key)
