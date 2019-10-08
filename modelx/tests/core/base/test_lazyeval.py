@@ -18,9 +18,9 @@ class LazyEvalDict2(LazyEvalDict):
         LazyEvalDict.__init__(self, data, observers)
 
     def _update_data(self):
-        self.data.clear()
-        self.data.update(self.org_data)
-        self.data.update(self.source)
+        self.clear()
+        self.update(self.org_data)
+        self.update(self.source)
 
 
 class SampleLazyEval:

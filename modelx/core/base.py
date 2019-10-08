@@ -14,7 +14,7 @@
 
 import sys
 from types import FunctionType
-from collections import Sequence, ChainMap, Mapping, UserDict, OrderedDict
+from collections import Sequence, ChainMap, Mapping, OrderedDict
 from inspect import BoundArguments
 from modelx.core.formula import create_closure
 from modelx.core.node import get_node
@@ -491,7 +491,7 @@ class LazyEval:
             observer.debug_print_observers(indent_level + 1)
 
 
-class LazyEvalDict(LazyEval, UserDict):
+class LazyEvalDict(LazyEval, dict):
     def __init__(self, data=None, observers=None):
 
         if data is None:
@@ -499,24 +499,19 @@ class LazyEvalDict(LazyEval, UserDict):
         if observers is None:
             observers = []
 
-        UserDict.__init__(self, data)
+        dict.__init__(self, data)
         LazyEval.__init__(self, observers)
         self._repr = ""
-
-    def get_updated_data(self):
-        """Get updated ``data`` instead of self. """
-        self.get_updated()
-        return self.data
 
     def _update_data(self):
         pass
 
     def set_item(self, name, value, skip_self=False):
-        UserDict.__setitem__(self, name, value)
+        dict.__setitem__(self, name, value)
         self.set_update(skip_self)
 
     def del_item(self, name, skip_self=False):
-        UserDict.__delitem__(self, name)
+        dict.__delitem__(self, name)
         self.set_update(skip_self)
 
 
