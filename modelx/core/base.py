@@ -519,13 +519,6 @@ class LazyEvalDict(LazyEval, UserDict):
         UserDict.__delitem__(self, name)
         self.set_update(skip_self)
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
 
 class LazyEvalChainMap(LazyEval, ChainMap):
     def __init__(self, maps=None, observers=None, observe_maps=True):
@@ -554,13 +547,6 @@ class LazyEvalChainMap(LazyEval, ChainMap):
 
     def __delitem__(self, name):
         raise NotImplementedError
-
-    def __getstate__(self):
-        state = LazyEval.__getstate__(self)
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
 
 
 class OwnerMixin:
