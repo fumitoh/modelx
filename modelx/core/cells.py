@@ -542,7 +542,7 @@ class CellsImpl(Derivable, Impl):
 
     def on_eval_formula(self, key):
 
-        value = self.altfunc.get_updated().altfunc(*key)
+        value = self.altfunc.refresh.altfunc(*key)
 
         if self.has_cell(key):
             # Assignment took place inside the cell.

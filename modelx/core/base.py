@@ -135,10 +135,10 @@ class Impl:
         if self.lazy_evals is None:
             return
         elif isinstance(self.lazy_evals, LazyEval):
-            self.lazy_evals.get_updated()
+            self.lazy_evals.refresh
         else:
             for lz in self.lazy_evals:
-                lz.get_updated()
+                lz.refresh
 
     def get_fullname(self, omit_model=False):
 
@@ -451,10 +451,11 @@ class LazyEval:
             if not observer.needs_update:
                 observer.set_update()
 
-    def get_updated(self):
+    @property
+    def refresh(self):
         if self.needs_update:
             for other in self.observing:
-                other.get_updated()
+                other.refresh
             self._update_data()
             self.needs_update = False
         return self
@@ -535,7 +536,7 @@ class LazyEvalChainMap(LazyEval, ChainMap):
     def _update_data(self):
         for map_ in self.maps:
             if isinstance(map_, LazyEval):
-                map_.get_updated()
+                map_.refresh
 
     def __setitem__(self, name, value):
         raise NotImplementedError
@@ -776,7 +777,7 @@ class BoundFunction(LazyEval):
         func = self.owner.formula.func
         codeobj = func.__code__
         name = func.__name__  # self.cells.name   # func.__name__
-        namespace_impl = self.owner._namespace_impl.get_updated()
+        namespace_impl = self.owner._namespace_impl.refresh
         namespace = namespace_impl.interfaces
         selfnode = get_node(self.owner, None, None)
 

@@ -817,23 +817,23 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
 
     @property
     def cells(self):
-        return self._cells.get_updated()
+        return self._cells.refresh
 
     @property
     def static_spaces(self):
-        return self._static_spaces.get_updated()
+        return self._static_spaces.refresh
 
     @property
     def dynamic_spaces(self):
-        return self._dynamic_spaces.get_updated()
+        return self._dynamic_spaces.refresh
 
     @property
     def refs(self):
-        return self._refs.get_updated()
+        return self._refs.refresh
 
     @property
     def self_refs(self):
-        return self._self_refs.get_updated()
+        return self._self_refs.refresh
 
     @property
     def local_refs(self):
@@ -841,11 +841,11 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
 
     @property
     def namespace_impl(self):
-        return self._namespace_impl.get_updated()
+        return self._namespace_impl.refresh
 
     @property
     def namespace(self):
-        return self._namespace_impl.get_updated().interfaces
+        return self._namespace_impl.refresh.interfaces
 
     # --- Inheritance properties ---
 
@@ -958,7 +958,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
                 raise ValueError("formula already assigned.")
 
     def eval_formula(self, node):
-        return self.altfunc.get_updated().altfunc(*node[KEY])
+        return self.altfunc.refresh.altfunc(*node[KEY])
 
     def _get_dynamic_base(self, bases_):
         """Create or get the base space from a list of spaces
@@ -1551,11 +1551,11 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     @property
     def arguments(self):
-        return self._arguments.get_updated()
+        return self._arguments.refresh
 
     @property
     def parentargs(self):
-        return self._arguments.get_updated()
+        return self._arguments.refresh
 
     def is_dynamic(self):
         return True

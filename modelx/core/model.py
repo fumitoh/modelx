@@ -245,11 +245,11 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     @property
     def global_refs(self):
-        return self._global_refs.get_updated()
+        return self._global_refs.refresh
 
     @property
     def namespace(self):
-        return self._namespace.get_updated()
+        return self._namespace.refresh
 
     def close(self):
         self.system.close_model(self)

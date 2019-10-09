@@ -349,7 +349,7 @@ class BaseSpaceContainerImpl:
 
     @property
     def spaces(self):
-        return self._spaces.get_updated()
+        return self._spaces.refresh
 
     def has_space(self, name):
         return name in self.spaces
