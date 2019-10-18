@@ -20,7 +20,7 @@ Attributes:
 
 """
 
-VERSION = (0, 0, 25)
+VERSION = (0, 0, 26, "dev")
 __version__ = ".".join([str(x) for x in VERSION])
 from modelx.core.api import *  # must come after __version__ assignment.
 try:
