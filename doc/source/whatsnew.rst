@@ -37,6 +37,7 @@ Release Notes
 .. toctree::
    :maxdepth: 2
 
+   releases/relnotes_v0_0_25
    releases/relnotes_v0_0_24
    releases/relnotes_v0_0_23
    releases/relnotes_v0_0_22

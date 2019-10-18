@@ -16,6 +16,7 @@
 
 Attributes:
     models (dict): Alias for :func:`get_models`.
+        Available for Python 3.7 or newer
 
 """
 

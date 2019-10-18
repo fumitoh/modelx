@@ -201,7 +201,7 @@ make the inheritance logic more robust.
 .. warning::
 
    Support for Python 3.4, 3.5 is dropped in this release.
-   Now only Python 3.6 and 3.7 are supported.
+   Now only Python 3.6 and newer are supported.
    This is mainly due to the fact that modelx utilizes
    the order preservation nature of :class:`dict` introduced in Python 3.6.
    :class:`dict` performance improvement in Python 3.6 is also the reason

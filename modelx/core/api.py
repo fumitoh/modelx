@@ -302,8 +302,7 @@ def start_stacktrace():
     The tracing is useful when the user wants to get the information on
     the execution of cells formulas, such as
     how much time each formula takes from start to finish, or
-    what formulas are called in what order.
-    in order, for example, to identify performance bottlenecks.
+    what formulas are called in what order to identify performance bottlenecks.
 
     While the tracing is active, the history of
     loading and unloading cells and its arguments to/from the call stack

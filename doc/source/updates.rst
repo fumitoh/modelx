@@ -4,6 +4,10 @@ Updates
 
 .. Latest Updates Begin
 
+* *19 October 2019:*
+  modelx v0.0.25 is released. See :doc:`releases/relnotes_v0_0_25`
+  release notes for details.
+
 * *4 October 2019:*
   modelx v0.0.24 is released. See :doc:`releases/relnotes_v0_0_24`
   release notes for details.
