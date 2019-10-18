@@ -565,7 +565,7 @@ class CellsImpl(Derivable, Impl):
         if self.has_cell(key):
             value = self.data[key]
         else:
-            value = self.system.execution.eval_cell(node)
+            value = self.system.executor.eval_cell(node)
 
         graph = self._model.cellgraph
         if self.system.callstack:

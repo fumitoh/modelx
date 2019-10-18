@@ -105,13 +105,13 @@ def get_param_func(param_names):
 
 class ReorderableDict(dict):
 
-    def index(self, value):
-        for i, v in enumerate(self.keys()):
-            if value == v:
+    def get_index(self, key):
+        for i, k in enumerate(self.keys()):
+            if key == k:
                 return i
-        raise ValueError("%s not found" % value)
+        raise ValueError("%s not found" % key)
 
-    def at(self, index):
+    def get_key(self, index):
         for i, k in enumerate(self.keys()):
             if i == index:
                 return k
@@ -140,5 +140,5 @@ class ReorderableDict(dict):
 
     def _move_to_last(self, index_from, length):
         for _ in range(length):
-            key = self.at(index_from)
+            key = self.get_key(index_from)
             self[key] = self.pop(key)

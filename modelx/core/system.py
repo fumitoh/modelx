@@ -26,7 +26,7 @@ from modelx.core.node import OBJ, KEY
 from modelx.core.errors import RewindStackError
 
 
-class Execution:
+class Executor:
 
     def __init__(self, system, maxdepth=None):
 
@@ -35,7 +35,7 @@ class Execution:
 
         self.system = system
         self.callstack = CallStack(maxdepth)
-        self.thread = Execution.ExecThread(self)
+        self.thread = Executor.ExecThread(self)
         self.thread.daemon = True
         self.thread.start()
         self.initnode = None
@@ -49,8 +49,8 @@ class Execution:
 
     class ExecThread(threading.Thread):
 
-        def __init__(self, execution):
-            self.execution = execution
+        def __init__(self, executor):
+            self.executor = executor
             self.buffer = None
             self.signal_start = threading.Event()
             self.signal_stop = threading.Event()
@@ -60,10 +60,10 @@ class Execution:
             while True:
                 self.signal_start.wait()
                 try:
-                    self.buffer = self.execution._eval_formula(
-                        self.execution.initnode)
+                    self.buffer = self.executor._eval_formula(
+                        self.executor.initnode)
                 except:
-                    self.execution.exception = sys.exc_info()
+                    self.executor.exception = sys.exc_info()
 
                 self.signal_start.clear()
                 self.signal_stop.set()
@@ -225,8 +225,8 @@ class System:
     def __init__(self, maxdepth=None, setup_shell=False):
 
         self.configure_python()
-        self.execution = Execution(self, maxdepth)
-        self.callstack = self.execution.callstack
+        self.executor = Executor(self, maxdepth)
+        self.callstack = self.executor.callstack
         self.callstack_inactive = TraceableCallStack(maxdepth)
         self._modelnamer = AutoNamer("Model")
         self._backupnamer = AutoNamer("_BAK")
@@ -401,7 +401,7 @@ class System:
 
         if self.callstack.is_empty():
             buf = self.callstack
-            self.callstack = self.execution.callstack = self.callstack_inactive
+            self.callstack = self.executor.callstack = self.callstack_inactive
             self.callstack_inactive = buf
             return True
         else:
