@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import time
 import warnings
 import pickle
 import threading
@@ -146,6 +147,38 @@ class CallStack(deque):
         return result
 
 
+if sys.version_info < (3, 7, 0):
+    _trace_time = time.time
+else:
+    def time_ns():
+        return time.time_ns() / 10**9
+    _trace_time = time_ns
+
+
+class TraceableCallStack(CallStack):
+
+    default_maxtracelen = 10000
+
+    def __init__(self, maxdepth=None):
+
+        CallStack.__init__(self, maxdepth)
+        self.tracestack = deque(maxlen=self.default_maxtracelen)
+
+    def append(self, item):
+
+        CallStack.append(self, item)
+        self.tracestack.append(
+            ("ENTER", len(self) - 1, _trace_time(),
+             item[OBJ].get_repr(fullname=True, add_params=True), item[KEY]))
+
+    def pop(self):
+        item = super().pop()
+        self.tracestack.append(
+            ("EXIT", len(self), _trace_time(),
+             item[OBJ].get_repr(fullname=True, add_params=True), item[KEY])
+        )
+
+
 def custom_showwarning(
     message, category, filename="", lineno=-1, file=None, line=None
 ):
@@ -194,6 +227,7 @@ class System:
         self.configure_python()
         self.execution = Execution(self, maxdepth)
         self.callstack = self.execution.callstack
+        self.callstack_inactive = TraceableCallStack(maxdepth)
         self._modelnamer = AutoNamer("Model")
         self._backupnamer = AutoNamer("_BAK")
         self._currentmodel = None
@@ -360,7 +394,47 @@ class System:
         model_name = parts.pop(0)
         return self.models[model_name].get_object(".".join(parts))
 
+    # ----------------------------------------------------------------------
+    # Call stack tracing
 
+    def _switch_callstack(self):
+
+        if self.callstack.is_empty():
+            buf = self.callstack
+            self.callstack = self.execution.callstack = self.callstack_inactive
+            self.callstack_inactive = buf
+            return True
+        else:
+            raise RuntimeError("callstack not empy")
+
+    def _is_stacktrace_active(self):
+        return isinstance(self.callstack, TraceableCallStack)
+
+    def start_stacktrace(self):
+        if self._is_stacktrace_active():
+            return False
+        self._switch_callstack()
+        warnings.warn("call stack trace activated")
+        return True
+
+    def stop_stacktrace(self):
+        if not self._is_stacktrace_active():
+            return False
+        self._switch_callstack()
+        warnings.warn("call stack trace deactivated")
+        return True
+
+    def get_stacktrace(self):
+        if self._is_stacktrace_active():
+            return list(self.callstack.tracestack)
+        else:
+            raise RuntimeError("call stack trace not active")
+
+    def clear_stacktrace(self):
+        if self._is_stacktrace_active():
+            self.callstack.tracestack.clear()
+        else:
+            raise RuntimeError("call stack trace not active")
 # --------------------------------------------------------------------------
 # Monkey patch functions for custom error messages
 

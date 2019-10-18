@@ -291,3 +291,106 @@ def open_model(path, name=None):
         A new model created from the file.
     """
     return _system.open_model(path, name)
+
+
+def start_stacktrace():
+    """Activate stack tracing.
+
+    Start tracing the call stack of formula calculations held internally
+    in modelx.
+
+    The tracing is useful when the user wants to get the information on
+    the execution of cells formulas, such as
+    how much time each formula takes from start to finish, or
+    what formulas are called in what order.
+    in order, for example, to identify performance bottlenecks.
+
+    While the tracing is active, the history of
+    loading and unloading cells and its arguments to/from the call stack
+    is recorded with timestamps
+    and available through calling :func:`get_stacktrace` function.
+    The tracing continues until the user calls :func:`stop_stacktrace`.
+
+    Up to 10000 records are kept. Exceeding 10000,
+    records are removed from the oldest.
+
+    Warning:
+        Activating stack tracing may slow down formula calculations.
+        You should activate it only when needed for inspection purposes.
+
+    See Also:
+        :func:`stop_stacktrace`
+        :func:`get_stacktrace`
+        :func:`clear_stacktrace`
+
+    .. versionadded:: 0.0.25
+    """
+    return _system.start_stacktrace()
+
+
+def stop_stacktrace():
+    """Deactivate stack tracing.
+
+    Stop tracing the call stack of formula calculations started
+    by :func:`start_stacktrace`.
+    If the tracing is not active, a runtime error is raised.
+
+    See Also:
+        :func:`start_stacktrace`
+        :func:`get_stacktrace`
+        :func:`clear_stacktrace`
+
+    .. versionadded:: 0.0.25
+    """
+    return _system.stop_stacktrace()
+
+
+def clear_stacktrace():
+    """Clear stack trace.
+
+    If the tracing is not active, a runtime error is raised.
+
+    See Also:
+        :func:`start_stacktrace`
+        :func:`stop_stacktrace`
+        :func:`get_stacktrace`
+
+    .. versionadded:: 0.0.25
+    """
+    return _system.clear_stacktrace()
+
+
+def get_stacktrace():
+    """Get stack trace.
+
+    Get the call stack trace. The stack trace is a list
+    of tuples each of which represents one of two types of operations,
+    push("ENTER") or pop("EXIT") to/from the call stack.
+    The table blow shows data sored in the tuple elements.
+
+    ===== =========================================
+    Index Content
+    ===== =========================================
+        0 "ENTER" or "EXIT"
+        1 Stack position
+        2 Time (Seconds elapsed from the epoch_)
+        3 String to represent Cells object
+        4 A tuple of arguments to the Cells object
+    ===== =========================================
+
+    .. _epoch: https://docs.python.org/3/library/time.html#epoch
+
+    The call stack trace must be activated by :func:`start_stacktrace`
+    to get the trace, otherwise a runtime error is raised,
+
+    Returns:
+        A list of tuples each of which is a record of stack history.
+
+    See Also:
+        :func:`start_stacktrace`
+        :func:`stop_stacktrace`
+        :func:`clear_stacktrace`
+
+    .. versionadded:: 0.0.25
+    """
+    return _system.get_stacktrace()
