@@ -10,7 +10,7 @@ jobs:
       env: NETWORKX_VERSION=2.1
     - python: "3.8"
       env: NETWORKX_VERSION=2.2
-    - python: "3.9-dev"
+    - python: "3.8"
       env: NETWORKX_VERSION=2.3
 install:
   - pip install -r requirements-travis.txt
