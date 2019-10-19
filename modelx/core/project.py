@@ -344,12 +344,11 @@ def write_model(model, model_path):
 
     Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
 
-    Todo:
-        This function and :py:meth:`~modelx.core.model.Model.write` method
-        do not work property in combination with
-        :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`,
-        when :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`
-        creates more than one cells at a time.
+    .. versionadded:: 0.0.22
+
+    Warning:
+        The order of members of each type (Space, Cells, Ref)
+        is not preserved by :func:`write_model` and :func:`read_model`.
 
     Args:
         model: Model object to write
@@ -714,6 +713,8 @@ def read_model(model_path, name=None):
     Read model form a folder(directory) tree ``model_path``.
     The model must be saved by :py:func:`~write_model` function or
     :py:meth:`~modelx.core.model.Model.write` method.
+
+    .. versionadded:: 0.0.22
 
     Args:
         model_path(str): A folder(directory) path where model is stored.

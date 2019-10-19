@@ -136,6 +136,8 @@ class Model(EditableSpaceContainer):
         This method performs the :py:func:`~modelx.write_model`
         on self. See :py:func:`~modelx.write_model` section for the details.
 
+        .. versionadded:: 0.0.22
+
         Args:
             model_path(str): Folder(directory) path where the model is saved.
         """
