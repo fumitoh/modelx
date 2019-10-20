@@ -335,43 +335,7 @@ class Cells(Interface, Mapping, Callable):
 
 
 class CellsImpl(Derivable, Impl):
-    """
-    Data container optionally with a formula to set its own values.
-
-    **Creation**
-
-    **Deletion**
-
-    * Values dependent on the cell are deleted clear_all()
-    * Values dependent on the derived cells of the cells are deleted
-    * Derived cells are deleted _del_derived
-    * The cells is deleted _del_self
-
-    **Changing formula**
-    clear_all
-    _set_formula
-    _clear_all_derived
-    _set_formula_derived
-
-    **Changing allow_none**
-
-    **Setting Values**
-    clear()
-    _set
-
-    **Getting Values**
-
-    **Deleting Values**
-    clear(params)
-    clear_all
-    _clear_all_derived()
-
-    Args:
-        space: Space to contain the cell.
-        name: Cell's name.
-        func: Python function or Formula
-        data: array-like, dict, pandas.DataSeries or scalar values.
-    """
+    """Cells implementation"""
 
     interface_cls = Cells
 
