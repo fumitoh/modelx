@@ -514,8 +514,6 @@ class CellsImpl(Derivable, Impl):
                 raise ValueError("Duplicate assignment for %s" % key)
             else:
                 value = self.data[key]
-                del self.data[key]
-                value = self._store_value(key, value, False)
         else:
             value = self._store_value(key, value, False)
 
