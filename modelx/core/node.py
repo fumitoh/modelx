@@ -40,6 +40,11 @@ def node_has_key(node):
     return len(node) > 1
 
 
+def key_to_node(obj, key):
+    """Return node form object ane ky"""
+    return (obj, key)
+
+
 def get_node(obj, args, kwargs):
     """Create a node from arguments and return it"""
 

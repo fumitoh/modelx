@@ -17,7 +17,7 @@ from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import Impl, Derivable, Interface, BoundFunction
-from modelx.core.node import OBJ, KEY, get_node, tuplize_key
+from modelx.core.node import OBJ, KEY, get_node, tuplize_key, key_to_node
 from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
@@ -288,7 +288,7 @@ class Cells(Interface, Mapping, Callable):
 
     @value.deleter
     def value(self):
-        self._impl.clear_value()
+        self._impl.clear_value_at(())
 
     # ----------------------------------------------------------------------
     # Dependency
@@ -582,7 +582,7 @@ class CellsImpl(Derivable, Impl):
         if not self.has_cell(key) or overwrite:
 
             if overwrite:
-                self.clear_value(*key)
+                self.clear_value_at(key)
 
             if value is not None:
                 self.data[key] = value
@@ -602,12 +602,15 @@ class CellsImpl(Derivable, Impl):
             self.clear_all_values()
         else:
             node = get_node(self, *convert_args(args, kwargs))
-            if self.has_cell(node[KEY]):
-                self._model.clear_descendants(node)
+            self.clear_value_at(node[KEY])
 
     def clear_all_values(self):
-        for args in list(self.data):
-            self.clear_value(*args)
+        for key in list(self.data):
+            self.clear_value_at(key)
+
+    def clear_value_at(self, key):
+        if self.has_cell(key):
+            self._model.clear_descendants(key_to_node(self, key))
 
     # ----------------------------------------------------------------------
     # Pandas I/O
