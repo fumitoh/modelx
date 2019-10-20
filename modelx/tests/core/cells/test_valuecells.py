@@ -10,6 +10,11 @@ def constcells():
 
     model, space = new_model(), new_space()
 
+
+    @defcells
+    def foo():
+        return 2
+
     @defcells
     def bar():
         return 3
@@ -52,19 +57,27 @@ def test_ge(constcells):
 # --------------------------------------------------------------------------
 # Test value property
 
+def test_call(constcells):
+    assert constcells.foo() == 2
 
-def test_set_value(constcells):
+
+def test_eq(constcells):
+    assert constcells.foo == 2
+    assert 2 == constcells.foo
+
+
+def test_setattr_value(constcells):
     cells = constcells.new_cells()
     cells.value = 5
     assert cells() == 5
 
 
-def test_get_value(constcells):
+def test_getattr_value(constcells):
     cells = constcells.new_cells(formula="lambda: 3")
     assert cells.value == 3
 
 
-def test_del_value(constcells):
+def test_delattr_value(constcells):
     cells = constcells.new_cells()
     cells.allow_none = True
     cells.value = 2
