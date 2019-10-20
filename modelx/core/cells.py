@@ -373,7 +373,7 @@ class CellsImpl(Derivable, Impl):
         data: array-like, dict, pandas.DataSeries or scalar values.
     """
 
-    if_cls = Cells
+    interface_cls = Cells
 
     state_attrs = [
         "_model",

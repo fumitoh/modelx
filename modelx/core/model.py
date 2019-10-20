@@ -174,7 +174,7 @@ class Model(EditableSpaceContainer):
 
 
 class ModelImpl(EditableSpaceContainerImpl, Impl):
-    if_cls = Model
+    interface_cls = Model
 
     def __init__(self, *, system, name):
         Impl.__init__(self, system=system)

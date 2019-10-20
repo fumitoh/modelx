@@ -103,12 +103,12 @@ class Impl:
 
     state_attrs = ["interface", "parent", "allow_none", "lazy_evals", "_doc"]
 
-    if_cls = None  # Override in sub classes if interface class exists
+    interface_cls = None  # Override in sub classes if interface class exists
 
     def __init__(self, system, interface=None, doc=None):
 
-        if self.if_cls:
-            self.interface = self.if_cls(self)
+        if self.interface_cls:
+            self.interface = self.interface_cls(self)
         else:
             self.interface = interface
 
