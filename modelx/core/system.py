@@ -230,7 +230,7 @@ class System:
         self.callstack_inactive = TraceableCallStack(maxdepth)
         self._modelnamer = AutoNamer("Model")
         self._backupnamer = AutoNamer("_BAK")
-        self._currentmodel = None
+        self.currentmodel = None
         self._models = {}
         self.self = None
 
@@ -313,9 +313,9 @@ class System:
         if name in self.models:
             self._rename_samename(name)
 
-        self._currentmodel = ModelImpl(system=self, name=name)
-        self.models[self._currentmodel.name] = self._currentmodel
-        return self._currentmodel
+        self.currentmodel = ModelImpl(system=self, name=name)
+        self.models[self.currentmodel.name] = self.currentmodel
+        return self.currentmodel
 
     def rename_model(self, new_name, old_name, rename_old=False):
 
@@ -346,14 +346,6 @@ class System:
         return self._models
 
     @property
-    def currentmodel(self):
-        return self._currentmodel
-
-    @currentmodel.setter
-    def currentmodel(self, model):
-        self._currentmodel = model
-
-    @property
     def currentspace(self):
         return self.currentmodel.currentspace
 
@@ -377,14 +369,14 @@ class System:
                 raise RuntimeError("must not happen")
 
         self.models[newname] = model._impl
-        self._currentmodel = model._impl
+        self.currentmodel = model._impl
 
         return model
 
     def close_model(self, model):
         del self.models[model.name]
-        if self._currentmodel is model:
-            self._currentmodel = None
+        if self.currentmodel is model:
+            self.currentmodel = None
 
     def get_object(self, name):
         """Retrieve an object by its absolute name."""
