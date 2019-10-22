@@ -113,9 +113,47 @@ class Cells(Interface, Mapping, Callable):
     def __hash__(self):
         return hash(id(self))
 
-    def clear(self, *args, **kwargs):
-        """Clear all the values."""
-        return self._impl.clear_value(*args, **kwargs)
+    # ----------------------------------------------------------------------
+    # Clear value
+
+    def clear(self):
+        """Clear all calculated values.
+
+        .. versionchanged:: 0.1.0
+
+        - :meth:`clear` now only clears calculated values, not input values.
+          Use :meth:`clear_all` for clearing both input and calculated values.
+        - For clearing a value for specific arguments, use :meth:`clear_at`.
+
+        See Also:
+            :meth:`celar_all`, :meth:`clear_at`
+        """
+        return self._impl.clear_all_values(clear_input=False)
+
+    def clear_all(self):
+        """Clear all values.
+
+        Clear all values, both input and calculated values stored in the cells.
+
+        .. versionadded:: 0.1.0
+
+        See Also:
+            :meth:`celar`, :meth:`clear_at`
+        """
+        return self._impl.clear_all_values(clear_input=True)
+
+    def clear_at(self, *args, **kwargs):
+        """Clear value for given arguments.
+
+        Clear the value associated with the given arguments.
+
+        .. versionadded:: 0.1.0
+
+        See Also:
+            :meth:`celar`, :meth:`clear_all`
+        """
+        node = get_node(self._impl, *convert_args(args, kwargs))
+        return self._impl.clear_value_at(node[KEY])
 
     # ----------------------------------------------------------------------
     # Coercion to single value
@@ -347,6 +385,7 @@ class CellsImpl(Derivable, Impl):
         "data",
         "_namespace_impl",
         "altfunc",
+        "input_keys"
     ] + Derivable.state_attrs + Impl.state_attrs
 
     assert len(state_attrs) == len(set(state_attrs))
@@ -391,6 +430,8 @@ class CellsImpl(Derivable, Impl):
 
         self._namespace_impl = self.space._namespace_impl
         self.altfunc = BoundFunction(self)
+
+        self.input_keys = set(data.keys())
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
@@ -502,7 +543,7 @@ class CellsImpl(Derivable, Impl):
         self._model.spacemgr.update_subs(self.parent)
 
     # ----------------------------------------------------------------------
-    # Value operations
+    # Get/Set values
 
     def on_eval_formula(self, key):
 
@@ -572,6 +613,7 @@ class CellsImpl(Derivable, Impl):
         else:
             self._store_value(key, value, True)
             self._model.cellgraph.add_node(node)
+            self.input_keys.add(key)
 
     def _store_value(self, key, value, overwrite=False):
 
@@ -597,20 +639,25 @@ class CellsImpl(Derivable, Impl):
 
         return value
 
-    def clear_value(self, *args, **kwargs):
-        if args == () and kwargs == {} and not self.is_scalar():
-            self.clear_all_values()
-        else:
-            node = get_node(self, *convert_args(args, kwargs))
-            self.clear_value_at(node[KEY])
+    # ----------------------------------------------------------------------
+    # Clear value
 
-    def clear_all_values(self):
+    def on_clear_value(self, key):
+        del self.data[key]
+        if key in self.input_keys:
+            self.input_keys.remove(key)
+
+    def clear_all_values(self, clear_input):
         for key in list(self.data):
-            self.clear_value_at(key)
+            if clear_input:
+                self.clear_value_at(key)
+            else:
+                if key not in self.input_keys:
+                    self.clear_value_at(key)
 
     def clear_value_at(self, key):
         if self.has_cell(key):
-            self._model.clear_descendants(key_to_node(self, key))
+            self._model.clear_with_descs(key_to_node(self, key))
 
     # ----------------------------------------------------------------------
     # Pandas I/O
@@ -681,6 +728,19 @@ class CellNode:
         """Return the value of the cells."""
         if self.has_value:
             return self._impl[OBJ].get_value(self._impl[KEY])
+        else:
+            raise ValueError("Value not found")
+
+    def is_input(self):
+        """``True`` if this is input.
+
+        Return ``True`` if this cell is input, ``False`` if calculated.
+        Raise an error if there is no value.
+
+        .. versionadded:: 0.1.0
+        """
+        if self.has_value:
+            return self._impl[KEY] in self._impl[OBJ].input_keys
         else:
             raise ValueError("Value not found")
 

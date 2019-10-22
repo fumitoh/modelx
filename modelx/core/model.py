@@ -46,21 +46,20 @@ from modelx.core.util import is_valid_name, AutoNamer
 
 _nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
 
+
 class DependencyGraph(nx.DiGraph):
     """Directed Graph of ObjectArgs"""
 
-    def clear_descendants(self, source, clear_source=True):
+    def remove_with_descs(self, source):
         """Remove all descendants of(reachable from) `source`.
 
         Args:
             source: Node descendants
-            clear_source(bool): Remove origin too if True.
         Returns:
             set: The removed nodes.
         """
         desc = nx.descendants(self, source)
-        if clear_source:
-            desc.add(source)
+        desc.add(source)
         self.remove_nodes_from(desc)
         return desc
 
@@ -70,7 +69,7 @@ class DependencyGraph(nx.DiGraph):
         removed = set()
         for node in obj_nodes:
             if self.has_node(node):
-                removed.update(self.clear_descendants(node))
+                removed.update(self.remove_with_descs(node))
         return removed
 
     def get_nodes_with(self, obj):
@@ -215,11 +214,11 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         else:
             raise ValueError("Invalid name '%s'." % name)
 
-    def clear_descendants(self, source, clear_source=True):
+    def clear_with_descs(self, source):
         """Clear values and nodes calculated from `source`."""
-        removed = self.cellgraph.clear_descendants(source, clear_source)
+        removed = self.cellgraph.remove_with_descs(source)
         for node in removed:
-            del node[OBJ].data[node[KEY]]
+            node[OBJ].on_clear_value(node[KEY])
 
     # TODO
     # def clear_lexdescendants(self, refnode):
