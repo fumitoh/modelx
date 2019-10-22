@@ -283,6 +283,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             "_dynamic_bases_inverse",
             "_dynamic_base_namer",
             "spacemgr",
+            "currentspace"
         ]
         + BaseSpaceContainerImpl.state_attrs
         + Impl.state_attrs
