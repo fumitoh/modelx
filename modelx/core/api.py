@@ -108,6 +108,8 @@ def new_space(name=None, bases=None, formula=None):
     Returns:
         The new space.
     """
+    if cur_model() is None:
+        new_model()
     return cur_model().new_space(name, bases, formula)
 
 
@@ -167,14 +169,14 @@ def defcells(space=None, name=None, *funcs):
     if isinstance(space, _FunctionType) and name is None:
         # called as a function decorator
         func = space
-        return _system.currentspace.new_cells(formula=func).interface
+        return _system.get_curspace().new_cells(formula=func).interface
 
     elif (isinstance(space, _Space) or space is None) and (
         isinstance(name, str) or name is None
     ):
         # return decorator itself
         if space is None:
-            space = _system.currentspace.interface
+            space = _system.get_curspace().interface
 
         return _CellsMaker(space=space._impl, name=name)
 

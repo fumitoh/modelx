@@ -347,7 +347,22 @@ class System:
 
     @property
     def currentspace(self):
-        return self.currentmodel.currentspace
+        if self.currentmodel:
+            return self.currentmodel.currentspace
+        else:
+            return None
+
+    def get_curspace(self):
+        """Get or create current space"""
+        if self.currentspace:
+            return self.currentspace
+        else:
+            if self.currentmodel:
+                m = self.currentmodel
+            else:
+                m = self.new_model()    # self.new_model sets current_model
+            m.currentspace = m.new_space()
+            return m.currentspace
 
     def open_model(self, path, name):
         with open(path, "rb") as file:
