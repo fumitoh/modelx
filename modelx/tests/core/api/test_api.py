@@ -43,8 +43,15 @@ def test_get_models(testmodel):
 
 
 if sys.version_info >= (3, 7):
-    def test_getattr__(testmodel):
+
+    def test_getattr_models(testmodel):
         assert mx.models == mx.get_models()
+
+    def test_getattr(testmodel):
+        assert testmodel is mx.testmodel
+
+    def test_dir(testmodel):
+        assert "testmodel" in dir(mx)
 
 
 def test_get_object(testmodel):

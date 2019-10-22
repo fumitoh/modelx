@@ -24,7 +24,7 @@ VERSION = (0, 0, 26, "dev")
 __version__ = ".".join([str(x) for x in VERSION])
 from modelx.core.api import *  # must come after __version__ assignment.
 try:
-    from modelx.core.api import __getattr__
+    from modelx.core.api import __getattr__, __dir__
 except ImportError:
     pass
 from modelx.qtgui.api import *

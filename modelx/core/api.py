@@ -198,12 +198,18 @@ def get_models():
 
 
 if _sys.version_info >= (3, 7):
-    def __getattr__(name):
-
+    def __getattr__(name: str):
         if name == "models":
             return get_models()
-
+        elif name in get_models():
+            return get_models()[name]
         raise AttributeError(f"module {__name__} has no attribute {name}")
+
+    def __dir__():
+        names = list(globals())
+        names.append("models")
+        names.extend(get_models())
+        return names
 
 
 def get_object(name: str):
