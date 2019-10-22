@@ -337,6 +337,8 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
     def del_space(self, name):
         space = self.spaces[name]
         self.spaces.del_item(name)
+        if space is self.currentspace:
+            self.currentspace = None
 
     def _set_space(self, space):
 

@@ -107,9 +107,4 @@ def test_rename_same_name():
     assert m1.name in get_models()
 
 
-def test_cur_model_change():
-    m1 = new_model()
-    m2 = new_model()
-    assert cur_model() is m2
-    m = cur_model(m1.name)
-    assert m is cur_model() is m1
+

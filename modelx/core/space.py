@@ -1376,11 +1376,15 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
                 self.model.spacemgr.del_defined_space(self, name)
 
         elif name in self.dynamic_spaces:
-            # TODO: Destroy space
+            space = self.dynamic_spaces[name]
             self.dynamic_spaces.del_item(name)
 
         else:
             raise ValueError("Derived cells cannot be deleted")
+
+        # TODO: Destroy space
+        if space is self.model.currentspace:
+            self.model.currentspace = None
 
     def del_cells(self, name):
         """Implementation of cells deletion
