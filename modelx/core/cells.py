@@ -621,21 +621,18 @@ class CellsImpl(Derivable, Impl):
             if value._impl.is_scalar():
                 value = value._impl.single_value
 
-        if not self.has_cell(key) or overwrite:
+        assert not self.has_cell(key) or overwrite
 
-            if overwrite:
-                self.clear_value_at(key)
+        if overwrite:
+            self.clear_value_at(key)
 
-            if value is not None:
-                self.data[key] = value
-            elif self.get_property("allow_none"):
-                self.data[key] = value
-            else:
-                tracemsg = self.system.callstack.tracemessage()
-                raise NoneReturnedError(get_node(self, key, None), tracemsg)
-
+        if value is not None:
+            self.data[key] = value
+        elif self.get_property("allow_none"):
+            self.data[key] = value
         else:
-            raise ValueError("Value already exists for %s" % key)
+            tracemsg = self.system.callstack.tracemessage()
+            raise NoneReturnedError(get_node(self, key, None), tracemsg)
 
         return value
 
