@@ -86,6 +86,13 @@ class DependencyGraph(nx.DiGraph):
                 result.add(node)
         return result
 
+    def get_startnodes_from(self, node):
+        if node in self:
+            return [n for n in nx.descendants(self, node)
+                    if self.out_degree(n) == 0]
+        else:
+            return []
+
     def fresh_copy(self):
         """Overriding Graph.fresh_copy"""
         return DependencyGraph()

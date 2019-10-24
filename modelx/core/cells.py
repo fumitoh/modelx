@@ -556,7 +556,7 @@ class CellsImpl(Derivable, Impl):
             else:
                 value = self.data[key]
         else:
-            value = self._store_value(key, value, False)
+            value = self._store_value(key, value)
 
         return value
 
@@ -607,24 +607,23 @@ class CellsImpl(Derivable, Impl):
 
         if self.system.callstack:
             if node == self.system.callstack.last():
-                self._store_value(key, value, False)
+                self._store_value(key, value)
             else:
                 raise KeyError("Assignment in cells other than %s" % key)
         else:
-            self._store_value(key, value, True)
+            targets = self._model.cellgraph.get_startnodes_from(node)
+            self.clear_value_at(key)
+            self._store_value(key, value)
             self._model.cellgraph.add_node(node)
             self.input_keys.add(key)
+            for trg in targets:
+                trg[OBJ].get_value(trg[KEY])
 
-    def _store_value(self, key, value, overwrite=False):
+    def _store_value(self, key, value):
 
         if isinstance(value, Cells):
             if value._impl.is_scalar():
                 value = value._impl.single_value
-
-        assert not self.has_cell(key) or overwrite
-
-        if overwrite:
-            self.clear_value_at(key)
 
         if value is not None:
             self.data[key] = value
