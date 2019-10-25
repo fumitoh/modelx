@@ -1135,9 +1135,7 @@ class SpaceManager:
         node = space.get_fullname(omit_model=True)
 
         cells = CellsImpl(space=space, name=name, formula=formula,
-                          source=source)
-        space._cells.set_item(cells.name, cells)
-        cells.is_derived = is_derived
+                          source=source, is_derived=is_derived)
 
         for desc in nx.descendants(self._graph, node):
             s = self._graph.to_space(desc)

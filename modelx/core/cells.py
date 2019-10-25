@@ -392,7 +392,7 @@ class CellsImpl(Derivable, Impl):
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
-        source=None
+        source=None, is_derived=False
     ):
         Impl.__init__(self, system=space.system)
         Derivable.__init__(self)
@@ -414,6 +414,8 @@ class CellsImpl(Derivable, Impl):
         else:
             self.name = space.cellsnamer.get_next(space.namespace)
 
+        space._cells.set_item(self.name, self)
+
         if base:
             self.formula = base.formula
         elif formula is None:
@@ -430,6 +432,8 @@ class CellsImpl(Derivable, Impl):
 
         self._namespace_impl = self.space._namespace_impl
         self.altfunc = BoundFunction(self)
+
+        self.is_derived = is_derived
 
         self.input_keys = set(data.keys())
 

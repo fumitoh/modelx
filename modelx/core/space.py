@@ -881,13 +881,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         else:
             self._static_spaces.set_item(space.name, space)
 
-    def _new_cells(self, name, formula, is_derived, source=None):
-        cells = CellsImpl(space=self, name=name, formula=formula,
-                          source=source)
-        self._cells.set_item(cells.name, cells)
-        cells.is_derived = is_derived
-        return cells
-
     def _new_ref(self, name, value, is_derived):
         ref = ReferenceImpl(self, name, value)
         self.self_refs.set_item(name, ref)
@@ -904,7 +897,8 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         if attr == "static_spaces":
             return self._new_space_member(name, is_derived)
         elif attr == "cells":
-            return self._new_cells(name, formula=None, is_derived=is_derived)
+            return CellsImpl(
+                space=self, name=name, formula=None, is_derived=is_derived)
         elif attr == "self_refs":
             return self._new_ref(name, None, is_derived=is_derived)
         else:
@@ -1157,6 +1151,9 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         space = self._new_space(name, is_derived=is_derived)
         self._set_space(space)
         return space
+
+    # ----------------------------------------------------------------------
+    # Cells creation
 
     def new_cells(self, name=None, formula=None, is_derived=False,
                   source=None):
