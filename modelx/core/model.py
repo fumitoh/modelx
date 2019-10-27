@@ -198,8 +198,8 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         else:
             raise ValueError("Invalid name '%s'." % name)
 
-        data = {"__builtins__": builtins}
-        self._global_refs = RefDict(self, data=data)
+        self._global_refs = RefDict(self)
+        self._global_refs.set_item("__builtins__", builtins)
         self._spaces = ImplDict(self, SpaceView)
         self._dynamic_bases = {}
         self._dynamic_bases_inverse = {}
@@ -374,7 +374,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
 
-        self.global_refs.set_item(name, ReferenceImpl(self, name, value))
+        ReferenceImpl(self, name, value, container=self._global_refs)
 
     def del_attr(self, name):
 
@@ -1151,9 +1151,9 @@ class SpaceManager:
 
         node = space.get_fullname(omit_model=True)
 
-        ref = ReferenceImpl(space, name, value)
-        space.self_refs.set_item(name, ref)
-        ref.is_derived = is_derived
+        ref = ReferenceImpl(space, name, value,
+                            container=space._self_refs,
+                            is_derived=is_derived)
 
         for desc in nx.descendants(self._graph, node):
             s = self._graph.to_space(desc)

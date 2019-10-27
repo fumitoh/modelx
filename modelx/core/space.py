@@ -72,24 +72,22 @@ class CellsDict(ImplDict):
 
 
 class RefDict(ImplDict):
-    def __init__(self, space, data=None, observers=None):
+    def __init__(self, parent, data=None, observers=None):
+        ImplDict.__init__(self, parent, RefView, None, observers)
 
         if data is not None:
             for name, value in data.items():
-                data[name] = self.get_ref(space, name, value)
+                self.set_item(name, value)
 
-        ImplDict.__init__(self, space, RefView, data, observers)
+    def set_item(self, name, value, skip_self=False):
+        ImplDict.set_item(self, name,
+                          self.wrap_impl(self.owner, name, value), skip_self)
 
-    def set_item(self, name, ref, skip_self=False):
-        ImplDict.set_item(self, name, ref, skip_self)
-
-    # TODO: Should remove this to force refs created outside RefDict?
-    @staticmethod
-    def get_ref(space, name, value):
-        if isinstance(value, Impl):  # TODO: Probably not correct.
+    def wrap_impl(self, parent, name, value):
+        if isinstance(value, Impl):
             return value
         else:
-            return ReferenceImpl(space, name, value)
+            return ReferenceImpl(parent, name, value, container=self)
 
 
 def _to_frame_inner(cellsiter, args):
@@ -793,12 +791,8 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         # Add initial refs members
 
         if refs is not None:
-            refsimpl = {
-                name: ReferenceImpl(self, name, value)
-                for name, value in refs.items()
-            }
-            self._self_refs.update(refsimpl)
-            self._self_refs.set_update()
+            for name, value in refs.items():
+                ReferenceImpl(self, name, value, container=self._self_refs)
 
         # ------------------------------------------------------------------
         # Construct altfunc after space members are crated
@@ -881,12 +875,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         else:
             self._static_spaces.set_item(space.name, space)
 
-    def _new_ref(self, name, value, is_derived):
-        ref = ReferenceImpl(self, name, value)
-        self.self_refs.set_item(name, ref)
-        ref.is_derived = is_derived
-        return ref
-
     # ----------------------------------------------------------------------
     # Reference operation
 
@@ -900,7 +888,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             return CellsImpl(
                 space=self, name=name, formula=None, is_derived=is_derived)
         elif attr == "self_refs":
-            return self._new_ref(name, None, is_derived=is_derived)
+            return ReferenceImpl(self, name, None,
+                                 container=self._self_refs,
+                                 is_derived=is_derived)
         else:
             raise RuntimeError("must not happen")
 
@@ -1400,7 +1390,6 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         else:
             raise KeyError("Cells '%s' does not exist" % name)
 
-
     def del_ref(self, name):
 
         if name in self.self_refs:
@@ -1633,7 +1622,7 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
         DynamicSpaceImpl.__init__(
             self, parent, name, formula, refs, source, arguments, doc
         )
-        self._bind_args(arguments)
+        self._bind_args(self.arguments)
 
     def _create_refs(self, arguments=None):
         self._arguments = RefDict(self, data=arguments)

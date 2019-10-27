@@ -67,13 +67,16 @@ class ReferenceImpl(Derivable, Impl):
     assert len(state_attrs) == len(set(state_attrs))
     picklers = []    # List of _BasePickler sub classes
 
-    def __init__(self, parent, name, value, base=None):
+    def __init__(self, parent, name, value, container, is_derived=False):
         Impl.__init__(self, parent.system, interface=value)
         Derivable.__init__(self)
 
         self.parent = parent
         self.model = parent.model
         self.name = name
+
+        container.set_item(name, self)
+        self.is_derived = is_derived
 
     def __getstate__(self):
         state = {
