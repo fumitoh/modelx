@@ -233,7 +233,7 @@ class BaseSpace(BaseSpaceContainer):
     def _direct_bases(self):
         """Directly inherited base classes"""
         return get_interfaces(
-            self._impl.model.spacemgr.get_direct_bases(self._impl))
+            self._impl.manager.get_direct_bases(self._impl))
 
     def _is_base(self, other):
         """True if the space is a base space of ``other``, False otherwise."""
@@ -810,6 +810,10 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         return self.parent.model
 
     @property
+    def manager(self):
+        return self.model.spacemgr
+
+    @property
     def cells(self):
         return self._cells.refresh
 
@@ -847,7 +851,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     def bases(self):
         """Return an iterator over direct base spaces"""
         node = self.get_fullname(omit_model=True)
-        spaces = self.model.spacemgr.get_deriv_bases(self)
+        spaces = self.manager.get_deriv_bases(self)
         return spaces
 
     @staticmethod
@@ -1148,13 +1152,13 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def new_cells(self, name=None, formula=None, is_derived=False,
                   source=None):
 
-        if not self.model.spacemgr.can_add(self, name, CellsImpl):
+        if not self.manager.can_add(self, name, CellsImpl):
             raise ValueError("Cannot create cells '%s'" % name)
 
         cells = CellsImpl(space=self, name=name, formula=formula,
                           source=source, is_derived=is_derived)
 
-        self.model.spacemgr.update_subs(self)
+        self.manager.update_subs(self)
 
         return cells
 
@@ -1292,14 +1296,14 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
     def new_ref(self, name, value, is_derived=False):
 
-        if not self.model.spacemgr.can_add(self, name, CellsImpl):
+        if not self.manager.can_add(self, name, CellsImpl):
             raise ValueError("Cannot create cells '%s'" % name)
 
         ref = ReferenceImpl(self, name, value,
                             container=self._self_refs,
                             is_derived=is_derived)
 
-        self.model.spacemgr.update_subs(self)
+        self.manager.update_subs(self)
 
         return ref
 
@@ -1360,10 +1364,10 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     # Inheritance
 
     def add_bases(self, bases):
-        self.model.spacemgr.add_bases(self, bases)
+        self.manager.add_bases(self, bases)
 
     def remove_bases(self, bases):  # bases are interfaces
-        self.model.spacemgr.remove_bases(self, get_impls(bases))
+        self.manager.remove_bases(self, get_impls(bases))
 
     # --- Member deletion -------------------------------------
 
@@ -1379,7 +1383,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
                     "%s has derived spaces" % repr(space.interface)
                 )
             else:
-                self.model.spacemgr.del_defined_space(self, name)
+                self.manager.del_defined_space(self, name)
 
         elif name in self.dynamic_spaces:
             space = self.dynamic_spaces[name]
@@ -1399,7 +1403,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         ``del space.cells['name']``
         """
         if name in self.cells:
-            self.model.spacemgr.del_cells(self, name)
+            self.manager.del_cells(self, name)
 
         elif name in self.dynamic_spaces:
             cells = self.dynamic_spaces.pop(name)
@@ -1412,7 +1416,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     def del_ref(self, name):
 
         if name in self.self_refs:
-            self.model.spacemgr.del_ref(self, name)
+            self.manager.del_ref(self, name)
         elif name in self.is_derived:
             raise KeyError("Derived ref '%s' cannot be deleted" % name)
         elif name in self.arguments:
