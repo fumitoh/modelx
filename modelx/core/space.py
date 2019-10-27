@@ -716,8 +716,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
 
     state_attrs = (
         [
-            "_mro_cache",
-            "update_mro",
             "_cells",
             "_static_spaces",
             "_dynamic_spaces",
@@ -756,9 +754,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         self.name = name
         self.parent = parent
         self.cellsnamer = AutoNamer("Cells")
-
-        self._mro_cache = None
-        self.update_mro = True
 
         if isinstance(source, ModuleType):
             self.source = source.__name__
