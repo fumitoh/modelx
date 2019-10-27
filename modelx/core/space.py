@@ -1147,8 +1147,16 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
     def new_cells(self, name=None, formula=None, is_derived=False,
                   source=None):
-        return self.model.spacemgr.new_cells(
-            self, name, formula, is_derived, source)
+
+        if not self.model.spacemgr.can_add(self, name, CellsImpl):
+            raise ValueError("Cannot create cells '%s'" % name)
+
+        cells = CellsImpl(space=self, name=name, formula=formula,
+                          source=source, is_derived=is_derived)
+
+        self.model.spacemgr.update_subs(self)
+
+        return cells
 
     def new_cells_from_module(self, module, override=True):
         # Outside formulas only
@@ -1279,10 +1287,21 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         return new_cells_from_pandas(
             self, pd.read_csv(filepath, *args, **kwargs), cells, param, source)
 
-    # --- Reference creation -------------------------------------
+    # ----------------------------------------------------------------------
+    # Reference creation
 
     def new_ref(self, name, value, is_derived=False):
-        return self.model.spacemgr.new_ref(self, name, value, is_derived)
+
+        if not self.model.spacemgr.can_add(self, name, CellsImpl):
+            raise ValueError("Cannot create cells '%s'" % name)
+
+        ref = ReferenceImpl(self, name, value,
+                            container=self._self_refs,
+                            is_derived=is_derived)
+
+        self.model.spacemgr.update_subs(self)
+
+        return ref
 
     # ----------------------------------------------------------------------
     # Attribute access

@@ -978,7 +978,6 @@ class SpaceManager:
 
         space.inherit(bases)
 
-
     def add_bases(self, space, bases):
         """Add bases to space in graph
         """
@@ -1125,42 +1124,6 @@ class SpaceManager:
             if n not in newsubg:
                 newsubg_inh.remove_node(n)
         self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
-
-    def new_cells(self, space, name=None, formula=None, is_derived=False,
-                  source=None):
-
-        if not self.can_add(space, name, CellsImpl):
-            raise ValueError("Cannot create cells '%s'" % name)
-
-        node = space.get_fullname(omit_model=True)
-
-        cells = CellsImpl(space=space, name=name, formula=formula,
-                          source=source, is_derived=is_derived)
-
-        for desc in nx.descendants(self._graph, node):
-            s = self._graph.to_space(desc)
-            b = self._get_space_bases(s, self._graph)
-            s.inherit(b)
-
-        return cells
-
-    def new_ref(self, space, name, value, is_derived=False):
-
-        if not self.can_add(space, name, CellsImpl):
-            raise ValueError("Cannot create cells '%s'" % name)
-
-        node = space.get_fullname(omit_model=True)
-
-        ref = ReferenceImpl(space, name, value,
-                            container=space._self_refs,
-                            is_derived=is_derived)
-
-        for desc in nx.descendants(self._graph, node):
-            s = self._graph.to_space(desc)
-            b = self._get_space_bases(s, self._graph)
-            s.inherit(b)
-
-        return ref
 
     def get_deriv_bases(self, deriv: Derivable,
                         graph: SpaceGraph=None):
