@@ -37,7 +37,9 @@ class Executor:
         self.callstack = CallStack(maxdepth)
         self.thread = Executor.ExecThread(self)
         self.thread.daemon = True
+        last_size = threading.stack_size(0xFFFFFFF)
         self.thread.start()
+        threading.stack_size(last_size)
         self.initnode = None
 
     def eval_cell(self, node):
@@ -289,7 +291,6 @@ class System:
         """
         sys.setrecursionlimit(10**6)
         warnings.showwarning = custom_showwarning
-        threading.stack_size(0xFFFFFFF)
 
     def restore_python(self):
         """Restore Python settings to the original states"""
@@ -306,7 +307,6 @@ class System:
             warnings.showwarning = orig["showwarning"]
 
         orig.clear()
-        threading.stack_size()
 
     def new_model(self, name=None):
 
