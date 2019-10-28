@@ -33,6 +33,7 @@ from modelx.core.cells import CellsMaker as _CellsMaker
 from modelx.core.space import BaseSpace as _Space
 from modelx.core.model import Model as _Model
 from modelx.core.base import get_interfaces as _get_interfaces
+from modelx.core.util import is_valid_name as _is_valid_name
 from modelx.core.project import write_model, read_model
 
 
@@ -114,23 +115,36 @@ def new_space(name=None, bases=None, formula=None):
 
 
 def defcells(space=None, name=None, *funcs):
-    """Decorator/function to create cells from Python functions.
+    """Decorator/function to create/update cells from Python functions.
 
-    Convenience decorator/function to create new cells directly from function
-    definitions or function objects substituting for calling
-    :py:meth:`new_cells <modelx.core.space.UserSpace.new_cells>`
-    method of the parent space.
+    Convenience decorator/function to create a new cells or change the
+    formula of an existing cells directly from a function
+    definition or a function object, which substitutes for calling
+    :py:meth:`~modelx.core.space.UserSpace.new_cells` or,
+    :py:meth:`~modelx.core.space.UserSpace.set_formula`
+    of the parent space or setting its
+    :py:attr:`~modelx.core.space.UserSpace.formula` property.
 
-    There are 3 ways to use ``defcells`` to define cells from functions.
+    :meth:`defcells` understands arguments passed to it in 3 different ways
+    depending the number of the arguments and their types.
 
     **1. As a decorator without arguments**
 
-    To create a cells from a function definition in the current space of the
-    current model with the same name as the function's::
+    To create a cells from a function definition in the current space
+    with the same name as the function's::
 
         @defcells
         def foo(x):
             return x
+
+    .. versionchanged:: 0.1.0
+        If the current space does not exist in the current model,
+        a new space is created. If the current model does not exit,
+        a new model is also created.
+
+    .. versionchanged:: 0.1.0
+        If a cells with the same name already exists in the current space,
+        the formula of the cells is updated based on the decorated function.
 
     **2. As a decorator with arguments**
 
@@ -169,7 +183,13 @@ def defcells(space=None, name=None, *funcs):
     if isinstance(space, _FunctionType) and name is None:
         # called as a function decorator
         func = space
-        return _system.get_curspace().new_cells(formula=func).interface
+        space = _system.get_curspace()
+        name = func.__name__
+        if _is_valid_name(name) and name in space.cells:
+            space.cells[name].set_formula(func)
+            return space.cells[name].interface
+        else:
+            return space.new_cells(formula=func).interface
 
     elif (isinstance(space, _Space) or space is None) and (
         isinstance(name, str) or name is None
