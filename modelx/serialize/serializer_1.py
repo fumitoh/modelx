@@ -173,17 +173,6 @@ class ModelWriter:
 
         gen = visit_spaces()
         model = next(gen)
-        created = []
-
-        def create_path(path_, created):
-
-            if path_ not in created:
-                if path_.exists():
-                    shutil.rmtree(path_)
-                path_.mkdir()
-                created.append(path_)
-
-        create_path(self.root, created)
 
         try:
             # Create _model.py
@@ -213,7 +202,8 @@ class ModelWriter:
                 if not self._has_method(space):
                     space_path = "/".join(space.parent.fullname.split(".")[1:])
                     path_ = self.root / space_path
-                    create_path(path_, created)
+                    if not path_.exists():
+                        path_.mkdir()
                     self._write_space(space, path_ / (space.name + ".py"))
         finally:
             self.call_ids = []
@@ -314,48 +304,6 @@ class ModelWriter:
         if obj.allow_none is not None:
             s = "_allow_none = " + json.JSONEncoder().encode(obj.allow_none)
             file.write(s + "\n\n")
-
-
-def write_model(model, model_path):
-    """Write model to files.
-
-    Write ``model`` to text files in a folder(directory) tree at ``model_path``.
-
-    Model attributes, such as its name and refs, are output in the file
-    named *_model.py*, directly under `model_path`.
-    For each space in the model, a text file is created with the same name
-    as the space with ".py" extension. The tree structure of the spaces
-    is represented by the tree of folders, i.e. child spaces
-    of a space is stored in a folder named the space.
-
-    Generated text files are Python pseudo-scripts, i.e. they are
-    syntactically correct but semantically not-correct Python scripts,
-    that can only be interpreted through :py:func:`~read_model` function.
-
-    Dynamic spaces and cells values are not stored.
-
-    For spaces and cells created
-    by :py:meth:`~modelx.core.space.UserSpace.new_space_from_excel` and
-    :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`,
-    the source Excel files are copied into the same directory where
-    the text files for the spaces the methods are associated with are located.
-    Then when the model is read by :py:func:`~read_model` function,
-    the methods are invoked to create the spaces or cells.
-
-    Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
-
-    .. versionadded:: 0.0.22
-
-    Warning:
-        The order of members of each type (Space, Cells, Ref)
-        is not preserved by :func:`write_model` and :func:`read_model`.
-
-    Args:
-        model: Model object to write
-        model_path(str): Folder path where the model will be output.
-
-    """
-    ModelWriter(model, pathlib.Path(model_path)).write_model()
 
 
 class _RefViewEncoder(json.JSONEncoder):
@@ -705,28 +653,6 @@ def _restore_ref(obj):
 
     else:
         return obj
-
-
-def read_model(model_path, name=None):
-    """Read model from files.
-
-    Read model form a folder(directory) tree ``model_path``.
-    The model must be saved by :py:func:`~write_model` function or
-    :py:meth:`~modelx.core.model.Model.write` method.
-
-    .. versionadded:: 0.0.22
-
-    Args:
-        model_path(str): A folder(directory) path where model is stored.
-        name(str, optional): Model name to overwrite the saved name.
-
-    Returns:
-        A Model object constructed from the files.
-
-    """
-
-    kwargs = {"name": name} if name else {}
-    return ModelReader(pathlib.Path(model_path)).read_model(**kwargs)
 
 
 _RefData = namedtuple("_RefData", ["evalrepr"])

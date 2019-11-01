@@ -1,12 +1,9 @@
 import sys
-import os
-import pathlib
 import importlib
 import pytest
-from modelx.core.project import (
+from modelx.serialize import (
     write_model,
     read_model)
-import modelx as mx
 from modelx.testing import testutil
 
 _PROJECTS = ["simplelife",

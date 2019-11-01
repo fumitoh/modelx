@@ -1,5 +1,5 @@
 import pytest
-from modelx.core.project import (
+from modelx.serialize import (
     write_model,
     read_model)
 from modelx.testing import testutil
@@ -34,7 +34,6 @@ def testmodel():
 def test_read_write_model(testmodel, tmp_path, name):
 
     path_ = tmp_path / "testdir"
-    path_.mkdir()
     write_model(testmodel, path_)
     m = read_model(path_, name=name)
 

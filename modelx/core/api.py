@@ -34,8 +34,7 @@ from modelx.core.space import BaseSpace as _Space
 from modelx.core.model import Model as _Model
 from modelx.core.base import get_interfaces as _get_interfaces
 from modelx.core.util import is_valid_name as _is_valid_name
-from modelx.core.project import write_model, read_model
-
+from modelx.serialize import write_model, read_model
 
 def configure_python():
     """Configure Python ``sys`` settings for modelx.

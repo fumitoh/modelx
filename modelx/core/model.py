@@ -41,7 +41,6 @@ from modelx.core.space import (
     SpaceView,
     RefDict
 )
-from modelx.core.cells import CellsImpl
 from modelx.core.util import is_valid_name, AutoNamer
 
 _nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
@@ -147,7 +146,7 @@ class Model(EditableSpaceContainer):
         Args:
             model_path(str): Folder(directory) path where the model is saved.
         """
-        from modelx.core.project import write_model
+        from modelx.serialize import write_model
         write_model(self, model_path)
 
     # ----------------------------------------------------------------------
