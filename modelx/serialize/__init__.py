@@ -38,7 +38,7 @@ def _get_model_serializer(model_path):
     except FileNotFoundError:
         return _get_serializer(1)
 
-    return _get_serializer(params["version"])
+    return _get_serializer(params["serializer_version"])
 
 
 def write_model(model, model_path, backup=True, version=None):
@@ -91,7 +91,7 @@ def write_model(model, model_path, backup=True, version=None):
     _increment_backups(path, max_backups)
     path.mkdir()
     with open(path / "_system.json", "w", encoding="utf-8") as f:
-        json.dump({"version": version}, f)
+        json.dump({"serializer_version": version}, f)
 
 
     serializer = _get_serializer(version)
