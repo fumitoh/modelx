@@ -1162,7 +1162,7 @@ class SpaceManager:
     def del_ref(self, space, name):
 
         space.self_refs.del_item(name)
-        self.update_subs(self, space)
+        self.update_subs(space)
 
     def update_subs(self, space):
 

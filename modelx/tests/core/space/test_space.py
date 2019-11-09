@@ -156,37 +156,12 @@ def test_setref_derived(testmodel):
     assert derived.foo == 5
 
 
-def test_del_cells(testmodel):
-
-    space = new_space()
-
-    @defcells
-    def foo(x):
-        return 2 * x
-
-    foo(3)
-    del space.foo
-
-    with pytest.raises(AttributeError):
-        space.foo(3)
-
-    with pytest.raises(RuntimeError):
-        foo(3)
-
-
 def test_static_spaces(testmodel):
 
     space = new_space()
     child = space.new_space("Child")
     assert space.static_spaces == {"Child": child}
 
-
-def test_del_static_spaces(testmodel):
-
-    space = new_space()
-    child = space.new_space("Child")
-    del space.Child
-    assert space.static_spaces == {}
 
 
 # ----- Test SpaceView -----
