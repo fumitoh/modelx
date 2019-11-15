@@ -12,390 +12,650 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-import json, types, collections, importlib, builtins, pathlib
+import json, types, importlib, pathlib
 import ast
+import enum
 from collections import namedtuple
 import tokenize
 import shutil
-from numbers import Number
+import pickle
 import modelx as mx
 from modelx.core.model import Model
-from modelx.core.space import BaseSpace
 from modelx.core.base import Interface
-from modelx.core.cells import Cells
 import asttokens
 
 
-def _write_file(obj, path_):
-    src = obj._impl.source.copy()
-    srcpath = pathlib.Path(src["args"][0])
-    shutil.copyfile(
-        str(srcpath),
-        str(path_.joinpath(srcpath.name))
-    )
-    src["args"][0] = srcpath.name
-    return src
+Section = namedtuple("Section", ["id", "symbol"])
+SECTION_DIVIDER = "# " + "-" * 75
+SECTIONS = [
+    Section("REFDEFS", "# References"),
+    Section("DEFAULT", "")
+]
 
 
-def _read_file():
-    pass
+class PriorityID(enum.IntEnum):
+    NORMAL = 1
+    AT_PARSE = 2
 
 
-def write_pandas(obj, path_: pathlib.Path):
-    src = obj._impl.source.copy()
-    data = src["args"][0]
-    filename = obj.name + ".data"
-    data.to_pickle(str(path_.joinpath(filename)))
-    src["args"][0] = filename
-    return src
+class SourceStructure:
 
+    DIVIDER = "# " + "-" * 75
+    SECTION_REF = "# References"
 
-def refhook(inst):
-    args, kwargs = inst.args, inst.kwargs
+    def __init__(self, source: str):
+        self.source = source
+        self.sections = None
+        self.construct()
 
-    if args:
-        key, val = args
-        val = _restore_ref(val)
-        args = (key, val)
-    return args, kwargs
-
-
-def basehook(inst):
-    args, kwargs = inst.args, inst.kwargs
-
-    if args:
-        args = _restore_ref(args)
-
-    return args, kwargs
-
-
-def filehook(inst):
-    args, kwargs = inst.args, inst.kwargs
-    args[0] = str(inst.path_.with_name(args[0]))
-    return args, kwargs
-
-
-def pandashook(inst):
-    import pandas as pd
-    args, kwargs = inst.args, inst.kwargs
-    filepath = str(inst.path_.with_name(args[0]))
-    args[0] = pd.read_pickle(filepath)
-    return args, kwargs
-
-
-class _Instruction:
-
-    _METHODS = {
-        "new_space_from_excel": {
-            "writer": _write_file,
-            "reader": filehook},
-        "new_cells_from_excel": {
-            "writer": _write_file,
-            "reader": filehook},
-        "new_space_from_csv": {
-            "writer": _write_file,
-            "reader": filehook},
-        "new_cells_from_csv": {
-            "writer": _write_file,
-            "reader": filehook},
-        "new_space_from_pandas": {
-            "writer": write_pandas,
-            "reader": pandashook},
-        "new_cells_from_pandas": {
-            "writer": write_pandas,
-            "reader": pandashook}
-    }
-
-    def __init__(self, path_, obj, method, args=(), kwargs=None, arghook=None):
-
-        self.path_ = path_
-        self.obj = obj
-        self.method = method
-        self.args = args
-        if kwargs is None:
-            kwargs = {}
-        self.kwargs = kwargs
-
-        if arghook is None:
-            if method in self._METHODS:
-                self.arghook = self._METHODS[method]["reader"]
+    def construct(self):
+        self.sections = {}
+        sec = "DEFAULT"
+        is_divider_read = False
+        for i, line in enumerate(self.source.split("\n")):
+            if is_divider_read:
+                sec = next(
+                    (sec.id for sec in SECTIONS if line.strip() == sec.symbol),
+                    "DEFAULT")
+                is_divider_read = False
+                self.sections[i] = sec
             else:
-                self.arghook = None
-        else:
-            self.arghook = arghook
+                if line.strip() == SECTION_DIVIDER:
+                    is_divider_read = True
 
-    def run(self):
+    def get_section(self, lineno):
+        return next((sec for i, sec in self.sections.items()
+                     if lineno > i
+                     ), "DEFAULT")
 
+
+class Instruction:
+
+    def __init__(self, func, args=(), arghook=None, kwargs=None):
+
+        self.func = func
+        self.args = args
+        self.arghook = arghook
+        self.kwargs = kwargs if kwargs else {}
+
+    @classmethod
+    def from_method(cls, obj, method, args=(), arghook=None, kwargs=None):
+        func = getattr(obj, method)
+        return cls(func, args=args, arghook=arghook, kwargs=kwargs)
+
+    def execute(self):
         if self.arghook:
             args, kwargs = self.arghook(self)
         else:
             args, kwargs = self.args, self.kwargs
 
-        getattr(self.obj, self.method)(*args, **kwargs)
+        return self.func(*args, **kwargs)
+
+    @property
+    def funcname(self):
+        return self.func.__name__
+
+    def __repr__(self):
+        return "<Instruction: %s>" % self.funcname
 
 
-class _InstructionList(list):
+class CompoundInstruction:
 
-    def run_methods(self, methods, obj=None, pop_items=True):
+    def __init__(self, instructions=None):
 
-        if pop_items:
-            list_ = self
-        else:
-            list_ = self.copy()
+        self.instructions = []
+        self.extend(instructions)
+
+    def extend(self, instructions):
+        if instructions:
+            for inst in instructions:
+                if inst:  # Not None
+                    if isinstance(inst, CompoundInstruction):
+                        if inst.instructions:
+                            self.instructions.append(inst)
+                    else:
+                        self.instructions.append(inst)
+
+    def execute(self):
+        result = None
+        for inst in self.instructions:
+            result = inst.execute()
+        return result
+
+    def execute_selected(self, cond, pop_executed=True):
 
         pos = 0
-        while pos < len(list_):
-            c = list_[pos]
-            if ((obj is None) or (c.obj is obj)) and (c.method in methods):
-                c.run()
-                list_.pop(pos)
+        while pos < len(self.instructions):
+
+            inst = self.instructions[pos]
+            if isinstance(inst, CompoundInstruction):
+                inst.execute_selected(cond, pop_executed)
+                if inst.instructions:
+                    pos += 1
+                else:
+                    self.instructions.pop(pos)
             else:
-                pos += 1
+                if cond(inst):
+                    inst.execute()
+                    if pop_executed:
+                        self.instructions.pop(pos)
+                    else:
+                        pos += 1
+                else:
+                    pos += 1
+
+    def execute_selected_methods(self, methods, pop_executed=True):
+
+        def cond(inst):
+            return inst.func.__name__ in methods
+
+        self.execute_selected(cond, pop_executed)
 
 
-class ModelWriter:
+_METHODS = [
+    "new_space_from_excel",
+    "new_cells_from_excel",
+    "new_space_from_csv",
+    "new_cells_from_csv",
+    "new_space_from_pandas",
+    "new_cells_from_pandas"
+]
+
+# --------------------------------------------------------------------------
+# Model Writing
+
+
+class BaseEncoder:
+
+    def __init__(self, target,
+                 parent=None, name=None, srcpath=None, datapath=None):
+        self.target = target
+        self.parent = parent
+        self.name = name
+        self.srcpath = srcpath
+        self.datapath = datapath
+
+    def encode(self):
+        raise NotImplementedError
+
+    def instruct(self):
+        return None
+
+
+class ModelWriter(BaseEncoder):
 
     def __init__(self, model: Model, path: pathlib.Path):
+        super().__init__(model, name=model.name, srcpath=path / "_model.py",
+                         datapath=path / "data")
         self.model = model
         self.root = path
         self.call_ids = []
 
+        self.refview_encoder = RefViewEncoder(
+            self.model.refs,
+            parent=self.model,
+            srcpath=self.srcpath
+        )
+        self.method_encoders = []
+        for space in model.spaces.values():
+            if MethodCallEncoder.from_method(space):
+                enc = MethodCallSelector.select(space)(
+                    space,
+                    parent=self.model,
+                    srcpath=self.srcpath,
+                    datapath=self.datapath
+                )
+                if enc.callid not in self.call_ids:
+                    self.method_encoders.append(enc)
+                    self.call_ids.append(enc.callid)
+
+    def encode(self):
+        lines = []
+        if self.model.doc is not None:
+            lines.append("\"\"\"" + self.model.doc + "\"\"\"")
+
+        lines.append("_name = \"%s\"" % self.model.name)
+        lines.append("_allow_none = " + str(self.model.allow_none))
+
+        # Output _spaces. Exclude spaces created from methods
+        spaces = []
+        for name, space in self.model.spaces.items():
+            if name[1] == "_":
+                pass
+            elif MethodCallEncoder.from_method(space):
+                pass
+            else:
+                spaces.append(name)
+        lines.append("_spaces = " + json.JSONEncoder(
+            ensure_ascii=False,
+            indent=4
+        ).encode(spaces))
+        lines.extend(enc.encode() for enc in self.method_encoders)
+        lines.append(self.refview_encoder.encode())
+        return "\n\n".join(lines)
+
+    def instruct(self):
+        insts = []
+        insts.append(self.refview_encoder.instruct())
+        insts.extend(e.instruct() for e in self.method_encoders)
+        return CompoundInstruction(insts)
+
     def write_model(self):
-
-        def visit_spaces():
-            """Generator yielding spaces in breadth-first order"""
-            que = collections.deque([self.model])
-            while que:
-                space = que.pop()
-                yield space
-                for child in space.spaces.values():
-                    que.append(child)
-
-        gen = visit_spaces()
-        model = next(gen)
 
         try:
             # Create _model.py
-            with open(self.root / "_model.py", "w", encoding="utf-8") as f:
+            with self.srcpath.open("w", encoding="utf-8") as f:
+                f.write(self.encode())
 
-                if model.doc is not None:
-                    f.write("\"\"\"" + model.doc + "\"\"\"")
-
-                f.write("_name = " + json.JSONEncoder().encode(model.name))
-                f.write("\n\n")
-
-                self._write_allow_none(model, f)
-
-                f.write("_refs = " + _RefViewEncoder(
-                    owner=model,
-                    ensure_ascii=False,
-                    indent=4
-                ).encode(model.refs))
-                f.write("\n\n")
-
-                for space in model.spaces.values():
-                    self._write_method(
-                        space, f, path_=self.root)
+            self.instruct().execute()
 
             # Create Space.py
-            for space in gen:
-                if not self._has_method(space):
-                    space_path = "/".join(space.parent.fullname.split(".")[1:])
-                    path_ = self.root / space_path
-                    if not path_.exists():
-                        path_.mkdir()
-                    self._write_space(space, path_ / (space.name + ".py"))
+            for space in self.model.spaces.values():
+                if not MethodCallEncoder.from_method(space):
+
+                    relpath = "/".join(space.fullname.split(".")[1:]) + ".py"
+                    srcpath = self.root / relpath
+                    sw = SpaceWriter(
+                        space, parent=self.model, name=space.name,
+                        srcpath=srcpath, call_ids=self.call_ids)
+                    sw.write_space()
         finally:
-            self.call_ids = []
+            self.call_ids.clear()
 
-    def _has_method(self, obj: Interface):
-        src = obj._impl.source
-        return (src and "method" in src
-                and src["method"] in _Instruction._METHODS)
 
-    def _has_new_callid(self, obj: Interface):
-        src = obj._impl.source
-        return src["kwargs"]["call_id"] not in self.call_ids
+class SpaceWriter(BaseEncoder):
 
-    def _write_method(self, obj, file, path_):
+    def __init__(self, target, parent, name=None, srcpath=None, call_ids=None):
+        super().__init__(target, parent, name, srcpath,
+                         datapath=srcpath.parent / srcpath.stem / "data")
+        self.space = target
+        self.call_ids = call_ids
 
-        if self._has_method(obj) and self._has_new_callid(obj):
+        self.refview_encoder = RefViewEncoder(
+            self.space._self_refs,
+            parent=self.space,
+            srcpath=srcpath
+        )
 
-            src = obj._impl.source
-            writer = _Instruction._METHODS[src["method"]]["writer"]
-            src = writer(obj, path_)
-
-            file.write("_method = " + json.JSONEncoder(
-                ensure_ascii=False,
-                indent=4
-            ).encode(src))
-            file.write("\n\n")
-            self.call_ids.append(src["kwargs"]["call_id"])
-
-    def _write_space(self, space: BaseSpace, file: pathlib.Path):
-
-        def format_formula(obj):
-
-            if isinstance(obj, Cells):
-                target = obj.name
-            else:
-                target = "_formula"
-
-            if obj.formula:
-                if obj.formula.source[:6] == "lambda":
-                    return target + " = " + obj.formula.source
-                else:
-                    return obj.formula.source
-            else:
-                return target + " = None"
-
-        with open(file, "w", encoding="utf-8") as f:
-
-            if space.doc is not None:
-                f.write("\"\"\"" + space.doc + "\"\"\"\n\n")
-
-            f.write(format_formula(space))
-            f.write("\n\n")
-
-            if space._direct_bases:
-                f.write(
-                    "_bases = " +
-                    _BaseEncoder(
-                        owner=space,
-                        ensure_ascii=False,
-                        indent=4
-                    ).encode(space._direct_bases)
+        self.space_method_encoders = []
+        for space in self.space.spaces.values():
+            encoder = MethodCallSelector.select(space)
+            if encoder:
+                enc = encoder(
+                    space,
+                    parent=self.space,
+                    srcpath=srcpath,
+                    datapath=self.datapath
                 )
-                f.write("\n\n")
+                if enc.callid not in self.call_ids:
+                    self.space_method_encoders.append(enc)
+                    self.call_ids.append(enc.callid)
 
-            self._write_allow_none(space, f)
+        self.cells_method_encoders = []
+        for cells in self.space.cells.values():
+            encoder = MethodCallSelector.select(cells)
+            if encoder:
+                enc = encoder(
+                    cells,
+                    parent=self.space,
+                    srcpath=srcpath,
+                    datapath=self.datapath
+                )
+                if enc.callid not in self.call_ids:
+                    self.cells_method_encoders.append(enc)
+                    self.call_ids.append(enc.callid)
 
-            for cells in space.cells.values():
-                if cells._is_defined:
-                    if self._has_method(cells):
-                        self._write_method(
+        self.cells_encoders = []
+        for cells in self.space.cells.values():
+            if cells._is_defined:
+                if not MethodCallEncoder.from_method(cells):
+                    self.cells_encoders.append(
+                        CellsEncoder(
                             cells,
-                            f,
-                            path_=file.parent)
-                    else:
-                        f.write(format_formula(cells))
-                        if cells.allow_none is not None:
-                            f.write("\n")
-                            f.write(cells.name + ".allow_none = "
-                                    + json.JSONEncoder().encode(
-                                        cells.allow_none)
-                                    )
-                        f.write("\n\n")
+                            parent=self.space,
+                            name=cells.name,
+                            srcpath=srcpath
+                        )
+                    )
 
-            f.write(
-                "_refs = " +
-                _RefViewEncoder(
-                    owner=space,
-                    ensure_ascii=False,
-                    indent=4
-                ).encode(space._self_refs)
-            )
-            f.write("\n\n")
+    def write_space(self):
 
-            for child in space.spaces.values():
-                self._write_method(child, f, path_=file.parent)
+        file = self.srcpath
+        file.parent.mkdir(parents=True, exist_ok=True)
+        with open(file, "w", encoding="utf-8") as f:
+            f.write(self.encode())
 
-    def _write_allow_none(self, obj, file):
-        if obj.allow_none is not None:
-            s = "_allow_none = " + json.JSONEncoder().encode(obj.allow_none)
-            file.write(s + "\n\n")
+        for space in self.space.spaces.values():
+            if not MethodCallEncoder.from_method(space):
+                srcpath = (self.srcpath.parent /
+                           self.target.name / (space.name + ".py"))
+                SpaceWriter(
+                    space,
+                    parent=self.space,
+                    name=space.name,
+                    srcpath=srcpath,
+                    call_ids=self.call_ids
+                ).write_space()
 
+        self.instruct().execute()
 
-class _RefViewEncoder(json.JSONEncoder):
-    """JSON encoder for converting refs"""
+    def encode(self):
 
-    def __init__(self, owner, ensure_ascii, indent):
-        json.JSONEncoder.__init__(
-            self,
-            ensure_ascii=ensure_ascii,
-            indent=indent
-        )
-        self.owner = owner
+        lines = []
+        if self.space.doc is not None:
+            lines.append("\"\"\"" + self.space.doc + "\"\"\"")
 
-    def encode(self, refview):
-        # Not adding meta data to refview itself
-        # Exclude system names, which starts with "_"
-        data = {key: self._encode_refs(value, self.owner.fullname)
-                for key, value in refview.items()
-                if key[0] != "_"}
-        return super(_RefViewEncoder, self).encode(data)
-
-    def _encode_refs(self, obj, namespace):
-
-        default_types = [str, Number, bool]
-
-        if any(isinstance(obj, type_) for type_ in default_types):
-            return obj
-
-        cls = type(obj)
-        builtins_name = type(int).__module__
-        if cls.__module__ is not None and cls.__module__ != builtins_name:
-            module = cls.__module__
+        # Output formula
+        if self.space.formula:
+            if self.space.formula.source[:6] == "lambda":
+                lines.append("_formula = " + self.space.formula.source)
+            else:
+                lines.append(self.space.formula.source)
         else:
-            module = ""
+            lines.append("_formula = None")
 
-        result = {
-            "__module": module,
-            "__type": cls.__qualname__
-        }
+        # Output bases
+        bases = []
+        for base in self.space._direct_bases:
+            bases.append(
+                abs_to_rel(base._evalrepr, self.parent._evalrepr))
+        lines.append("_bases = " + json.JSONEncoder(
+            ensure_ascii=False,
+            indent=4
+        ).encode(bases))
 
-        if obj is None:
-            result.update({
-                "__encoding": "None",
-                "__value": "None"
-            })
-        elif isinstance(obj, types.ModuleType):
-            result.update({
-                "__encoding": "Module",
-                "__value": obj.__name__,
-            })
-        elif isinstance(obj, Interface):
-            result.update({
-                "__encoding": "Interface",
-                "__value": abs_to_rel(obj._evalrepr, namespace),
-            })
+        # Output allow_none
+        lines.append("_allow_none = " + str(self.space.allow_none))
 
-        elif isinstance(obj, collections.Sequence):
-            result.update({
-                "__encoding": "Sequence",
-                "__value": [
-                    self._encode_refs(item, namespace) for item in obj],
-            })
-        elif isinstance(obj, collections.Mapping):
-            result.update({
-                "__encoding": "Mapping",
-                "__value": [
-                    (self._encode_refs(key, namespace),
-                     self._encode_refs(value, namespace))
-                    for key, value in obj.items()
-                ],
-            })
+        # Output _spaces. Exclude spaces created from methods
+        spaces = []
+        for name, space in self.space.spaces.items():
+            if name[1] == "_":
+                pass
+            elif MethodCallEncoder.from_method(space):
+                pass
+            else:
+                spaces.append(name)
+
+        lines.append("_spaces = " + json.JSONEncoder(
+            ensure_ascii=False,
+            indent=4
+        ).encode(spaces))
+        lines.extend(e.encode() for e in self.space_method_encoders)
+        lines.extend(e.encode() for e in self.cells_method_encoders)
+        for encoder in self.cells_encoders:
+            lines.append(encoder.encode())
+
+        lines.append(self.refview_encoder.encode())
+        return "\n\n".join(lines)
+
+    def instruct(self):
+        insts = []
+        insts.append(self.refview_encoder.instruct())
+        insts.extend(e.instruct() for e in self.space_method_encoders)
+        insts.extend(e.instruct() for e in self.cells_method_encoders)
+        for encoder in self.cells_encoders:
+            insts.append(encoder.instruct())
+
+        return CompoundInstruction(insts)
+
+
+class RefViewEncoder(BaseEncoder):
+
+    def __init__(self, target, parent, name=None, srcpath=None):
+        super().__init__(target, parent, name, srcpath)
+
+        # TODO: Refactor
+        is_model = parent._impl.is_model()
+
+        if is_model:
+            datadir = srcpath.parent / "data"
         else:
-            raise TypeError("Type %s not supported by JSON" % str(cls))
+            datadir = srcpath.parent / parent.name / "data"
 
-        return result
+        self.encoders = []
+        for key, val in self.target.items():
+            if key[0] != "_":
+                # TODO: Refactor
+                if (is_model or not parent._impl.refs[key].is_derived):
+                    datapath = datadir / key
+                    self.encoders.append(EncoderSelector.select(val)(
+                        val, parent=parent, name=key, srcpath=srcpath,
+                        datapath=datapath))
+
+    def encode(self):
+        lines = []
+        separator = SECTION_DIVIDER + "\n# References"
+        if self.encoders:
+            lines.append(separator)
+        for e in self.encoders:
+            lines.append(e.name + " = " + e.encode())
+        return "\n\n".join(lines)
+
+    def instruct(self):
+        return CompoundInstruction(
+            [encoder.instruct() for encoder in self.encoders])
 
 
-class _BaseEncoder(json.JSONEncoder):
-    """JSON encoder for storing list of base spaces"""
+class CellsEncoder(BaseEncoder):
 
-    def __init__(self, owner, ensure_ascii, indent):
-        json.JSONEncoder.__init__(
-            self,
-            ensure_ascii=ensure_ascii,
-            indent=indent
-        )
-        self.owner = owner
+    def encode(self):
+        lines = []
 
-    def encode(self, data):
-        data = [abs_to_rel(base.fullname, self.owner.fullname)
-                for base in data]
-        return super().encode(data)
+        if self.target.formula:
+            if self.target.formula.source[:6] == "lambda":
+                lines.append(
+                    self.target.name + " = " + self.target.formula.source)
+                if self.target.doc:
+                    lines.append("\"\"\"%s\"\"\"" % self.target.doc)
+            else:
+                lines.append(self.target.formula.source)
+        else:
+            lines.append(self.target.name + " = None")
+
+        return "\n\n".join(lines)
+
+
+class MethodCallEncoder(BaseEncoder):
+
+    methods = []
+    writer = None
+
+    def __init__(self, target, parent, name=None, srcpath=None, datapath=None,
+                 call_ids=None):
+        super().__init__(target, parent, name, srcpath, datapath)
+        self.call_ids = call_ids
+
+    def encode(self):
+        raise NotImplementedError
+
+    def instruct(self):
+        func = type(self).writer
+        return Instruction(func, args=(self.target, self.srcpath.parent))
+
+    @property
+    def callid(self):
+        return self.target._impl.source["kwargs"]["call_id"]
+
+    @classmethod
+    def from_method(cls, target: Interface):
+        src = target._impl.source
+        return src and "method" in src and src["method"]
+
+    @classmethod
+    def condition(cls, target: Interface):
+        src = target._impl.source
+        return src and "method" in src and src["method"]
+
+
+def copy_file(obj, path_: pathlib.Path):
+    src = obj._impl.source
+    srcpath = pathlib.Path(src["args"][0])
+    shutil.copyfile(
+        str(srcpath),
+        str(path_.joinpath(srcpath.name))
+    )
+
+
+class FromFileEncoder(MethodCallEncoder):
+
+    methods = [
+        "new_space_from_excel",
+        "new_cells_from_excel",
+        "new_space_from_csv",
+        "new_cells_from_csv"
+    ]
+    writer = copy_file
+
+    def encode(self):
+        lines = []
+        src = self.target._impl.source.copy()
+        call_id = src["kwargs"]["call_id"]
+
+        args = list(src["args"])
+        args[0] = pathlib.Path(args[0]).name
+        src["args"] = args
+        lines.append("_method = " + json.JSONEncoder(
+            ensure_ascii=False,
+            indent=4
+        ).encode(src))
+
+        return "\n\n".join(lines)
+
+    @classmethod
+    def condition(cls, target):
+        if super(FromFileEncoder, cls).condition(target):
+            return target._impl.source["method"] in cls.methods
+        else:
+            return False
+
+
+def write_pandas(obj, path_: pathlib.Path, filename=None):
+    src = obj._impl.source
+    data = src["args"][0]
+    if not filename:
+        filename = obj.name + ".pandas"
+    path_.mkdir(parents=True, exist_ok=True)
+    data.to_pickle(str(path_.joinpath(filename)))
+
+
+class FromPandasEncoder(MethodCallEncoder):
+
+    methods = [
+        "new_space_from_pandas",
+        "new_cells_from_pandas"
+    ]
+    writer = write_pandas
+
+    def encode(self):
+        lines = []
+        src = self.target._impl.source.copy()
+
+        args = list(src["args"])
+        enc = PickleEncoder(args[0],
+                            srcpath=self.srcpath,
+                            datapath=self.datapath)
+        args[0] = enc.datapath.relative_to(
+            self.srcpath.parent).as_posix()
+        src["args"] = args
+        lines.append("_method = " + json.JSONEncoder(
+            ensure_ascii=False,
+            indent=4
+        ).encode(src))
+
+        return "\n\n".join(lines)
+
+    def instruct(self):
+        func = type(self).writer
+        return Instruction(func, args=(
+            self.target, self.datapath, self.callid))
+
+    @classmethod
+    def condition(cls, target):
+        if super(FromPandasEncoder, cls).condition(target):
+            return target._impl.source["method"] in cls.methods
+        else:
+            return False
+
+
+class BaseSelector:
+    classes = []
+
+    @classmethod
+    def select(cls, *args) -> type:
+        return next((e for e in cls.classes if e.condition(*args)), None)
+
+
+class MethodCallSelector(BaseSelector):
+    classes = [
+        FromFileEncoder,
+        FromPandasEncoder
+    ]
+
+
+class InterfaceRefEncoder(BaseEncoder):
+
+    @classmethod
+    def condition(cls, target):
+        return isinstance(target, Interface)
+
+    def encode(self):
+        relname = abs_to_rel(self.target._evalrepr, self.parent._evalrepr)
+        return "(\"Interface\", \"%s\")" % relname
+
+
+class LiteralEncoder(BaseEncoder):
+    literal_types = [bool, int, float, str]
+
+    @classmethod
+    def condition(cls, target):
+        return any(type(target) is t for t in cls.literal_types)
+
+    def encode(self):
+        return json.dumps(self.target, ensure_ascii=False)
+
+
+class ModuleEncoder(BaseEncoder):
+
+    @classmethod
+    def condition(cls, target):
+        return isinstance(target, types.ModuleType)
+
+    def encode(self):
+        return "(\"Module\", \"%s\")" % self.target.__name__
+
+
+class PickleEncoder(BaseEncoder):
+
+    @classmethod
+    def condition(cls, target):
+        return True  # default encoder
+
+    def pickle_value(self, path: pathlib.Path, value):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open(mode="wb") as f:
+            pickle.dump(value, f)
+
+    def encode(self):
+        data = self.datapath.relative_to(self.srcpath.parent).as_posix()
+        return "(\"Pickle\", \"%s\")" % data
+
+    def instruct(self):
+        kwargs = {"path": self.datapath,
+                  "value": self.target}
+        return Instruction(self.pickle_value, kwargs=kwargs)
+
+
+class EncoderSelector(BaseSelector):
+    classes = [
+        InterfaceRefEncoder,
+        LiteralEncoder,
+        ModuleEncoder,
+        PickleEncoder
+    ]
+
+# --------------------------------------------------------------------------
+# Model Reading
 
 
 class ModelReader:
@@ -403,266 +663,439 @@ class ModelReader:
     def __init__(self, path: pathlib.Path):
         self.path = path
         self.kwargs = None
+        self.instructions = CompoundInstruction()
+        self.result = None
 
     def read_model(self, **kwargs):
 
         self.kwargs = kwargs
-        instructions, model = self._parse_dir()
-
-        instructions.run_methods([
-            "fset",
+        model = self.parse_dir()
+        self.instructions.execute_selected_methods([
+            "doc",
             "set_formula",
             "set_property",
-            "new_cells"] + list(_Instruction._METHODS.keys()))
-        instructions.run_methods(["add_bases"])
-        instructions.run_methods(["__setattr__"])
-
+            "new_cells"] + _METHODS)
+        self.instructions.execute_selected_methods(["add_bases"])
+        self.instructions.execute_selected_methods(["__setattr__"])
         return model
 
-    def _parse_dir(self, path_: pathlib.Path = None, target=None):
+    def parse_dir(self, path_: pathlib.Path = None, target=None, spaces=None):
 
-        result = _InstructionList()
         if target is None:
             path_ = self.path
-            target = model = mx.new_model(path_.name)
-            result.extend(self._parse_source(path_ / "_model.py", model))
+            target = model = mx.new_model()
+            self.parse_source(path_ / "_model.py", model)
+            spaces = self.result
 
-        for source in path_.glob("[!_]*.py"):
-            name = source.name[:-3]
+        for name in spaces:
             space = target.new_space(name=name)
-            result.extend(self._parse_source(source, space))
+            self.parse_source(path_ / ("%s.py" % name), space)
+            nextdir = path_ / name
+            if nextdir.exists() and nextdir.is_dir():
+                self.parse_dir(nextdir, target=space, spaces=self.result)
 
-        for subdir in path_.iterdir():
-            if subdir.is_dir():
-                next_target = target.spaces[subdir.name]
-                result.extend(self._parse_dir(subdir, target=next_target)[0])
+        return target
 
-        return result, target
-
-    def _parse_source(self, path_, obj: Interface):
-
-        impl = obj._impl
+    def parse_source(self, path_, obj: Interface):
 
         with open(path_, "r", encoding="utf-8") as f:
             src = f.read()
 
+        srcstructure = SourceStructure(src)
         atok = asttokens.ASTTokens(src, parse=True)
 
-        def parse_stmt(node):
-            """Return (list of) instructions"""
-            if isinstance(node, ast.FunctionDef):
-                if node.name == "_formula":
-                    method = "set_formula"
-                else:
-                    method = "new_cells"
+        for i, stmt in enumerate(atok.tree.body):
+            sec = srcstructure.get_section(stmt.lineno)
+            parser = ParserSelector.select(stmt, sec, atok)(
+                stmt, atok, self, sec, obj, srcpath=path_
+            )
+            insts = parser.get_instructions()
+            if parser.priority == PriorityID.AT_PARSE:
+                for ist in insts:
+                    ist.execute()
+            else:
+                self.instructions.extend(insts)
 
-                funcdef = atok.get_text(node)
 
-                # The code below is just for adding back comment in the last line
-                # such as:
-                # def foo():
-                #     return 0  # Comment
-                nxtok = node.last_token.index + 1
-                if nxtok < len(atok.tokens) and (
-                    atok.tokens[nxtok].type == tokenize.COMMENT
-                )and node.last_token.line == atok.tokens[nxtok].line:
-                    deflines = funcdef.splitlines()
-                    deflines.pop()
-                    deflines.append(node.last_token.line.rstrip())
-                    funcdef = "\n".join(deflines)
+class BaseNodeParser:
+    AST_NODE = None
+    default_priority = PriorityID.NORMAL
 
-                return [_Instruction(
-                    path_=path_,
-                    obj=impl,
+    def __init__(self, node, atok, reader, section, obj, srcpath, **kwargs):
+        self.node = node
+        self.atok = atok
+        self.reader = reader
+        self.section = section
+        self.obj = obj
+        self.impl = obj._impl
+        self.srcpath = srcpath
+        self.kwargs = kwargs
+        self.priority = self.default_priority
+
+    @classmethod
+    def condition(cls, node, section, atok):
+        return isinstance(node, cls.AST_NODE)
+
+    def get_instructions(self):
+        raise NotImplementedError
+
+
+class DocstringParser(BaseNodeParser):
+    AST_NODE = ast.Expr
+
+    @classmethod
+    def condition(cls, node, section, atok):
+        if isinstance(node, cls.AST_NODE):
+            if isinstance(node.value, ast.Str):
+                return True
+
+        return False
+
+    def get_instructions(self):
+        return [Instruction.from_method(
+            obj=type(self.obj).doc,
+            method="fset",
+            args=(self.obj, self.node.value.s)
+        )]
+
+
+class AssignParser(BaseNodeParser):
+    AST_NODE = ast.Assign
+
+    @property
+    def target(self):
+        return self.node.first_token.string
+
+    def get_instructions(self):
+        raise NotImplementedError
+
+
+class RenameParser(AssignParser):
+
+    default_priority = PriorityID.AT_PARSE
+
+    @classmethod
+    def condition(cls, node, section, atok):
+
+        if not super(RenameParser, cls).condition(node, section, atok):
+            return False
+        if node.first_token.string == "_name":
+            return True
+        return False
+
+    def get_instructions(self):
+
+        method = "rename"
+        if "name" in self.reader.kwargs and self.reader.kwargs["name"]:
+            val = self.reader.kwargs["name"]
+        else:
+            val = ast.literal_eval(self.atok.get_text(self.node.value))
+
+        kwargs = {"rename_old": True}
+
+        return [
+            Instruction.from_method(
+                obj=self.obj,
+                method=method,
+                args=(val,),
+                kwargs=kwargs)
+        ]
+
+
+class MethodCallParser(AssignParser):
+
+    @classmethod
+    def condition(cls, node, section, atok):
+        if isinstance(node, cls.AST_NODE) and section == "DEFAULT":
+            if node.first_token.string == "_method":
+                return True
+        return False
+
+
+def filehook(inst):     # Not in use
+    args, kwargs = inst.args, inst.kwargs
+    args[0] = str(inst.kwargs["path_"].with_name(args[0]))
+    return args, kwargs
+
+
+class FromFileParser(MethodCallParser):
+
+    def get_instructions(self):
+
+        method = json.loads(
+            self.atok.get_text(self.node.value)
+        )
+        args = method.pop("args")
+        args[0] = str(self.srcpath.with_name(args[0]))
+        return [Instruction.from_method(
+            obj=self.impl,
+            method=method["method"],
+            args=args,
+            kwargs=method["kwargs"]
+        )]
+
+
+def pandashook(inst):
+    import pandas as pd
+    args, kwargs = inst.args, inst.kwargs
+    args[0] = pd.read_pickle(args[0])
+    return args, kwargs
+
+
+class FromPandasParser(MethodCallParser):
+
+    @classmethod
+    def condition(cls, node, section, atok):
+        if super(FromPandasParser, cls).condition(node, section, atok):
+            method = json.loads(
+                atok.get_text(node.value)
+            )
+            if method["method"] in [
+                "new_cells_from_pandas",
+                "new_space_from_pandas"
+            ]:
+                return True
+
+        return False
+
+    def get_instructions(self):
+
+        method = json.loads(
+            self.atok.get_text(self.node.value)
+        )
+        args = method.pop("args")
+        callid = method["kwargs"]["call_id"]
+        args[0] = str(self.srcpath.parent.joinpath(args[0]) / callid)
+        return [Instruction.from_method(
+            obj=self.impl,
+            method=method["method"],
+            args=args,
+            kwargs=method["kwargs"],
+            arghook=pandashook
+        )]
+
+
+class AttrAssignParser(AssignParser):
+
+    @classmethod
+    def condition(cls, node, section, atok):
+        if isinstance(node, cls.AST_NODE) and section == "DEFAULT":
+            return True
+        return False
+
+    def get_instructions(self):
+
+        if self.target == "_formula":
+            # lambda formula definition
+            method = "set_formula"
+            val = self.atok.get_text(self.node.value)
+            if val == "None":
+                val = None
+
+            kwargs = {"formula": val}
+            return [
+                Instruction.from_method(
+                    obj=self.impl,
                     method=method,
-                    kwargs={"formula": funcdef}
+                    kwargs=kwargs
                 )]
 
-            if isinstance(node, ast.Assign):
+        elif self.target == "_bases":
 
-                if node.first_token.string == "_name":
-                    method = "rename"
-                    if "name" in self.kwargs and self.kwargs["name"]:
-                        val = self.kwargs["name"]
-                    else:
-                        val = ast.literal_eval(atok.get_text(node.value))
-                    _Instruction(
-                        path_=path_,
-                        obj=obj,
-                        method=method,
-                        args=(val,),
-                        kwargs={"rename_old": True}).run()
-                    return []
+            bases = [
+                rel_to_abs(base, self.obj.parent.fullname)
+                for base in ast.literal_eval(
+                    self.atok.get_text(self.node.value))
+            ]
 
-                elif node.first_token.string == "_formula":
-                    # lambda formula definition
-                    method = "set_formula"
-                    val = atok.get_text(node.value)
-                    if val == "None":
-                        val = None
-                    kwargs = {"formula": val}
-                    return [
-                        _Instruction(
-                            path_=path_,
-                            obj=impl,
-                            method=method,
-                            kwargs=kwargs)
-                    ]
+            def bases_hook(inst):
+                args = [mx.get_object(base) for base in inst.args]
+                return args, inst.kwargs
 
-                elif node.first_token.string == "_refs":
+            return [Instruction.from_method(
+                obj=self.obj,
+                method="add_bases",
+                args=bases,
+                arghook=bases_hook)]
 
-                    def bound_decode_refs(data):
-                        return self._decode_refs(data, obj.fullname)
+        elif self.target == "_spaces":
+            self.reader.result = json.loads(
+                self.atok.get_text(self.node.value)
+            )
+            return
 
-                    refs = json.loads(
-                        atok.get_text(node.value),
-                        object_hook=bound_decode_refs
-                    )
+        elif self.target == "_allow_none":
+            value = ast.literal_eval(self.atok.get_text(self.node.value))
+            return [Instruction.from_method(
+                obj=self.obj,
+                method="set_property",
+                args=("allow_none", value)
+            )]
 
-                    result = []
-                    for key, val in refs.items():
-                        result.append(_Instruction(
-                            path_=path_,
-                            obj=obj,
-                            method="__setattr__",
-                            args=(key, val),
-                            arghook=refhook
-                        ))
-                    return result
-
-                elif node.first_token.string == "_bases":
-
-                    bases = [
-                        _RefData(rel_to_abs(base, obj.fullname)) for base in
-                        ast.literal_eval(atok.get_text(node.value))
-                    ]
-
-                    return [_Instruction(
-                        path_=path_,
-                        obj=obj,
-                        method="add_bases",
-                        args=bases,
-                        arghook=basehook)]
-
-                elif node.first_token.string == "_method":
-
-                    _method = json.loads(
-                        atok.get_text(node.value)
-                    )
-                    return [_Instruction(
-                        path_=path_,
-                        obj=impl,
-                        method=_method["method"],
-                        args=_method["args"],
-                        kwargs=_method["kwargs"]
-                    )]
-
-                elif node.first_token.string == "_allow_none":
-                    args = json.loads(atok.get_text(node.value))
-                    return [_Instruction(
-                        path_=path_,
-                        obj=obj,
-                        method="set_property",
-                        args=["allow_none", args]
-                    )]
-
-                else:
-                    # lambda cells definition
-                    return [_Instruction(
-                        path_=path_,
-                        obj=impl,
-                        method="new_cells",
-                        kwargs={
-                            "name": atok.get_text(node.targets[0]),
-                            "formula": atok.get_text(node.value)
-                        }
-                    )]
-
-        result = []
-        for i, stmt in enumerate(atok.tree.body):
-
-            if (i == 0 and isinstance(stmt, ast.Expr)
-                    and isinstance(stmt.value, ast.Str)):
-                inst = _Instruction(
-                    path_=path_,
-                    obj=type(obj).doc,
-                    method="fset",
-                    args=(obj, stmt.value.s)
-                )
-                result.append(inst)
-            else:
-                result.extend(parse_stmt(stmt))
-
-        return result
-
-    def _decode_refs(self, data, namespace):
-        """``data`` is {} components in json expression from the inner most"""
-
-        if not _is_mxdata(data):
-            return data
-
-        module = data["__module"]
-        type_ = data["__type"]
-        encode = data["__encoding"]
-        value = data["__value"]
-
-        if encode == "None":
-            return None
-        if encode == "Sequence":
-            return self._get_type(type_)(value)
-        elif encode == "Mapping":
-            type_ = self._get_type(type_)
-            return type_({key: value for key, value in value})
-        elif encode == "Interface":
-            return _RefData(evalrepr=rel_to_abs(value, namespace))
-        elif encode == "Module":
-            return importlib.import_module(value)
-        elif encode == "Value":
-            return self._get_type(type_)(value)
         else:
-            raise RuntimeError("must not happen")
+            kwargs = {
+                "name": self.atok.get_text(self.node.targets[0]),
+                "formula": self.atok.get_text(self.node.value)
+            }
+            # lambda cells definition
+            return [Instruction.from_method(
+                obj=self.impl,
+                method="new_cells",
+                kwargs=kwargs
+            )]
 
-    def _get_type(self, name):
 
-        namelist = name.rsplit(".", 1)
+class RefAssignParser(AssignParser):
+    AST_NODE = ast.Assign
 
-        if len(namelist) == 1:
-            return getattr(builtins, namelist[0])
-        elif len(namelist) == 2:
-            module, type_ = namelist
-            module = importlib.import_module(module)
-            return getattr(module, type_)
+    @classmethod
+    def condition(cls, node, section, atok):
+        if isinstance(node, cls.AST_NODE) and section == "REFDEFS":
+            return True
+        return False
+
+    def get_instructions(self):
+
+        name = self.target
+        valnode = self.node.value
+
+        decoder = DecoderSelector.select(valnode)(
+            valnode, self.obj, name=name, srcpath=self.srcpath)
+
+        if hasattr(decoder, "restore"):
+            def restore_hook(inst):
+                dec = inst.args[1]
+                return (inst.args[0], dec.restore()), inst.kwargs
+
+            value = decoder
+            arghook = restore_hook
         else:
-            raise RuntimeError("must not happen")
+            value = decoder.decode()
+            arghook = None
+
+        return [Instruction.from_method(
+            obj=self.obj,
+            method="__setattr__",
+            args=(name, value),
+            arghook=arghook
+        )]
 
 
-def _restore_ref(obj):
-    """Restore ref from _RefData in nested container"""
-    if isinstance(obj, _RefData):
-        return mx.get_object(obj.evalrepr)
+class FunctionDefParser(BaseNodeParser):
+    AST_NODE = ast.FunctionDef
 
-    elif isinstance(obj, str):
-        return obj
+    def get_instructions(self):
 
-    elif isinstance(obj, collections.Sequence):
-        return type(obj)(_restore_ref(value) for value in obj)
+        if self.node.name == "_formula":
+            method = "set_formula"
+        else:
+            method = "new_cells"
 
-    elif isinstance(obj, collections.Mapping):
-        return type(obj)(
-            (key, _restore_ref(val)) for key, val in obj.items())
+        funcdef = self.atok.get_text(self.node)
 
-    else:
-        return obj
+        # The code below is just for adding back comment in the last line
+        # such as:
+        # def foo():
+        #     return 0  # Comment
+        nxtok = self.node.last_token.index + 1
+        if nxtok < len(self.atok.tokens) and (
+                self.atok.tokens[nxtok].type == tokenize.COMMENT
+        ) and self.node.last_token.line == self.atok.tokens[nxtok].line:
+            deflines = funcdef.splitlines()
+            deflines.pop()
+            deflines.append(self.node.last_token.line.rstrip())
+            funcdef = "\n".join(deflines)
+
+        kwargs = {"formula": funcdef}
+        return [Instruction.from_method(
+            obj=self.impl,
+            method=method,
+            kwargs=kwargs
+        )]
 
 
-_RefData = namedtuple("_RefData", ["evalrepr"])
+class ParserSelector(BaseSelector):
+    classes = [
+        DocstringParser,
+        RenameParser,
+        FromPandasParser,
+        FromFileParser,
+        AttrAssignParser,
+        RefAssignParser,
+        FunctionDefParser
+    ]
 
-_MXDATA_ATTRS = ["__module", "__type", "__encoding", "__value"]
+
+class ValueDecoder:
+
+    def __init__(self, node, obj, name=None, srcpath=None):
+        self.node = node
+        self.obj = obj
+        self.name = name
+        self.srcpath = srcpath
+
+    def decode(self):
+        raise NotImplementedError
 
 
-def _is_mxdata(data):
-    return (len(data) == len(_MXDATA_ATTRS)
-            and all(key in data for key in _MXDATA_ATTRS))
+class TupleDecoder(ValueDecoder):
+    DECTYPE = None
+
+    def elm(self, index):
+        return self.node.elts[index].s
+
+    @classmethod
+    def condition(cls, node):
+        if isinstance(node, ast.Tuple):
+            if node.elts[0].s == cls.DECTYPE:
+                return True
+        return False
+
+
+class InterfaceDecoder(TupleDecoder):
+    DECTYPE = "Interface"
+    def decode(self):
+        return rel_to_abs(self.elm(1), self.obj.fullname)
+
+    def restore(self):
+        return mx.get_object(self.decode())
+
+
+class ModuleDecoder(TupleDecoder):
+    DECTYPE = "Module"
+    def decode(self):
+        return importlib.import_module(self.elm(1))
+
+
+class PickleDecoder(TupleDecoder):
+    DECTYPE = "Pickle"
+
+    def decode(self):
+        return self.srcpath.parent / self.elm(1)
+
+    def restore(self):
+        with self.decode().open("rb") as f:
+            value = pickle.load(f)
+        return value
+
+
+class LiteralDecoder(ValueDecoder):
+
+    @classmethod
+    def condition(cls, node):
+        return True
+
+    def decode(self):
+        return ast.literal_eval(self.node)
+
+
+class DecoderSelector(BaseSelector):
+    classes = [
+        InterfaceDecoder,
+        ModuleDecoder,
+        PickleDecoder,
+        LiteralDecoder
+    ]
 
 
 def abs_to_rel(target: str, namespace: str):
