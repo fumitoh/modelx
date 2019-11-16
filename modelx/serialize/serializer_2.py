@@ -27,11 +27,11 @@ import asttokens
 
 Section = namedtuple("Section", ["id", "symbol"])
 SECTION_DIVIDER = "# " + "-" * 75
-SECTIONS = [
-    Section("REFDEFS", "# References"),
-    Section("DEFAULT", "")
-]
-
+SECTIONS = {
+    "CELLSDEFS": Section("CELLSDEFS", "# Cells"),
+    "REFDEFS": Section("REFDEFS", "# References"),
+    "DEFAULT": Section("DEFAULT", "")
+}
 
 class PriorityID(enum.IntEnum):
     NORMAL = 1
@@ -39,9 +39,6 @@ class PriorityID(enum.IntEnum):
 
 
 class SourceStructure:
-
-    DIVIDER = "# " + "-" * 75
-    SECTION_REF = "# References"
 
     def __init__(self, source: str):
         self.source = source
@@ -55,7 +52,8 @@ class SourceStructure:
         for i, line in enumerate(self.source.split("\n")):
             if is_divider_read:
                 sec = next(
-                    (sec.id for sec in SECTIONS if line.strip() == sec.symbol),
+                    (sec.id for sec in SECTIONS.values()
+                     if line.strip() == sec.symbol),
                     "DEFAULT")
                 is_divider_read = False
                 self.sections[i] = sec
@@ -64,9 +62,9 @@ class SourceStructure:
                     is_divider_read = True
 
     def get_section(self, lineno):
-        return next((sec for i, sec in self.sections.items()
-                     if lineno > i
-                     ), "DEFAULT")
+        sections = list(self.sections.keys())
+        secno = next((i for i in reversed(sections) if lineno > i), 0)
+        return self.sections[secno] if secno else "DEFAULT"
 
 
 class Instruction:
@@ -383,6 +381,11 @@ class SpaceWriter(BaseEncoder):
         ).encode(spaces))
         lines.extend(e.encode() for e in self.space_method_encoders)
         lines.extend(e.encode() for e in self.cells_method_encoders)
+
+        # Cells definitions
+        if self.cells_encoders:
+            separator = SECTION_DIVIDER + "\n" + SECTIONS["CELLSDEFS"].symbol
+            lines.append(separator)
         for encoder in self.cells_encoders:
             lines.append(encoder.encode())
 
@@ -425,7 +428,7 @@ class RefViewEncoder(BaseEncoder):
 
     def encode(self):
         lines = []
-        separator = SECTION_DIVIDER + "\n# References"
+        separator = SECTION_DIVIDER + "\n" + SECTIONS["REFDEFS"].symbol
         if self.encoders:
             lines.append(separator)
         for e in self.encoders:
@@ -759,7 +762,7 @@ class DocstringParser(BaseNodeParser):
         )]
 
 
-class AssignParser(BaseNodeParser):
+class BaseAssignParser(BaseNodeParser):
     AST_NODE = ast.Assign
 
     @property
@@ -770,7 +773,7 @@ class AssignParser(BaseNodeParser):
         raise NotImplementedError
 
 
-class RenameParser(AssignParser):
+class RenameParser(BaseAssignParser):
 
     default_priority = PriorityID.AT_PARSE
 
@@ -802,7 +805,7 @@ class RenameParser(AssignParser):
         ]
 
 
-class MethodCallParser(AssignParser):
+class MethodCallParser(BaseAssignParser):
 
     @classmethod
     def condition(cls, node, section, atok):
@@ -875,7 +878,7 @@ class FromPandasParser(MethodCallParser):
         )]
 
 
-class AttrAssignParser(AssignParser):
+class AttrAssignParser(BaseAssignParser):
 
     @classmethod
     def condition(cls, node, section, atok):
@@ -933,19 +936,10 @@ class AttrAssignParser(AssignParser):
             )]
 
         else:
-            kwargs = {
-                "name": self.atok.get_text(self.node.targets[0]),
-                "formula": self.atok.get_text(self.node.value)
-            }
-            # lambda cells definition
-            return [Instruction.from_method(
-                obj=self.impl,
-                method="new_cells",
-                kwargs=kwargs
-            )]
+            raise RuntimeError("unknown attribute assignment")
 
 
-class RefAssignParser(AssignParser):
+class RefAssignParser(BaseAssignParser):
     AST_NODE = ast.Assign
 
     @classmethod
@@ -978,6 +972,27 @@ class RefAssignParser(AssignParser):
             method="__setattr__",
             args=(name, value),
             arghook=arghook
+        )]
+
+
+class LambdaAssignParser(BaseAssignParser):
+
+    @classmethod
+    def condition(cls, node, section, atok):
+        if isinstance(node, cls.AST_NODE) and section == "CELLSDEFS":
+            return True
+        return False
+
+    def get_instructions(self):
+        kwargs = {
+            "name": self.atok.get_text(self.node.targets[0]),
+            "formula": self.atok.get_text(self.node.value)
+        }
+        # lambda cells definition
+        return [Instruction.from_method(
+            obj=self.impl,
+            method="new_cells",
+            kwargs=kwargs
         )]
 
 
@@ -1020,6 +1035,7 @@ class ParserSelector(BaseSelector):
         RenameParser,
         FromPandasParser,
         FromFileParser,
+        LambdaAssignParser,
         AttrAssignParser,
         RefAssignParser,
         FunctionDefParser
