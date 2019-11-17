@@ -228,6 +228,7 @@ class ModelWriter(BaseEncoder):
         if self.model.doc is not None:
             lines.append("\"\"\"" + self.model.doc + "\"\"\"")
 
+        lines.append("from modelx.serialize.jsonvalues import *")
         lines.append("_name = \"%s\"" % self.model.name)
         lines.append("_allow_none = " + str(self.model.allow_none))
 
@@ -358,6 +359,8 @@ class SpaceWriter(BaseEncoder):
         lines = []
         if self.space.doc is not None:
             lines.append("\"\"\"" + self.space.doc + "\"\"\"")
+
+        lines.append("from modelx.serialize.jsonvalues import *")
 
         # Output formula
         if self.space.formula:
@@ -769,6 +772,13 @@ class DocstringParser(BaseNodeParser):
         )
 
 
+class ImportFromParser(BaseNodeParser):
+    AST_NODE = ast.ImportFrom
+
+    def get_instruction(self):
+        return  # Skip any import from statement
+
+
 class BaseAssignParser(BaseNodeParser):
     AST_NODE = ast.Assign
 
@@ -1033,6 +1043,7 @@ class FunctionDefParser(BaseNodeParser):
 class ParserSelector(BaseSelector):
     classes = [
         DocstringParser,
+        ImportFromParser,
         RenameParser,
         FromPandasParser,
         FromFileParser,
