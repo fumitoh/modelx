@@ -33,6 +33,21 @@ SECTIONS = {
     "DEFAULT": Section("DEFAULT", "")
 }
 
+FROM_FILE_METHODS = [
+    "new_space_from_excel",
+    "new_cells_from_excel",
+    "new_space_from_csv",
+    "new_cells_from_csv"
+]
+
+FROM_PANDAS_METHODS = [
+    "new_space_from_pandas",
+    "new_cells_from_pandas"
+]
+
+CONSTRUCTOR_METHODS = FROM_FILE_METHODS + FROM_PANDAS_METHODS
+
+
 class PriorityID(enum.IntEnum):
     NORMAL = 1
     AT_PARSE = 2
@@ -67,7 +82,13 @@ class SourceStructure:
         return self.sections[secno] if secno else "DEFAULT"
 
 
-class Instruction:
+class BaseInstruction:
+
+    def execute(self):
+        raise NotImplementedError
+
+
+class Instruction(BaseInstruction):
 
     def __init__(self, func, args=(), arghook=None, kwargs=None):
 
@@ -97,22 +118,26 @@ class Instruction:
         return "<Instruction: %s>" % self.funcname
 
 
-class CompoundInstruction:
+class CompoundInstruction(BaseInstruction):
 
     def __init__(self, instructions=None):
 
         self.instructions = []
         self.extend(instructions)
 
+    def __len__(self):  # Used by __eq__
+        return len(self.instructions)
+
+    def append(self, inst):
+        if inst:
+            if isinstance(inst, BaseInstruction):
+                self.instructions.append(inst)
+
     def extend(self, instructions):
         if instructions:
             for inst in instructions:
-                if inst:  # Not None
-                    if isinstance(inst, CompoundInstruction):
-                        if inst.instructions:
-                            self.instructions.append(inst)
-                    else:
-                        self.instructions.append(inst)
+                if inst:  # Not None or empty
+                    self.instructions.append(inst)
 
     def execute(self):
         result = None
@@ -149,15 +174,6 @@ class CompoundInstruction:
 
         self.execute_selected(cond, pop_executed)
 
-
-_METHODS = [
-    "new_space_from_excel",
-    "new_cells_from_excel",
-    "new_space_from_csv",
-    "new_cells_from_csv",
-    "new_space_from_pandas",
-    "new_cells_from_pandas"
-]
 
 # --------------------------------------------------------------------------
 # Model Writing
@@ -502,12 +518,7 @@ def copy_file(obj, path_: pathlib.Path):
 
 class FromFileEncoder(MethodCallEncoder):
 
-    methods = [
-        "new_space_from_excel",
-        "new_cells_from_excel",
-        "new_space_from_csv",
-        "new_cells_from_csv"
-    ]
+    methods = FROM_FILE_METHODS
     writer = copy_file
 
     def encode(self):
@@ -544,10 +555,7 @@ def write_pandas(obj, path_: pathlib.Path, filename=None):
 
 class FromPandasEncoder(MethodCallEncoder):
 
-    methods = [
-        "new_space_from_pandas",
-        "new_cells_from_pandas"
-    ]
+    methods = FROM_PANDAS_METHODS
     writer = write_pandas
 
     def encode(self):
@@ -677,7 +685,7 @@ class ModelReader:
             "doc",
             "set_formula",
             "set_property",
-            "new_cells"] + _METHODS)
+            "new_cells"] + CONSTRUCTOR_METHODS)
         self.instructions.execute_selected_methods(["add_bases"])
         self.instructions.execute_selected_methods(["__setattr__"])
         return model
@@ -712,12 +720,11 @@ class ModelReader:
             parser = ParserSelector.select(stmt, sec, atok)(
                 stmt, atok, self, sec, obj, srcpath=path_
             )
-            insts = parser.get_instructions()
+            ist = parser.get_instruction()
             if parser.priority == PriorityID.AT_PARSE:
-                for ist in insts:
-                    ist.execute()
+                ist.execute()
             else:
-                self.instructions.extend(insts)
+                self.instructions.append(ist)
 
 
 class BaseNodeParser:
@@ -739,7 +746,7 @@ class BaseNodeParser:
     def condition(cls, node, section, atok):
         return isinstance(node, cls.AST_NODE)
 
-    def get_instructions(self):
+    def get_instruction(self):
         raise NotImplementedError
 
 
@@ -754,12 +761,12 @@ class DocstringParser(BaseNodeParser):
 
         return False
 
-    def get_instructions(self):
-        return [Instruction.from_method(
+    def get_instruction(self):
+        return Instruction.from_method(
             obj=type(self.obj).doc,
             method="fset",
             args=(self.obj, self.node.value.s)
-        )]
+        )
 
 
 class BaseAssignParser(BaseNodeParser):
@@ -769,7 +776,7 @@ class BaseAssignParser(BaseNodeParser):
     def target(self):
         return self.node.first_token.string
 
-    def get_instructions(self):
+    def get_instruction(self):
         raise NotImplementedError
 
 
@@ -786,7 +793,7 @@ class RenameParser(BaseAssignParser):
             return True
         return False
 
-    def get_instructions(self):
+    def get_instruction(self):
 
         method = "rename"
         if "name" in self.reader.kwargs and self.reader.kwargs["name"]:
@@ -796,13 +803,11 @@ class RenameParser(BaseAssignParser):
 
         kwargs = {"rename_old": True}
 
-        return [
-            Instruction.from_method(
+        return Instruction.from_method(
                 obj=self.obj,
                 method=method,
                 args=(val,),
                 kwargs=kwargs)
-        ]
 
 
 class MethodCallParser(BaseAssignParser):
@@ -823,19 +828,19 @@ def filehook(inst):     # Not in use
 
 class FromFileParser(MethodCallParser):
 
-    def get_instructions(self):
+    def get_instruction(self):
 
         method = json.loads(
             self.atok.get_text(self.node.value)
         )
         args = method.pop("args")
         args[0] = str(self.srcpath.with_name(args[0]))
-        return [Instruction.from_method(
+        return Instruction.from_method(
             obj=self.impl,
             method=method["method"],
             args=args,
             kwargs=method["kwargs"]
-        )]
+        )
 
 
 def pandashook(inst):
@@ -853,15 +858,12 @@ class FromPandasParser(MethodCallParser):
             method = json.loads(
                 atok.get_text(node.value)
             )
-            if method["method"] in [
-                "new_cells_from_pandas",
-                "new_space_from_pandas"
-            ]:
+            if method["method"] in FROM_PANDAS_METHODS:
                 return True
 
         return False
 
-    def get_instructions(self):
+    def get_instruction(self):
 
         method = json.loads(
             self.atok.get_text(self.node.value)
@@ -869,13 +871,13 @@ class FromPandasParser(MethodCallParser):
         args = method.pop("args")
         callid = method["kwargs"]["call_id"]
         args[0] = str(self.srcpath.parent.joinpath(args[0]) / callid)
-        return [Instruction.from_method(
+        return Instruction.from_method(
             obj=self.impl,
             method=method["method"],
             args=args,
             kwargs=method["kwargs"],
             arghook=pandashook
-        )]
+        )
 
 
 class AttrAssignParser(BaseAssignParser):
@@ -886,7 +888,7 @@ class AttrAssignParser(BaseAssignParser):
             return True
         return False
 
-    def get_instructions(self):
+    def get_instruction(self):
 
         if self.target == "_formula":
             # lambda formula definition
@@ -896,12 +898,11 @@ class AttrAssignParser(BaseAssignParser):
                 val = None
 
             kwargs = {"formula": val}
-            return [
-                Instruction.from_method(
+            return Instruction.from_method(
                     obj=self.impl,
                     method=method,
                     kwargs=kwargs
-                )]
+                )
 
         elif self.target == "_bases":
 
@@ -915,11 +916,11 @@ class AttrAssignParser(BaseAssignParser):
                 args = [mx.get_object(base) for base in inst.args]
                 return args, inst.kwargs
 
-            return [Instruction.from_method(
+            return Instruction.from_method(
                 obj=self.obj,
                 method="add_bases",
                 args=bases,
-                arghook=bases_hook)]
+                arghook=bases_hook)
 
         elif self.target == "_spaces":
             self.reader.result = json.loads(
@@ -929,11 +930,11 @@ class AttrAssignParser(BaseAssignParser):
 
         elif self.target == "_allow_none":
             value = ast.literal_eval(self.atok.get_text(self.node.value))
-            return [Instruction.from_method(
+            return Instruction.from_method(
                 obj=self.obj,
                 method="set_property",
                 args=("allow_none", value)
-            )]
+            )
 
         else:
             raise RuntimeError("unknown attribute assignment")
@@ -948,7 +949,7 @@ class RefAssignParser(BaseAssignParser):
             return True
         return False
 
-    def get_instructions(self):
+    def get_instruction(self):
 
         name = self.target
         valnode = self.node.value
@@ -967,12 +968,12 @@ class RefAssignParser(BaseAssignParser):
             value = decoder.decode()
             arghook = None
 
-        return [Instruction.from_method(
+        return Instruction.from_method(
             obj=self.obj,
             method="__setattr__",
             args=(name, value),
             arghook=arghook
-        )]
+        )
 
 
 class LambdaAssignParser(BaseAssignParser):
@@ -983,23 +984,23 @@ class LambdaAssignParser(BaseAssignParser):
             return True
         return False
 
-    def get_instructions(self):
+    def get_instruction(self):
         kwargs = {
             "name": self.atok.get_text(self.node.targets[0]),
             "formula": self.atok.get_text(self.node.value)
         }
         # lambda cells definition
-        return [Instruction.from_method(
+        return Instruction.from_method(
             obj=self.impl,
             method="new_cells",
             kwargs=kwargs
-        )]
+        )
 
 
 class FunctionDefParser(BaseNodeParser):
     AST_NODE = ast.FunctionDef
 
-    def get_instructions(self):
+    def get_instruction(self):
 
         if self.node.name == "_formula":
             method = "set_formula"
@@ -1022,11 +1023,11 @@ class FunctionDefParser(BaseNodeParser):
             funcdef = "\n".join(deflines)
 
         kwargs = {"formula": funcdef}
-        return [Instruction.from_method(
+        return Instruction.from_method(
             obj=self.impl,
             method=method,
             kwargs=kwargs
-        )]
+        )
 
 
 class ParserSelector(BaseSelector):
