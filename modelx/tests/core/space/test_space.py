@@ -4,7 +4,7 @@ from textwrap import dedent
 import pytest
 
 from modelx.core.api import *
-from ..data import testmodule
+from modelx.tests.testdata import testmodule
 
 
 @pytest.fixture
@@ -61,12 +61,7 @@ def test_import_funcs(testmodel):
 
 
 def test_new_cells_from_modulename(testmodel):
-
-    names = __name__.split(".")
-    names = names[:-2] + ["data", "testmodule"]
-    module_name = ".".join(names)
-
-    cells = cur_space().import_funcs(module_name)
+    cells = cur_space().import_funcs(testmodule.__name__)
     assert set(testmodule.funcs) == set(cells.keys())
 
 

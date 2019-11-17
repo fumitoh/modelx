@@ -2,7 +2,7 @@ import pathlib
 from modelx.testing.testutil import compare_model
 import modelx as mx
 
-from .. import (
+from modelx.tests.testdata import (
     CSV_SINGLE_PARAM,
     CSV_MULTI_PARAMS
 )

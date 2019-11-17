@@ -1,7 +1,7 @@
 import pytest
 
 from modelx import *
-from .. import (
+from modelx.tests.testdata import (
     CSV_SINGLE_PARAM,
     CSV_MULTI_PARAMS,
     CSV_SINGLE_PARAM_SINGLE_COL,

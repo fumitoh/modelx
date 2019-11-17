@@ -1,8 +1,7 @@
 import pytest
 from textwrap import dedent
 from modelx.core.api import *
-from ..data import testmodule
-from ..data import testpkg
+from modelx.tests.testdata import testmodule, testpkg
 
 
 @pytest.fixture

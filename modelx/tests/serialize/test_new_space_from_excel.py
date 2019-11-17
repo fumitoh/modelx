@@ -6,7 +6,7 @@ import os
 from modelx.testing.testutil import compare_model
 import modelx as mx
 
-from .. import XL_TESTDATA
+from modelx.tests.testdata import XL_TESTDATA
 
 
 @pytest.fixture(params=[("C3:H24", False), ("C32:X37", True)])

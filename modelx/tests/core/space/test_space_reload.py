@@ -2,6 +2,7 @@ import sys
 import os.path
 from textwrap import dedent
 import modelx as mx
+import modelx.tests.testdata
 import pytest
 
 
@@ -9,7 +10,7 @@ import pytest
 def reloadtest():
     import pathlib
 
-    datadir = pathlib.Path(__file__).parents[1].joinpath("data")
+    datadir = pathlib.Path(os.path.dirname(mx.tests.testdata.__file__))
     sys.path.insert(0, str(datadir))
     sample = "reloadtest"
 

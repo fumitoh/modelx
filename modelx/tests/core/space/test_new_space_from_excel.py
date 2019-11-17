@@ -4,7 +4,7 @@ import sys
 import os
 
 from modelx import *
-from .. import XL_TESTDATA
+from modelx.tests.testdata import XL_TESTDATA
 
 
 @pytest.fixture(scope="session")
