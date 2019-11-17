@@ -463,13 +463,12 @@ class CellsEncoder(BaseEncoder):
 
     def encode(self):
         lines = []
-
         if self.target.formula:
             if self.target.formula.source[:6] == "lambda":
-                lines.append(
-                    self.target.name + " = " + self.target.formula.source)
+                line = self.target.name + " = " + self.target.formula.source
                 if self.target.doc:
-                    lines.append("\"\"\"%s\"\"\"" % self.target.doc)
+                    line += "\n" + ("\"\"\"%s\"\"\"" % self.target.doc)
+                lines.append(line)
             else:
                 lines.append(self.target.formula.source)
         else:
