@@ -1,9 +1,11 @@
+import itertools
 import pytest
 from modelx.serialize import (
     write_model,
     read_model)
 from modelx.testing import testutil
 import modelx as mx
+from . import SERIALIZE_VERS
 
 
 @pytest.fixture
@@ -30,11 +32,14 @@ def testmodel():
     return m
 
 
-@pytest.mark.parametrize("name", [None, "renamed"])
-def test_read_write_model(testmodel, tmp_path, name):
+@pytest.mark.parametrize(
+    ["name", "version"],
+    itertools.product([None, "renamed"], SERIALIZE_VERS)
+)
+def test_read_write_model(testmodel, tmp_path, name, version):
 
     path_ = tmp_path / "testdir"
-    write_model(testmodel, path_)
+    write_model(testmodel, path_, version=version)
     m = read_model(path_, name=name)
 
     assert m.name == (name if name else "TestModel")
