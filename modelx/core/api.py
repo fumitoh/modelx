@@ -320,7 +320,7 @@ def open_model(path, name=None):
     return _system.open_model(path, name)
 
 
-def start_stacktrace():
+def start_stacktrace(maxlen=10000):
     """Activate stack tracing.
 
     Start tracing the call stack of formula calculations held internally
@@ -337,21 +337,23 @@ def start_stacktrace():
     and available through calling :func:`get_stacktrace` function.
     The tracing continues until the user calls :func:`stop_stacktrace`.
 
-    Up to 10000 records are kept. Exceeding 10000,
-    records are removed from the oldest.
-
     Warning:
         Activating stack tracing may slow down formula calculations.
         You should activate it only when needed for inspection purposes.
+
+    Args:
+        maxlen(:obj:`int`, optional): Max number of records to be kept. When
+            exceeding, records are removed from the oldest. Defaults to 10000.
 
     See Also:
         :func:`stop_stacktrace`
         :func:`get_stacktrace`
         :func:`clear_stacktrace`
 
+    .. versionchanged:: 0.1.0 `maxlen` parameter is added.
     .. versionadded:: 0.0.25
     """
-    return _system.start_stacktrace()
+    return _system.start_stacktrace(maxlen=maxlen)
 
 
 def stop_stacktrace():

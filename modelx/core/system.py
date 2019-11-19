@@ -159,12 +159,10 @@ else:
 
 class TraceableCallStack(CallStack):
 
-    default_maxtracelen = 10000
-
-    def __init__(self, maxdepth=None):
+    def __init__(self, maxdepth=None, maxlen=None):
 
         CallStack.__init__(self, maxdepth)
-        self.tracestack = deque(maxlen=self.default_maxtracelen)
+        self.tracestack = deque(maxlen=maxlen)
 
     def append(self, item):
 
@@ -229,7 +227,6 @@ class System:
         self.configure_python()
         self.executor = Executor(self, maxdepth)
         self.callstack = self.executor.callstack
-        self.callstack_inactive = TraceableCallStack(maxdepth)
         self._modelnamer = AutoNamer("Model")
         self._backupnamer = AutoNamer("_BAK")
         self.currentmodel = None
@@ -404,31 +401,36 @@ class System:
     # ----------------------------------------------------------------------
     # Call stack tracing
 
-    def _switch_callstack(self):
-
-        if self.callstack.is_empty():
-            buf = self.callstack
-            self.callstack = self.executor.callstack = self.callstack_inactive
-            self.callstack_inactive = buf
-            return True
-        else:
-            raise RuntimeError("callstack not empy")
-
     def _is_stacktrace_active(self):
         return isinstance(self.callstack, TraceableCallStack)
 
-    def start_stacktrace(self):
+    def start_stacktrace(self, maxlen):
         if self._is_stacktrace_active():
             return False
-        self._switch_callstack()
-        warnings.warn("call stack trace activated")
+
+        if self.callstack.is_empty():
+            self.callstack = self.executor.callstack = TraceableCallStack(
+                maxdepth=self.callstack.maxdepth,
+                maxlen=maxlen
+            )
+            warnings.warn("call stack trace activated")
+        else:
+            raise RuntimeError("callstack not empy")
+
         return True
 
     def stop_stacktrace(self):
         if not self._is_stacktrace_active():
             return False
-        self._switch_callstack()
-        warnings.warn("call stack trace deactivated")
+
+        if self.callstack.is_empty():
+            self.callstack = self.executor.callstack = CallStack(
+                maxdepth=self.callstack.maxdepth
+            )
+            warnings.warn("call stack trace deactivated")
+        else:
+            raise RuntimeError("callstack not empy")
+
         return True
 
     def get_stacktrace(self):
