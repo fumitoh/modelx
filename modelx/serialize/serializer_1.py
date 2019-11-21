@@ -155,7 +155,7 @@ class _InstructionList(list):
 
 class ModelWriter:
 
-    def __init__(self, model: Model, path: pathlib.Path):
+    def __init__(self, system, model: Model, path: pathlib.Path):
         self.model = model
         self.root = path
         self.call_ids = []

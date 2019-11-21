@@ -1,6 +1,6 @@
 import itertools
 import pytest
-from modelx.serialize import (
+from modelx import (
     write_model,
     read_model)
 from modelx.testing import testutil

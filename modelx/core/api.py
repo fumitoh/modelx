@@ -34,7 +34,7 @@ from modelx.core.space import BaseSpace as _Space
 from modelx.core.model import Model as _Model
 from modelx.core.base import get_interfaces as _get_interfaces
 from modelx.core.util import is_valid_name as _is_valid_name
-from modelx.serialize import write_model, read_model
+import modelx.serialize as _serialize
 
 def configure_python():
     """Configure Python ``sys`` settings for modelx.
@@ -422,3 +422,70 @@ def get_stacktrace():
     .. versionadded:: 0.0.25
     """
     return _system.get_stacktrace()
+
+
+def write_model(model, model_path, backup=True, version=None):
+    """Write model to files.
+
+    Write ``model`` to text files in a folder(directory) tree at ``model_path``.
+
+    Model attributes, such as its name and refs, are output in the file
+    named *_model.py*, directly under `model_path`.
+    For each space in the model, a text file is created with the same name
+    as the space with ".py" extension. The tree structure of the spaces
+    is represented by the tree of folders, i.e. child spaces
+    of a space is stored in a folder named the space.
+
+    Generated text files are Python pseudo-scripts, i.e. they are
+    syntactically correct but semantically not-correct Python scripts,
+    that can only be interpreted through :py:func:`~read_model` function.
+
+    Dynamic spaces and cells values are not stored.
+
+    For spaces and cells created
+    by :py:meth:`~modelx.core.space.UserSpace.new_space_from_excel` and
+    :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`,
+    the source Excel files are copied into the same directory where
+    the text files for the spaces the methods are associated with are located.
+    Then when the model is read by :py:func:`~read_model` function,
+    the methods are invoked to create the spaces or cells.
+
+    Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
+
+    .. versionadded:: 0.0.22
+
+    Warning:
+        The order of members of each type (Space, Cells, Ref)
+        is not preserved by :func:`write_model` and :func:`read_model`.
+
+    Args:
+        model: Model object to write.
+        model_path(str): Folder path where the model will be output.
+        backup(bool, optional): Whether to backup the directory/folder
+            if it already exists. Defaults to ``True``.
+        version(int, optional): Format version to write model.
+            Defaults to the most recent version.
+
+    """
+    return _serialize.write_model(
+        _system, model, model_path, backup=backup, version=version)
+
+
+def read_model(model_path, name=None):
+    """Read model from files.
+
+    Read model form a folder(directory) tree ``model_path``.
+    The model must be saved by :py:func:`~write_model` function or
+    :py:meth:`~modelx.core.model.Model.write` method.
+
+    .. versionadded:: 0.0.22
+
+    Args:
+        model_path(str): A folder(directory) path where model is stored.
+        name(str, optional): Model name to overwrite the saved name.
+
+    Returns:
+        A Model object constructed from the files.
+
+    """
+    return _serialize.read_model(model_path, name=name)

@@ -232,6 +232,7 @@ class System:
         self.currentmodel = None
         self._models = {}
         self.self = None
+        self.serializing = False
 
         if setup_shell:
             if is_ipython():

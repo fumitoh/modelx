@@ -198,7 +198,7 @@ class BaseEncoder:
 
 class ModelWriter(BaseEncoder):
 
-    def __init__(self, model: Model, path: pathlib.Path):
+    def __init__(self, system, model: Model, path: pathlib.Path):
         super().__init__(model, name=model.name, srcpath=path / "_model.py",
                          datapath=path / "data")
         self.model = model
