@@ -395,9 +395,12 @@ class System:
         """Retrieve an object by its absolute name."""
 
         parts = name.split(".")
+        obj = self.models[parts.pop(0)].interface
+        while parts:
+            attr = parts.pop(0)
+            obj = getattr(obj, attr)
 
-        model_name = parts.pop(0)
-        return self.models[model_name].get_object(".".join(parts))
+        return obj
 
     # ----------------------------------------------------------------------
     # Call stack tracing
