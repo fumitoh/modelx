@@ -201,6 +201,7 @@ class ModelWriter(BaseEncoder):
     def __init__(self, system, model: Model, path: pathlib.Path):
         super().__init__(model, name=model.name, srcpath=path / "_model.py",
                          datapath=path / "data")
+        self.system = system
         self.model = model
         self.root = path
         self.call_ids = []
@@ -258,6 +259,7 @@ class ModelWriter(BaseEncoder):
     def write_model(self):
 
         try:
+            self.system.serializing = self
             # Create _model.py
             with self.srcpath.open("w", encoding="utf-8") as f:
                 f.write(self.encode())
@@ -275,6 +277,7 @@ class ModelWriter(BaseEncoder):
                         srcpath=srcpath, call_ids=self.call_ids)
                     sw.write_space()
         finally:
+            self.system.serializing = None
             self.call_ids.clear()
 
 
@@ -673,31 +676,38 @@ class EncoderSelector(BaseSelector):
 
 class ModelReader:
 
-    def __init__(self, path: pathlib.Path):
+    def __init__(self, system, path: pathlib.Path):
+        self.system = system
         self.path = path
         self.kwargs = None
         self.instructions = CompoundInstruction()
-        self.result = None
+        self.result = None      # To pass list of space names
+        self.model = None
 
     def read_model(self, **kwargs):
 
-        self.kwargs = kwargs
-        model = self.parse_dir()
-        self.instructions.execute_selected_methods([
-            "doc",
-            "set_formula",
-            "set_property",
-            "new_cells"] + CONSTRUCTOR_METHODS)
-        self.instructions.execute_selected_methods(["add_bases"])
-        self.instructions.execute_selected_methods(["__setattr__"])
+        try:
+            self.system.serializing = self
+            self.kwargs = kwargs
+            model = self.parse_dir()
+            self.instructions.execute_selected_methods([
+                "doc",
+                "set_formula",
+                "set_property",
+                "new_cells"] + CONSTRUCTOR_METHODS)
+            self.instructions.execute_selected_methods(["add_bases"])
+            self.instructions.execute_selected_methods(["__setattr__"])
+        finally:
+            self.system.serializing = None
+
         return model
 
     def parse_dir(self, path_: pathlib.Path = None, target=None, spaces=None):
 
         if target is None:
             path_ = self.path
-            target = model = mx.new_model()
-            self.parse_source(path_ / "_model.py", model)
+            target = self.model = mx.new_model()
+            self.parse_source(path_ / "_model.py", self.model)
             spaces = self.result
 
         for name in spaces:

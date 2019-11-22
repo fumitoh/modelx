@@ -481,4 +481,4 @@ def read_model(model_path, name=None):
         A Model object constructed from the files.
 
     """
-    return _serialize.read_model(model_path, name=name)
+    return _serialize.read_model(_system, model_path, name=name)

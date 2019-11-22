@@ -400,7 +400,7 @@ class _BaseEncoder(json.JSONEncoder):
 
 class ModelReader:
 
-    def __init__(self, path: pathlib.Path):
+    def __init__(self, system, path: pathlib.Path):
         self.path = path
         self.kwargs = None
 

@@ -232,7 +232,7 @@ class System:
         self.currentmodel = None
         self._models = {}
         self.self = None
-        self.serializing = False
+        self.serializing = None
 
         if setup_shell:
             if is_ipython():
@@ -448,6 +448,11 @@ class System:
             self.callstack.tracestack.clear()
         else:
             raise RuntimeError("call stack trace not active")
+
+
+mxsys = System()
+
+
 # --------------------------------------------------------------------------
 # Monkey patch functions for custom error messages
 

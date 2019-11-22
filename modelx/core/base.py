@@ -18,6 +18,7 @@ from collections import Sequence, ChainMap, Mapping, OrderedDict
 from inspect import BoundArguments
 from modelx.core.formula import create_closure
 from modelx.core.node import get_node
+import modelx.core.system
 
 # To add new method apply_defaults to BoundArguments.
 if sys.version_info < (3, 5, 0):
@@ -267,6 +268,16 @@ class NullImpl(Impl):
         raise RuntimeError("Deleted object")
 
 
+def _get_object(name):
+
+    parts = name.split(".")
+    if not parts[0]:
+        parts[0] = modelx.core.system.mxsys.serializing.model.name
+        name = ".".join(parts)
+
+    return modelx.core.system.mxsys.get_object(name)
+
+
 class Interface:
     """The ultimate base class of Model, Space, Cells.
 
@@ -354,6 +365,21 @@ class Interface:
 
     def __setstate__(self, state):
         object.__setattr__(self, "_impl", state)
+
+    def __reduce__(self):
+        if self._impl.system.serializing:
+            model = self._impl.system.serializing.model
+
+            if model is self.model:
+                parts = self.fullname.split(".")
+                parts[0] = ""   # Replace model name with empty string
+                name = ".".join(parts)
+            else:
+                name = self.fullname
+
+            return _get_object, (name,)
+        else:
+            return object.__reduce__(self)
 
     def set_property(self, name: str, value):
         """Set property ``name``
