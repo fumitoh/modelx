@@ -107,7 +107,10 @@ class Executor:
 
 class CallStack(deque):
 
-    default_maxdepth = 65000
+    if sys.platform == "win32" and sys.version_info[:2] == (3, 8):
+        default_maxdepth = 57000
+    else:
+        default_maxdepth = 65000
 
     def __init__(self, maxdepth=None):
 

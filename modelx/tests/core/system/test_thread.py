@@ -1,10 +1,15 @@
+import sys
 import modelx as mx
 from modelx.core.errors import DeepReferenceError
 import pytest
 
+if sys.platform == "win32" and sys.version_info[:2] == (3, 8):
+    maxdepth = 57000
+else:
+    maxdepth = 65000
+
 def test_max_recursion():
 
-    maxdepth = 65000
     m, s = mx.new_model(), mx.new_space()
 
     @mx.defcells
@@ -19,7 +24,6 @@ def test_max_recursion():
 
 def test_maxout_recursion():
 
-    maxdepth = 65001
     m, s = mx.new_model(), mx.new_space()
 
     @mx.defcells
@@ -30,4 +34,4 @@ def test_maxout_recursion():
             return foo(x-1) + 1
 
     with pytest.raises(DeepReferenceError):
-        foo(maxdepth)
+        foo(maxdepth+1)
