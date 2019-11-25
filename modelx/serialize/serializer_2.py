@@ -181,13 +181,14 @@ class CompoundInstruction(BaseInstruction):
 
 class BaseEncoder:
 
-    def __init__(self, target,
+    def __init__(self, writer, target,
                  parent=None, name=None, srcpath=None, datapath=None):
         self.target = target
         self.parent = parent
         self.name = name
         self.srcpath = srcpath
         self.datapath = datapath
+        self.writer = writer
 
     def encode(self):
         raise NotImplementedError
@@ -195,18 +196,25 @@ class BaseEncoder:
     def instruct(self):
         return None
 
+    @property
+    def call_ids(self):
+        return self.writer.call_ids
+
 
 class ModelWriter(BaseEncoder):
 
     def __init__(self, system, model: Model, path: pathlib.Path):
-        super().__init__(model, name=model.name, srcpath=path / "_model.py",
+        super().__init__(self, model,
+                         name=model.name,
+                         srcpath=path / "_model.py",
                          datapath=path / "data")
         self.system = system
         self.model = model
         self.root = path
-        self.call_ids = []
+        self._call_ids = []
 
         self.refview_encoder = RefViewEncoder(
+            self,
             self.model.refs,
             parent=self.model,
             srcpath=self.srcpath
@@ -215,6 +223,7 @@ class ModelWriter(BaseEncoder):
         for space in model.spaces.values():
             if MethodCallEncoder.from_method(space):
                 enc = MethodCallSelector.select(space)(
+                    self,
                     space,
                     parent=self.model,
                     srcpath=self.srcpath,
@@ -273,23 +282,29 @@ class ModelWriter(BaseEncoder):
                     relpath = "/".join(space.fullname.split(".")[1:]) + ".py"
                     srcpath = self.root / relpath
                     sw = SpaceWriter(
-                        space, parent=self.model, name=space.name,
-                        srcpath=srcpath, call_ids=self.call_ids)
+                        self, space, parent=self.model, name=space.name,
+                        srcpath=srcpath)
                     sw.write_space()
         finally:
             self.system.serializing = None
             self.call_ids.clear()
 
+    @property
+    def call_ids(self):
+        return self._call_ids
+
 
 class SpaceWriter(BaseEncoder):
 
-    def __init__(self, target, parent, name=None, srcpath=None, call_ids=None):
-        super().__init__(target, parent, name, srcpath,
+    def __init__(self,
+                 writer,
+                 target, parent, name=None, srcpath=None):
+        super().__init__(writer, target, parent, name, srcpath,
                          datapath=srcpath.parent / srcpath.stem / "data")
         self.space = target
-        self.call_ids = call_ids
 
         self.refview_encoder = RefViewEncoder(
+            self,
             self.space._self_refs,
             parent=self.space,
             srcpath=srcpath
@@ -300,6 +315,7 @@ class SpaceWriter(BaseEncoder):
             encoder = MethodCallSelector.select(space)
             if encoder:
                 enc = encoder(
+                    self,
                     space,
                     parent=self.space,
                     srcpath=srcpath,
@@ -314,11 +330,14 @@ class SpaceWriter(BaseEncoder):
             encoder = MethodCallSelector.select(cells)
             if encoder:
                 enc = encoder(
+                    self,
                     cells,
                     parent=self.space,
                     srcpath=srcpath,
                     datapath=self.datapath
                 )
+                if self.call_ids is None:
+                    print("this")
                 if enc.callid not in self.call_ids:
                     self.cells_method_encoders.append(enc)
                     self.call_ids.append(enc.callid)
@@ -329,6 +348,7 @@ class SpaceWriter(BaseEncoder):
                 if not MethodCallEncoder.from_method(cells):
                     self.cells_encoders.append(
                         CellsEncoder(
+                            self,
                             cells,
                             parent=self.space,
                             name=cells.name,
@@ -348,11 +368,11 @@ class SpaceWriter(BaseEncoder):
                 srcpath = (self.srcpath.parent /
                            self.target.name / (space.name + ".py"))
                 SpaceWriter(
+                    self,
                     space,
                     parent=self.space,
                     name=space.name,
-                    srcpath=srcpath,
-                    call_ids=self.call_ids
+                    srcpath=srcpath
                 ).write_space()
 
         self.instruct().execute()
@@ -427,8 +447,8 @@ class SpaceWriter(BaseEncoder):
 
 class RefViewEncoder(BaseEncoder):
 
-    def __init__(self, target, parent, name=None, srcpath=None):
-        super().__init__(target, parent, name, srcpath)
+    def __init__(self, writer, target, parent, name=None, srcpath=None):
+        super().__init__(writer, target, parent, name, srcpath)
 
         # TODO: Refactor
         is_model = parent._impl.is_model()
@@ -445,6 +465,7 @@ class RefViewEncoder(BaseEncoder):
                 if (is_model or not parent._impl.refs[key].is_derived):
                     datapath = datadir / key
                     self.encoders.append(EncoderSelector.select(val)(
+                        writer,
                         val, parent=parent, name=key, srcpath=srcpath,
                         datapath=datapath))
 
@@ -483,18 +504,17 @@ class CellsEncoder(BaseEncoder):
 class MethodCallEncoder(BaseEncoder):
 
     methods = []
-    writer = None
+    write_method = None
 
-    def __init__(self, target, parent, name=None, srcpath=None, datapath=None,
-                 call_ids=None):
-        super().__init__(target, parent, name, srcpath, datapath)
-        self.call_ids = call_ids
+    def __init__(self, writer,
+                 target, parent, name=None, srcpath=None, datapath=None):
+        super().__init__(writer, target, parent, name, srcpath, datapath)
 
     def encode(self):
         raise NotImplementedError
 
     def instruct(self):
-        func = type(self).writer
+        func = type(self).write_method
         return Instruction(func, args=(self.target, self.srcpath.parent))
 
     @property
@@ -524,7 +544,7 @@ def copy_file(obj, path_: pathlib.Path):
 class FromFileEncoder(MethodCallEncoder):
 
     methods = FROM_FILE_METHODS
-    writer = copy_file
+    write_method = copy_file
 
     def encode(self):
         lines = []
@@ -561,14 +581,15 @@ def write_pandas(obj, path_: pathlib.Path, filename=None):
 class FromPandasEncoder(MethodCallEncoder):
 
     methods = FROM_PANDAS_METHODS
-    writer = write_pandas
+    write_method = write_pandas
 
     def encode(self):
         lines = []
         src = self.target._impl.source.copy()
 
         args = list(src["args"])
-        enc = PickleEncoder(args[0],
+        enc = PickleEncoder(self.writer,
+                            args[0],
                             srcpath=self.srcpath,
                             datapath=self.datapath)
         args[0] = enc.datapath.relative_to(
@@ -582,7 +603,7 @@ class FromPandasEncoder(MethodCallEncoder):
         return "\n\n".join(lines)
 
     def instruct(self):
-        func = type(self).writer
+        func = type(self).write_method
         return Instruction(func, args=(
             self.target, self.datapath, self.callid))
 
