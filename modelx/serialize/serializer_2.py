@@ -200,6 +200,10 @@ class BaseEncoder:
     def call_ids(self):
         return self.writer.call_ids
 
+    @property
+    def pickledata(self):
+        return self.writer.pickledata
+
 
 class ModelWriter(BaseEncoder):
 
@@ -212,6 +216,7 @@ class ModelWriter(BaseEncoder):
         self.model = model
         self.root = path
         self._call_ids = []
+        self._pickledata = {}
 
         self.refview_encoder = RefViewEncoder(
             self,
@@ -259,6 +264,13 @@ class ModelWriter(BaseEncoder):
         lines.append(self.refview_encoder.encode())
         return "\n\n".join(lines)
 
+    def write_pickledata(self):
+        if self.pickledata:
+            self.datapath.mkdir(parents=True, exist_ok=True)
+            file = self.datapath / "data.pickle"
+            with file.open("wb") as f:
+                pickle.dump(self.pickledata, f)
+
     def instruct(self):
         insts = []
         insts.append(self.refview_encoder.instruct())
@@ -285,6 +297,8 @@ class ModelWriter(BaseEncoder):
                         self, space, parent=self.model, name=space.name,
                         srcpath=srcpath)
                     sw.write_space()
+
+            self.write_pickledata()
         finally:
             self.system.serializing = None
             self.call_ids.clear()
@@ -292,6 +306,10 @@ class ModelWriter(BaseEncoder):
     @property
     def call_ids(self):
         return self._call_ids
+
+    @property
+    def pickledata(self):
+        return self._pickledata
 
 
 class SpaceWriter(BaseEncoder):
@@ -336,8 +354,6 @@ class SpaceWriter(BaseEncoder):
                     srcpath=srcpath,
                     datapath=self.datapath
                 )
-                if self.call_ids is None:
-                    print("this")
                 if enc.callid not in self.call_ids:
                     self.cells_method_encoders.append(enc)
                     self.call_ids.append(enc.callid)
@@ -669,9 +685,12 @@ class PickleEncoder(BaseEncoder):
         return True  # default encoder
 
     def pickle_value(self, path: pathlib.Path, value):
+        key = id(value)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open(mode="wb") as f:
-            pickle.dump(value, f)
+        with path.open(mode="w") as f:
+            f.write(str(key))
+        if key not in self.writer.pickledata:
+            self.writer.pickledata[key] = value
 
     def encode(self):
         data = self.datapath.relative_to(self.srcpath.parent).as_posix()
@@ -704,6 +723,7 @@ class ModelReader:
         self.instructions = CompoundInstruction()
         self.result = None      # To pass list of space names
         self.model = None
+        self.pickledata = None
 
     def read_model(self, **kwargs):
 
@@ -717,6 +737,7 @@ class ModelReader:
                 "set_property",
                 "new_cells"] + CONSTRUCTOR_METHODS)
             self.instructions.execute_selected_methods(["add_bases"])
+            self.read_pickledata()
             self.instructions.execute_selected_methods(["__setattr__"])
         finally:
             self.system.serializing = None
@@ -758,6 +779,12 @@ class ModelReader:
                 ist.execute()
             else:
                 self.instructions.append(ist)
+
+    def read_pickledata(self):
+        file = self.path / "data/data.pickle"
+        if file.exists():
+            with file.open("rb") as f:
+                self.pickledata = pickle.load(f)
 
 
 class BaseNodeParser:
@@ -995,7 +1022,7 @@ class RefAssignParser(BaseAssignParser):
         valnode = self.node.value
 
         decoder = DecoderSelector.select(valnode)(
-            valnode, self.obj, name=name, srcpath=self.srcpath)
+            self.reader, valnode, self.obj, name=name, srcpath=self.srcpath)
 
         if hasattr(decoder, "restore"):
             def restore_hook(inst):
@@ -1086,7 +1113,8 @@ class ParserSelector(BaseSelector):
 
 class ValueDecoder:
 
-    def __init__(self, node, obj, name=None, srcpath=None):
+    def __init__(self, reader, node, obj, name=None, srcpath=None):
+        self.reader = reader
         self.node = node
         self.obj = obj
         self.name = name
@@ -1133,8 +1161,9 @@ class PickleDecoder(TupleDecoder):
 
     def restore(self):
         with self.decode().open("rb") as f:
-            value = pickle.load(f)
-        return value
+            key = int(f.read())
+
+        return self.reader.pickledata[key]
 
 
 class LiteralDecoder(ValueDecoder):
