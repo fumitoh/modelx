@@ -368,7 +368,8 @@ class SpaceWriter(BaseEncoder):
                             cells,
                             parent=self.space,
                             name=cells.name,
-                            srcpath=srcpath
+                            srcpath=srcpath,
+                            datapath=self.datapath / cells.name
                         )
                     )
 
@@ -515,6 +516,28 @@ class CellsEncoder(BaseEncoder):
             lines.append(self.target.name + " = None")
 
         return "\n\n".join(lines)
+
+    def pickle_value(self):
+        cellsdata = []
+        for key in self.target._impl.data:
+            if key in self.target._impl.input_keys:
+                value = self.target._impl.data[key]
+                keyid = id(key)
+                if keyid not in self.writer.pickledata:
+                    self.writer.pickledata[keyid] = key
+                valid = id(value)
+                if valid not in self.writer.pickledata:
+                    self.writer.pickledata[valid] = value
+                cellsdata.append((keyid, valid))
+
+        if cellsdata:   # Save IDs
+            self.datapath.parent.mkdir(parents=True, exist_ok=True)
+            with self.datapath.open(mode="w") as f:
+                for keyid, valid in cellsdata:
+                    f.write("(%s, %s)\n" % (keyid, valid))
+
+    def instruct(self):
+        return Instruction(self.pickle_value)
 
 
 class MethodCallEncoder(BaseEncoder):
@@ -738,6 +761,7 @@ class ModelReader:
                 "new_cells"] + CONSTRUCTOR_METHODS)
             self.instructions.execute_selected_methods(["add_bases"])
             self.read_pickledata()
+            self.instructions.execute_selected_methods(["load_pickledata"])
             self.instructions.execute_selected_methods(["__setattr__"])
         finally:
             self.system.serializing = None
@@ -1042,8 +1066,36 @@ class RefAssignParser(BaseAssignParser):
             arghook=arghook
         )
 
+class CellsInputDataMixin(BaseNodeParser):
 
-class LambdaAssignParser(BaseAssignParser):
+    @property
+    def cellsname(self):
+        raise NotImplementedError
+
+    @property
+    def datapath(self) -> pathlib.Path:
+        return (self.srcpath.parent
+                / self.srcpath.stem / "data" / self.cellsname)
+
+    def set_values(self, data):
+        cells = self.impl.cells[self.cellsname]
+        for key, val in data.items():
+            cells.set_value(key, val)
+
+    def load_pickledata(self):
+        if self.datapath.exists():
+            data = {}
+            with self.datapath.open("r") as f:
+                lines = f.readlines()
+            for line in lines:
+                keyid, valid = ast.literal_eval(line)
+                key = self.reader.pickledata[keyid]
+                val = self.reader.pickledata[valid]
+                data[key] = val
+            self.set_values(data)
+
+
+class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
 
     @classmethod
     def condition(cls, node, section, atok):
@@ -1051,28 +1103,32 @@ class LambdaAssignParser(BaseAssignParser):
             return True
         return False
 
+    @property
+    def cellsname(self):
+        return self.atok.get_text(self.node.targets[0])
+
     def get_instruction(self):
         kwargs = {
-            "name": self.atok.get_text(self.node.targets[0]),
+            "name": self.cellsname,
             "formula": self.atok.get_text(self.node.value)
         }
         # lambda cells definition
-        return Instruction.from_method(
+        inst = Instruction.from_method(
             obj=self.impl,
             method="new_cells",
             kwargs=kwargs
         )
+        return CompoundInstruction([
+            inst,
+            Instruction(self.load_pickledata)
+        ])
 
 
 class FunctionDefParser(BaseNodeParser):
     AST_NODE = ast.FunctionDef
+    METHOD = None
 
     def get_instruction(self):
-
-        if self.node.name == "_formula":
-            method = "set_formula"
-        else:
-            method = "new_cells"
 
         funcdef = self.atok.get_text(self.node)
 
@@ -1092,9 +1148,36 @@ class FunctionDefParser(BaseNodeParser):
         kwargs = {"formula": funcdef}
         return Instruction.from_method(
             obj=self.impl,
-            method=method,
+            method=self.METHOD,
             kwargs=kwargs
         )
+
+
+class SpaceFuncDefParser(FunctionDefParser):
+
+    METHOD = "set_formula"
+
+    @classmethod
+    def condition(cls, node, section, atok):
+        if super(SpaceFuncDefParser, cls).condition(node, section, atok):
+            if node.name == "_formula":
+                return True
+        return False
+
+
+class CellsFuncDefParser(FunctionDefParser, CellsInputDataMixin):
+
+    METHOD = "new_cells"
+
+    @property
+    def cellsname(self):
+        return self.node.name
+
+    def get_instruction(self):
+        return CompoundInstruction([
+            super().get_instruction(),
+            Instruction(self.load_pickledata)
+        ])
 
 
 class ParserSelector(BaseSelector):
@@ -1107,7 +1190,8 @@ class ParserSelector(BaseSelector):
         LambdaAssignParser,
         AttrAssignParser,
         RefAssignParser,
-        FunctionDefParser
+        SpaceFuncDefParser,
+        CellsFuncDefParser
     ]
 
 

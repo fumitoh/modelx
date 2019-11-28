@@ -64,13 +64,15 @@ class InterfaceWrapper:
 
 
 @pytest.fixture
-def ifref_model():
+def pickletest():
     m, s = mx.new_model("TestModel"), mx.new_space(name='SpaceA')
 
     @mx.defcells
     def foo(x):
         # Comment
         return x # Comment
+
+    c = s.new_cells(name="lambdacells", formula=lambda x: 2 * x)
 
     s.another_space = m.new_space(name="SpaceB")
 
@@ -84,6 +86,12 @@ def ifref_model():
            '5': ['6', 7]}
     s.another_space.ou = [s.o, s.u]
 
+    # Cells input data
+    foo[0] = 0
+    foo[1] = m
+    c[0] = "123"
+    c[s] = 3
+
     return m
 
 
@@ -91,10 +99,10 @@ def ifref_model():
     "name",
     [None, "renamed"]
 )
-def test_reference_identity(ifref_model, tmp_path, name):
+def test_reference_identity(pickletest, tmp_path, name):
 
     path_ = tmp_path / "testdir"
-    write_model(ifref_model, path_)
+    write_model(pickletest, path_)
     m = read_model(path_, name=name)
 
     assert m.SpaceA.another_space is m.SpaceB
@@ -110,3 +118,7 @@ def test_reference_identity(ifref_model, tmp_path, name):
     # same objects
     assert m.SpaceA.o is m.SpaceB.ou[0]
     assert m.SpaceA.u is m.SpaceB.ou[1]
+
+    # Cells input data
+    assert dict(m.SpaceA.foo) == {0: 0, 1: m}
+    assert dict(m.SpaceA.lambdacells) == {0: "123", m.SpaceA: 3}
