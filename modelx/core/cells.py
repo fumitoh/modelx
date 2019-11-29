@@ -385,6 +385,7 @@ class CellsImpl(Derivable, Impl):
         "data",
         "_namespace_impl",
         "altfunc",
+        "source",
         "input_keys"
     ] + Derivable.state_attrs + Impl.state_attrs
 
