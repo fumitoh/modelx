@@ -24,6 +24,9 @@ def test_single_param(tmp_path):
     mx.write_model(m, modelpath)
     assert modelpath.joinpath(CSV_SINGLE_PARAM.name).exists()
     m2 = mx.read_model(modelpath)
+    # Write twice to check copy from renamed backup.
+    mx.write_model(m2, modelpath)
+    m2 = mx.read_model(modelpath)
 
     # Compare components
     compare_model(m, m2)
@@ -52,6 +55,9 @@ def test_multiple_params(tmp_path):
     modelpath = tmp_path / "csv_mult_params"
     mx.write_model(m, modelpath)
     assert modelpath.joinpath(CSV_MULTI_PARAMS.name).exists()
+    m2 = mx.read_model(modelpath)
+    # Write twice to check copy from renamed backup.
+    mx.write_model(m2, modelpath)
     m2 = mx.read_model(modelpath)
 
     # Compare components

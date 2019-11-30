@@ -18,7 +18,35 @@ def _get_serializer(version):
         ".serializer_%s" % version, "modelx.serialize")
 
 
-def _increment_backups(base_path, max_backups=DEFAULT_MAX_BACKUPS, nth=0):
+def _rename_path(path, new_path, obj):
+
+    from .serializer_2 import FROM_FILE_METHODS
+
+    def from_file(obj):
+        src = obj._impl.source
+        return src and "method" in src and src["method"] in FROM_FILE_METHODS
+
+    def repalce_dir(path, new_path, obj):
+        pathstr = obj._impl.source["args"][0]
+        filepath = pathlib.Path(pathstr)
+        if path in filepath.parents:
+            new_filepath = new_path.joinpath(filepath.relative_to(path))
+            obj._impl.source["args"][0] = str(new_filepath)
+
+    for space in obj.spaces.values():
+        if from_file(space):
+            repalce_dir(path, new_path, space)
+        else:
+            _rename_path(path, new_path, space)
+
+    if hasattr(obj, "cells"):
+        for cells in obj.cells.values():
+            if from_file(cells):
+                repalce_dir(path, new_path, cells)
+
+
+def _increment_backups(
+        model, base_path, max_backups=DEFAULT_MAX_BACKUPS, nth=0):
 
     postfix = "_BAK" + str(nth) if nth else ""
     backup_path = pathlib.Path(str(base_path) + postfix)
@@ -26,9 +54,11 @@ def _increment_backups(base_path, max_backups=DEFAULT_MAX_BACKUPS, nth=0):
         if nth == max_backups:
             shutil.rmtree(backup_path)
         else:
-            _increment_backups(base_path, max_backups, nth + 1)
+            _increment_backups(model, base_path, max_backups, nth + 1)
             next_backup = pathlib.Path(str(base_path) + "_BAK" + str(nth + 1))
+            # before_rename = pathlib.Path(backup_path)
             backup_path.rename(next_backup)
+            _rename_path(backup_path, next_backup, model)
 
 
 def _get_model_serializer(model_path):
@@ -48,7 +78,7 @@ def write_model(system, model, model_path, backup=True, version=None):
     max_backups = DEFAULT_MAX_BACKUPS if backup else 0
 
     path = pathlib.Path(model_path)
-    _increment_backups(path, max_backups)
+    _increment_backups(model, path, max_backups)
     path.mkdir()
     with open(path / "_system.json", "w", encoding="utf-8") as f:
         json.dump({"serializer_version": version}, f)

@@ -28,6 +28,10 @@ def extra_params(request, tmp_path):
     )
 
     mx.write_model(model, tmp_path)
+    # Write twice to check copy from renamed backup.
+    m2 = mx.read_model(tmp_path)
+    mx.write_model(m2, tmp_path)
+
     target = mx.read_model(tmp_path)
 
     return model, target
@@ -72,6 +76,10 @@ def consts(request, tmp_path):
     )
 
     mx.write_model(model, tmp_path)
+    # Write twice to check copy from renamed backup.
+    m2 = mx.read_model(tmp_path)
+    mx.write_model(m2, tmp_path)
+
     target = mx.read_model(tmp_path)
 
     return model, target
