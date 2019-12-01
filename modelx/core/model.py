@@ -147,7 +147,7 @@ class Model(EditableSpaceContainer):
             model_path(str): Folder(directory) path where the model is saved.
         """
         from modelx.serialize import write_model
-        write_model(self, model_path)
+        write_model(self._impl.system, self, model_path)
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes

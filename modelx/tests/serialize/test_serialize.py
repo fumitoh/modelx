@@ -36,13 +36,16 @@ def testmodel():
 
 
 @pytest.mark.parametrize(
-    ["name", "version"],
-    itertools.product([None, "renamed"], SERIALIZE_VERS)
+    ["name", "version", "as_method"],
+    itertools.product([None, "renamed"], SERIALIZE_VERS, [True, False])
 )
-def test_read_write_model(testmodel, tmp_path, name, version):
+def test_read_write_model(testmodel, tmp_path, name, version, as_method):
 
     path_ = tmp_path / "testdir"
-    write_model(testmodel, path_, version=version)
+    if as_method:
+        testmodel.write(path_)
+    else:
+        write_model(testmodel, path_, version=version)
     m = read_model(path_, name=name)
 
     assert m.name == (name if name else "TestModel")
