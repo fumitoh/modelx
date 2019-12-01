@@ -25,7 +25,7 @@ The former are now called input values, and distinguished from tha latter::
     foo[0] = 5
     foo[5]   # Calculated buy the formula
 
-``foo[0]`` in thies example holds an input value of 5,
+``foo[0]`` in this example holds an input value of 5,
 while ``foo[5]`` holds a calculated value of 120.
 To check whether a node of a Cells has an input value,
 :meth:`~core.cells.CellNode.is_input` is now available.::
@@ -78,6 +78,8 @@ Continuing the previous example::
 
 *Only available with Python 3.7 or newer*
 
+.. currentmodule:: modelx
+
 In addition to :func:`get_models`, models can also be acquired
 through modelx attribute access::
 
@@ -86,7 +88,6 @@ through modelx attribute access::
     >>> m1 is m2
     True
 
-.. currentmodule:: modelx
 
 **defcells and new_space creates new model/space if no current model/space is available**
 
