@@ -445,6 +445,8 @@ def write_model(model, model_path, backup=True, version=None):
 
     Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
 
+    .. versionchanged:: 0.1.0 ``version`` parameter is added.
+
     .. versionadded:: 0.0.22
 
     Warning:

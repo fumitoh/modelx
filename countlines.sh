@@ -1,0 +1,1 @@
+git ls-files | grep -P ".*(py|rst)$" | xargs wc -l

@@ -1,6 +1,6 @@
 modelx
 ======
-*Escape from spreadsheet models!*
+*Use Python like a spreadsheet!*
 
 .. image:: https://travis-ci.org/fumitoh/modelx.svg?branch=master
     :target: https://travis-ci.org/fumitoh/modelx
@@ -140,16 +140,19 @@ https://github.com/fumitoh/modelx
 
 Development State
 -----------------
-modelx is in its early alpha-release stage, and its specifications are
-subject to changes without consideration on backward compatibility.
-The source files of you models may need to be modified manually,
-if there are updates that break backward compatibility in newer versions
-of modelx.
 
-Likewise, model files saved with one version may not load with a newer version.
-When updating modelx to a newer version,
-make sure you rebuild model files saved using older versions of modelx
-from their source code.
+With the release of modelx version 0.1.0 in December 2019,
+the author of modelx will try to consider maintaining
+backward compatibility to a limited extent
+in developing future releases of modelx.
+Especially, he will try to make it possible to read
+models written to files by one version's ``write_model``,
+by ``read_model`` of the next version of modelx.
+However, models saved by ``Model.save`` method may not be opened by
+``open_model`` method.
+Overall, modelx is still in its early alpha-release stage,
+and its specifications may change without consideration
+on backward compatibility.
 
 .. warning::
 
