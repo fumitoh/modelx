@@ -234,7 +234,6 @@ class System:
         self._backupnamer = AutoNamer("_BAK")
         self.currentmodel = None
         self._models = {}
-        self.self = None
         self.serializing = None
 
         if setup_shell:

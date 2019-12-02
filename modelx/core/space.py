@@ -1013,14 +1013,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             return self.param_spaces[key]
 
         else:
-            last_self = self.system.self
-            self.system.self = self
-
-            try:
-                space_args = self.eval_formula(node)
-
-            finally:
-                self.system.self = last_self
+            space_args = self.eval_formula(node)
 
             if space_args is None:
                 space_args = {"bases": [self]}  # Default
