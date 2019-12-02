@@ -175,5 +175,6 @@ Requirements
 ------------
 * Python 3.6+
 * NetwrkX 2.0+
+* asttokens
 * Pandas
 * OpenPyXL

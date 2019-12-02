@@ -21,6 +21,7 @@ The packages listed below are either required by modelx,
 or can be used with modelx to develop models more efficiently.
 
 * NetworkX (>=2.0)
+* asttokens
 * Pandas
 * OpenPyXL
 * Spyder (>=3.2.5)
@@ -29,6 +30,11 @@ networkx
 ^^^^^^^^
 `NetworkX <http://networkx.github.io/>`_ is a required package that modelx
 depends on. Version 2.0 or newer is required.
+
+asttokens
+^^^^^^^^^
+`asttokens <https://asttokens.readthedocs.io/en/latest/>`_
+is a required package that modelx depends on.
 
 Pandas
 ^^^^^^
