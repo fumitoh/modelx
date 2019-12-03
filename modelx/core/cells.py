@@ -616,13 +616,15 @@ class CellsImpl(Derivable, Impl):
             else:
                 raise KeyError("Assignment in cells other than %s" % key)
         else:
-            targets = self._model.cellgraph.get_startnodes_from(node)
+            if self.system._recalc_dependents:
+                targets = self._model.cellgraph.get_startnodes_from(node)
             self.clear_value_at(key)
             self._store_value(key, value)
             self._model.cellgraph.add_node(node)
             self.input_keys.add(key)
-            for trg in targets:
-                trg[OBJ].get_value(trg[KEY])
+            if self.system._recalc_dependents:
+                for trg in targets:
+                    trg[OBJ].get_value(trg[KEY])
 
     def _store_value(self, key, value):
 

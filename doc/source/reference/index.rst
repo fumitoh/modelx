@@ -27,6 +27,8 @@ Function Reference
    ~modelx.stop_stacktrace
    ~modelx.get_stacktrace
    ~modelx.clear_stacktrace
+   ~modelx.get_recalc
+   ~modelx.set_recalc
 
 
 Class Reference

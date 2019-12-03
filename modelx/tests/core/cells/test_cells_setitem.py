@@ -1,5 +1,6 @@
 import pytest
 
+import modelx as mx
 from modelx import new_model, defcells
 
 import pytest
@@ -78,11 +79,25 @@ def test_setitem_in_formula_duplicate_assignment_error(setitemsample):
         setitemsample.duplicate_assignment[4]
 
 
-def test_setitem_recalc(setitemsample):
+@pytest.mark.parametrize("recalc", [True, False])
+def test_setitem_recalc(setitemsample, recalc):
 
-    setitemsample.balance[0] = 0
-    assert setitemsample.balance[10] == 100
-    
-    setitemsample.balance[0] = 100
-    assert len(setitemsample.balance) == 11
-    assert setitemsample.balance[10] == 200
+    last_recalc = mx.get_recalc()
+
+    try:
+        mx.set_recalc(recalc)
+
+        setitemsample.balance[0] = 0
+        assert setitemsample.balance[10] == 100
+
+        setitemsample.balance[0] = 100
+
+        if recalc:
+            assert len(setitemsample.balance) == 11
+        else:
+            assert len(setitemsample.balance) == 1
+
+        assert setitemsample.balance[10] == 200
+
+    finally:
+        mx.set_recalc(last_recalc)

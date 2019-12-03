@@ -484,3 +484,41 @@ def read_model(model_path, name=None):
 
     """
     return _serialize.read_model(_system, model_path, name=name)
+
+
+def get_recalc():
+    """Return :obj:`True` if dependent values are recalculated,
+    :obj:`False` if they are cleared.
+
+    If this option is set to :py:obj:`True`, when a value is assigned to a cell
+    by the user to overwrite the cell's existing value, values of the cells
+    that depend on the overwritten cell are recalculated.
+    If the option is set to :obj:`False`, the dependent values are cleared.
+    By default, the option is set to :obj:`True`.
+
+    Returns:
+        bool: `True` if dependents are recalculated, `False` if cleared.
+
+    See also:
+        :func:`set_recalc`
+    """
+    return _system._recalc_dependents
+
+
+def set_recalc(recalc):
+    """Set the recalculation option.
+
+    If this option is set to :py:obj:`True`, when a value is assigned to a cell
+    by the user to overwrite the cell's existing value, values of the cells
+    that depend on the overwritten cell are recalculated.
+    If the option is set to :obj:`False`, the dependent values are cleared.
+    By default, the option is set to :obj:`True`.
+
+    Args:
+        recalc(bool):  :obj:`True` to recalculate, :obj:`False`
+            to clear values.
+
+    See also:
+        :func:`get_recalc`
+    """
+    _system._recalc_dependents = bool(recalc)
