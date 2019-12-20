@@ -182,3 +182,10 @@ autodoc_default_flags = ['members', 'inherited_members',  # 'undoc-members',
 autodoc_member_order = 'bysource'
 
 blockdiag_html_image_format = 'SVG'
+
+# -- Options for Auto doc -----------------------------------------------
+# If true, the current module name will be prepended to all description
+# unit titles (such as .. function::).
+# https://stackoverflow.com/questions/20864406/remove-package-and-module-name-from-sphinx-function
+
+add_module_names = False
