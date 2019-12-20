@@ -780,11 +780,11 @@ class CellNode:
         params = self.cells._impl.formula.parameters
 
         arglist = ", ".join(
-            "%s=%s" % (param, arg) for param, arg in zip(params, self.args)
+            "%s=%s" % (param, repr(arg)) for param, arg in zip(params, self.args)
         )
 
         if self.has_value:
-            return name + "(" + arglist + ")" + "=" + str(self.value)
+            return name + "(" + arglist + ")" + "=" + repr(self.value)
         else:
             return name + "(" + arglist + ")"
 

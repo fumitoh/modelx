@@ -61,3 +61,26 @@ def test_node_repr_dynspace(no_values):
     assert repr(s.param0.node()) == "Model.Space[1].param0()"
     assert repr(s.param1.node(1)) == "Model.Space[1].param1(x=1)"
     assert repr(s.param2.node(2, 3)) == "Model.Space[1].param2(x=2, y=3)"
+
+
+@pytest.fixture
+def str_values():
+
+    m, s = mx.new_model('Model2'), mx.new_space('Space2')
+
+    @defcells
+    def a(name):
+        return 'Hello ' + name
+
+    @defcells
+    def b(name):
+        return a(name)
+
+    return m
+
+
+def test_node_repr_str_values(str_values):
+    str_values.Space2.b("World")
+    assert (repr(str_values.Space2.b.preds("World")) ==
+            "[Model2.Space2.a(name='World')='Hello World']")
+
