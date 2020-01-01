@@ -207,9 +207,12 @@ class SpaceItem(SpaceContainerItem):
         return "Space"
 
     def getParams(self):
-        args = self.itemData["argvalues"]
-        if args is not None:
-            return args
+        if "argvalues" in self.itemData:
+            args = self.itemData["argvalues"]
+            if args is not None:
+                return args
+            else:
+                return ""
         else:
             return ""
 
