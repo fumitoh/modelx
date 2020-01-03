@@ -1284,8 +1284,8 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
     def new_ref(self, name, value, is_derived=False):
 
-        if not self.manager.can_add(self, name, CellsImpl):
-            raise ValueError("Cannot create cells '%s'" % name)
+        if not self.manager.can_add(self, name, ReferenceImpl):
+            raise ValueError("Cannot create reference '%s'" % name)
 
         ref = ReferenceImpl(self, name, value,
                             container=self._self_refs,
