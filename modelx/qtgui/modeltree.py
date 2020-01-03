@@ -192,7 +192,7 @@ class SpaceItem(SpaceContainerItem):
 
     def updateChild(self):
         self.childItems.clear()
-        for space in self.itemData["static_spaces"]["items"].values():
+        for space in self.itemData["named_spaces"]["items"].values():
             self.childItems.append(SpaceItem(space, self))
 
         dynspaces = self.itemData["dynamic_spaces"]["items"]

@@ -31,7 +31,7 @@ def test_delattr_space(testmodel):
     space = new_space()
     child = space.new_space("Child")
     del space.Child
-    assert space.static_spaces == {}
+    assert space.named_spaces == {}
 
 
 def test_delattr_ref(testmodel):

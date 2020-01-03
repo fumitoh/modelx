@@ -961,10 +961,10 @@ class SpaceManager:
         name = node.split(".")[-1]
         if parent_node in graph:
             parent = graph.to_space(parent_node)
-            parent.static_spaces.del_item(name)
+            parent.named_spaces.del_item(name)
         elif parent_node:
             parent = self._graph.to_space(parent_node)
-            parent.static_spaces.del_item(name)
+            parent.named_spaces.del_item(name)
         else:
             self.model.del_space(name)
 

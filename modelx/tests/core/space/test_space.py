@@ -151,11 +151,11 @@ def test_setref_derived(testmodel):
     assert derived.foo == 5
 
 
-def test_static_spaces(testmodel):
+def test_named_spaces(testmodel):
 
     space = new_space()
     child = space.new_space("Child")
-    assert space.static_spaces == {"Child": child}
+    assert space.named_spaces == {"Child": child}
 
 
 

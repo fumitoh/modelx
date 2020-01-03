@@ -16,6 +16,7 @@ import sys
 import importlib
 import pathlib
 import uuid
+import warnings
 from collections import Sequence, ChainMap
 from types import FunctionType, ModuleType
 
@@ -275,16 +276,29 @@ class BaseSpace(BaseSpaceContainer):
 
     @property
     def spaces(self):
-        """A mapping associating names to static spaces."""
-        return self._impl.static_spaces.interfaces
+        """A mapping associating names to named spaces."""
+        return self._impl.named_spaces.interfaces
+
+    @property
+    def named_spaces(self):
+        """A mapping associating names to named spaces.
+
+        Alias to :py:meth:`spaces`
+
+        .. versionadded:: 0.2.0
+        """
+        return self._impl.named_spaces.interfaces
 
     @property
     def static_spaces(self):
-        """A mapping associating names to static spaces.
+        """A mapping associating names to named spaces.
 
         Alias to :py:meth:`spaces`
+
+        .. deprecated:: 0.2.0 Use named_spaces instead.
         """
-        return self._impl.static_spaces.interfaces
+        warnings.warn("static_spaces is deprecated. Use named_spaces instead.")
+        return self._impl.named_spaces.interfaces
 
     @property
     def dynamic_spaces(self):
@@ -363,7 +377,7 @@ class BaseSpace(BaseSpaceContainer):
         """A dict of members expressed in literals"""
 
         result = super()._baseattrs
-        result["static_spaces"] = self.static_spaces._baseattrs
+        result["named_spaces"] = self.named_spaces._baseattrs
         result["dynamic_spaces"] = self.dynamic_spaces._baseattrs
         result["cells"] = self.cells._baseattrs
         result["refs"] = self.refs._baseattrs
@@ -717,7 +731,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     state_attrs = (
         [
             "_cells",
-            "_static_spaces",
+            "_named_spaces",
             "_dynamic_spaces",
             "_local_refs",
             "_self_refs",
@@ -767,9 +781,9 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         self._dynamic_subs = []
         self._self_refs = RefDict(self)
         self._cells = CellsDict(self)
-        self._static_spaces = SpaceDict(self)
+        self._named_spaces = SpaceDict(self)
         self._spaces = ImplChainMap(
-            self, SpaceView, [self._static_spaces, self._dynamic_spaces]
+            self, SpaceView, [self._named_spaces, self._dynamic_spaces]
         )
 
         self._local_refs = {"_self": self, "_space": self}
@@ -813,8 +827,8 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         return self._cells.refresh
 
     @property
-    def static_spaces(self):
-        return self._static_spaces.refresh
+    def named_spaces(self):
+        return self._named_spaces.refresh
 
     @property
     def dynamic_spaces(self):
@@ -851,7 +865,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
 
     @staticmethod
     def _get_members(other):
-        return other.static_spaces
+        return other.named_spaces
 
     @Impl.doc.setter
     def doc(self, value):
@@ -872,7 +886,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         if isinstance(space, RootDynamicSpaceImpl):
             self._dynamic_spaces.set_item(space.name, space)
         else:
-            self._static_spaces.set_item(space.name, space)
+            self._named_spaces.set_item(space.name, space)
 
     # ----------------------------------------------------------------------
     # Reference operation
@@ -881,7 +895,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         raise NotImplementedError
 
     def _new_member(self, attr, name, is_derived=False):
-        if attr == "static_spaces":
+        if attr == "named_spaces":
             return self._new_space_member(name, is_derived)
         elif attr == "cells":
             return CellsImpl(
@@ -1364,8 +1378,8 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         if name not in self.spaces:
             raise ValueError("Space '%s' does not exist" % name)
 
-        if name in self.static_spaces:
-            space = self.static_spaces[name]
+        if name in self.named_spaces:
+            space = self.named_spaces[name]
             if space.is_derived:
                 raise ValueError(
                     "%s has derived spaces" % repr(space.interface)
@@ -1582,7 +1596,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
         self._dynbase = bases[0]
 
-        attrs = ("cells", "self_refs", "static_spaces")
+        attrs = ("cells", "self_refs", "named_spaces")
         for attr in attrs:
             selfmap = getattr(self, attr)
             basemap = ChainMap(*[getattr(base, attr) for base in bases])
