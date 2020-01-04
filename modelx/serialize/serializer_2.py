@@ -22,6 +22,7 @@ import pickle
 import modelx as mx
 from modelx.core.model import Model
 from modelx.core.base import Interface
+from modelx.core.util import abs_to_rel, rel_to_abs
 import asttokens
 
 
@@ -1267,92 +1268,6 @@ class DecoderSelector(BaseSelector):
         PickleDecoder,
         LiteralDecoder
     ]
-
-
-def abs_to_rel(target: str, namespace: str):
-    """Convert absolute name relative to namespace
-
-    number of dots: nslen - shared + 1
-    number of names: tglen - shared
-
-    >>> tg = "aaa.bbb.ddd"
-    >>> ns = "aaa.bbb.ccc"
-    >>> abs_to_rel(tg, ns)
-    '..ddd'
-    >>> tg == rel_to_abs(abs_to_rel(tg, ns), ns)
-    True
-
-    >>> tg = "aaa.bbb"
-    >>> ns = "aaa.bbb.ccc"
-    >>> abs_to_rel(tg, ns)
-    '..'
-    >>> tg == rel_to_abs(abs_to_rel(tg, ns), ns)
-    True
-
-    >>> tg = "aaa.bbb.ddd"
-    >>> ns = "aaa.bbb"
-    >>> abs_to_rel(tg, ns)
-    '.ddd'
-    >>> tg == rel_to_abs(abs_to_rel(tg, ns), ns)
-    True
-
-    >>> tg = "eee.fff"
-    >>> ns = "aaa"
-    >>> abs_to_rel(tg, ns)
-    '..eee.fff'
-    >>> tg == rel_to_abs(abs_to_rel(tg, ns), ns)
-    True
-
-    >>> tg = "aaa"
-    >>> ns = "aaa.bbb.ccc.ddd"
-    >>> abs_to_rel(tg, ns)
-    '....'
-    >>> tg == rel_to_abs(abs_to_rel(tg, ns), ns)
-    True
-
-    >>> tg = "ddd"
-    >>> ns = "aaa.bbb.ccc"
-    >>> abs_to_rel(tg, ns)
-    '....ddd'
-    >>> tg == rel_to_abs(abs_to_rel(tg, ns), ns)
-    True
-    """
-    tg = target.split(".")
-    ns = namespace.split(".")
-
-    tglen = len(tg)
-    nslen = len(ns)
-
-    shared = 0
-    while (
-            shared < min(tglen, nslen)
-            and tg[shared] == ns[shared]
-    ):
-        shared += 1
-
-    dots = nslen - shared + 1
-    names = tglen - shared
-
-    return "." * dots + ".".join(tg[tglen - names:])
-
-
-def rel_to_abs(target: str, namespace: str):
-    """Convert name relative to namespace to absolute"""
-
-    # shared = nslen - dots + 1
-
-    ns = namespace.split(".")
-    nslen = len(ns)
-
-    dots = 0
-    while dots < len(target) and target[dots] == ".":
-        dots += 1
-
-    shared = nslen - dots + 1
-    tg = target[dots:].split(".") if dots < len(target) else []  # Avoid [""]
-    abs = ns[:shared] + tg
-
-    return ".".join(abs)
 
 
 if __name__ == "__main__":
