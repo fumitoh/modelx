@@ -1628,8 +1628,26 @@ class DynamicSpaceImpl(BaseSpaceImpl):
                     member.inherit([], **kwargs)
 
 
+class RootDynamicSpace(DynamicSpace):
+    """Dynamically created space.
+
+    Dynamic spaces of a parametric space
+    are created by accessing its elements for the first time,
+    through subscription ``[]`` or call ``()`` operations on the parametric
+    space.
+
+    Dynamic spaces are not editable like static spaces.
+    """
+    @property
+    def _tupleid(self):
+        names = list(self.parent._tupleid)
+        names.append(self.argvalues)
+        return tuple(names)
+
+
 class RootDynamicSpaceImpl(DynamicSpaceImpl):
 
+    interface_cls = RootDynamicSpace
     state_attrs = ["_arguments"] + DynamicSpaceImpl.state_attrs
     assert len(state_attrs) == len(set(state_attrs))
 

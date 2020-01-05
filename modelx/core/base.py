@@ -450,6 +450,15 @@ class Interface:
     def _evalrepr(self):
         return self._impl.evalrepr
 
+    @property
+    def _tupleid(self):
+        if self._impl.is_model():
+            return (self.name,)
+        else:
+            names = list(self.parent._tupleid)
+            names.append(self.name)
+            return tuple(names)
+
 
 class LazyEval:
     """Base class for flagging observers so that they update themselves later.
