@@ -455,9 +455,7 @@ class Interface:
         if self._impl.is_model():
             return (self.name,)
         else:
-            names = list(self.parent._tupleid)
-            names.append(self.name)
-            return tuple(names)
+            return self.parent._tupleid + (self.name,)
 
 
 class LazyEval:

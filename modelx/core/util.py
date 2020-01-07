@@ -211,6 +211,69 @@ def abs_to_rel(target: str, namespace: str):
     return "." * dots + ".".join(tg[tglen - names:])
 
 
+def abs_to_rel_tuple(target: tuple, namespace: tuple):
+    """
+    >>> tg = ("aaa", "bbb", "ddd")
+    >>> ns = ("aaa", "bbb", "ccc")
+    >>> abs_to_rel_tuple(tg, ns)
+    ('..', 'ddd')
+    >>> tg == rel_to_abs_tuple(abs_to_rel_tuple(tg, ns), ns)
+    True
+
+    >>> tg = ("aaa", "bbb")
+    >>> ns = ("aaa", "bbb", "ccc")
+    >>> abs_to_rel_tuple(tg, ns)
+    ('..',)
+    >>> tg == rel_to_abs_tuple(abs_to_rel_tuple(tg, ns), ns)
+    True
+
+    >>> tg = ("aaa", "bbb", "ddd")
+    >>> ns = ("aaa", "bbb")
+    >>> abs_to_rel_tuple(tg, ns)
+    ('.', 'ddd')
+    >>> tg == rel_to_abs_tuple(abs_to_rel_tuple(tg, ns), ns)
+    True
+
+    >>> tg = ("eee", "fff")
+    >>> ns = ("aaa",)
+    >>> abs_to_rel_tuple(tg, ns)
+    ('..', 'eee', 'fff')
+    >>> tg == rel_to_abs_tuple(abs_to_rel_tuple(tg, ns), ns)
+    True
+
+    >>> tg = ("aaa",)
+    >>> ns = ("aaa", "bbb", "ccc", "ddd")
+    >>> abs_to_rel_tuple(tg, ns)
+    ('....',)
+    >>> tg == rel_to_abs_tuple(abs_to_rel_tuple(tg, ns), ns)
+    True
+
+    >>> tg = ("ddd",)
+    >>> ns = ("aaa", "bbb", "ccc")
+    >>> abs_to_rel_tuple(tg, ns)
+    ('....', 'ddd')
+    >>> tg == rel_to_abs_tuple(abs_to_rel_tuple(tg, ns), ns)
+    True
+    """
+    tg = target
+    ns = namespace
+
+    tglen = len(tg)
+    nslen = len(ns)
+
+    shared = 0
+    while (
+            shared < min(tglen, nslen)
+            and tg[shared] == ns[shared]
+    ):
+        shared += 1
+
+    dots = nslen - shared + 1
+    names = tglen - shared
+
+    return ("." * dots,) + tg[tglen - names:]
+
+
 def rel_to_abs(target: str, namespace: str):
     """Convert name relative to namespace to absolute"""
 
@@ -228,3 +291,27 @@ def rel_to_abs(target: str, namespace: str):
     abs = ns[:shared] + tg
 
     return ".".join(abs)
+
+
+def rel_to_abs_tuple(target: tuple, namespace: tuple):
+    """Convert name relative to namespace to absolute"""
+
+    # shared = nslen - dots + 1
+
+    ns = namespace
+    nslen = len(ns)
+
+    dots = 0
+    while dots < len(target) and target[dots] == ".":
+        dots += 1
+
+    if target[0] == "." * len(target[0]):
+        dots = len(target[0])
+    else:
+        raise ValueError("invalid tuple")
+
+    shared = nslen - dots + 1
+    tg = target[1:]
+    abs = ns[:shared] + tg
+
+    return abs

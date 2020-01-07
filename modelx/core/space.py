@@ -1640,9 +1640,7 @@ class RootDynamicSpace(DynamicSpace):
     """
     @property
     def _tupleid(self):
-        names = list(self.parent._tupleid)
-        names.append(self.argvalues)
-        return tuple(names)
+        return self.parent._tupleid + (self.argvalues,)
 
 
 class RootDynamicSpaceImpl(DynamicSpaceImpl):

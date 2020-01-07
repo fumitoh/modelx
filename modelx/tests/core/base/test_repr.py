@@ -56,7 +56,7 @@ def test_repr_cells_in_child(repr_test):
 
 def test_repr_dynspace(repr_test):
     space = repr_test.DynSpace(1, 2)
-    assert repr(space) == "<DynamicSpace DynSpace[1, 2] in ReprModel>"
+    assert repr(space) == "<RootDynamicSpace DynSpace[1, 2] in ReprModel>"
 
 
 def test_repr_cells_in_dynspace(repr_test):
