@@ -278,6 +278,15 @@ def _get_object(name):
     return modelx.core.system.mxsys.get_object(name)
 
 
+def _get_object_from_tupleid(tupleid):
+
+    if not tupleid[0]:
+        model = modelx.core.system.mxsys.serializing.model.name
+        tupleid = (model,) + tupleid[1:]
+
+    return modelx.core.system.mxsys.get_object_from_tupleid(tupleid)
+
+
 class Interface:
     """The ultimate base class of Model, Space, Cells.
 
@@ -368,18 +377,38 @@ class Interface:
 
     def __reduce__(self):
         if self._impl.system.serializing:
-            model = self._impl.system.serializing.model
 
-            if model is self.model:
-                parts = self.fullname.split(".")
-                parts[0] = ""   # Replace model name with empty string
-                name = ".".join(parts)
+            if self._impl.system.serializing.version == 2:
+                return self._reduce_serialize_2()
+            elif self._impl.system.serializing.version == 3:
+                return self._reduce_serialize_3()
             else:
-                name = self.fullname
-
-            return _get_object, (name,)
+                raise ValueError("invalid serializer version")
         else:
             return object.__reduce__(self)
+
+    def _reduce_serialize_2(self):
+
+        model = self._impl.system.serializing.model
+        if model is self.model:
+            parts = self.fullname.split(".")
+            parts[0] = ""  # Replace model name with empty string
+            name = ".".join(parts)
+        else:
+            name = self.fullname
+
+        return _get_object, (name,)
+
+    def _reduce_serialize_3(self):
+
+        model = self._impl.system.serializing.model
+        if model is self.model:
+            # Replace model name with empty string
+            tupleid = ("",) + self._tupleid[1:]
+        else:
+            tupleid = self._tupleid
+
+        return _get_object_from_tupleid, (tupleid,)
 
     def set_property(self, name: str, value):
         """Set property ``name``

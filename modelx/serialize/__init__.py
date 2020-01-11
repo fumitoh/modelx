@@ -6,7 +6,8 @@ import json
 
 _MX_TO_FORMAT = {
     (0, 0, 25): 1,
-    (0, 0, 26): 2
+    (0, 0, 26): 2,
+    (0, 2, 0): 3
 }
 
 HIGHEST_VERSION = list(_MX_TO_FORMAT.values())[-1]

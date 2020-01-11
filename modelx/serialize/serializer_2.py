@@ -208,6 +208,10 @@ class BaseEncoder:
 
 class ModelWriter(BaseEncoder):
 
+    version = 2
+    space_writer = None
+    refview_encoder_class = None
+
     def __init__(self, system, model: Model, path: pathlib.Path):
         super().__init__(self, model,
                          name=model.name,
@@ -219,7 +223,7 @@ class ModelWriter(BaseEncoder):
         self._call_ids = []
         self._pickledata = {}
 
-        self.refview_encoder = RefViewEncoder(
+        self.refview_encoder = self.refview_encoder_class(
             self,
             self.model.refs,
             parent=self.model,
@@ -294,7 +298,7 @@ class ModelWriter(BaseEncoder):
 
                     relpath = "/".join(space.fullname.split(".")[1:]) + ".py"
                     srcpath = self.root / relpath
-                    sw = SpaceWriter(
+                    sw = self.space_writer(
                         self, space, parent=self.model, name=space.name,
                         srcpath=srcpath)
                     sw.write_space()
@@ -315,6 +319,8 @@ class ModelWriter(BaseEncoder):
 
 class SpaceWriter(BaseEncoder):
 
+    refview_encoder_class = None
+
     def __init__(self,
                  writer,
                  target, parent, name=None, srcpath=None):
@@ -322,7 +328,7 @@ class SpaceWriter(BaseEncoder):
                          datapath=srcpath.parent / srcpath.stem / "data")
         self.space = target
 
-        self.refview_encoder = RefViewEncoder(
+        self.refview_encoder = self.refview_encoder_class(
             self,
             self.space._self_refs,
             parent=self.space,
@@ -385,7 +391,7 @@ class SpaceWriter(BaseEncoder):
             if not MethodCallEncoder.from_method(space):
                 srcpath = (self.srcpath.parent /
                            self.target.name / (space.name + ".py"))
-                SpaceWriter(
+                self.__class__(
                     self,
                     space,
                     parent=self.space,
@@ -463,7 +469,12 @@ class SpaceWriter(BaseEncoder):
         return CompoundInstruction(insts)
 
 
+ModelWriter.space_writer = SpaceWriter
+
+
 class RefViewEncoder(BaseEncoder):
+
+    selector_class = None
 
     def __init__(self, writer, target, parent, name=None, srcpath=None):
         super().__init__(writer, target, parent, name, srcpath)
@@ -482,7 +493,7 @@ class RefViewEncoder(BaseEncoder):
                 # TODO: Refactor
                 if (is_model or not parent._impl.refs[key].is_derived):
                     datapath = datadir / key
-                    self.encoders.append(EncoderSelector.select(val)(
+                    self.encoders.append(self.selector_class.select(val)(
                         writer,
                         val, parent=parent, name=key, srcpath=srcpath,
                         datapath=datapath))
@@ -499,6 +510,10 @@ class RefViewEncoder(BaseEncoder):
     def instruct(self):
         return CompoundInstruction(
             [encoder.instruct() for encoder in self.encoders])
+
+
+ModelWriter.refview_encoder_class = RefViewEncoder
+SpaceWriter.refview_encoder_class = RefViewEncoder
 
 
 class CellsEncoder(BaseEncoder):
@@ -727,6 +742,7 @@ class PickleEncoder(BaseEncoder):
 
 
 class EncoderSelector(BaseSelector):
+
     classes = [
         InterfaceRefEncoder,
         LiteralEncoder,
@@ -734,11 +750,18 @@ class EncoderSelector(BaseSelector):
         PickleEncoder
     ]
 
+
+RefViewEncoder.selector_class = EncoderSelector
+
+
 # --------------------------------------------------------------------------
 # Model Reading
 
 
 class ModelReader:
+
+    version = 2
+    parser_selector_class = None
 
     def __init__(self, system, path: pathlib.Path):
         self.system = system
@@ -796,7 +819,7 @@ class ModelReader:
 
         for i, stmt in enumerate(atok.tree.body):
             sec = srcstructure.get_section(stmt.lineno)
-            parser = ParserSelector.select(stmt, sec, atok)(
+            parser = self.parser_selector_class.select(stmt, sec, atok)(
                 stmt, atok, self, sec, obj, srcpath=path_
             )
             ist = parser.get_instruction()
@@ -1034,6 +1057,7 @@ class AttrAssignParser(BaseAssignParser):
 
 class RefAssignParser(BaseAssignParser):
     AST_NODE = ast.Assign
+    selector_class = None
 
     @classmethod
     def condition(cls, node, section, atok):
@@ -1046,8 +1070,9 @@ class RefAssignParser(BaseAssignParser):
         name = self.target
         valnode = self.node.value
 
-        decoder = DecoderSelector.select(valnode)(
-            self.reader, valnode, self.obj, name=name, srcpath=self.srcpath)
+        decoder = self.selector_class.select(valnode)(
+            self.reader, valnode, self.atok,
+            self.obj, name=name, srcpath=self.srcpath)
 
         if hasattr(decoder, "restore"):
             def restore_hook(inst):
@@ -1066,6 +1091,7 @@ class RefAssignParser(BaseAssignParser):
             args=(name, value),
             arghook=arghook
         )
+
 
 class CellsInputDataMixin(BaseNodeParser):
 
@@ -1196,11 +1222,15 @@ class ParserSelector(BaseSelector):
     ]
 
 
+ModelReader.parser_selector_class = ParserSelector
+
+
 class ValueDecoder:
 
-    def __init__(self, reader, node, obj, name=None, srcpath=None):
+    def __init__(self, reader, node, atok, obj, name=None, srcpath=None):
         self.reader = reader
         self.node = node
+        self.atok = atok
         self.obj = obj
         self.name = name
         self.srcpath = srcpath
@@ -1268,6 +1298,9 @@ class DecoderSelector(BaseSelector):
         PickleDecoder,
         LiteralDecoder
     ]
+
+
+RefAssignParser.selector_class = DecoderSelector
 
 
 if __name__ == "__main__":

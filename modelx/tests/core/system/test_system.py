@@ -1,5 +1,6 @@
 import sys
 from textwrap import dedent
+from modelx.core.system import mxsys
 from modelx.core.api import *
 from modelx.core.errors import DeepReferenceError
 import pytest
@@ -7,8 +8,14 @@ import pytest
 
 @pytest.fixture
 def testmodel():
-    m, s = new_model(), new_space()
+    m, s = new_model("ModelA"), new_space("SpaceA")
     return m
+
+
+def test_get_object_from_tuple(testmodel):
+    testmodel.SpaceA.formula = lambda x: None
+    s = mxsys.get_object_from_tupleid(("ModelA", "SpaceA", (1,)))
+    assert s is testmodel.SpaceA[1]
 
 
 def test_defcells_withname(testmodel):

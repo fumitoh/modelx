@@ -405,6 +405,22 @@ class System:
 
         return obj
 
+    def get_object_from_tupleid(self, tupleid):
+        """Retrieve an object from tuple id."""
+        obj = None
+        for key in tupleid:
+            if isinstance(key, str):
+                if obj:
+                    obj = getattr(obj, key)
+                else:
+                    obj = self.models[key].interface
+            elif isinstance(key, tuple):
+                obj = obj.__call__(*key)
+            else:
+                raise ValueError
+
+        return obj
+
     # ----------------------------------------------------------------------
     # Call stack tracing
 
