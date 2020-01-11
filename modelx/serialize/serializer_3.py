@@ -54,8 +54,19 @@ from .serializer_2 import (
 class TupleID(tuple):
 
     @classmethod
-    def decode(cls):
-        pass
+    def decode(cls, expr, argsdict):
+        keys = ast.literal_eval(expr)
+
+        decoded = []
+        for key in keys:
+            if isinstance(key, str):
+                decoded.append(key)
+            elif isinstance(key, int):
+                decoded.append(argsdict[key])
+            else:
+                raise ValueError
+
+        return tuple(decoded)
 
     def serialize(self):
         keys = []
@@ -106,40 +117,19 @@ class InterfaceRefEncoder(BaseEncoder):
         return isinstance(target, Interface)
 
     def encode(self):
-        tupleid = abs_to_rel_tuple(
+        tupleid = TupleID(abs_to_rel_tuple(
             self.target._tupleid,
             self.parent._tupleid
-        )
-
-        keys = []
-        for key in tupleid:
-            if isinstance(key, str):
-                keys.append('"%s"' % key)
-            elif isinstance(key, tuple):
-                keys.append(str(id(key)))
-
-        if len(keys) == 1:
-            keystr = "(%s,)" % keys[0]
-        else:
-            keystr = "(%s)" % ", ".join(keys)
-
-        return "(\"Interface\", %s)" % keystr
+        ))
+        return "(\"Interface\", %s)" % tupleid.serialize()
 
     def pickle_value(self):
 
-        tupleid = abs_to_rel_tuple(
+        tupleid = TupleID(abs_to_rel_tuple(
             self.target._tupleid,
             self.parent._tupleid
-        )
-        for key in tupleid:
-            if isinstance(key, tuple):
-                id_ = id(key)
-                if id_ not in self.writer.pickledata:
-                    self.writer.pickledata[id_] = key
-            elif isinstance(key, str):
-                pass
-            else:
-                raise ValueError("unknown tuple id")
+        ))
+        tupleid.pickle_args(self.writer.pickledata)
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -188,21 +178,13 @@ ModelReader.parser_selector_class = ParserSelector
 
 class InterfaceDecoder(TupleDecoder):
     DECTYPE = "Interface"
-    def decode(self):
-        return ast.literal_eval(self.atok.get_text(self.node.elts[1]))
 
     def restore(self):
-        # Decode object IDs
-        decoded = []
-        for key in self.decode():
-            if isinstance(key, str):
-                decoded.append(key)
-            elif isinstance(key, int):
-                decoded.append(self.reader.pickledata[key])
-            else:
-                raise ValueError
-
-        decoded = rel_to_abs_tuple(tuple(decoded), self.obj._tupleid)
+        decoded = TupleID.decode(
+            self.atok.get_text(self.node.elts[1]),
+            self.reader.pickledata
+        )
+        decoded = rel_to_abs_tuple(decoded, self.obj._tupleid)
         return mxsys.get_object_from_tupleid(decoded)
 
 
