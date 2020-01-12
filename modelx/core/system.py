@@ -235,7 +235,7 @@ class System:
         self.currentmodel = None
         self._models = {}
         self.serializing = None
-        self._recalc_dependents = True
+        self._recalc_dependents = False
 
         if setup_shell:
             if is_ipython():
