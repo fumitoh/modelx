@@ -14,7 +14,7 @@
 
 import json, types, collections, importlib, builtins, pathlib
 import ast
-from collections import namedtuple
+from collections.abc import Sequence, Mapping
 import tokenize
 import shutil
 from numbers import Number
@@ -361,13 +361,13 @@ class _RefViewEncoder(json.JSONEncoder):
                 "__value": abs_to_rel(obj._evalrepr, namespace),
             })
 
-        elif isinstance(obj, collections.Sequence):
+        elif isinstance(obj, Sequence):
             result.update({
                 "__encoding": "Sequence",
                 "__value": [
                     self._encode_refs(item, namespace) for item in obj],
             })
-        elif isinstance(obj, collections.Mapping):
+        elif isinstance(obj, Mapping):
             result.update({
                 "__encoding": "Mapping",
                 "__value": [
@@ -645,10 +645,10 @@ def _restore_ref(obj):
     elif isinstance(obj, str):
         return obj
 
-    elif isinstance(obj, collections.Sequence):
+    elif isinstance(obj, Sequence):
         return type(obj)(_restore_ref(value) for value in obj)
 
-    elif isinstance(obj, collections.Mapping):
+    elif isinstance(obj, Mapping):
         return type(obj)(
             (key, _restore_ref(val)) for key, val in obj.items())
 
@@ -656,7 +656,7 @@ def _restore_ref(obj):
         return obj
 
 
-_RefData = namedtuple("_RefData", ["evalrepr"])
+_RefData = collections.namedtuple("_RefData", ["evalrepr"])
 
 _MXDATA_ATTRS = ["__module", "__type", "__encoding", "__value"]
 

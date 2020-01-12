@@ -17,7 +17,8 @@ import importlib
 import pathlib
 import uuid
 import warnings
-from collections import Sequence, ChainMap
+from collections import ChainMap
+from collections.abc import Sequence
 from types import FunctionType, ModuleType
 
 from modelx.core.base import (

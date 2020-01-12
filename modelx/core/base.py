@@ -14,7 +14,8 @@
 
 import sys
 from types import FunctionType
-from collections import Sequence, ChainMap, Mapping, OrderedDict
+from collections import ChainMap, OrderedDict
+from collections.abc import Sequence, Mapping
 from inspect import BoundArguments
 from modelx.core.formula import create_closure
 from modelx.core.node import get_node
