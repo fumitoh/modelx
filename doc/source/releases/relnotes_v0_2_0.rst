@@ -3,7 +3,7 @@
 .. _release-v0.2.0:
 
 ================================
-modelx v0.2.0 (13 December 2019)
+modelx v0.2.0 (13 January 2020)
 ================================
 
 .. contents:: What's new in v0.2.0
