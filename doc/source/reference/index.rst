@@ -41,6 +41,7 @@ Class Reference
    ~modelx.core.model.Model
    ~modelx.core.space.UserSpace
    ~modelx.core.space.DynamicSpace
+   ~modelx.core.space.RootDynamicSpace
    ~modelx.core.cells.Cells
    ~modelx.core.space.SpaceView
    ~modelx.core.space.CellsView
