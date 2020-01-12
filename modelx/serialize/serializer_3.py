@@ -271,7 +271,7 @@ class InterfaceDecoder(TupleDecoder):
 class PickleDecoder(PickleDecoder2):
 
     def decode(self):
-        return int(self.elm(1))
+        return self.elm(1)
 
     def restore(self):
         return self.reader.pickledata[self.decode()]

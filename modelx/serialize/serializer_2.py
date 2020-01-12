@@ -1249,7 +1249,7 @@ class TupleDecoder(ValueDecoder):
     DECTYPE = None
 
     def elm(self, index):
-        return self.node.elts[index].s
+        return ast.literal_eval(self.atok.get_text(self.node.elts[index]))
 
     @classmethod
     def condition(cls, node):
