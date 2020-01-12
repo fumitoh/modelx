@@ -21,12 +21,12 @@ from .serializer_2 import (
     BaseEncoder,
     BaseSelector,
     LiteralEncoder,
-    ModuleEncoder,
-    PickleEncoder
+    ModuleEncoder
 )
 from .serializer_2 import ModelWriter as ModelWriter2
 from .serializer_2 import SpaceWriter as SpaceWriter2
 from .serializer_2 import RefViewEncoder as RefViewEncoder2
+from .serializer_2 import PickleEncoder as PickleEncoder2
 
 from .serializer_2 import ModelReader as ModelReader2
 from .serializer_2 import RefAssignParser as RefAssignParser2
@@ -46,9 +46,9 @@ from .serializer_2 import (
 from .serializer_2 import (
     TupleDecoder,
     ModuleDecoder,
-    PickleDecoder,
     LiteralDecoder
 )
+from .serializer_2 import PickleDecoder as PickleDecoder2
 
 
 class TupleID(tuple):
@@ -177,6 +177,21 @@ class InterfaceRefEncoder(BaseEncoder):
         return Instruction(self.pickle_value)
 
 
+class PickleEncoder(PickleEncoder2):
+
+    def pickle_value(self):
+        value = self.target
+        key = id(value)
+        if key not in self.writer.pickledata:
+            self.writer.pickledata[key] = value
+
+    def encode(self):
+        return "(\"Pickle\", %s)" % id(self.target)
+
+    def instruct(self):
+        return Instruction(self.pickle_value)
+
+
 class EncoderSelector(BaseSelector):
     classes = [
         InterfaceRefEncoder,
@@ -251,6 +266,15 @@ class InterfaceDecoder(TupleDecoder):
         )
         decoded = rel_to_abs_tuple(decoded, self.obj._tupleid)
         return mxsys.get_object_from_tupleid(decoded)
+
+
+class PickleDecoder(PickleDecoder2):
+
+    def decode(self):
+        return int(self.elm(1))
+
+    def restore(self):
+        return self.reader.pickledata[self.decode()]
 
 
 class DecoderSelector(BaseSelector):

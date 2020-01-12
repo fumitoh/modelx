@@ -13,7 +13,6 @@ def _compare_results_simplelife(src, trg):
         for t in range(50):
             assert (src.Projection[pol].PV_NetCashflow[t]
                     == trg.Projection[pol].PV_NetCashflow[t])
-        print("simplelife ok")
 
 
 def _compare_results_nestedlife(src, trg):
@@ -26,7 +25,6 @@ def _compare_results_ifrs17sim(src, trg):
         for t in range(3):
             assert (src.OuterProj[pol].ProfitBefTax[t]
                     == trg.OuterProj[pol].ProfitBefTax[t])
-            print("ifrs17sim ok")
 
 
 def _compare_results_solvency2(src, trg):
@@ -34,7 +32,6 @@ def _compare_results_solvency2(src, trg):
     for pol in (100, 200, 300):
         assert (src.SCR_life[0, pol].SCR_life()
                 == trg.SCR_life[0, pol].SCR_life())
-        print("solvency2 ok")
 
 
 _PROJECTS = {"simplelife": _compare_results_simplelife,
