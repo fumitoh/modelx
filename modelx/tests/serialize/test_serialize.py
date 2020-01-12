@@ -10,6 +10,20 @@ from . import SERIALIZE_VERS
 
 @pytest.fixture
 def testmodel():
+    """
+    TestModel-----TestSpace[a]-----foo
+                                |
+                                +--m = 1
+                                +--n = "abc"
+                                +--t = nested sequences
+                                +--u = dict
+                                +--v = TestModel
+                                +--w = foo
+                                |
+                                +--Another
+                                +s = Another
+
+    """
     m, s = mx.new_model("TestModel"), mx.new_space(name='TestSpace')
 
     @mx.defcells
@@ -68,6 +82,17 @@ class InterfaceWrapper:
 
 @pytest.fixture
 def pickletest():
+    """
+    TestModel---SpaceA-----foo(x)
+                        +--lambdacells(x)
+                        |
+                        +--SpaceB--ou = [o, u]
+                        |
+                        +--o = list
+                        +--u = dict
+                        +--iflist = [foo, SpaceB, TestModel]
+                        +--ifwrap = InterfaceWrapper(foo, SpaceB, TestModel)
+    """
     m, s = mx.new_model("TestModel"), mx.new_space(name='SpaceA')
 
     @mx.defcells

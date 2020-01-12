@@ -6,10 +6,42 @@ from modelx import (
     read_model)
 from modelx.testing import testutil
 
-_PROJECTS = ["simplelife",
-             "nestedlife",
-             "ifrs17sim",
-             "solvency2"]
+
+def _compare_results_simplelife(src, trg):
+
+    for pol in (100, 200, 300):
+        for t in range(50):
+            assert (src.Projection[pol].PV_NetCashflow[t]
+                    == trg.Projection[pol].PV_NetCashflow[t])
+        print("simplelife ok")
+
+
+def _compare_results_nestedlife(src, trg):
+    pass
+
+
+def _compare_results_ifrs17sim(src, trg):
+
+    for pol in (100, 200, 300):
+        for t in range(3):
+            assert (src.OuterProj[pol].ProfitBefTax[t]
+                    == trg.OuterProj[pol].ProfitBefTax[t])
+            print("ifrs17sim ok")
+
+
+def _compare_results_solvency2(src, trg):
+
+    for pol in (100, 200, 300):
+        assert (src.SCR_life[0, pol].SCR_life()
+                == trg.SCR_life[0, pol].SCR_life())
+        print("solvency2 ok")
+
+
+_PROJECTS = {"simplelife": _compare_results_simplelife,
+             "nestedlife": _compare_results_nestedlife,
+             "ifrs17sim": _compare_results_ifrs17sim,
+             "solvency2": _compare_results_solvency2}
+
 
 class SysPath:
 
@@ -36,7 +68,7 @@ def testpaths(tmp_path):
 
 
 # @pytest.mark.skip()
-@pytest.mark.parametrize("project", _PROJECTS)
+@pytest.mark.parametrize("project", _PROJECTS.keys())
 def test_with_lifelib(testpaths, project):
 
     build_path, write_path = testpaths
@@ -68,3 +100,5 @@ def test_with_lifelib(testpaths, project):
             write_model(m, str(write_path / project))
             m2 = read_model(str(write_path / project))
             testutil.compare_model(m, m2)
+
+    _PROJECTS[project](m, m2)

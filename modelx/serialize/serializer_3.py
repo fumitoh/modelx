@@ -54,8 +54,11 @@ from .serializer_2 import (
 class TupleID(tuple):
 
     @classmethod
-    def decode(cls, expr, argsdict):
-        keys = ast.literal_eval(expr)
+    def tuplize(cls, expr):
+        return ast.literal_eval(expr)
+
+    @classmethod
+    def unpickle_args(cls, keys, argsdict):
 
         decoded = []
         for key in keys:
@@ -101,6 +104,45 @@ class RefViewEncoder(RefViewEncoder2):
 
 class SpaceWriter(SpaceWriter2):
     refview_encoder_class = RefViewEncoder
+
+    def pickle_dynamic_inputs(self):
+
+        datafile = self.datapath / "_dynamic_inputs"
+
+        if self.space.dynamic_spaces:
+            datafile.parent.mkdir(parents=True, exist_ok=True)
+            with datafile.open(mode="w") as f:
+                for dynspace in self.space.dynamic_spaces.values():
+                    self._pickle_dynamic_space(f, dynspace)
+
+    def _pickle_dynamic_space(self, file, space):
+
+        for cells in space.cells.values():
+            for key in cells._impl.input_keys:
+                value = cells._impl.data[key]
+                keyid = id(key)
+                if keyid not in self.writer.pickledata:
+                    self.writer.pickledata[keyid] = key
+                valid = id(value)
+                if valid not in self.writer.pickledata:
+                    self.writer.pickledata[valid] = value
+
+                tupleid = TupleID(cells._tupleid)
+                tupleid.pickle_args(self.writer.pickledata)
+                file.write(
+                    "(%s, %s, %s)\n" % (tupleid.serialize(), keyid, valid)
+                )
+
+        for subspace in space.named_spaces.values():
+            self._pickle_dynamic_space(file, subspace)
+
+        for subspace in space.dynamic_spaces.values():
+            self._pickle_dynamic_space(file, subspace)
+
+    def instruct(self):
+        inst = super().instruct()
+        inst.append(Instruction(self.pickle_dynamic_inputs))
+        return inst
 
 
 class ModelWriter(ModelWriter2):
@@ -151,7 +193,30 @@ RefViewEncoder.selector_class = EncoderSelector
 
 
 class ModelReader(ModelReader2):
-    pass
+
+    def _parse_dynamic_inputs(self, path_):
+
+        file = path_ / "data/_dynamic_inputs"
+        if file.exists():
+            with file.open("r") as f:
+                lines = f.readlines()
+
+            instructuions = []
+            for line in lines:
+                args = ast.literal_eval(line)
+                inst = Instruction(
+                    self._set_dynamic_inputs,
+                    args
+                )
+                instructuions.append(inst)
+            self.instructions.extend(instructuions)
+
+    def _set_dynamic_inputs(self, tupleid, keyid, valid):
+        tupleid = TupleID.unpickle_args(tupleid, self.pickledata)
+        cells = mxsys.get_object_from_tupleid(tupleid)
+        key = self.pickledata[keyid]
+        value = self.pickledata[valid]
+        cells._impl.set_value(key, value)
 
 
 class RefAssignParser(RefAssignParser2):
@@ -180,8 +245,8 @@ class InterfaceDecoder(TupleDecoder):
     DECTYPE = "Interface"
 
     def restore(self):
-        decoded = TupleID.decode(
-            self.atok.get_text(self.node.elts[1]),
+        decoded = TupleID.unpickle_args(
+            TupleID.tuplize(self.atok.get_text(self.node.elts[1])),
             self.reader.pickledata
         )
         decoded = rel_to_abs_tuple(decoded, self.obj._tupleid)

@@ -255,7 +255,7 @@ class ModelWriter(BaseEncoder):
         # Output _spaces. Exclude spaces created from methods
         spaces = []
         for name, space in self.model.spaces.items():
-            if name[1] == "_":
+            if name[0] == "_":
                 pass
             elif MethodCallEncoder.from_method(space):
                 pass
@@ -434,7 +434,7 @@ class SpaceWriter(BaseEncoder):
         # Output _spaces. Exclude spaces created from methods
         spaces = []
         for name, space in self.space.spaces.items():
-            if name[1] == "_":
+            if name[0] == "_":
                 pass
             elif MethodCallEncoder.from_method(space):
                 pass
@@ -787,6 +787,8 @@ class ModelReader:
             self.read_pickledata()
             self.instructions.execute_selected_methods(["load_pickledata"])
             self.instructions.execute_selected_methods(["__setattr__"])
+            self.instructions.execute_selected_methods(
+                ["_set_dynamic_inputs"])
         finally:
             self.system.serializing = None
 
@@ -804,10 +806,14 @@ class ModelReader:
             space = target.new_space(name=name)
             self.parse_source(path_ / ("%s.py" % name), space)
             nextdir = path_ / name
+            self._parse_dynamic_inputs(nextdir)
             if nextdir.exists() and nextdir.is_dir():
                 self.parse_dir(nextdir, target=space, spaces=self.result)
 
         return target
+
+    def _parse_dynamic_inputs(self, path_):
+        pass
 
     def parse_source(self, path_, obj: Interface):
 
