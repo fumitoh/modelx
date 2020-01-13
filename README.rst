@@ -126,7 +126,7 @@ It is what space the cells belongs to that affects the result.
 
 License
 -------
-Copyright 2017-2019, Fumito Hamamura
+Copyright 2017-2020, Fumito Hamamura
 
 modelx is free software; you can redistribute it and/or
 modify it under the terms of
