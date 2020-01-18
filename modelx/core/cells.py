@@ -380,10 +380,7 @@ class CellsImpl(Derivable, Impl):
     interface_cls = Cells
 
     __cls_stateattrs = [
-        "_model",
-        "space",
         "formula",
-        "name",
         "data",
         "_namespace_impl",
         "altfunc",
@@ -395,25 +392,28 @@ class CellsImpl(Derivable, Impl):
         self, *, space, name=None, formula=None, data=None, base=None,
         source=None, is_derived=False
     ):
-        Impl.__init__(self, system=space.system)
-        Derivable.__init__(self)
-
-        self._model = space.model
-        self.space = self.parent = space
-        self.source = source
 
         if base:
-            self.name = base.name
+            name = base.name
         elif is_valid_name(name):
-            self.name = name
+            pass
         elif formula:
             name = Formula(formula).name
             if is_valid_name(name):
-                self.name = name
+                pass
             else:
-                self.name = space.cellsnamer.get_next(space.namespace)
+                name = space.cellsnamer.get_next(space.namespace)
         else:
-            self.name = space.cellsnamer.get_next(space.namespace)
+            name = space.cellsnamer.get_next(space.namespace)
+
+        Impl.__init__(
+            self,
+            system=space.system,
+            parent=space,
+            name=name
+        )
+        Derivable.__init__(self)
+        self.source = source
 
         space._cells.set_item(self.name, self)
 
@@ -431,7 +431,7 @@ class CellsImpl(Derivable, Impl):
             data = {}
         self.data.update(data)
 
-        self._namespace_impl = self.space._namespace_impl
+        self._namespace_impl = self.parent._namespace_impl
         self.altfunc = BoundFunction(self)
 
         self.is_derived = is_derived
@@ -454,13 +454,6 @@ class CellsImpl(Derivable, Impl):
         self.__dict__.update(state)
 
     # ----------------------------------------------------------------------
-    # Properties
-
-    @property
-    def model(self):
-        return self._model
-
-    # ----------------------------------------------------------------------
     # repr methods
 
     def repr_self(self, add_params=True):
@@ -470,7 +463,7 @@ class CellsImpl(Derivable, Impl):
             return self.name
 
     def repr_parent(self):
-        return self.space.repr_parent() + "." + self.space.repr_self()
+        return self.parent.repr_parent() + "." + self.parent.repr_self()
 
     def has_cell(self, key):
         return key in self.data
@@ -494,7 +487,7 @@ class CellsImpl(Derivable, Impl):
 
         if bases:
             if clear_value:
-                self._model.clear_obj(self)
+                self.model.clear_obj(self)
             self.formula = bases[0].formula
             self.altfunc.set_update()
 
@@ -520,7 +513,7 @@ class CellsImpl(Derivable, Impl):
         oldsrc = self.formula.source
         newsrc = self.formula._reload(module).source
         if oldsrc != newsrc:
-            self._model.clear_obj(self)
+            self.model.clear_obj(self)
 
     def clear_formula(self):
 
@@ -537,7 +530,7 @@ class CellsImpl(Derivable, Impl):
         if self.is_derived:
             self.is_derived = False
 
-        self._model.clear_obj(self)
+        self.model.clear_obj(self)
         if isinstance(func, Formula):
             cls = func.__class__
         else:
@@ -545,7 +538,7 @@ class CellsImpl(Derivable, Impl):
         self.formula = cls(func, name=self.name)
         self.altfunc.set_update()
 
-        self._model.spacemgr.update_subs(self.parent)
+        self.model.spacemgr.update_subs(self.parent)
 
     # ----------------------------------------------------------------------
     # Get/Set values
@@ -575,7 +568,7 @@ class CellsImpl(Derivable, Impl):
         else:
             value = self.system.executor.eval_cell(node)
 
-        graph = self._model.cellgraph
+        graph = self.model.cellgraph
         if self.system.callstack:
             graph.add_path([node, self.system.callstack.last()])
         else:
@@ -617,10 +610,10 @@ class CellsImpl(Derivable, Impl):
                 raise KeyError("Assignment in cells other than %s" % key)
         else:
             if self.system._recalc_dependents:
-                targets = self._model.cellgraph.get_startnodes_from(node)
+                targets = self.model.cellgraph.get_startnodes_from(node)
             self.clear_value_at(key)
             self._store_value(key, value)
-            self._model.cellgraph.add_node(node)
+            self.model.cellgraph.add_node(node)
             self.input_keys.add(key)
             if self.system._recalc_dependents:
                 for trg in targets:
@@ -660,7 +653,7 @@ class CellsImpl(Derivable, Impl):
 
     def clear_value_at(self, key):
         if self.has_cell(key):
-            self._model.clear_with_descs(key_to_node(self, key))
+            self.model.clear_with_descs(key_to_node(self, key))
 
     # ----------------------------------------------------------------------
     # Pandas I/O
@@ -696,12 +689,12 @@ class CellsImpl(Derivable, Impl):
 
     def predecessors(self, args, kwargs):
         node = get_node(self, *convert_args(args, kwargs))
-        preds = self._model.cellgraph.predecessors(node)
+        preds = self.model.cellgraph.predecessors(node)
         return [CellNode(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = get_node(self, *convert_args(args, kwargs))
-        succs = self._model.cellgraph.successors(node)
+        succs = self.model.cellgraph.successors(node)
         return [CellNode(n) for n in succs]
 
 

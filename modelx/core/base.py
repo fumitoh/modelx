@@ -116,10 +116,17 @@ class Impl:
     special methods that are meant for changing the behaviour of operations
     for users."""
 
-    __cls_stateattrs = ["interface", "parent", "allow_none", "lazy_evals", "_doc"]
+    __cls_stateattrs = [
+        "interface",
+        "parent",
+        "name",
+        "model",
+        "allow_none",
+        "lazy_evals",
+        "_doc"]
     interface_cls = None  # Override in sub classes if interface class exists
 
-    def __init__(self, system, interface=None, doc=None):
+    def __init__(self, system, parent, name, interface=None, doc=None):
 
         if self.interface_cls:
             self.interface = self.interface_cls(self)
@@ -127,8 +134,9 @@ class Impl:
             self.interface = interface
 
         self.system = system
-        self.parent = None  # To be overwritten in Space and Cells
-        self.name = None
+        self.parent = parent
+        self.model = parent.model if parent else self
+        self.name = name
         self.allow_none = None
         self.lazy_evals = None
         self._doc = doc

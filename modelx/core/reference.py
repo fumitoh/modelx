@@ -67,7 +67,12 @@ class ReferenceImpl(Derivable, Impl):
     picklers = []    # List of _BasePickler sub classes
 
     def __init__(self, parent, name, value, container, is_derived=False):
-        Impl.__init__(self, parent.system, interface=value)
+        Impl.__init__(
+            self,
+            system=parent.system,
+            parent=parent,
+            name=name,
+            interface=value)
         Derivable.__init__(self)
 
         self.parent = parent

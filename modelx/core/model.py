@@ -182,23 +182,34 @@ class Model(EditableSpaceContainer):
 
 @add_stateattrs
 class ModelImpl(EditableSpaceContainerImpl, Impl):
+
     interface_cls = Model
+    __cls_stateattrs = [
+            "cellgraph",
+            # "lexdep",
+            "_namespace",
+            "_global_refs",
+            "_dynamic_bases",
+            "_dynamic_bases_inverse",
+            "_dynamic_base_namer",
+            "spacemgr",
+            "currentspace"
+    ]
 
     def __init__(self, *, system, name):
-        Impl.__init__(self, system=system)
+
+        if not name:
+            name = system._modelnamer.get_next(system.models)
+        elif not is_valid_name(name):
+            raise ValueError("Invalid name '%s'." % name)
+
+        Impl.__init__(self, system=system, parent=None, name=name)
         EditableSpaceContainerImpl.__init__(self)
 
         self.cellgraph = DependencyGraph()
         # self.lexdep = DependencyGraph()  # Lexical dependency
         self.spacemgr = SpaceManager(self)
         self.currentspace = None
-
-        if not name:
-            self.name = system._modelnamer.get_next(system.models)
-        elif is_valid_name(name):
-            self.name = name
-        else:
-            raise ValueError("Invalid name '%s'." % name)
 
         self._global_refs = RefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
@@ -248,10 +259,6 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
     def repr_parent(self):
         return ""
 
-    @property
-    def model(self):
-        return self
-
     @Impl.doc.setter
     def doc(self, value):
         self._doc = value
@@ -283,19 +290,6 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
-
-    __cls_stateattrs = [
-            "name",
-            "cellgraph",
-            # "lexdep",
-            "_namespace",
-            "_global_refs",
-            "_dynamic_bases",
-            "_dynamic_bases_inverse",
-            "_dynamic_base_namer",
-            "spacemgr",
-            "currentspace"
-        ]
 
     def __getstate__(self):
 

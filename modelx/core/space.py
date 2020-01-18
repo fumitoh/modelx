@@ -148,7 +148,7 @@ class CellsView(SelectedView):
 
     def __delitem__(self, name):
         cells = self._data[name]._impl
-        cells.space.del_cells(name)
+        cells.parent.del_cells(name)
 
     def to_frame(self, *args):
         """Convert the cells in the view into a DataFrame object.
@@ -744,7 +744,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             "_namespace_impl",
             "param_spaces",
             "formula",
-            "name",
             "altfunc",
     ]
 
@@ -758,11 +757,14 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         arguments=None,
         doc=None
     ):
-        Impl.__init__(self, system=parent.system, doc=doc)
+        Impl.__init__(
+            self,
+            system=parent.system,
+            parent=parent,
+            name=name,
+            doc=doc
+        )
         Derivable.__init__(self)
-
-        self.name = name
-        self.parent = parent
 
         # ------------------------------------------------------------------
         # Construct member containers
@@ -802,10 +804,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
 
     def _create_refs(self, arguments=None):
         raise NotImplementedError
-
-    @property
-    def model(self):
-        return self.parent.model
 
     @property
     def manager(self):

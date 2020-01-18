@@ -346,10 +346,6 @@ class BaseSpaceContainerImpl:
     # Properties
 
     @property
-    def model(self):
-        return NotImplementedError
-
-    @property
     def spaces(self):
         return self._spaces.refresh
 
