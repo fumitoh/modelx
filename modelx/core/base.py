@@ -842,8 +842,7 @@ class BoundFunction(LazyEval):
         self.owner = owner
 
         # Must not update owner's namespace to avoid circular updates.
-        self.namespace_impl = owner._namespace_impl  # No need to hold this
-        self.observe(self.namespace_impl)
+        self.observe(owner._namespace)
         self.altfunc = None
         self.set_update()
 
@@ -853,15 +852,13 @@ class BoundFunction(LazyEval):
         func = self.owner.formula.func
         codeobj = func.__code__
         name = func.__name__  # self.cells.name   # func.__name__
-        namespace_impl = self.owner._namespace_impl.refresh
-        namespace = namespace_impl.interfaces
 
         closure = func.__closure__  # None normally.
         if closure is not None:  # pytest fails without this.
             closure = create_closure(self.owner.interface)
 
         self.altfunc = FunctionType(
-            codeobj, namespace, name=name, closure=closure
+            codeobj, self.owner.namespace, name=name, closure=closure
         )
 
     def __getstate__(self):

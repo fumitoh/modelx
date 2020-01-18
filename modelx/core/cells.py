@@ -378,11 +378,10 @@ class CellsImpl(Derivable, Impl):
     """Cells implementation"""
 
     interface_cls = Cells
-
     __cls_stateattrs = [
         "formula",
         "data",
-        "_namespace_impl",
+        "_namespace",
         "altfunc",
         "source",
         "input_keys"
@@ -392,7 +391,6 @@ class CellsImpl(Derivable, Impl):
         self, *, space, name=None, formula=None, data=None, base=None,
         source=None, is_derived=False
     ):
-
         if base:
             name = base.name
         elif is_valid_name(name):
@@ -414,7 +412,6 @@ class CellsImpl(Derivable, Impl):
         )
         Derivable.__init__(self)
         self.source = source
-
         space._cells.set_item(self.name, self)
 
         if base:
@@ -431,11 +428,9 @@ class CellsImpl(Derivable, Impl):
             data = {}
         self.data.update(data)
 
-        self._namespace_impl = self.parent._namespace_impl
+        self._namespace = self.parent._namespace
         self.altfunc = BoundFunction(self)
-
         self.is_derived = is_derived
-
         self.input_keys = set(data.keys())
 
     # ----------------------------------------------------------------------
@@ -447,7 +442,6 @@ class CellsImpl(Derivable, Impl):
             for key, value in self.__dict__.items()
             if key in self.stateattrs
         }
-
         return state
 
     def __setstate__(self, state):
@@ -490,6 +484,10 @@ class CellsImpl(Derivable, Impl):
                 self.model.clear_obj(self)
             self.formula = bases[0].formula
             self.altfunc.set_update()
+
+    @property
+    def namespace(self):
+        return self._namespace.refresh.interfaces
 
     @property
     def doc(self):

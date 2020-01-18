@@ -741,7 +741,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             "_local_refs",
             "_self_refs",
             "_refs",
-            "_namespace_impl",
+            "_namespace",
             "param_spaces",
             "formula",
             "altfunc",
@@ -776,16 +776,12 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         self._all_spaces = ImplChainMap(
             self, SpaceView, [self._named_spaces, self._dynamic_spaces]
         )
-
         self._local_refs = {"_self": self, "_space": self}
-
         self._refs = self._create_refs(arguments)
-
-        self._namespace_impl = ImplChainMap(
+        self._namespace = ImplChainMap(
             self, None, [self._cells, self._refs, self._spaces]
         )
-
-        self.lazy_evals = self._namespace_impl
+        self.lazy_evals = self._namespace
 
         # ------------------------------------------------------------------
         # Add initial refs members
@@ -834,12 +830,8 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         return self._local_refs
 
     @property
-    def namespace_impl(self):
-        return self._namespace_impl.refresh
-
-    @property
     def namespace(self):
-        return self._namespace_impl.refresh.interfaces
+        return self._namespace.refresh.interfaces
 
     # --- Inheritance properties ---
 
@@ -921,7 +913,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         if parts:
             return self.all_spaces[child].get_object(".".join(parts))
         else:
-            return self._namespace_impl[child]
+            return self._namespace[child]
 
     # ----------------------------------------------------------------------
     # Dynamic Space Operation
@@ -1122,11 +1114,11 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             [self.model._global_refs, self._local_refs, self._self_refs],
         )
 
-        self._namespace_impl = ImplChainMap(
+        self._namespace = ImplChainMap(
             self, None, [self._cells, self._refs, self._spaces]
         )
 
-        self.lazy_evals = self._namespace_impl
+        self.lazy_evals = self._namespace
 
     def _create_refs(self, arguments=None):
         return ImplChainMap(
@@ -1167,7 +1159,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             if isinstance(func, FunctionType):
                 # Choose only the functions defined in the module.
                 if func.__module__ == module.__name__:
-                    if name in self.namespace_impl and override:
+                    if name in self.namespace and override:
                         self.cells[name].set_formula(func)
                         newcells[name] = self.cells[name]
                     else:
@@ -1596,7 +1588,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             basemap = ChainMap(*[getattr(base, attr) for base in bases])
             for name in basemap:
                 if name not in selfmap or selfmap[name].is_derived:
-                    if name not in self.namespace_impl:
+                    if name not in self.namespace:
                         selfmap[name] = self._new_member(
                             attr, name, is_derived=True
                         )
