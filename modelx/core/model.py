@@ -20,6 +20,7 @@ import copy
 import networkx as nx
 
 from modelx.core.base import (
+    add_stateattrs,
     Interface,
     Impl,
     get_interfaces,
@@ -179,6 +180,7 @@ class Model(EditableSpaceContainer):
         return self._impl.global_refs.interfaces
 
 
+@add_stateattrs
 class ModelImpl(EditableSpaceContainerImpl, Impl):
     interface_cls = Model
 
@@ -282,8 +284,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    stateattrs = (
-        [
+    __cls_stateattrs = [
             "name",
             "cellgraph",
             # "lexdep",
@@ -295,12 +296,6 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             "spacemgr",
             "currentspace"
         ]
-        + BaseSpaceContainerImpl.stateattrs
-        + EditableSpaceContainerImpl.stateattrs
-        + Impl.stateattrs
-    )
-
-    assert len(stateattrs) == len(set(stateattrs))
 
     def __getstate__(self):
 

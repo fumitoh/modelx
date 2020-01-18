@@ -15,7 +15,9 @@
 import warnings
 import pathlib
 import uuid
-from modelx.core.base import get_impls, get_interfaces, Interface
+from modelx.core.base import (
+    add_stateattrs, get_impls, get_interfaces, Interface
+)
 from modelx.core.util import AutoNamer, get_module, get_param_func
 
 
@@ -304,6 +306,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             space_params, cells_params, args, kwargs).interface
 
 
+@add_stateattrs
 class BaseSpaceContainerImpl:
     """Base class of Model and Space to work as container of spaces.
 
@@ -313,9 +316,9 @@ class BaseSpaceContainerImpl:
 
     """
 
-    stateattrs = [
+    __cls_stateattrs = [
         "_spaces", "_all_spaces"
-    ]  # must be defined in subclasses
+    ]   # must be defined in subclasses
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
@@ -393,9 +396,10 @@ class BaseSpaceContainerImpl:
         raise NotImplementedError
 
 
+@add_stateattrs
 class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
-    stateattrs = ["spacenamer"]
+    __cls_stateattrs = ["spacenamer"]
 
     def __init__(self):
         self.spacenamer = AutoNamer("Space")

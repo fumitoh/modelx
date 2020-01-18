@@ -16,7 +16,8 @@ from collections import namedtuple
 from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
-from modelx.core.base import Impl, Derivable, Interface, BoundFunction
+from modelx.core.base import (
+    add_stateattrs, Impl, Derivable, Interface, BoundFunction)
 from modelx.core.node import OBJ, KEY, get_node, tuplize_key, key_to_node
 from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
 from modelx.core.util import is_valid_name
@@ -372,12 +373,13 @@ class Cells(Interface, Mapping, Callable):
         return not self._impl.is_derived
 
 
+@add_stateattrs
 class CellsImpl(Derivable, Impl):
     """Cells implementation"""
 
     interface_cls = Cells
 
-    stateattrs = [
+    __cls_stateattrs = [
         "_model",
         "space",
         "formula",
@@ -387,9 +389,7 @@ class CellsImpl(Derivable, Impl):
         "altfunc",
         "source",
         "input_keys"
-    ] + Derivable.stateattrs + Impl.stateattrs
-
-    assert len(stateattrs) == len(set(stateattrs))
+    ]
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,

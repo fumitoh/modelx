@@ -94,6 +94,19 @@ def get_impls(interfaces):
         return interfaces._impl
 
 
+def add_stateattrs(cls):
+    stateattrs = []
+    for c in cls.__mro__:
+        attrs = "_" + c.__name__ + "__cls_stateattrs"
+        if hasattr(c, attrs):
+            for attr in getattr(c, attrs):
+                stateattrs.append(attr)
+
+    assert len(stateattrs) == len(set(stateattrs))
+    cls.stateattrs = stateattrs
+    return cls
+
+
 class Impl:
     """The ultimate base class of *Impl classes.
 
@@ -103,8 +116,7 @@ class Impl:
     special methods that are meant for changing the behaviour of operations
     for users."""
 
-    stateattrs = ["interface", "parent", "allow_none", "lazy_evals", "_doc"]
-
+    __cls_stateattrs = ["interface", "parent", "allow_none", "lazy_evals", "_doc"]
     interface_cls = None  # Override in sub classes if interface class exists
 
     def __init__(self, system, interface=None, doc=None):
@@ -200,11 +212,10 @@ class Impl:
         return self.get_repr(fullname=True, add_params=True)
 
 
-
-
+@add_stateattrs
 class Derivable:
 
-    stateattrs = ["_is_derived"]
+    __cls_stateattrs = ["_is_derived"]
 
     def __init__(self):
         self._is_derived = None  # must be initialized after __init__.

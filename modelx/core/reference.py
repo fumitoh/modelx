@@ -17,7 +17,7 @@ import builtins
 import importlib
 from types import ModuleType
 
-from modelx.core.base import Derivable, Impl
+from modelx.core.base import add_stateattrs, Derivable, Impl
 
 
 # For backward compatibility with -v0.0.23
@@ -61,10 +61,9 @@ class _ModulePickler(_BasePickler):
         return importlib.import_module(self.value)
 
 
+@add_stateattrs
 class ReferenceImpl(Derivable, Impl):
 
-    stateattrs = Impl.stateattrs + Derivable.stateattrs
-    assert len(stateattrs) == len(set(stateattrs))
     picklers = []    # List of _BasePickler sub classes
 
     def __init__(self, parent, name, value, container, is_derived=False):
