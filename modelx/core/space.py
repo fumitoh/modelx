@@ -768,7 +768,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         # Construct member containers
 
         self._dynamic_spaces = ImplDict(self, SpaceView)
-        self._dynamic_subs = []
         self._self_refs = RefDict(self)
         self._cells = CellsDict(self)
         self._spaces = self._named_spaces = SpaceDict(self)
@@ -1112,6 +1111,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
         EditableSpaceContainerImpl.__init__(self)
         self.cellsnamer = AutoNamer("Cells")
         self.dynspacenamer = AutoNamer("__Space")
+        self._dynamic_subs = []
 
         if isinstance(source, ModuleType):
             self.source = source.__name__
