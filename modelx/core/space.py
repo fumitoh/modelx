@@ -742,9 +742,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             "_namespace_impl",
             "param_spaces",
             "formula",
-            "cellsnamer",
             "name",
-            "source",
             "altfunc",
         ]
         + Derivable.state_attrs
@@ -770,12 +768,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
 
         self.name = name
         self.parent = parent
-        self.cellsnamer = AutoNamer("Cells")
-
-        if isinstance(source, ModuleType):
-            self.source = source.__name__
-        else:
-            self.source = source
 
         # ------------------------------------------------------------------
         # Construct member containers
@@ -1102,7 +1094,9 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
     interface_cls = UserSpace
     state_attrs = (
-        ["_dynamic_subs"]
+        ["cellsnamer",
+         "source",
+         "_dynamic_subs"]
         + BaseSpaceImpl.state_attrs
         + EditableSpaceContainerImpl.state_attrs
     )
@@ -1126,6 +1120,12 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             source=source,
             doc=doc
         )
+        self.cellsnamer = AutoNamer("Cells")
+
+        if isinstance(source, ModuleType):
+            self.source = source.__name__
+        else:
+            self.source = source
 
         self._refs = ImplChainMap(
             self,
