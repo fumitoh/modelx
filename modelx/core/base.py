@@ -608,11 +608,6 @@ class LazyEvalChainMap(LazyEval, ChainMap):
         raise NotImplementedError
 
 
-class OwnerMixin:
-    def __init__(self, owner):
-        self.owner = owner
-
-
 class OrderMixin:
     def __init__(self):
         self.order = []  # sorted(list(self))
@@ -665,11 +660,11 @@ class InterfaceMixin:
         self.needs_update = True
 
 
-class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
+class ImplDict(InterfaceMixin, OrderMixin, LazyEvalDict):
     def __init__(self, owner, ifclass, data=None, observers=None):
+        self.owner = owner
         InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
-        OwnerMixin.__init__(self, owner)
         LazyEvalDict.__init__(self, data, observers)
 
     def _update_data(self):
@@ -678,20 +673,19 @@ class ImplDict(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalDict):
         self._update_interfaces()
 
 
-class ImplChainMap(OwnerMixin, InterfaceMixin, OrderMixin, LazyEvalChainMap):
+class ImplChainMap(InterfaceMixin, OrderMixin, LazyEvalChainMap):
     def __init__(
         self, owner, ifclass, maps=None, observers=None, observe_maps=True
     ):
+        self.owner = owner
         InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
-        OwnerMixin.__init__(self, owner)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
     def _update_data(self):
         LazyEvalChainMap._update_data(self)
         self._update_order()
         self._update_interfaces()
-
 
 
 # The code below is modified from UserDict in Python's standard library.
