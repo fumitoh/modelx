@@ -38,6 +38,7 @@ from modelx.core.spacecontainer import (
 )
 from modelx.core.space import (
     UserSpaceImpl,
+    SpaceDict,
     SpaceView,
     RefDict
 )
@@ -200,7 +201,10 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         self._global_refs = RefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
         self._spaces = ImplDict(self, SpaceView)
-        self._dynamic_bases = {}
+        self._dynamic_bases = SpaceDict(self)
+        self._all_spaces = ImplChainMap(
+            self, SpaceView, [self._spaces, self._dynamic_bases]
+        )
         self._dynamic_bases_inverse = {}
         self._dynamic_base_namer = AutoNamer("__Space")
         self._namespace = ImplChainMap(

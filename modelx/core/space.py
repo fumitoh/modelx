@@ -776,8 +776,8 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         self._dynamic_subs = []
         self._self_refs = RefDict(self)
         self._cells = CellsDict(self)
-        self._named_spaces = SpaceDict(self)
-        self._spaces = ImplChainMap(
+        self._spaces = self._named_spaces = SpaceDict(self)
+        self._all_spaces = ImplChainMap(
             self, SpaceView, [self._named_spaces, self._dynamic_spaces]
         )
 
@@ -927,7 +927,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         child = parts.pop(0)
 
         if parts:
-            return self.spaces[child].get_object(".".join(parts))
+            return self.all_spaces[child].get_object(".".join(parts))
         else:
             return self._namespace_impl[child]
 

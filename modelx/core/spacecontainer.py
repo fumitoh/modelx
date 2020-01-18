@@ -313,7 +313,9 @@ class BaseSpaceContainerImpl:
 
     """
 
-    state_attrs = ["_spaces", "spacenamer"]  # must be defined in subclasses
+    state_attrs = [
+        "_spaces", "_all_spaces", "spacenamer"
+    ]  # must be defined in subclasses
 
     def __init__(self):
         self.spacenamer = AutoNamer("Space")
@@ -337,7 +339,7 @@ class BaseSpaceContainerImpl:
     def restore_state(self, system):
         """Called after unpickling to restore some attributes manually."""
 
-        for space in self._spaces.values():
+        for space in self._all_spaces.values():
             space.restore_state(system)
 
     # ----------------------------------------------------------------------
@@ -350,6 +352,10 @@ class BaseSpaceContainerImpl:
     @property
     def spaces(self):
         return self._spaces.refresh
+
+    @property
+    def all_spaces(self):
+        return self._all_spaces.refresh
 
     def has_space(self, name):
         return name in self.spaces
