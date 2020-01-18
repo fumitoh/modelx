@@ -282,7 +282,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = (
+    stateattrs = (
         [
             "name",
             "cellgraph",
@@ -295,19 +295,19 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             "spacemgr",
             "currentspace"
         ]
-        + BaseSpaceContainerImpl.state_attrs
-        + EditableSpaceContainerImpl.state_attrs
-        + Impl.state_attrs
+        + BaseSpaceContainerImpl.stateattrs
+        + EditableSpaceContainerImpl.stateattrs
+        + Impl.stateattrs
     )
 
-    assert len(state_attrs) == len(set(state_attrs))
+    assert len(stateattrs) == len(set(stateattrs))
 
     def __getstate__(self):
 
         state = {
             key: value
             for key, value in self.__dict__.items()
-            if key in self.state_attrs
+            if key in self.stateattrs
         }
 
         graphs = {

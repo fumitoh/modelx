@@ -103,7 +103,7 @@ class Impl:
     special methods that are meant for changing the behaviour of operations
     for users."""
 
-    state_attrs = ["interface", "parent", "allow_none", "lazy_evals", "_doc"]
+    stateattrs = ["interface", "parent", "allow_none", "lazy_evals", "_doc"]
 
     interface_cls = None  # Override in sub classes if interface class exists
 
@@ -204,7 +204,7 @@ class Impl:
 
 class Derivable:
 
-    state_attrs = ["_is_derived"]
+    stateattrs = ["_is_derived"]
 
     def __init__(self):
         self._is_derived = None  # must be initialized after __init__.

@@ -61,14 +61,14 @@ def is_valid_name(word):
     return False
 
 
-def get_state_attrs(obj):
+def get_stateattrs(obj):
 
     mro = list(reversed(getmro(type(obj))))
     mro.remove(object)
     attrs = {}
     for cls in mro:
         cls_attrs = {}
-        for attr in cls.state_attrs:
+        for attr in cls.stateattrs:
             cls_attrs[attr] = getattr(obj, attr)
 
         attrs.update(cls_attrs)

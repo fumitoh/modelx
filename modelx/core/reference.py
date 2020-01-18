@@ -63,8 +63,8 @@ class _ModulePickler(_BasePickler):
 
 class ReferenceImpl(Derivable, Impl):
 
-    state_attrs = Impl.state_attrs + Derivable.state_attrs
-    assert len(state_attrs) == len(set(state_attrs))
+    stateattrs = Impl.stateattrs + Derivable.stateattrs
+    assert len(stateattrs) == len(set(stateattrs))
     picklers = []    # List of _BasePickler sub classes
 
     def __init__(self, parent, name, value, container, is_derived=False):
@@ -82,7 +82,7 @@ class ReferenceImpl(Derivable, Impl):
         state = {
             key: value
             for key, value in self.__dict__.items()
-            if key in self.state_attrs
+            if key in self.stateattrs
         }
         value = state["interface"]
 

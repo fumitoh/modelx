@@ -313,7 +313,7 @@ class BaseSpaceContainerImpl:
 
     """
 
-    state_attrs = [
+    stateattrs = [
         "_spaces", "_all_spaces"
     ]  # must be defined in subclasses
 
@@ -325,7 +325,7 @@ class BaseSpaceContainerImpl:
         state = {
             key: value
             for key, value in self.__dict__.items()
-            if key in self.state_attrs
+            if key in self.stateattrs
         }
 
         return state
@@ -395,7 +395,7 @@ class BaseSpaceContainerImpl:
 
 class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
-    state_attrs = ["spacenamer"]
+    stateattrs = ["spacenamer"]
 
     def __init__(self):
         self.spacenamer = AutoNamer("Space")

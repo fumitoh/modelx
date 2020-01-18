@@ -377,7 +377,7 @@ class CellsImpl(Derivable, Impl):
 
     interface_cls = Cells
 
-    state_attrs = [
+    stateattrs = [
         "_model",
         "space",
         "formula",
@@ -387,9 +387,9 @@ class CellsImpl(Derivable, Impl):
         "altfunc",
         "source",
         "input_keys"
-    ] + Derivable.state_attrs + Impl.state_attrs
+    ] + Derivable.stateattrs + Impl.stateattrs
 
-    assert len(state_attrs) == len(set(state_attrs))
+    assert len(stateattrs) == len(set(stateattrs))
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
@@ -445,7 +445,7 @@ class CellsImpl(Derivable, Impl):
         state = {
             key: value
             for key, value in self.__dict__.items()
-            if key in self.state_attrs
+            if key in self.stateattrs
         }
 
         return state

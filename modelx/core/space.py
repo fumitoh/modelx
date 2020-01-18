@@ -732,7 +732,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     # ----------------------------------------------------------------------
     # Serialization by pickle
 
-    state_attrs = (
+    stateattrs = (
         [
             "_cells",
             "_named_spaces",
@@ -746,12 +746,12 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             "name",
             "altfunc",
         ]
-        + Derivable.state_attrs
-        + BaseSpaceContainerImpl.state_attrs
-        + Impl.state_attrs
+        + Derivable.stateattrs
+        + BaseSpaceContainerImpl.stateattrs
+        + Impl.stateattrs
     )
 
-    assert len(state_attrs) == len(set(state_attrs))
+    assert len(stateattrs) == len(set(stateattrs))
 
     def __init__(
         self,
@@ -1057,7 +1057,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         state = {
             key: value
             for key, value in self.__dict__.items()
-            if key in self.state_attrs
+            if key in self.stateattrs
         }
         return state
 
@@ -1087,15 +1087,15 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     """
 
     interface_cls = UserSpace
-    state_attrs = (
+    stateattrs = (
         ["cellsnamer",
          "source",
          "_dynamic_subs",
          "dynspacenamer"]
-        + BaseSpaceImpl.state_attrs
-        + EditableSpaceContainerImpl.state_attrs
+        + BaseSpaceImpl.stateattrs
+        + EditableSpaceContainerImpl.stateattrs
     )
-    assert len(state_attrs) == len(set(state_attrs))
+    assert len(stateattrs) == len(set(stateattrs))
 
     def __init__(
         self,
@@ -1514,9 +1514,9 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     interface_cls = DynamicSpace
 
-    state_attrs = ["_dynbase", "_parentargs"] + BaseSpaceImpl.state_attrs
+    stateattrs = ["_dynbase", "_parentargs"] + BaseSpaceImpl.stateattrs
 
-    assert len(state_attrs) == len(set(state_attrs))
+    assert len(stateattrs) == len(set(stateattrs))
 
     def __init__(
         self,
@@ -1646,8 +1646,8 @@ class RootDynamicSpace(DynamicSpace):
 class RootDynamicSpaceImpl(DynamicSpaceImpl):
 
     interface_cls = RootDynamicSpace
-    state_attrs = ["_arguments"] + DynamicSpaceImpl.state_attrs
-    assert len(state_attrs) == len(set(state_attrs))
+    stateattrs = ["_arguments"] + DynamicSpaceImpl.stateattrs
+    assert len(stateattrs) == len(set(stateattrs))
 
     def __init__(
         self,
