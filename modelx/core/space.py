@@ -720,8 +720,137 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         self._impl.doc = value
 
 
+class DynamicSpaceFactory:
+
+    __cls_stateattrs = [
+        "_dynamic_spaces",
+        "param_spaces",
+        "formula",
+        "altfunc"
+    ]
+
+    def __init__(self, formula):
+        self._dynamic_spaces = ImplDict(self, SpaceView)
+        # ------------------------------------------------------------------
+        # Construct altfunc after space members are crated
+
+        self.param_spaces = {}
+        self.formula = None
+        if formula is not None:
+            self.set_formula(formula)
+
+    # ----------------------------------------------------------------------
+    # Dynamic Space Operation
+
+    def set_formula(self, formula):
+
+        if formula is None:
+            if self.formula is not None:
+                self.altfunc = self.formula = None
+        else:
+            if self.formula is None:
+                if isinstance(formula, ParamFunc):
+                    self.formula = formula
+                else:
+                    self.formula = ParamFunc(formula, name="_formula")
+                self.altfunc = BoundFunction(self)
+            else:
+                raise ValueError("formula already assigned.")
+
+    def eval_formula(self, node):
+        return self.altfunc.refresh.altfunc(*node[KEY])
+
+    def _get_dynamic_base(self, bases_):
+        """Create or get the base space from a list of spaces
+
+        if a direct base space in `bases` is dynamic, replace it with
+        its base.
+        """
+        bases = tuple(
+            base._dynbase if base.is_dynamic() else base for base in bases_
+        )
+
+        if len(bases) == 1:
+            return bases[0]
+
+        elif len(bases) > 1:
+            return self.model.get_dynamic_base(bases)
+
+        else:
+            RuntimeError("must not happen")
+
+    def _new_dynspace(
+        self,
+        name=None,
+        bases=None,
+        formula=None,
+        refs=None,
+        arguments=None,
+        source=None,
+    ):
+        """Create a new dynamic root space."""
+
+        dynbase = self._get_dynamic_base(bases)
+
+        if name is None:
+            name = dynbase.dynspacenamer.get_next(self.namespace)
+
+        space = RootDynamicSpaceImpl(
+            parent=self,
+            name=name,
+            formula=formula,
+            refs=refs,
+            source=source,
+            arguments=arguments,
+        )
+        space.is_derived = False
+        self._dynamic_spaces.set_item(name, space)
+        space._dynbase = dynbase
+        dynbase._dynamic_subs.append(space)
+
+        return space
+
+    def get_dynspace(self, args, kwargs=None):
+        """Create a dynamic root space
+
+        Called from interface methods
+        """
+        node = get_node(self, *convert_args(args, kwargs))
+        key = node[KEY]
+
+        if key in self.param_spaces:
+            return self.param_spaces[key]
+        else:
+            space_args = self.eval_formula(node)
+
+            if space_args is None:
+                space_args = {"bases": [self]}  # Default
+            else:
+                if "bases" in space_args:
+                    bases = get_impls(space_args["bases"])
+                    if isinstance(bases, UserSpaceImpl):
+                        space_args["bases"] = [bases]
+                    elif bases is None:
+                        space_args["bases"] = [self]  # Default
+                    else:
+                        space_args["bases"] = bases
+                else:
+                    space_args["bases"] = [self]
+
+            space_args["arguments"] = node_get_args(node)
+            space = self._new_dynspace(**space_args)
+            self.param_spaces[key] = space
+            space.inherit([space._dynbase], clear_value=False)
+            return space
+
+
 @add_stateattrs
-class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
+class BaseSpaceImpl(
+    DynamicSpaceFactory,
+    Derivable,
+    BaseSpaceContainerImpl,
+    Impl
+):
     """Read-only base Space class
 
     * Cells container
@@ -737,14 +866,10 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     __cls_stateattrs = [
             "_cells",
             "_named_spaces",
-            "_dynamic_spaces",
             "_local_refs",
             "_self_refs",
             "_refs",
-            "_namespace",
-            "param_spaces",
-            "formula",
-            "altfunc",
+            "_namespace"
     ]
 
     def __init__(
@@ -769,19 +894,19 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self._dynamic_spaces = ImplDict(self, SpaceView)
         self._self_refs = RefDict(self)
         self._cells = CellsDict(self)
         self._spaces = self._named_spaces = SpaceDict(self)
-        self._all_spaces = ImplChainMap(
-            self, SpaceView, [self._named_spaces, self._dynamic_spaces]
-        )
         self._local_refs = {"_self": self, "_space": self}
         self._refs = self._create_refs(arguments)
         self._namespace = ImplChainMap(
             self, None, [self._cells, self._refs, self._spaces]
         )
         self.lazy_evals = self._namespace
+        DynamicSpaceFactory.__init__(self, formula)
+        self._all_spaces = ImplChainMap(
+            self, SpaceView, [self._named_spaces, self._dynamic_spaces]
+        )
 
         # ------------------------------------------------------------------
         # Add initial refs members
@@ -789,14 +914,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         if refs is not None:
             for name, value in refs.items():
                 ReferenceImpl(self, name, value, container=self._self_refs)
-
-        # ------------------------------------------------------------------
-        # Construct altfunc after space members are crated
-
-        self.param_spaces = {}
-        self.formula = None
-        if formula is not None:
-            self.set_formula(formula)
 
     def _create_refs(self, arguments=None):
         raise NotImplementedError
@@ -862,10 +979,7 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         raise NotImplementedError
 
     def _set_space(self, space):
-        if isinstance(space, RootDynamicSpaceImpl):
-            self._dynamic_spaces.set_item(space.name, space)
-        else:
-            self._named_spaces.set_item(space.name, space)
+        self._named_spaces.set_item(space.name, space)
 
     # ----------------------------------------------------------------------
     # Reference operation
@@ -914,113 +1028,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
             return self.all_spaces[child].get_object(".".join(parts))
         else:
             return self._namespace[child]
-
-    # ----------------------------------------------------------------------
-    # Dynamic Space Operation
-
-    def set_formula(self, formula):
-
-        if formula is None:
-            if self.formula is not None:
-                self.altfunc = self.formula = None
-        else:
-            if self.formula is None:
-                if isinstance(formula, ParamFunc):
-                    self.formula = formula
-                else:
-                    self.formula = ParamFunc(formula, name="_formula")
-                self.altfunc = BoundFunction(self)
-            else:
-                raise ValueError("formula already assigned.")
-
-    def eval_formula(self, node):
-        return self.altfunc.refresh.altfunc(*node[KEY])
-
-    def _get_dynamic_base(self, bases_):
-        """Create or get the base space from a list of spaces
-
-        if a direct base space in `bases` is dynamic, replace it with
-        its base.
-        """
-        bases = tuple(
-            base.bases[0] if base.is_dynamic() else base for base in bases_
-        )
-
-        if len(bases) == 1:
-            return bases[0]
-
-        elif len(bases) > 1:
-            return self.model.get_dynamic_base(bases)
-
-        else:
-            RuntimeError("must not happen")
-
-    def _new_dynspace(
-        self,
-        name=None,
-        bases=None,
-        formula=None,
-        refs=None,
-        arguments=None,
-        source=None,
-    ):
-        """Create a new dynamic root space."""
-
-        dynbase = self._get_dynamic_base(bases)
-
-        if name is None:
-            name = dynbase.dynspacenamer.get_next(self.namespace)
-
-        space = RootDynamicSpaceImpl(
-            parent=self,
-            name=name,
-            formula=formula,
-            refs=refs,
-            source=source,
-            arguments=arguments,
-        )
-        space.is_derived = False
-        self._set_space(space)
-
-        space._dynbase = dynbase
-        dynbase._dynamic_subs.append(space)
-
-        return space
-
-    def get_dynspace(self, args, kwargs=None):
-        """Create a dynamic root space
-
-        Called from interface methods
-        """
-
-        node = get_node(self, *convert_args(args, kwargs))
-        key = node[KEY]
-
-        if key in self.param_spaces:
-            return self.param_spaces[key]
-
-        else:
-            space_args = self.eval_formula(node)
-
-            if space_args is None:
-                space_args = {"bases": [self]}  # Default
-            else:
-                if "bases" in space_args:
-                    bases = get_impls(space_args["bases"])
-                    if isinstance(bases, UserSpaceImpl):
-                        space_args["bases"] = [bases]
-                    elif bases is None:
-                        space_args["bases"] = [self]  # Default
-                    else:
-                        space_args["bases"] = bases
-                else:
-                    space_args["bases"] = [self]
-
-            space_args["arguments"] = node_get_args(node)
-            space = self._new_dynspace(**space_args)
-            self.param_spaces[key] = space
-            space.inherit([space._dynbase], clear_value=False)
-            return space
 
     # ----------------------------------------------------------------------
     # repr methods
