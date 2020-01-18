@@ -718,6 +718,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
     def doc(self, value):
         self._impl.doc = value
 
+
 class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     """Read-only base Space class
 
@@ -763,7 +764,6 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         doc=None
     ):
         Impl.__init__(self, system=parent.system, doc=doc)
-        BaseSpaceContainerImpl.__init__(self)
         Derivable.__init__(self)
 
         self.name = name
@@ -982,14 +982,10 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
     ):
         """Create a new dynamic root space."""
 
+        dynbase = self._get_dynamic_base(bases)
+
         if name is None:
-            name = self.spacenamer.get_next(self.namespace)
-
-        if name in self.namespace:
-            raise ValueError("Name '%s' already exists." % name)
-
-        if not is_valid_name(name):
-            raise ValueError("Invalid name '%s'." % name)
+            name = dynbase.dynspacenamer.get_next(self.namespace)
 
         space = RootDynamicSpaceImpl(
             parent=self,
@@ -1002,10 +998,8 @@ class BaseSpaceImpl(Derivable, BaseSpaceContainerImpl, Impl):
         space.is_derived = False
         self._set_space(space)
 
-        if bases:  # i.e. not []
-            dynbase = self._get_dynamic_base(bases)
-            space._dynbase = dynbase
-            dynbase._dynamic_subs.append(space)
+        space._dynbase = dynbase
+        dynbase._dynamic_subs.append(space)
 
         return space
 
@@ -1096,7 +1090,8 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
     state_attrs = (
         ["cellsnamer",
          "source",
-         "_dynamic_subs"]
+         "_dynamic_subs",
+         "dynspacenamer"]
         + BaseSpaceImpl.state_attrs
         + EditableSpaceContainerImpl.state_attrs
     )
@@ -1120,7 +1115,9 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             source=source,
             doc=doc
         )
+        EditableSpaceContainerImpl.__init__(self)
         self.cellsnamer = AutoNamer("Cells")
+        self.dynspacenamer = AutoNamer("__Space")
 
         if isinstance(source, ModuleType):
             self.source = source.__name__

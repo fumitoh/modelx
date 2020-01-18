@@ -296,6 +296,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             "currentspace"
         ]
         + BaseSpaceContainerImpl.state_attrs
+        + EditableSpaceContainerImpl.state_attrs
         + Impl.state_attrs
     )
 

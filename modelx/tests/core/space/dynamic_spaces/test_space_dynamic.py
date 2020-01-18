@@ -14,4 +14,4 @@ def test_dynamic_spaces():
 
     space[3, 4].distance()
 
-    assert space.dynamic_spaces == {"Space1": space[3, 4]}
+    assert space.dynamic_spaces == {"__Space1": space[3, 4]}

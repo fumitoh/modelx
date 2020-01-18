@@ -314,11 +314,8 @@ class BaseSpaceContainerImpl:
     """
 
     state_attrs = [
-        "_spaces", "_all_spaces", "spacenamer"
+        "_spaces", "_all_spaces"
     ]  # must be defined in subclasses
-
-    def __init__(self):
-        self.spacenamer = AutoNamer("Space")
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
@@ -398,7 +395,10 @@ class BaseSpaceContainerImpl:
 
 class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
-    state_attrs = []
+    state_attrs = ["spacenamer"]
+
+    def __init__(self):
+        self.spacenamer = AutoNamer("Space")
 
     def new_space(
         self,
