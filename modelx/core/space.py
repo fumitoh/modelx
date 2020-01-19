@@ -1498,6 +1498,7 @@ class DynamicSpace(BaseSpace):
 
     Dynamic spaces are not editable like static spaces.
     """
+    __slots__ = ()
 
 
 @add_stateattrs
@@ -1631,6 +1632,8 @@ class RootDynamicSpace(DynamicSpace):
 
     Dynamic spaces are not editable like static spaces.
     """
+    __slots__ = ()
+
     @property
     def _tupleid(self):
         return self.parent._tupleid + (self.argvalues,)
