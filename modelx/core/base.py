@@ -179,6 +179,10 @@ class Impl:
                 return self.name
 
     @property
+    def namedid(self):
+        return self.get_fullname(omit_model=True)
+
+    @property
     def evalrepr(self):
         """Evaluable repr"""
         if self.is_model():

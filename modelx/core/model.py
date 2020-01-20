@@ -308,7 +308,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         for gname, graph in graphs.items():
             mapping = {}
             for node in graph:
-                name = node[OBJ].get_fullname(omit_model=True)
+                name = node[OBJ].namedid
                 if node_has_key(node):
                     mapping[node] = (name, node[KEY])
                 else:
@@ -783,7 +783,7 @@ class SpaceManager:
             if name in parent.namespace:
                 return False
             else:
-                node = parent.get_fullname(omit_model=True)
+                node = parent.namedid
                 descs = nx.descendants(self._graph, node)
                 for desc in descs:
                     ns = self._graph.to_space(desc).namespace
@@ -837,11 +837,11 @@ class SpaceManager:
             node = name
             pnode = []
         else:
-            node = parent.get_fullname(omit_model=True) + "." + name
-            pnode = [parent.get_fullname(omit_model=True)]
+            node = parent.namedid + "." + name
+            pnode = [parent.namedid]
 
         nodes = pnode + [
-            b.get_fullname(omit_model=True) for b in bases]
+            b.namedid for b in bases]
 
         subg_inh = self._inheritance.subgraph_from_nodes(
             nodes, self.backup_hook)
@@ -864,7 +864,7 @@ class SpaceManager:
             node, mode="defined", state="created", space=space)
 
         for b in bases:
-            base = b.get_fullname(omit_model=True)
+            base = b.namedid
             newsubg_inh.add_edge(
                 base, node,
                 mode="defined",
@@ -974,8 +974,8 @@ class SpaceManager:
     def add_bases(self, space, bases):
         """Add bases to space in graph
         """
-        node = space.get_fullname(omit_model=True)
-        basenodes = [base.get_fullname(omit_model=True) for base in bases]
+        node = space.namedid
+        basenodes = [base.namedid for base in bases]
 
         for base in [node] + basenodes:
             if base not in self._inheritance:
@@ -1031,8 +1031,8 @@ class SpaceManager:
 
     def remove_bases(self, space, bases):
 
-        node = space.get_fullname(omit_model=True)
-        basenodes = [base.get_fullname(omit_model=True) for base in bases]
+        node = space.namedid
+        basenodes = [base.namedid for base in bases]
 
         for base in [node] + basenodes:
             if base not in self._inheritance:
@@ -1086,7 +1086,7 @@ class SpaceManager:
         if parent.is_model():
             node =  name
         else:
-            pnode = parent.get_fullname(omit_model=True)
+            pnode = parent.namedid
             node = pnode + "." + name
 
         if node not in self._inheritance:
@@ -1126,7 +1126,7 @@ class SpaceManager:
         if isinstance(deriv, UserSpaceImpl):    # Not Dynamic spaces
             return self._get_space_bases(deriv, graph)
 
-        pnode = deriv.parent.get_fullname(omit_model=True)
+        pnode = deriv.parent.namedid
 
         bases = []
         for b in graph.get_mro(pnode)[1:]:
@@ -1137,11 +1137,11 @@ class SpaceManager:
         return bases
 
     def _get_space_bases(self, space, graph):
-        nodes = graph.get_mro(space.get_fullname(omit_model=True))[1:]
+        nodes = graph.get_mro(space.namedid)[1:]
         return [graph.to_space(n) for n in nodes]
 
     def get_direct_bases(self, space):
-        node = space.get_fullname(omit_model=True)
+        node = space.namedid
         return [self._inheritance.to_space(n) for n in
                 self._inheritance.get_mro(node)[1:]]
 
@@ -1161,7 +1161,7 @@ class SpaceManager:
     def update_subs(self, space):
 
         for desc in list(self._graph.ordered_subs(
-                space.get_fullname(omit_model=True)))[1:]:
+                space.namedid))[1:]:
             s = self._graph.to_space(desc)
             b = self._get_space_bases(s, self._graph)
             s.inherit(b)
