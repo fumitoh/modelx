@@ -17,7 +17,7 @@ import importlib
 import pathlib
 import uuid
 import warnings
-from collections import ChainMap
+from collections import ChainMap, deque
 from collections.abc import Sequence
 from types import FunctionType, ModuleType
 
@@ -724,6 +724,7 @@ class DynamicSpaceFactory:
 
     __cls_stateattrs = [
         "_dynamic_spaces",
+        "dynspacenamer",
         "param_spaces",
         "formula",
         "altfunc"
@@ -731,6 +732,8 @@ class DynamicSpaceFactory:
 
     def __init__(self, formula):
         self._dynamic_spaces = ImplDict(self, SpaceView)
+        self.dynspacenamer = AutoNamer("__Space")
+
         # ------------------------------------------------------------------
         # Construct altfunc after space members are crated
 
@@ -741,6 +744,9 @@ class DynamicSpaceFactory:
 
     # ----------------------------------------------------------------------
     # Dynamic Space Operation
+    @property
+    def dynamic_spaces(self):
+        return self._dynamic_spaces.refresh
 
     def set_formula(self, formula):
 
@@ -781,33 +787,20 @@ class DynamicSpaceFactory:
 
     def _new_dynspace(
         self,
+        bases,
         name=None,
-        bases=None,
-        formula=None,
         refs=None,
-        arguments=None,
-        source=None,
+        arguments=None
     ):
         """Create a new dynamic root space."""
-
-        dynbase = self._get_dynamic_base(bases)
-
-        if name is None:
-            name = dynbase.dynspacenamer.get_next(self.namespace)
-
         space = RootDynamicSpaceImpl(
             parent=self,
+            base=self._get_dynamic_base(bases),
             name=name,
-            formula=formula,
             refs=refs,
-            source=source,
             arguments=arguments,
         )
         space.is_derived = False
-        self._dynamic_spaces.set_item(name, space)
-        space._dynbase = dynbase
-        dynbase._dynamic_subs.append(space)
-
         return space
 
     def get_dynspace(self, args, kwargs=None):
@@ -840,7 +833,6 @@ class DynamicSpaceFactory:
             space_args["arguments"] = node_get_args(node)
             space = self._new_dynspace(**space_args)
             self.param_spaces[key] = space
-            space.inherit([space._dynbase], clear_value=False)
             return space
 
 
@@ -929,10 +921,6 @@ class BaseSpaceImpl(
     @property
     def named_spaces(self):
         return self._named_spaces.refresh
-
-    @property
-    def dynamic_spaces(self):
-        return self._dynamic_spaces.refresh
 
     @property
     def refs(self):
@@ -1070,8 +1058,34 @@ class BaseSpaceImpl(
         return _to_frame_inner(self.cells, args)
 
 
+class DynamicSubSpaceContainer:
+
+    __cls_stateattrs = [
+     "_dynamic_subs"
+    ]
+
+    def __init__(self):
+        self._dynamic_subs = []
+
+    def new_dynsubspace(self, parent, refs, arguments):
+        name = parent.dynspacenamer.get_next(parent.dynamic_spaces)
+
+        space = RootDynamicSpaceImpl(
+            parent=parent,
+            name=name,
+            base=self,
+            refs=refs,
+            arguments=arguments
+        )
+        space.is_derived = False
+
+
 @add_stateattrs
-class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
+class UserSpaceImpl(
+    DynamicSubSpaceContainer,
+    BaseSpaceImpl,
+    EditableSpaceContainerImpl
+):
     """Editable base Space class
 
     * cell creation
@@ -1082,9 +1096,7 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
 
     __cls_stateattrs = [
      "cellsnamer",
-     "source",
-     "_dynamic_subs",
-     "dynspacenamer"
+     "source"
     ]
 
     def __init__(
@@ -1106,9 +1118,8 @@ class UserSpaceImpl(BaseSpaceImpl, EditableSpaceContainerImpl):
             doc=doc
         )
         EditableSpaceContainerImpl.__init__(self)
+        DynamicSubSpaceContainer.__init__(self)
         self.cellsnamer = AutoNamer("Cells")
-        self.dynspacenamer = AutoNamer("__Space")
-        self._dynamic_subs = []
 
         if isinstance(source, ModuleType):
             self.source = source.__name__
@@ -1516,17 +1527,23 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         self,
         parent,
         name,
-        formula=None,
+        base,
         refs=None,
-        source=None,
         arguments=None,
-        doc=None
     ):
-
+        self._dynbase = base
         BaseSpaceImpl.__init__(
-            self, parent, name, formula, refs, source, arguments, doc
+            self,
+            parent,
+            name,
+            base.formula,
+            refs,
+            base.source,
+            arguments,
+            base.doc
         )
-        self._dynbase = None
+        self._create_cells()
+        self._create_refs(arguments)
 
     def _new_space_member(self, name, is_derived):
         space = DynamicSpaceImpl(parent=self, name=name)
@@ -1534,8 +1551,13 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         self._set_space(space)
         return space
 
+    def _create_cells(self):
+        for base in self._dynbase.cells.values():
+            CellsImpl(space=self, base=base)
+
     def _create_refs(self, arguments=None):
         self._parentargs = self._create_parentargs()
+        self._self_refs.update(self._dynbase.self_refs)
 
         return ImplChainMap(
             self,
@@ -1576,51 +1598,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         else:
             return []
 
-    def inherit(self, bases, **kwargs):
-
-        if "event" in kwargs:
-            event = kwargs["event"]
-        else:
-            event = None
-
-        if bases[0].formula is not None:
-            if not isinstance(self, RootDynamicSpaceImpl):
-                if event != "new_cells" and event != "cells_set_formula":
-                    self.set_formula(bases[0].formula)
-
-        self._dynbase = bases[0]
-
-        attrs = ("cells", "self_refs", "named_spaces")
-        for attr in attrs:
-            selfmap = getattr(self, attr)
-            basemap = ChainMap(*[getattr(base, attr) for base in bases])
-            for name in basemap:
-                if name not in selfmap or selfmap[name].is_derived:
-                    if name not in self.namespace:
-                        selfmap[name] = self._new_member(
-                            attr, name, is_derived=True
-                        )
-                        clear_value = False
-                    else:
-                        if "clear_value" in kwargs:
-                            clear_value = kwargs["clear_value"]
-                        else:
-                            clear_value = True
-
-                    kwargs["clear_value"] = clear_value
-                    bs = [bmap[name] for bmap in basemap.maps
-                             if name in bmap]
-
-                    selfmap[name].inherit(bs, **kwargs)
-
-            names = set(selfmap) - set(basemap)
-            for name in names:
-                member = selfmap[name]
-                if member.is_derived:
-                    selfmap.del_item(name)
-                else:
-                    member.inherit([], **kwargs)
-
 
 class RootDynamicSpace(DynamicSpace):
     """Dynamically created space.
@@ -1649,22 +1626,38 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
     def __init__(
         self,
         parent,
-        name,
-        formula=None,
+        base,
+        name=None,
         refs=None,
-        source=None,
         arguments=None,
-        doc=None
     ):
+        if name is None:
+            name = parent.dynspacenamer.get_next(base.dynamic_spaces)
+        elif (is_valid_name(name)
+              and name not in parent.namespace
+              and name not in parent.dynamic_spaces):
+            pass
+        else:
+            raise ValueError("invalid name")
 
         DynamicSpaceImpl.__init__(
-            self, parent, name, formula, refs, source, arguments, doc
+            self, parent, name, base, refs, arguments
         )
+        parent._dynamic_spaces.set_item(name, self)
+        base._dynamic_subs.append(self)
         self._bind_args(self.arguments)
+        self._create_child_spaces(self)
+
+    def _create_child_spaces(self, space):
+        for name, base in space._dynbase.named_spaces.items():
+            child = DynamicSpaceImpl(space, name, base)
+            space._named_spaces.set_item(name, child)
+            self._create_child_spaces(child)
 
     def _create_refs(self, arguments=None):
         self._arguments = RefDict(self, data=arguments)
         self._parentargs = self._create_parentargs()
+        self._self_refs.update(self._dynbase.self_refs)
 
         return ImplChainMap(
             self,
