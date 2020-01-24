@@ -1142,8 +1142,8 @@ class SpaceManager:
 
     def get_direct_bases(self, space):
         node = space.namedid
-        return [self._inheritance.to_space(n) for n in
-                self._inheritance.get_mro(node)[1:]]
+        preds = self._inheritance.ordered_preds(node)
+        return [self._inheritance.to_space(n) for n in preds]
 
     def del_cells(self, space, name):
 
