@@ -767,12 +767,55 @@ class SpaceGraph(nx.DiGraph):
             return type(self).copy(g)
 
 
+class Instruction:
+
+    def __init__(self, func, args=(), arghook=None, kwargs=None):
+
+        self.func = func
+        self.args = args
+        self.arghook = arghook
+        self.kwargs = kwargs if kwargs else {}
+
+    def execute(self):
+        if self.arghook:
+            args, kwargs = self.arghook(self)
+        else:
+            args, kwargs = self.args, self.kwargs
+
+        return self.func(*args, **kwargs)
+
+    @property
+    def funcname(self):
+        return self.func.__name__
+
+    def __repr__(self):
+        return "<Instruction: %s>" % self.funcname
+
+
+class InstructionList(list):
+
+    def execute(self, clear=True):
+        result = None
+        for inst in self:
+            result = inst.execute()
+        if clear:
+            self.clear()
+        return result
+
+
+def split_node(node):
+    parent = ".".join(node.split(".")[:-1])
+    name = node.split(".")[-1]
+    return parent, name
+
+
 class SpaceManager:
 
     def __init__(self, model):
         self.model = model
         self._inheritance = SpaceGraph()
         self._graph = SpaceGraph()
+        self._instructions = InstructionList()
 
     def can_add(self, parent, name, klass):
 
@@ -843,11 +886,10 @@ class SpaceManager:
         nodes = pnode + [
             b.namedid for b in bases]
 
-        subg_inh = self._inheritance.subgraph_from_nodes(
+        oldsubg_inherit = self._inheritance.subgraph_from_nodes(
             nodes, self.backup_hook)
-        subg = subg_inh.get_derived_graph()
-
-        newsubg_inh = subg_inh.copy_as_spacegraph(subg_inh)
+        oldsubg = oldsubg_inherit.get_derived_graph()
+        newsubg_inherit = oldsubg_inherit.copy_as_spacegraph(oldsubg_inherit)
 
         space = UserSpaceImpl(
             parent,
@@ -860,25 +902,25 @@ class SpaceManager:
         if set_space:
             parent._set_space(space)
 
-        newsubg_inh.add_node(
+        newsubg_inherit.add_node(
             node, mode="defined", state="created", space=space)
 
         for b in bases:
             base = b.namedid
-            newsubg_inh.add_edge(
+            newsubg_inherit.add_edge(
                 base, node,
                 mode="defined",
-                index=newsubg_inh.max_index(node)
+                index=newsubg_inherit.max_index(node)
             )
 
-        if not nx.is_directed_acyclic_graph(newsubg_inh):
+        if not nx.is_directed_acyclic_graph(newsubg_inherit):
             raise ValueError("cyclic inheritance")
 
-        if not newsubg_inh.check_cyclic(node, node):
+        if not newsubg_inherit.check_cyclic(node, node):
             raise ValueError("cyclic inheritance through composition")
 
-        newsubg_inh.get_mro(node)  # Check if MRO is possible
-        newsubg = newsubg_inh.get_derived_graph(on_edge=self.derive_hook)
+        newsubg_inherit.get_mro(node)  # Check if MRO is possible
+        newsubg = newsubg_inherit.get_derived_graph(on_edge=self.derive_hook)
 
         if not nx.is_directed_acyclic_graph(newsubg):
             raise ValueError("cyclic inheritance")
@@ -887,7 +929,9 @@ class SpaceManager:
         for n in nx.descendants(newsubg, node):
             newsubg.get_mro(n)
 
-        self.update_graphs(newsubg_inh, newsubg, subg_inh, subg)
+        self._instructions.execute()
+
+        self.update_graphs(newsubg_inherit, newsubg, oldsubg_inherit, oldsubg)
 
         return space
 
@@ -917,42 +961,51 @@ class SpaceManager:
         space = graph.to_space(node)
         space.__setstate__(graph.nodes[node]["backup"])
 
+    def _new_derived_space(self, graph, node):
+
+        parent_node, name = split_node(node)
+
+        if parent_node:
+            parent = graph.to_space(parent_node)
+        else:
+            parent =self.model
+
+        space = UserSpaceImpl(
+            parent,
+            name
+            # formula=formula,
+            # refs=refs,
+            # source=source,
+            # doc=doc
+        )
+        parent._set_space(space)
+        space._is_derived = True
+        graph.nodes[node]["space"] = space
+        graph.nodes[node]["state"] = "created"
+
+    def _update_derived_space(self, graph, node):
+        space = graph.to_space(node)
+        bases = self._get_space_bases(space, graph)
+        space.inherit(bases)
+
     def derive_hook(self, graph, edge):
         """Callback passed as on_edge parameter"""
         _, head = edge
         state = graph.nodes[head]["state"]
 
-        parent_node = ".".join(head.split(".")[:-1])
-        name = head.split(".")[-1]
-        if parent_node in graph:
-            parent = graph.to_space(parent_node)
-        elif parent_node:
-            parent = self._graph.to_space(parent_node)
-        else:
-            parent = self.model
-
         if state == "defined":
-            space = UserSpaceImpl(
-                parent,
-                name
-                # formula=formula,
-                # refs=refs,
-                # source=source,
-                # doc=doc
+            self._instructions.append(
+                Instruction(self._new_derived_space, (graph, head))
             )
-            parent._set_space(space)
-            space._is_derived = True
-            graph.nodes[head]["space"] = space
-            graph.nodes[head]["state"] = "created"
 
-        space = graph.to_space(head)
-        bases = self._get_space_bases(space, graph)
-        space.inherit(
-            bases)
+        self._instructions.append(
+            Instruction(self._update_derived_space, (graph, head))
+        )
 
     def remove_hook(self, graph, node):
-        parent_node = ".".join(node.split(".")[:-1])
-        name = node.split(".")[-1]
+
+        parent_node, name = split_node(node)
+
         if parent_node in graph:
             parent = graph.to_space(parent_node)
             parent.named_spaces.del_item(name)
@@ -1027,6 +1080,8 @@ class SpaceManager:
             if conflict:
                 raise NameError("name conflict: %s" % conflict)
 
+        self._instructions.execute()
+
         self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
 
     def remove_bases(self, space, bases):
@@ -1078,6 +1133,8 @@ class SpaceManager:
             conflict = set().intersection(*[n for n in members.values()])
             if conflict:
                 raise NameError("name conflict: %s" % conflict)
+
+        self._instructions.execute()
 
         self.update_graphs(newsubg_inh, newsubg, subg_inh.nodes, subg.nodes)
 
