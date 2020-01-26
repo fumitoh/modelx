@@ -73,14 +73,13 @@ class ReferenceImpl(Derivable, Impl):
             parent=parent,
             name=name,
             interface=value)
-        Derivable.__init__(self)
+        Derivable.__init__(self, is_derived)
 
         self.parent = parent
         self.model = parent.model
         self.name = name
 
         container.set_item(name, self)
-        self.is_derived = is_derived
 
     def __getstate__(self):
         state = {

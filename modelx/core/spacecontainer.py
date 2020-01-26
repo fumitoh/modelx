@@ -378,13 +378,12 @@ class BaseSpaceContainerImpl:
         space = UserSpaceImpl(
             parent=self,
             name=name,
+            is_derived=is_derived,
             formula=formula,
             refs=refs,
             source=source,
             doc=doc
         )
-        space.is_derived = is_derived
-
         return space
 
     def _set_space(self, space):

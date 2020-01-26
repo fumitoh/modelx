@@ -31,6 +31,7 @@ from modelx.core.base import (
     NullImpl
 )
 from modelx.core.reference import ReferenceImpl
+from modelx.core.cells import CellsImpl
 from modelx.core.node import OBJ, KEY, get_node, node_has_key
 from modelx.core.spacecontainer import (
     BaseSpaceContainerImpl,
@@ -891,19 +892,8 @@ class SpaceManager:
         oldsubg = oldsubg_inherit.get_derived_graph()
         newsubg_inherit = oldsubg_inherit.copy_as_spacegraph(oldsubg_inherit)
 
-        space = UserSpaceImpl(
-            parent,
-            name,
-            formula=formula,
-            refs=refs,
-            source=source,
-            doc=doc)
-        space.is_derived = is_derived
-        if set_space:
-            parent._set_space(space)
-
         newsubg_inherit.add_node(
-            node, mode="defined", state="created", space=space)
+            node, mode="defined", state="defined")
 
         for b in bases:
             base = b.namedid
@@ -920,6 +910,10 @@ class SpaceManager:
             raise ValueError("cyclic inheritance through composition")
 
         newsubg_inherit.get_mro(node)  # Check if MRO is possible
+
+        for pnode in newsubg_inherit.get_parent_nodes(node):
+            newsubg_inherit.nodes[pnode]["mode"] = "defined"
+
         newsubg = newsubg_inherit.get_derived_graph(on_edge=self.derive_hook)
 
         if not nx.is_directed_acyclic_graph(newsubg):
@@ -928,6 +922,24 @@ class SpaceManager:
         # Check if MRO is possible for each node in sub graph
         for n in nx.descendants(newsubg, node):
             newsubg.get_mro(n)
+
+        if not parent.is_model():
+            parent.set_defined()
+
+        space = UserSpaceImpl(
+            parent,
+            name,
+            is_derived,
+            formula=formula,
+            refs=refs,
+            source=source,
+            doc=doc)
+
+        if set_space:
+            parent._set_space(space)
+
+        newsubg.nodes[node]["space"] = space
+        newsubg.nodes[node]["state"] = "created"
 
         self._instructions.execute()
 
@@ -972,14 +984,14 @@ class SpaceManager:
 
         space = UserSpaceImpl(
             parent,
-            name
+            name,
+            is_derived=True
             # formula=formula,
             # refs=refs,
             # source=source,
             # doc=doc
         )
         parent._set_space(space)
-        space._is_derived = True
         graph.nodes[node]["space"] = space
         graph.nodes[node]["state"] = "created"
 
@@ -991,9 +1003,10 @@ class SpaceManager:
     def derive_hook(self, graph, edge):
         """Callback passed as on_edge parameter"""
         _, head = edge
+        mode = graph.nodes[head]["mode"]
         state = graph.nodes[head]["state"]
 
-        if state == "defined":
+        if mode == "derived" and state == "defined":
             self._instructions.append(
                 Instruction(self._new_derived_space, (graph, head))
             )
@@ -1223,3 +1236,40 @@ class SpaceManager:
             b = self._get_space_bases(s, self._graph)
             s.inherit(b)
 
+    def new_cells(self, space, name=None, formula=None, is_derived=False,
+                  source=None):
+
+        if not self.can_add(space, name, CellsImpl):
+            raise ValueError("Cannot create cells '%s'" % name)
+
+        self._set_defined(space.namedid)
+        space.set_defined()
+
+        cells = CellsImpl(space=space, name=name, formula=formula,
+                          source=source, is_derived=is_derived)
+
+        self.update_subs(space)
+
+        return cells
+
+    def new_ref(self, space, name, value, is_derived=False):
+
+        if not self.can_add(space, name, ReferenceImpl):
+            raise ValueError("Cannot create reference '%s'" % name)
+
+        self._set_defined(space.namedid)
+        space.set_defined()
+
+        ref = ReferenceImpl(space, name, value,
+                            container=space._self_refs,
+                            is_derived=is_derived)
+
+        self.update_subs(space)
+
+        return ref
+
+    def _set_defined(self, node):
+
+        for graph in (self._inheritance, self._graph):
+            for parent in graph.get_parent_nodes(node):
+                graph.nodes[parent]["mode"] = "defined"

@@ -229,8 +229,13 @@ class Derivable:
 
     __cls_stateattrs = ["_is_derived"]
 
-    def __init__(self):
-        self._is_derived = None  # must be initialized after __init__.
+    def __init__(self, is_derived):
+        self._is_derived = is_derived
+
+    def set_defined(self):
+        self._is_derived = False
+        if not self.parent.is_model() and self.parent.is_derived:
+            self.parent.set_defined()
 
     @property
     def is_derived(self):
@@ -240,7 +245,7 @@ class Derivable:
     def is_derived(self, is_derived):
         self._is_derived = is_derived
         if not is_derived:
-            if self.parent.parent is not None:
+            if not self.parent.is_model() and self.parent.is_derived:
                 self.parent.is_derived = is_derived
 
     def has_ascendant(self, other):

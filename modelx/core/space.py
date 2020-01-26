@@ -839,7 +839,6 @@ class DynamicSpaceFactory:
 @add_stateattrs
 class BaseSpaceImpl(
     DynamicSpaceFactory,
-    Derivable,
     BaseSpaceContainerImpl,
     Impl
 ):
@@ -881,7 +880,6 @@ class BaseSpaceImpl(
             name=name,
             doc=doc
         )
-        Derivable.__init__(self)
 
         # ------------------------------------------------------------------
         # Construct member containers
@@ -1084,7 +1082,8 @@ class DynamicSubSpaceContainer:
 class UserSpaceImpl(
     DynamicSubSpaceContainer,
     BaseSpaceImpl,
-    EditableSpaceContainerImpl
+    EditableSpaceContainerImpl,
+    Derivable
 ):
     """Editable base Space class
 
@@ -1103,6 +1102,7 @@ class UserSpaceImpl(
         self,
         parent,
         name,
+        is_derived,
         formula=None,
         refs=None,
         source=None,
@@ -1119,6 +1119,7 @@ class UserSpaceImpl(
         )
         EditableSpaceContainerImpl.__init__(self)
         DynamicSubSpaceContainer.__init__(self)
+        Derivable.__init__(self, is_derived)
         self.cellsnamer = AutoNamer("Cells")
 
         if isinstance(source, ModuleType):
@@ -1156,13 +1157,9 @@ class UserSpaceImpl(
     def new_cells(self, name=None, formula=None, is_derived=False,
                   source=None):
 
-        if not self.manager.can_add(self, name, CellsImpl):
-            raise ValueError("Cannot create cells '%s'" % name)
-
-        cells = CellsImpl(space=self, name=name, formula=formula,
-                          source=source, is_derived=is_derived)
-
-        self.manager.update_subs(self)
+        cells = self.manager.new_cells(
+            self, name=name, formula=formula, is_derived=is_derived,
+            source=source)
 
         return cells
 
@@ -1299,16 +1296,7 @@ class UserSpaceImpl(
     # Reference creation
 
     def new_ref(self, name, value, is_derived=False):
-
-        if not self.manager.can_add(self, name, ReferenceImpl):
-            raise ValueError("Cannot create reference '%s'" % name)
-
-        ref = ReferenceImpl(self, name, value,
-                            container=self._self_refs,
-                            is_derived=is_derived)
-
-        self.manager.update_subs(self)
-
+        ref = self.manager.new_ref(self, name, value, is_derived=is_derived)
         return ref
 
     # ----------------------------------------------------------------------

@@ -410,7 +410,7 @@ class CellsImpl(Derivable, Impl):
             parent=space,
             name=name
         )
-        Derivable.__init__(self)
+        Derivable.__init__(self, is_derived)
         self.source = source
         space._cells.set_item(self.name, self)
 
@@ -430,7 +430,6 @@ class CellsImpl(Derivable, Impl):
 
         self._namespace = self.parent._namespace
         self.altfunc = BoundFunction(self)
-        self.is_derived = is_derived
         self.input_keys = set(data.keys())
 
     # ----------------------------------------------------------------------
