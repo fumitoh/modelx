@@ -475,8 +475,8 @@ class SpaceGraph(nx.DiGraph):
         return g
 
     def get_absbases(self):
-        """Get absolute base nodes"""
-        result = set(self.edges)
+        """Get edges from absolute base nodes"""
+        result = list(self.edges)
         for e in self.edges:
             tail, head = e
             if self.get_endpoints(
@@ -1106,10 +1106,12 @@ class SpaceManager:
         for n in itertools.chain({node}, nx.descendants(newsubg_inh, node)):
             newsubg_inh.get_mro(n)
 
+        start = newsubg_inh.get_absbases()
+        start.insert(0, ("", node))
         newsubg = newsubg_inh.get_derived_graph(
             on_edge=self.derive_hook,
             on_remove=self.remove_hook,
-            start=[("", node)]
+            start=start
         )
 
         if not nx.is_directed_acyclic_graph(newsubg):

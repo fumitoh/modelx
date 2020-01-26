@@ -370,3 +370,29 @@ def test_add_bases_to_defined():
     B.add_bases(A)
     assert B.foo() == "base"
     assert A.foo() == "sub"
+
+
+def test_remove_bases_shared_subs():
+    """
+    A <- B -> C
+    |    |    |
+    X    X*   X
+    |    |    |
+    M    M*N* N
+    """
+    m = mx.new_model()
+    m.new_space("A").new_space("X").new_cells("M")
+    m.new_space("B")
+    m.new_space("C").new_space("X").new_cells("N")
+
+    A = m.A
+    B = m.B
+    C = m.C
+    B.add_bases(A, C)
+
+    B.remove_bases(A)
+
+    assert hasattr(B, "X")
+    assert hasattr(B.X, "N")
+    assert not hasattr(B.X, "M")
+    print(hasattr(B.X, "N"))
