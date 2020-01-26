@@ -470,8 +470,8 @@ class SpaceGraph(nx.DiGraph):
 
     def get_derived_graph(self, on_edge=None, on_remove=None, start=()):
         g = self.copy_as_spacegraph(self)
-        for e in self.visit_edges(*start):
-            g.derive_tree(e, on_edge, on_remove)
+        for e in self._visit_edges(*start):
+            g._derive_tree(e, on_edge, on_remove)
         return g
 
     def get_absbases(self):
@@ -486,7 +486,7 @@ class SpaceGraph(nx.DiGraph):
 
         return result
 
-    def visit_edges(self, *start):
+    def _visit_edges(self, *start):
         """Generator yielding edges in breadth-first order"""
         if not start:
             start = self.get_absbases()
@@ -522,7 +522,7 @@ class SpaceGraph(nx.DiGraph):
 
         return True
 
-    def derive_tree(self, edge, on_edge=None, on_remove=None):
+    def _derive_tree(self, edge, on_edge=None, on_remove=None):
         """Create derived node under the head of edge from the tail of edge"""
         tail, head = edge
 
@@ -570,7 +570,7 @@ class SpaceGraph(nx.DiGraph):
         result = set()
         for node in nodes:
             if node in self.nodes:
-                nodeset, _ = self.get_nodeset(node, set())
+                nodeset, _ = self._get_nodeset(node, set())
                 result.update(nodeset)
 
         subg = self.copy_as_spacegraph(self.subgraph(result))
@@ -612,7 +612,7 @@ class SpaceGraph(nx.DiGraph):
 
         return nx.compose(src, subgraph)
 
-    def get_nodeset(self, node, processed):
+    def _get_nodeset(self, node, processed):
         """Get a subset of self.
 
         Get a subset of self such that the subset contains
@@ -633,7 +633,7 @@ class SpaceGraph(nx.DiGraph):
         processed.update(ends)
         result = tree.copy()
         for n in neighbors:
-            ret_res, _ = self.get_nodeset(n, processed)
+            ret_res, _ = self._get_nodeset(n, processed)
             result.update(ret_res)
 
         return result, processed
