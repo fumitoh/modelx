@@ -1293,13 +1293,6 @@ class UserSpaceImpl(
             self, pd.read_csv(filepath, *args, **kwargs), cells, param, source)
 
     # ----------------------------------------------------------------------
-    # Reference creation
-
-    def new_ref(self, name, value, is_derived=False):
-        ref = self.manager.new_ref(self, name, value, is_derived=is_derived)
-        return ref
-
-    # ----------------------------------------------------------------------
     # Attribute access
 
     def set_attr(self, name, value):
@@ -1314,7 +1307,7 @@ class UserSpaceImpl(
         if name in self.namespace:
             if name in self.refs:
                 if name in self.self_refs:
-                    self.new_ref(name, value)
+                    self.manager.new_ref(self, name, value)
                 else:
                     raise KeyError("Ref '%s' cannot be changed" % name)
 
@@ -1326,7 +1319,7 @@ class UserSpaceImpl(
             else:
                 raise ValueError
         else:
-            self.new_ref(name, value)
+            self.manager.new_ref(self, name, value)
 
     def del_attr(self, name):
         """Implementation of attribute deletion
