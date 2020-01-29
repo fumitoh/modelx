@@ -327,7 +327,8 @@ def new_space_from_pandas(
     else:
         space_func = get_param_func(space_params)
 
-    newspace = self.new_space(name=space, formula=space_func, source=source)
+    newspace = self.spacemgr.new_space(
+        self, name=space, formula=space_func, source=source)
 
     if isinstance(obj, pd.Series):
         obj = obj.to_frame()
