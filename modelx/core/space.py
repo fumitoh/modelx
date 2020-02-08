@@ -422,11 +422,11 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
 
     def add_bases(self, *bases):
         """Add base spaces."""
-        return self._impl.add_bases(get_impls(bases))
+        return self._impl.spacemgr.add_bases(self._impl, get_impls(bases))
 
     def remove_bases(self, *bases):
         """Remove base spaces."""
-        return self._impl.remove_bases(bases)
+        return self._impl.spacemgr.remove_bases(self._impl, get_impls(bases))
 
     def import_funcs(self, module):
         """Create a cells from a module."""
@@ -1349,15 +1349,6 @@ class UserSpaceImpl(
 
     def is_dynamic(self):
         return False
-
-    # ----------------------------------------------------------------------
-    # Inheritance
-
-    def add_bases(self, bases):
-        self.spacemgr.add_bases(self, bases)
-
-    def remove_bases(self, bases):  # bases are interfaces
-        self.spacemgr.remove_bases(self, get_impls(bases))
 
     # --- Member deletion -------------------------------------
 
