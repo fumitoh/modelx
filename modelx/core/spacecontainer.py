@@ -361,32 +361,6 @@ class BaseSpaceContainerImpl:
     def namespace(self):
         raise NotImplementedError
 
-    # ----------------------------------------------------------------------
-    # Create space
-
-    def _new_space(
-        self,
-        name=None,
-        formula=None,
-        refs=None,
-        source=None,
-        doc=None,
-        is_derived=False,
-    ):
-
-        from modelx.core.space import UserSpaceImpl
-
-        space = UserSpaceImpl(
-            parent=self,
-            name=name,
-            is_derived=is_derived,
-            formula=formula,
-            refs=refs,
-            source=source,
-            doc=doc
-        )
-        return space
-
     def _set_space(self, space):
         """To be overridden in subclasses."""
         raise NotImplementedError

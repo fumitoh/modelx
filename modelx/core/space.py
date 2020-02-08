@@ -1147,7 +1147,12 @@ class UserSpaceImpl(
         )
 
     def _new_space_member(self, name, is_derived):
-        space = self._new_space(name, is_derived=is_derived)
+
+        space = UserSpaceImpl(
+            parent=self,
+            name=name,
+            is_derived=is_derived
+        )
         self._set_space(space)
         return space
 
