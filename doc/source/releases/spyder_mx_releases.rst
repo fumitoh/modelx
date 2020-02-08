@@ -1,6 +1,15 @@
 **spyder-modelx** releases
 ==========================
 
+.. _release-mxplugin-v0.1.1:
+
+spyder-modelx v0.1.1 (8 February 2020)
+---------------------------------------
+- Fix a bug during Spyder 4 startup (`GH28`_).
+- Fix errors reported by traceback (%tb) in MxCosole IPython at startup.
+
+.. _GH28: https://github.com/fumitoh/modelx/issues/28
+
 .. _release-mxplugin-v0.1.0:
 
 spyder-modelx v0.1.0 (2 January 2020)
