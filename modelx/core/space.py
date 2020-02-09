@@ -941,7 +941,6 @@ class BaseSpaceImpl(
     @property
     def bases(self):
         """Return an iterator over direct base spaces"""
-        node = self.get_fullname(omit_model=True)
         spaces = self.spacemgr.get_deriv_bases(self)
         return spaces
 
