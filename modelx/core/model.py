@@ -214,7 +214,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
         self._global_refs = RefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
-        self._spaces = ImplDict(self, SpaceView)
+        self._spaces = SpaceDict(self)
         self._dynamic_bases = SpaceDict(self)
         self._all_spaces = ImplChainMap(
             self, SpaceView, [self._spaces, self._dynamic_bases]
