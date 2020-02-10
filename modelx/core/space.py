@@ -318,11 +318,6 @@ class BaseSpace(BaseSpaceContainer):
         return self._impl.derived_spaces.interfaces
 
     @property
-    def argvalues(self):
-        """A tuple of space arguments."""
-        return self._impl.argvalues_if
-
-    @property
     def parameters(self):
         """A tuple of parameter strings."""
         return tuple(self._impl.formula.parameters)
@@ -1591,6 +1586,10 @@ class RootDynamicSpace(DynamicSpace):
     def _tupleid(self):
         return self.parent._tupleid + (self.argvalues,)
 
+    @property
+    def argvalues(self):
+        """A tuple of space arguments."""
+        return self._impl.argvalues_if
 
 @add_stateattrs
 class RootDynamicSpaceImpl(DynamicSpaceImpl):
