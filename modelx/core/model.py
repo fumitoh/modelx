@@ -895,12 +895,17 @@ class SpaceManager:
 
         if parent_node in graph:
             parent = graph.to_space(parent_node)
-            parent.named_spaces.del_item(name)
+            method = parent.named_spaces.del_item
         elif parent_node:
             parent = self._graph.to_space(parent_node)
-            parent.named_spaces.del_item(name)
+            method = parent.named_spaces.del_item
         else:
-            self.model.del_space(name)
+            # parent = self.model
+            method = self.model.del_space
+
+        self._instructions.append(
+            Instruction(method, (name,))
+        )
 
     def _get_space_bases(self, space, graph):
         nodes = graph.get_mro(space.namedid)[1:]
