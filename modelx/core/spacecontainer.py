@@ -318,7 +318,8 @@ class BaseSpaceContainerImpl:
     """
 
     __cls_stateattrs = [
-        "_spaces", "_all_spaces"
+        "_named_spaces",
+        "_all_spaces"
     ]   # must be defined in subclasses
 
     # ----------------------------------------------------------------------
@@ -348,7 +349,7 @@ class BaseSpaceContainerImpl:
 
     @property
     def spaces(self):
-        return self._spaces.refresh
+        return self._named_spaces.refresh
 
     @property
     def all_spaces(self):
@@ -359,10 +360,6 @@ class BaseSpaceContainerImpl:
 
     @property
     def namespace(self):
-        raise NotImplementedError
-
-    def _set_space(self, space):
-        """To be overridden in subclasses."""
         raise NotImplementedError
 
 

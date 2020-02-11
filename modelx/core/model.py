@@ -214,15 +214,15 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
         self._global_refs = RefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
-        self._spaces = SpaceDict(self)
+        self._named_spaces = SpaceDict(self)
         self._dynamic_bases = SpaceDict(self)
         self._all_spaces = ImplChainMap(
-            self, SpaceView, [self._spaces, self._dynamic_bases]
+            self, SpaceView, [self._named_spaces, self._dynamic_bases]
         )
         self._dynamic_bases_inverse = {}
         self._dynamic_base_namer = AutoNamer("__Space")
         self._namespace = ImplChainMap(
-            self, BaseView, [self._spaces, self._global_refs]
+            self, BaseView, [self._named_spaces, self._global_refs]
         )
         self.allow_none = False
         self.lazy_evals = self._namespace
@@ -342,15 +342,6 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         if space is self.currentspace:
             self.currentspace = None
 
-    def _set_space(self, space):
-
-        if space.name in self.spaces:
-            self.del_space(space.name)
-        elif space.name in self.global_refs:
-            raise KeyError("Name '%s' already already assigned" % self.name)
-
-        self.spaces.set_item(space.name, space)
-
     def del_ref(self, name):
         self.global_refs.del_item(name)
 
@@ -379,6 +370,9 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         else:
             raise KeyError("Name '%s' not defined" % name)
 
+    # ----------------------------------------------------------------------
+    # Dynamic base manager
+
     def get_dynamic_base(self, bases: tuple):
         """Create of get a base space for a tuple of bases"""
 
@@ -388,8 +382,10 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             name = self._dynamic_base_namer.get_next(self._dynamic_bases)
             base = self.spacemgr.new_space(
                 self,
-                name=name, bases=bases, prefix="__", set_space=False)
-            self._dynamic_bases[name] = base
+                name=name,
+                bases=bases,
+                prefix="__",
+                container=self._dynamic_bases)
             self._dynamic_bases_inverse[bases] = base
             return base
 
@@ -863,13 +859,13 @@ class SpaceManager:
         space = UserSpaceImpl(
             parent,
             name,
+            container=parent._named_spaces,
             is_derived=True
             # formula=formula,
             # refs=refs,
             # source=source,
             # doc=doc
         )
-        parent._set_space(space)
         graph.nodes[node]["space"] = space
         graph.nodes[node]["state"] = "created"
 
@@ -927,7 +923,7 @@ class SpaceManager:
             is_derived=False,
             prefix="",
             doc=None,
-            set_space=True
+            container=None
     ):
         """Create a new child space.
 
@@ -1006,18 +1002,19 @@ class SpaceManager:
         if not parent.is_model():
             parent.set_defined()
 
+        if container is None:
+            container = parent._named_spaces
+
         space = UserSpaceImpl(
             parent,
             name,
+            container,
             is_derived,
             formula=formula,
             refs=refs,
             source=source,
-            doc=doc)
-
-        if set_space:
-            parent._set_space(space)
-
+            doc=doc
+        )
         newsubg.nodes[node]["space"] = space
         newsubg.nodes[node]["state"] = "created"
 

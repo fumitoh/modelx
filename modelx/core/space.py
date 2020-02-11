@@ -715,7 +715,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         self._impl.doc = value
 
 
-class DynamicSpaceFactory:
+class RootDynamicSpaceParent:
 
     __cls_stateattrs = [
         "_dynamic_spaces",
@@ -833,7 +833,7 @@ class DynamicSpaceFactory:
 
 @add_stateattrs
 class BaseSpaceImpl(
-    DynamicSpaceFactory,
+    RootDynamicSpaceParent,
     BaseSpaceContainerImpl,
     Impl
 ):
@@ -851,7 +851,6 @@ class BaseSpaceImpl(
 
     __cls_stateattrs = [
             "_cells",
-            "_named_spaces",
             "_local_refs",
             "_self_refs",
             "_refs",
@@ -862,6 +861,7 @@ class BaseSpaceImpl(
         self,
         parent,
         name,
+        container,
         formula=None,
         refs=None,
         source=None,
@@ -881,14 +881,14 @@ class BaseSpaceImpl(
 
         self._self_refs = RefDict(self)
         self._cells = CellsDict(self)
-        self._spaces = self._named_spaces = SpaceDict(self)
+        self._named_spaces = SpaceDict(self)
         self._local_refs = {"_self": self, "_space": self}
         self._refs = self._create_refs(arguments)
         self._namespace = ImplChainMap(
-            self, None, [self._cells, self._refs, self._spaces]
+            self, None, [self._cells, self._refs, self._named_spaces]
         )
         self.lazy_evals = self._namespace
-        DynamicSpaceFactory.__init__(self, formula)
+        RootDynamicSpaceParent.__init__(self, formula)
         self._all_spaces = ImplChainMap(
             self, SpaceView, [self._named_spaces, self._dynamic_spaces]
         )
@@ -897,8 +897,10 @@ class BaseSpaceImpl(
         # Add initial refs members
 
         if refs is not None:
-            for name, value in refs.items():
-                ReferenceImpl(self, name, value, container=self._self_refs)
+            for key, value in refs.items():
+                ReferenceImpl(self, key, value, container=self._self_refs)
+
+        container.set_item(name, self)
 
     def _create_refs(self, arguments=None):
         raise NotImplementedError
@@ -957,9 +959,6 @@ class BaseSpaceImpl(
 
     def is_dynamic(self):
         raise NotImplementedError
-
-    def _set_space(self, space):
-        self._named_spaces.set_item(space.name, space)
 
     # ----------------------------------------------------------------------
     # Reference operation
@@ -1096,6 +1095,7 @@ class UserSpaceImpl(
         self,
         parent,
         name,
+        container,
         is_derived,
         formula=None,
         refs=None,
@@ -1106,6 +1106,7 @@ class UserSpaceImpl(
             self,
             parent=parent,
             name=name,
+            container=container,
             formula=formula,
             refs=refs,
             source=source,
@@ -1128,7 +1129,7 @@ class UserSpaceImpl(
         )
 
         self._namespace = ImplChainMap(
-            self, None, [self._cells, self._refs, self._spaces]
+            self, None, [self._cells, self._refs, self._named_spaces]
         )
 
         self.lazy_evals = self._namespace
@@ -1145,9 +1146,9 @@ class UserSpaceImpl(
         space = UserSpaceImpl(
             parent=self,
             name=name,
+            container=self._named_spaces,
             is_derived=is_derived
         )
-        self._set_space(space)
         return space
 
     # ----------------------------------------------------------------------
@@ -1498,6 +1499,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         self,
         parent,
         name,
+        container,
         base,
         refs=None,
         arguments=None,
@@ -1507,6 +1509,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             self,
             parent,
             name,
+            container,
             base.formula,
             refs,
             base.source,
@@ -1515,12 +1518,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         )
         self._create_cells()
         self._create_refs(arguments)
-
-    def _new_space_member(self, name, is_derived):
-        space = DynamicSpaceImpl(parent=self, name=name)
-        space.is_derived = is_derived
-        self._set_space(space)
-        return space
 
     def _create_cells(self):
         for base in self._dynbase.cells.values():
@@ -1616,17 +1613,15 @@ class RootDynamicSpaceImpl(DynamicSpaceImpl):
             raise ValueError("invalid name")
 
         DynamicSpaceImpl.__init__(
-            self, parent, name, base, refs, arguments
+            self, parent, name, parent._dynamic_spaces, base, refs, arguments
         )
-        parent._dynamic_spaces.set_item(name, self)
         base._dynamic_subs.append(self)
         self._bind_args(self.arguments)
         self._create_child_spaces(self)
 
     def _create_child_spaces(self, space):
         for name, base in space._dynbase.named_spaces.items():
-            child = DynamicSpaceImpl(space, name, base)
-            space._named_spaces.set_item(name, child)
+            child = DynamicSpaceImpl(space, name, space._named_spaces, base)
             self._create_child_spaces(child)
 
     def _create_refs(self, arguments=None):
