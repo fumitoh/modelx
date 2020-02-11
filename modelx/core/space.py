@@ -864,7 +864,6 @@ class BaseSpaceImpl(
         container,
         formula=None,
         refs=None,
-        source=None,
         arguments=None,
         doc=None
     ):
@@ -1109,7 +1108,6 @@ class UserSpaceImpl(
             container=container,
             formula=formula,
             refs=refs,
-            source=source,
             doc=doc
         )
         EditableSpaceContainerImpl.__init__(self)
@@ -1512,7 +1510,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             container,
             base.formula,
             refs,
-            base.source,
             arguments,
             base.doc
         )
