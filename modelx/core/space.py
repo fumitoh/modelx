@@ -1059,18 +1059,6 @@ class DynamicBase:
     def __init__(self):
         self._dynamic_subs = []
 
-    def new_dynsubspace(self, parent, refs, arguments):
-        name = parent.itemspacenamer.get_next(parent.named_itemspaces)
-
-        space = ItemSpaceImpl(
-            parent=parent,
-            name=name,
-            base=self,
-            refs=refs,
-            arguments=arguments
-        )
-        space.is_derived = False
-
 
 @add_stateattrs
 class UserSpaceImpl(
@@ -1505,6 +1493,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         arguments=None,
     ):
         self._dynbase = base
+        base._dynamic_subs.append(self)
         BaseSpaceImpl.__init__(
             self,
             parent,
@@ -1516,7 +1505,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             base.doc
         )
         self._create_cells()
-        self._create_refs(arguments)
 
     def _create_cells(self):
         for base in self._dynbase.cells.values():
