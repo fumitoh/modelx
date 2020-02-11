@@ -474,7 +474,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                 for args, value in cellsdata.items():
                     space_args = args[:len(space_params)]
                     cells_args = args[len(space_params):]
-                    subspace = space.get_dynspace(space_args)
+                    subspace = space.get_itemspace(space_args)
                     cells = subspace.cells[cellsdata.name]
                     cells.set_value(cells_args, value)
 

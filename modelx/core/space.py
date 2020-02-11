@@ -303,9 +303,9 @@ class BaseSpace(BaseSpaceContainer):
         return self._impl.named_spaces.interfaces
 
     @property
-    def dynamic_spaces(self):
+    def named_itemspaces(self):
         """A mapping associating names to dynamic spaces."""
-        return self._impl.dynamic_spaces.interfaces
+        return self._impl.named_itemspaces.interfaces
 
     @property
     def _self_spaces(self):
@@ -346,13 +346,13 @@ class BaseSpace(BaseSpaceContainer):
         return bool(self._impl.formula)
 
     def __getitem__(self, key):
-        return self._impl.get_dynspace(tuplize_key(self, key)).interface
+        return self._impl.get_itemspace(tuplize_key(self, key)).interface
 
     def __iter__(self):
         raise TypeError("'Space' is not iterable")
 
     def __call__(self, *args, **kwargs):
-        return self._impl.get_dynspace(args, kwargs).interface
+        return self._impl.get_itemspace(args, kwargs).interface
 
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
@@ -375,9 +375,11 @@ class BaseSpace(BaseSpaceContainer):
 
         result = super()._baseattrs
         result["named_spaces"] = self.named_spaces._baseattrs
-        # For backward compatibility with spyder-modelx 0.1.0
+        # For backward compatibility with spyder-modelx -0.1.0
         result["static_spaces"] = self.named_spaces._baseattrs
-        result["dynamic_spaces"] = self.dynamic_spaces._baseattrs
+        result["named_itemspaces"] = self.named_itemspaces._baseattrs
+        # For backward compatibility with spyder-modelx -0.1.0
+        result["dynamic_spaces"] = self.named_itemspaces._baseattrs
         result["cells"] = self.cells._baseattrs
         result["refs"] = self.refs._baseattrs
 
@@ -718,16 +720,16 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
 class ItemSpaceParent:
 
     __cls_stateattrs = [
-        "_dynamic_spaces",
-        "dynspacenamer",
+        "_named_itemspaces",
+        "itemspacenamer",
         "param_spaces",
         "formula",
         "altfunc"
     ]
 
     def __init__(self, formula):
-        self._dynamic_spaces = ImplDict(self, SpaceView)
-        self.dynspacenamer = AutoNamer("__Space")
+        self._named_itemspaces = ImplDict(self, SpaceView)
+        self.itemspacenamer = AutoNamer("__Space")
 
         # ------------------------------------------------------------------
         # Construct altfunc after space members are crated
@@ -740,8 +742,8 @@ class ItemSpaceParent:
     # ----------------------------------------------------------------------
     # Dynamic Space Operation
     @property
-    def dynamic_spaces(self):
-        return self._dynamic_spaces.refresh
+    def named_itemspaces(self):
+        return self._named_itemspaces.refresh
 
     def set_formula(self, formula):
 
@@ -780,7 +782,7 @@ class ItemSpaceParent:
         else:
             RuntimeError("must not happen")
 
-    def _new_dynspace(
+    def _new_itemspace(
         self,
         bases,
         name=None,
@@ -798,7 +800,7 @@ class ItemSpaceParent:
         space.is_derived = False
         return space
 
-    def get_dynspace(self, args, kwargs=None):
+    def get_itemspace(self, args, kwargs=None):
         """Create a dynamic root space
 
         Called from interface methods
@@ -826,7 +828,7 @@ class ItemSpaceParent:
                     space_args["bases"] = [self]
 
             space_args["arguments"] = node_get_args(node)
-            space = self._new_dynspace(**space_args)
+            space = self._new_itemspace(**space_args)
             self.param_spaces[key] = space
             return space
 
@@ -889,7 +891,7 @@ class BaseSpaceImpl(
         self.lazy_evals = self._namespace
         ItemSpaceParent.__init__(self, formula)
         self._all_spaces = ImplChainMap(
-            self, SpaceView, [self._named_spaces, self._dynamic_spaces]
+            self, SpaceView, [self._named_spaces, self._named_itemspaces]
         )
 
         # ------------------------------------------------------------------
@@ -1058,7 +1060,7 @@ class DynamicBase:
         self._dynamic_subs = []
 
     def new_dynsubspace(self, parent, refs, arguments):
-        name = parent.dynspacenamer.get_next(parent.dynamic_spaces)
+        name = parent.itemspacenamer.get_next(parent.named_itemspaces)
 
         space = ItemSpaceImpl(
             parent=parent,
@@ -1359,9 +1361,9 @@ class UserSpaceImpl(
             else:
                 self.spacemgr.del_defined_space(self, name)
 
-        elif name in self.dynamic_spaces:
-            space = self.dynamic_spaces[name]
-            self.dynamic_spaces.del_item(name)
+        elif name in self.named_itemspaces:
+            space = self.named_itemspaces[name]
+            self.named_itemspaces.del_item(name)
 
         else:
             raise ValueError("Derived cells cannot be deleted")
@@ -1379,9 +1381,9 @@ class UserSpaceImpl(
         if name in self.cells:
             self.spacemgr.del_cells(self, name)
 
-        elif name in self.dynamic_spaces:
-            cells = self.dynamic_spaces.pop(name)
-            self.dynamic_spaces.set_update()
+        elif name in self.named_itemspaces:
+            cells = self.named_itemspaces.pop(name)
+            self.named_itemspaces.set_update()
             NullImpl(cells)
 
         else:
@@ -1602,16 +1604,16 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         arguments=None,
     ):
         if name is None:
-            name = parent.dynspacenamer.get_next(base.dynamic_spaces)
+            name = parent.itemspacenamer.get_next(base.named_itemspaces)
         elif (is_valid_name(name)
               and name not in parent.namespace
-              and name not in parent.dynamic_spaces):
+              and name not in parent.named_itemspaces):
             pass
         else:
             raise ValueError("invalid name")
 
         DynamicSpaceImpl.__init__(
-            self, parent, name, parent._dynamic_spaces, base, refs, arguments
+            self, parent, name, parent._named_itemspaces, base, refs, arguments
         )
         base._dynamic_subs.append(self)
         self._bind_args(self.arguments)

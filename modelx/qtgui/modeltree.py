@@ -195,7 +195,7 @@ class SpaceItem(SpaceContainerItem):
         for space in self.itemData["named_spaces"]["items"].values():
             self.childItems.append(SpaceItem(space, self))
 
-        dynspaces = self.itemData["dynamic_spaces"]["items"]
+        dynspaces = self.itemData["named_itemspaces"]["items"]
         if len(dynspaces) > 0:
             self.childItems.append(DynamicSpaceMapItem(dynspaces, self))
 

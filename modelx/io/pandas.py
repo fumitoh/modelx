@@ -370,7 +370,7 @@ def new_space_from_pandas(
             sargs, cargs = idx_to_arg(idx if obj.index.nlevels > 1 else (idx,))
             for i, col in enumerate(obj.columns):
                 v = obj.at[idx, col]
-                subspace = newspace.get_dynspace(sargs)
+                subspace = newspace.get_itemspace(sargs)
                 cells = subspace.cells[cells_names[i]]
                 cells.set_value(
                     cargs,

@@ -2,7 +2,7 @@ from modelx import *
 import pytest
 
 
-def test_dynamic_spaces():
+def test_named_itemspaces():
     def params(x, y):
         return {"bases": _self}
 
@@ -14,4 +14,4 @@ def test_dynamic_spaces():
 
     space[3, 4].distance()
 
-    assert space.dynamic_spaces == {"__Space1": space[3, 4]}
+    assert space.named_itemspaces == {"__Space1": space[3, 4]}

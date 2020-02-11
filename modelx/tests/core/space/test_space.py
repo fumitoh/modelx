@@ -102,7 +102,7 @@ def test_formula(testmodel):
     assert base[3, 4].distance == 5
 
 
-def test_dynamic_spaces(testmodel):
+def test_named_itemspaces(testmodel):
 
     model = testmodel
     space = model.new_space(formula=lambda n: {"bases": _self})
