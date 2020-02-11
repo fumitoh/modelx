@@ -1603,7 +1603,6 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         DynamicSpaceImpl.__init__(
             self, parent, name, parent._named_itemspaces, base, refs, arguments
         )
-        base._dynamic_subs.append(self)
         self._bind_args(self.arguments)
         self._create_child_spaces(self)
 
