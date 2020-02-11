@@ -260,7 +260,7 @@ class BaseSpace(BaseSpaceContainer):
 
     def _is_root(self):
         """True if ths space is a dynamic space, False otherwise."""
-        return isinstance(self._impl, RootDynamicSpaceImpl)
+        return isinstance(self._impl, ItemSpaceImpl)
 
     def _is_dynamic(self):
         """True if the space is in a dynamic space, False otherwise."""
@@ -715,7 +715,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         self._impl.doc = value
 
 
-class RootDynamicSpaceParent:
+class ItemSpaceParent:
 
     __cls_stateattrs = [
         "_dynamic_spaces",
@@ -788,7 +788,7 @@ class RootDynamicSpaceParent:
         arguments=None
     ):
         """Create a new dynamic root space."""
-        space = RootDynamicSpaceImpl(
+        space = ItemSpaceImpl(
             parent=self,
             base=self._get_dynamic_base(bases),
             name=name,
@@ -833,7 +833,7 @@ class RootDynamicSpaceParent:
 
 @add_stateattrs
 class BaseSpaceImpl(
-    RootDynamicSpaceParent,
+    ItemSpaceParent,
     BaseSpaceContainerImpl,
     Impl
 ):
@@ -887,7 +887,7 @@ class BaseSpaceImpl(
             self, None, [self._cells, self._refs, self._named_spaces]
         )
         self.lazy_evals = self._namespace
-        RootDynamicSpaceParent.__init__(self, formula)
+        ItemSpaceParent.__init__(self, formula)
         self._all_spaces = ImplChainMap(
             self, SpaceView, [self._named_spaces, self._dynamic_spaces]
         )
@@ -1048,7 +1048,7 @@ class BaseSpaceImpl(
         return _to_frame_inner(self.cells, args)
 
 
-class DynamicSubSpaceContainer:
+class DynamicBase:
 
     __cls_stateattrs = [
      "_dynamic_subs"
@@ -1060,7 +1060,7 @@ class DynamicSubSpaceContainer:
     def new_dynsubspace(self, parent, refs, arguments):
         name = parent.dynspacenamer.get_next(parent.dynamic_spaces)
 
-        space = RootDynamicSpaceImpl(
+        space = ItemSpaceImpl(
             parent=parent,
             name=name,
             base=self,
@@ -1072,7 +1072,7 @@ class DynamicSubSpaceContainer:
 
 @add_stateattrs
 class UserSpaceImpl(
-    DynamicSubSpaceContainer,
+    DynamicBase,
     BaseSpaceImpl,
     EditableSpaceContainerImpl,
     Derivable
@@ -1111,7 +1111,7 @@ class UserSpaceImpl(
             doc=doc
         )
         EditableSpaceContainerImpl.__init__(self)
-        DynamicSubSpaceContainer.__init__(self)
+        DynamicBase.__init__(self)
         Derivable.__init__(self, is_derived)
         self.cellsnamer = AutoNamer("Cells")
 
@@ -1538,7 +1538,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     def _create_parentargs(self):
         if isinstance(self.parent, UserSpaceImpl):
             parentargs = []
-        elif isinstance(self.parent, RootDynamicSpaceImpl):
+        elif isinstance(self.parent, ItemSpaceImpl):
             parentargs = [self.parent._arguments, self.parent._parentargs]
         else:
             parentargs = [self.parent._parentargs]
@@ -1564,7 +1564,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             return []
 
 
-class RootDynamicSpace(DynamicSpace):
+class ItemSpace(DynamicSpace):
     """Dynamically created space.
 
     Dynamic spaces of a parametric space
@@ -1585,10 +1585,11 @@ class RootDynamicSpace(DynamicSpace):
         """A tuple of space arguments."""
         return self._impl.argvalues_if
 
-@add_stateattrs
-class RootDynamicSpaceImpl(DynamicSpaceImpl):
 
-    interface_cls = RootDynamicSpace
+@add_stateattrs
+class ItemSpaceImpl(DynamicSpaceImpl):
+
+    interface_cls = ItemSpace
 
     __cls_stateattrs = ["_arguments"]
 
