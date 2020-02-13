@@ -390,6 +390,24 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             return base
 
 
+def split_node(node):
+    parent = ".".join(node.split(".")[:-1])
+    name = node.split(".")[-1]
+    return parent, name
+
+
+def len_node(node):
+    return len(node.split("."))
+
+
+def remove_left(node, remove_len):
+    return ".".join(node.split(".")[remove_len:])
+
+
+def shorten_right(node, new_len):
+    return ".".join(node.split(".")[:new_len])
+
+
 class SpaceGraph(nx.DiGraph):
     """New implementation of inheritance graph
 
@@ -478,7 +496,7 @@ class SpaceGraph(nx.DiGraph):
             tail, head = e
             if self.get_endpoints(
                     self.visit_treenodes(
-                        self.get_topnode(tail)), edge="in"):
+                        self._get_topnode(tail)), edge="in"):
                 result.remove(e)
 
         return result
@@ -497,8 +515,8 @@ class SpaceGraph(nx.DiGraph):
                 visited.add(e)
             _, head = e
             edges = []
-            for n in self.visit_treenodes(self.get_topnode(head, edge="out")):
-                if self.is_endpoint(n, edge="out"):
+            for n in self.visit_treenodes(self._get_topnode(head, edge="out")):
+                if self._is_endpoint(n, edge="out"):
                     edges.extend(oe for oe in self.out_edges(n)
                                  if oe not in visited)
             que += edges
@@ -506,12 +524,12 @@ class SpaceGraph(nx.DiGraph):
     def check_cyclic(self, start, node):
         """True if no cyclic"""
 
-        succs = self.get_otherends(
-            self.visit_treenodes(self.get_topnode(node, edge="out")),
+        succs = self._get_otherends(
+            self.visit_treenodes(self._get_topnode(node, edge="out")),
             edge="out")
 
         for n in succs:
-            if self.is_linealrel(start, n):
+            if self._is_linealrel(start, n):
                 return False
             else:
                 if not self.check_cyclic(start, n):
@@ -524,14 +542,12 @@ class SpaceGraph(nx.DiGraph):
         tail, head = edge
 
         if tail:
-            tail_len = len(tail.split("."))
-            bases = list(".".join(n.split(".")[tail_len:])
+            bases = list(remove_left(n, len_node(tail))
                     for n in self.visit_treenodes(tail, include_self=False))
         else:
             bases = []
 
-        head_len = len(head.split("."))
-        subs = list(".".join(n.split(".")[head_len:])
+        subs = list(remove_left(n, len_node(head))
                    for n in self.visit_treenodes(head, include_self=False))
 
         # missing = bases - subs
@@ -620,11 +636,11 @@ class SpaceGraph(nx.DiGraph):
         3. Find node sets.
         4. For each endpoint in the child nodes, repeat from 1.
         """
-        top = self.get_topnode(node)
+        top = self._get_topnode(node)
         tree = set(self.visit_treenodes(top))
         ends = self.get_endpoints(tree)
 
-        neighbors = self.get_otherends(ends) - processed
+        neighbors = self._get_otherends(ends) - processed
         processed.update(ends)
         result = tree.copy()
         for n in neighbors:
@@ -635,24 +651,24 @@ class SpaceGraph(nx.DiGraph):
 
     def get_parent_nodes(self, node: str, include_self=True):
         """Get ancestors of ``node`` in order"""
-        split = node.split(".")
-        maxlen = len(split) if include_self else len(split) - 1
 
+        maxlen = len_node(node) if include_self else len_node(node) - 1
         result = []
+
         for i in range(maxlen, 0, -1):
-            n = ".".join(split[:i])
+            n = shorten_right(node, i)
             if n in self.nodes:
                 result.insert(0, n)
             else:
                 break
         return result
 
-    def get_topnode(self, node, edge="any"):
+    def _get_topnode(self, node, edge="any"):
         """Get the highest node that is an ancestor of the ``node``.
         If none exits, return ``node``.
         """
         parents = self.get_parent_nodes(node)
-        return next((n for n in parents if self.is_endpoint(n, edge)), node)
+        return next((n for n in parents if self._is_endpoint(n, edge)), node)
 
     def visit_treenodes(self, node, include_self=True):
         que = [node]
@@ -662,17 +678,17 @@ class SpaceGraph(nx.DiGraph):
                 yield n
             childs = [ch for ch in self.nodes
                       if ch[:len(n) + 1] == (n + ".")
-                      and len(n.split(".")) + 1 == len(ch.split("."))]
+                      and len_node(n) + 1 == len_node(ch)]
             que += childs
 
     def get_endpoints(self, nodes, edge="any"):
-        return set(n for n in nodes if self.is_endpoint(n, edge))
+        return set(n for n in nodes if self._is_endpoint(n, edge))
 
-    def get_otherends(self, nodes, edge="any"):
-        otherends = [set(self.get_neighbors(n, edge)) for n in nodes]
+    def _get_otherends(self, nodes, edge="any"):
+        otherends = [set(self._get_neighbors(n, edge)) for n in nodes]
         return set().union(*otherends)
 
-    def get_neighbors(self, node, edge):
+    def _get_neighbors(self, node, edge):
         if edge == "in":
             return self.predecessors(node)
         elif edge == "out":
@@ -681,7 +697,7 @@ class SpaceGraph(nx.DiGraph):
             return itertools.chain(
                 self.predecessors(node), self.successors(node))
 
-    def is_endpoint(self, node, edge="any"):
+    def _is_endpoint(self, node, edge="any"):
         if edge == "out":
             return bool(self.out_edges(node))
         elif edge == "in":
@@ -692,39 +708,30 @@ class SpaceGraph(nx.DiGraph):
         else:
             raise ValueError
 
-    def has_child(self, node, child):
-        node = node.split(".")
-        node_len = len(node)
-
-        child = child.split(".")
-        child_len = len(child)
-
-        if node_len >= child_len:
+    def _has_child(self, node, child):
+        node_len = len_node(node)
+        if node_len >= len_node(child):
             return False
-        elif node == child[:node_len]:
+        elif node == shorten_right(child, node_len):
             return True
         else:
             return False
 
-    def has_parent(self, node, parent):
-        node = node.split(".")
-        node_len = len(node)
+    def _has_parent(self, node, parent):
+        parent_len = len_node(parent)
 
-        parent = parent.split(".")
-        parent_len = len(parent)
-
-        if node_len <= parent_len:
+        if len_node(node) <= parent_len:
             return False
-        elif node[:parent_len] == parent:
+        elif shorten_right(node, parent_len) == parent:
             return True
         else:
             return False
 
-    def is_linealrel(self, node, other):
+    def _is_linealrel(self, node, other):
         return (
                 node == other
-                or self.has_child(node, other)
-                or self.has_parent(node, other)
+                or self._has_child(node, other)
+                or self._has_parent(node, other)
         )
 
     def to_space(self, node):
@@ -796,12 +803,6 @@ class InstructionList(list):
         if clear:
             self.clear()
         return result
-
-
-def split_node(node):
-    parent = ".".join(node.split(".")[:-1])
-    name = node.split(".")[-1]
-    return parent, name
 
 
 class SpaceManager:
