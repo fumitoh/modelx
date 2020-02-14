@@ -400,12 +400,12 @@ def len_node(node):
     return len(node.split("."))
 
 
-def remove_left(node, remove_len):
-    return ".".join(node.split(".")[remove_len:])
+def trim_left(node, trimed_len):
+    return ".".join(node.split(".")[trimed_len:])
 
 
-def shorten_right(node, new_len):
-    return ".".join(node.split(".")[:new_len])
+def trim_right(node, left_len):
+    return ".".join(node.split(".")[:left_len])
 
 
 class SpaceGraph(nx.DiGraph):
@@ -542,12 +542,12 @@ class SpaceGraph(nx.DiGraph):
         tail, head = edge
 
         if tail:
-            bases = list(remove_left(n, len_node(tail))
+            bases = list(trim_left(n, len_node(tail))
                     for n in self.visit_treenodes(tail, include_self=False))
         else:
             bases = []
 
-        subs = list(remove_left(n, len_node(head))
+        subs = list(trim_left(n, len_node(head))
                    for n in self.visit_treenodes(head, include_self=False))
 
         # missing = bases - subs
@@ -656,7 +656,7 @@ class SpaceGraph(nx.DiGraph):
         result = []
 
         for i in range(maxlen, 0, -1):
-            n = shorten_right(node, i)
+            n = trim_right(node, i)
             if n in self.nodes:
                 result.insert(0, n)
             else:
@@ -712,7 +712,7 @@ class SpaceGraph(nx.DiGraph):
         node_len = len_node(node)
         if node_len >= len_node(child):
             return False
-        elif node == shorten_right(child, node_len):
+        elif node == trim_right(child, node_len):
             return True
         else:
             return False
@@ -722,7 +722,7 @@ class SpaceGraph(nx.DiGraph):
 
         if len_node(node) <= parent_len:
             return False
-        elif shorten_right(node, parent_len) == parent:
+        elif trim_right(node, parent_len) == parent:
             return True
         else:
             return False
