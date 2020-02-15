@@ -1248,28 +1248,26 @@ class SpaceManager:
 
         return cells
 
-    def new_ref(self, space, name, value, is_derived=False):
+    def new_ref(self, space, name, value):
 
         if not self._can_add(space, name, ReferenceImpl):
             raise ValueError("Cannot create reference '%s'" % name)
 
         self._set_defined(space.namedid)
         space.set_defined()
+        space.on_create_ref(name, value, is_derived=False)
 
-        ref = ReferenceImpl(space, name, value,
-                            container=space._self_refs,
-                            is_derived=is_derived)
-
-        self.update_subs(space)
-
-        return ref
+        for subspace in self._get_subs(space):
+            if name in subspace.self_refs:
+                break
+            subspace.on_create_ref(name, value, is_derived=True)
 
     def change_ref(self, space, name, value):
         """Assigns a new value to an existing name."""
 
         self._set_defined(space.namedid)
         space.set_defined()
-        space.on_change_ref(name, value, is_defined=True)
+        space.on_change_ref(name, value, is_derived=False)
 
         for subspace in self._get_subs(space):
             subref = subspace.self_refs[name]
@@ -1277,6 +1275,6 @@ class SpaceManager:
                 break
             elif subref.bases[0] is not space.self_refs[name]:
                 break
-            subspace.on_change_ref(name, value, is_defined=False)
+            subspace.on_change_ref(name, value, is_derived=True)
 
 

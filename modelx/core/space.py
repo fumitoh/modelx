@@ -1461,10 +1461,15 @@ class UserSpaceImpl(
         # TODO: Update dynamic subs
         # self._dynamic_subs.clear()
 
-    def on_change_ref(self, name, value, is_defined):
-        self.self_refs[name].change_value(value, is_defined)
+    def on_change_ref(self, name, value, is_derived):
+        self.self_refs[name].change_value(value, is_derived)
         # self_ref is shared with dynamic subs, so no need to update theirs.
         # self.call_subs_method("_change_ref", (name, value))
+
+    def on_create_ref(self, name, value, is_derived):
+        ReferenceImpl(self, name, value,
+                      container=self._self_refs,
+                      is_derived=is_derived)
 
 
 class DynamicSpace(BaseSpace):

@@ -87,8 +87,8 @@ class ReferenceImpl(Derivable, Impl):
         self.container = container
         container.set_item(name, self)
 
-    def change_value(self, value, is_defined):
-        if is_defined:
+    def change_value(self, value, is_derived):
+        if not is_derived:
             self.set_defined()
         self.interface = value
         self.container.set_update()
