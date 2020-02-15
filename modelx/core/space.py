@@ -1289,8 +1289,10 @@ class UserSpaceImpl(
             if name in self.refs:
                 if name in self.self_refs:
                     self.spacemgr.change_ref(self, name, value)
+                elif self.refs[name].parent is self.model:
+                    self.spacemgr.new_ref(self, name, value)
                 else:
-                    raise KeyError("Ref '%s' cannot be changed" % name)
+                    raise RuntimeError("must not happen")
 
             elif name in self.cells:
                 if self.cells[name].is_scalar():

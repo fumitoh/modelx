@@ -813,6 +813,7 @@ class SpaceManager:
         self._graph = SpaceGraph()
         self._instructions = InstructionList()
 
+    # TODO: Rewrite or remove this.
     def _can_add(self, parent, name, klass):
 
         if parent is self.model:
@@ -829,6 +830,12 @@ class SpaceManager:
                     if desc in ns and not isinstance(ns[desc], klass):
                         return False
                 return True
+
+    def _find_name_in_subs(self, parent, name):
+        for subspace in self._get_subs(parent, skip_self=False):
+            if name in subspace.namespace:
+                return subspace._namespace.refresh[name]
+        return None
 
     def _update_graphs(self, newsubg_inh, newsubg, remove_inh, remove):
 
@@ -1250,8 +1257,12 @@ class SpaceManager:
 
     def new_ref(self, space, name, value):
 
-        if not self._can_add(space, name, ReferenceImpl):
-            raise ValueError("Cannot create reference '%s'" % name)
+        other = self._find_name_in_subs(space, name)
+        if other is not None:
+            if not isinstance(other, ReferenceImpl):
+                raise ValueError("Cannot create reference '%s'" % name)
+            elif other not in self.model.global_refs.values():
+                raise ValueError("Cannot create reference '%s'" % name)
 
         self._set_defined(space.namedid)
         space.set_defined()
