@@ -1115,6 +1115,7 @@ class UserSpaceImpl(
         else:
             self.source = source
 
+        # TODO: Replace with _create_refs
         self._refs = ImplChainMap(
             self,
             RefView,
@@ -1525,8 +1526,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     def _create_refs(self, arguments=None):
         self._parentargs = self._create_parentargs()
-        self._self_refs.update(self._dynbase.self_refs)
-        self._self_refs.observe(self._dynbase.self_refs)
 
         return ImplChainMap(
             self,
@@ -1536,6 +1535,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
                 self._local_refs,
                 self._parentargs,
                 self._self_refs,
+                self._dynbase._self_refs
             ],
         )
 
@@ -1626,11 +1626,8 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             self._create_child_spaces(child)
 
     def _create_refs(self, arguments=None):
-        # TODO: Want to call base method to avoid duplication
         self._arguments = RefDict(self, data=arguments)
         self._parentargs = self._create_parentargs()
-        self._self_refs.update(self._dynbase.self_refs)
-        self._self_refs.observe(self._dynbase.self_refs)
 
         # TODO: Order of inner maps to be reviewed
         return ImplChainMap(
@@ -1642,6 +1639,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
                 self._parentargs,
                 self._arguments,
                 self._self_refs,
+                self._dynbase._self_refs
             ],
         )
 

@@ -54,3 +54,12 @@ def test_multinherit_change_baseref():
     assert sub.x == 1
     del base1.x
     assert sub.x == 3
+
+
+def test_dynamic_space_created_before_base_ref_assignment():
+    # https://github.com/fumitoh/modelx/issues/25
+    m, s1 = mx.new_model(), mx.new_space('s1')
+    s2 = m.new_space(name='s2', formula=lambda t: None)
+    s2(0)   # Create dynamic space before ref assignment
+    s2.a = 1
+    assert s2(0).a == 1

@@ -93,3 +93,21 @@ def test_dyntotal(dyntotal, tmp_path):
     assert m.s(0).a(2) == 2
     assert m.s(-1).b(2, 3) == 2 * 3 * 10
     assert m.s(0).b(2, 3) == 2 * 3
+
+
+def test_assign_dynamic_space_to_ref(tmp_path):
+    # https://github.com/fumitoh/modelx/issues/25
+
+    m, s1 = mx.new_model(), mx.new_space("s1")
+
+    def t_arg(t):
+        pass
+
+    m.new_space(name='s2', formula=t_arg, refs={'a': 1})
+    s3 = s1.new_space(name='s3')
+    s3.b = m.s2(0)
+    path_ = tmp_path / "assign_dynamic_space_to_ref"
+    mx.write_model(m, path_)
+    m2 = mx.read_model(path_)
+    assert m2.s2.a == 1
+    assert m2.s2(0).a == 1
