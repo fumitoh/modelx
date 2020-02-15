@@ -1059,6 +1059,11 @@ class DynamicBase:
     def __init__(self):
         self._dynamic_subs = []
 
+    def call_subs_method(self, method, args=(), kwargs=None):
+        kwargs = kwargs if kwargs is not None else {}
+        for dyns in self._dynamic_subs:
+            getattr(dyns, method)(*args, **kwargs)
+
 
 @add_stateattrs
 class UserSpaceImpl(
@@ -1295,7 +1300,7 @@ class UserSpaceImpl(
         if name in self.namespace:
             if name in self.refs:
                 if name in self.self_refs:
-                    self.spacemgr.new_ref(self, name, value)
+                    self.spacemgr.change_ref(self, name, value)
                 else:
                     raise KeyError("Ref '%s' cannot be changed" % name)
 
@@ -1326,9 +1331,6 @@ class UserSpaceImpl(
                 raise RuntimeError("Must not happen")
         else:
             raise KeyError("'%s' not found in Space '%s'" % (name, self.name))
-
-    def is_defined(self):
-        return not self.is_derived
 
     def is_dynamic(self):
         return False
@@ -1456,7 +1458,13 @@ class UserSpaceImpl(
                 if selfdict[name].is_derived:
                     selfdict.del_item(name)
 
-        self._dynamic_subs.clear()
+        # TODO: Update dynamic subs
+        # self._dynamic_subs.clear()
+
+    def on_change_ref(self, name, value, is_defined):
+        self.self_refs[name].change_value(value, is_defined)
+        # self_ref is shared with dynamic subs, so no need to update theirs.
+        # self.call_subs_method("_change_ref", (name, value))
 
 
 class DynamicSpace(BaseSpace):
@@ -1513,6 +1521,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     def _create_refs(self, arguments=None):
         self._parentargs = self._create_parentargs()
         self._self_refs.update(self._dynbase.self_refs)
+        self._self_refs.observe(self._dynbase.self_refs)
 
         return ImplChainMap(
             self,
@@ -1612,10 +1621,13 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             self._create_child_spaces(child)
 
     def _create_refs(self, arguments=None):
+        # TODO: Want to call base method to avoid duplication
         self._arguments = RefDict(self, data=arguments)
         self._parentargs = self._create_parentargs()
         self._self_refs.update(self._dynbase.self_refs)
+        self._self_refs.observe(self._dynbase.self_refs)
 
+        # TODO: Order of inner maps to be reviewed
         return ImplChainMap(
             self,
             RefView,

@@ -66,6 +66,10 @@ class ReferenceImpl(Derivable, Impl):
 
     picklers = []    # List of _BasePickler sub classes
 
+    __cls_stateattrs = [
+        "container"
+    ]
+
     def __init__(self, parent, name, value, container, is_derived=False):
         Impl.__init__(
             self,
@@ -75,11 +79,19 @@ class ReferenceImpl(Derivable, Impl):
             interface=value)
         Derivable.__init__(self, is_derived)
 
+        # TODO: Remove?
         self.parent = parent
         self.model = parent.model
         self.name = name
 
+        self.container = container
         container.set_item(name, self)
+
+    def change_value(self, value, is_defined):
+        if is_defined:
+            self.set_defined()
+        self.interface = value
+        self.container.set_update()
 
     def __getstate__(self):
         state = {
@@ -127,6 +139,7 @@ class ReferenceImpl(Derivable, Impl):
             if clear_value:
                 self.model.clear_obj(self)
             self.interface = bases[0].interface
+            self.container.set_update()
 
 
 ReferenceImpl.picklers.append(_ModulePickler)

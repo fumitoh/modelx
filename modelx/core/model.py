@@ -908,8 +908,9 @@ class SpaceManager:
             Instruction(method, (name,))
         )
 
-    def _get_space_bases(self, space, graph):
-        nodes = graph.get_mro(space.namedid)[1:]
+    def _get_space_bases(self, space, graph, skip_self=True):
+        idx = 1 if skip_self else 0
+        nodes = graph.get_mro(space.namedid)[idx:]
         return [graph.to_space(n) for n in nodes]
 
     def _set_defined(self, node):
@@ -1224,6 +1225,13 @@ class SpaceManager:
             b = self._get_space_bases(s, self._graph)
             s.inherit(b)
 
+    def _get_subs(self, space, skip_self=True):
+        idx = 1 if skip_self else 0
+        return [
+            self._graph.to_space(desc) for desc in list(
+                self._graph.ordered_subs(space.namedid))[idx:]
+        ]
+
     def new_cells(self, space, name=None, formula=None, is_derived=False,
                   source=None):
 
@@ -1255,4 +1263,20 @@ class SpaceManager:
         self.update_subs(space)
 
         return ref
+
+    def change_ref(self, space, name, value):
+        """Assigns a new value to an existing name."""
+
+        self._set_defined(space.namedid)
+        space.set_defined()
+        space.on_change_ref(name, value, is_defined=True)
+
+        for subspace in self._get_subs(space):
+            subref = subspace.self_refs[name]
+            if subref.is_defined():
+                break
+            elif subref.bases[0] is not space.self_refs[name]:
+                break
+            subspace.on_change_ref(name, value, is_defined=False)
+
 
