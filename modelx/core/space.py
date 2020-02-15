@@ -1119,7 +1119,7 @@ class UserSpaceImpl(
         return ImplChainMap(
             self,
             RefView,
-            [self.model._global_refs, self._local_refs, self._self_refs],
+            [self._self_refs, self._local_refs, self.model._global_refs]
         )
 
     def _new_space_member(self, name, is_derived):
@@ -1518,11 +1518,11 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             self,
             RefView,
             [
-                self.model._global_refs,
-                self._local_refs,
                 self._parentargs,
                 self._self_refs,
-                self._dynbase._self_refs
+                self._local_refs,
+                self._dynbase._self_refs,
+                self.model._global_refs
             ],
         )
 
@@ -1614,21 +1614,10 @@ class ItemSpaceImpl(DynamicSpaceImpl):
 
     def _create_refs(self, arguments=None):
         self._arguments = RefDict(self, data=arguments)
-        self._parentargs = self._create_parentargs()
-
-        # TODO: Order of inner maps to be reviewed
-        return ImplChainMap(
-            self,
-            RefView,
-            [
-                self.model._global_refs,
-                self._local_refs,
-                self._parentargs,
-                self._arguments,
-                self._self_refs,
-                self._dynbase._self_refs
-            ],
-        )
+        refs = DynamicSpaceImpl._create_refs(self)
+        refs.maps.insert(0, self._arguments)
+        refs.observe(self._arguments)
+        return refs
 
     def _bind_args(self, args):
         self.boundargs = self.parent.formula.signature.bind(**args)
