@@ -1115,19 +1115,6 @@ class UserSpaceImpl(
         else:
             self.source = source
 
-        # TODO: Replace with _create_refs
-        self._refs = ImplChainMap(
-            self,
-            RefView,
-            [self.model._global_refs, self._local_refs, self._self_refs],
-        )
-
-        self._namespace = ImplChainMap(
-            self, None, [self._cells, self._refs, self._named_spaces]
-        )
-
-        self.lazy_evals = self._namespace
-
     def _create_refs(self, arguments=None):
         return ImplChainMap(
             self,
