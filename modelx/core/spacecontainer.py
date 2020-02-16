@@ -39,6 +39,11 @@ class BaseSpaceContainer(Interface):
         """A mapping of the names of child spaces to the Space objects"""
         return self._impl.spaces.interfaces
 
+    @property
+    def _all_spaces(self):
+        """A mapping associating names to all(static and dynamic) spaces."""
+        return self._impl.all_spaces.interfaces
+
     # ----------------------------------------------------------------------
     # Current Space method
 
