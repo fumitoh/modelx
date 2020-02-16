@@ -377,9 +377,9 @@ class BaseSpace(BaseSpaceContainer):
         result["named_spaces"] = self.named_spaces._baseattrs
         # For backward compatibility with spyder-modelx -0.1.0
         result["static_spaces"] = self.named_spaces._baseattrs
-        result["named_itemspaces"] = self.named_itemspaces._baseattrs
+        result["named_itemspaces"] = self.named_itemspaces._baseattrs_private
         # For backward compatibility with spyder-modelx -0.1.0
-        result["dynamic_spaces"] = self.named_itemspaces._baseattrs
+        result["dynamic_spaces"] = self.named_itemspaces._baseattrs_private
         result["cells"] = self.cells._baseattrs
         result["refs"] = self.refs._baseattrs
 
