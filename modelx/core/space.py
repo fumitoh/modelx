@@ -298,7 +298,7 @@ class BaseSpace(BaseSpaceContainer):
         return self._impl.named_spaces.interfaces
 
     @property
-    def named_itemspaces(self):
+    def _named_itemspaces(self):
         """A mapping associating names to dynamic spaces."""
         return self._impl.named_itemspaces.interfaces
 
@@ -372,9 +372,9 @@ class BaseSpace(BaseSpaceContainer):
         result["named_spaces"] = self.named_spaces._baseattrs
         # For backward compatibility with spyder-modelx -0.1.0
         result["static_spaces"] = self.named_spaces._baseattrs
-        result["named_itemspaces"] = self.named_itemspaces._baseattrs_private
+        result["named_itemspaces"] = self._named_itemspaces._baseattrs_private
         # For backward compatibility with spyder-modelx -0.1.0
-        result["dynamic_spaces"] = self.named_itemspaces._baseattrs_private
+        result["dynamic_spaces"] = self._named_itemspaces._baseattrs_private
         result["cells"] = self.cells._baseattrs
         result["refs"] = self.refs._baseattrs
 

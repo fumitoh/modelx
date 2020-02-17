@@ -14,4 +14,4 @@ def test_named_itemspaces():
 
     space[3, 4].distance()
 
-    assert space.named_itemspaces == {"__Space1": space[3, 4]}
+    assert space._named_itemspaces == {"__Space1": space[3, 4]}

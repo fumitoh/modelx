@@ -109,10 +109,10 @@ class SpaceWriter(SpaceWriter2):
 
         datafile = self.datapath / "_dynamic_inputs"
 
-        if self.space.named_itemspaces:
+        if self.space._named_itemspaces:
             datafile.parent.mkdir(parents=True, exist_ok=True)
             with datafile.open(mode="w") as f:
-                for dynspace in self.space.named_itemspaces.values():
+                for dynspace in self.space._named_itemspaces.values():
                     self._pickle_dynamic_space(f, dynspace)
 
     def _pickle_dynamic_space(self, file, space):
@@ -136,7 +136,7 @@ class SpaceWriter(SpaceWriter2):
         for subspace in space.named_spaces.values():
             self._pickle_dynamic_space(file, subspace)
 
-        for subspace in space.named_itemspaces.values():
+        for subspace in space._named_itemspaces.values():
             self._pickle_dynamic_space(file, subspace)
 
     def instruct(self):
