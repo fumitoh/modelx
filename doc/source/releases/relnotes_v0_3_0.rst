@@ -29,10 +29,10 @@ Backward Incompatible Changes
   based on the following order of reference types
   from the highest priority to the lowest.
 
-  - Arguments
-  - Parent arguments
-  - Dynamically defined references
-  - Statically references
+  - Arguments (ItemSpaces only)
+  - Parent arguments (DynamicSpaces only)
+  - Dynamically defined references (ItemSpaces only)
+  - Static references
   - Global references
 
 .. py:currentmodule:: modelx.core.space

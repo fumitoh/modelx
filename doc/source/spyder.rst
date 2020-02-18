@@ -93,6 +93,13 @@ after installing ``modelx``::
 
     $ pip install --no-deps spyder-modelx
 
+.. warning::
+
+    On Anaconda environments, install modelx manually if it is not yet installed.
+    Do not forget to add ``--no-deps`` parameter when installing
+    spyder-modelx on Anaconda environments, otherwise,
+    `pip` will overwrite packages spyder-modelx depends on.
+
 If Spyder is running while the plugin gets installed, close Spyder once
 and restart it to bring the plugin into effect.
 
