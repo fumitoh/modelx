@@ -254,7 +254,7 @@ class Cells(Interface, Mapping, Callable):
 
     @property
     def series(self):
-        """Alias of ``to_series()``."""
+        """Alias of :meth:`to_series`."""
         return self._impl.to_series(())
 
     def to_frame(self, *args):
@@ -278,7 +278,7 @@ class Cells(Interface, Mapping, Callable):
 
     @property
     def frame(self):
-        """Alias of ``to_frame()``."""
+        """Alias of :meth:`to_frame`."""
         return self._impl.to_frame(())
 
     # ----------------------------------------------------------------------

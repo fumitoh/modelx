@@ -212,7 +212,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             The new child space created from the Excel range.
 
         See Also:
-            :meth:`UserSpace.new_cells_from_excel`: Create Cells from Excel file.
+            :meth:`new_cells_from_excel`: Create Cells from Excel file.
         """
 
         space = self._impl.new_space_from_excel(
@@ -263,7 +263,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
                 cells parameters by name or index.
 
         See Also:
-            :meth:`UserSpace.new_cells_from_pandas`: Create Cells from DataFrame or Series.
+            :meth:`new_cells_from_pandas`: Create Cells from DataFrame or Series.
         """
         return get_interfaces(self._impl.new_space_from_pandas(
             obj, space, cells, param, space_params, cells_params
@@ -305,7 +305,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             kwargs: Any keyword arguments to be passed to `read_csv`_.
 
         See Also:
-            :meth:`UserSpace.new_cells_from_csv`: Create Cells from CSV.
+            :meth:`new_cells_from_csv`: Create Cells from CSV.
         """
         return self._impl.new_space_from_csv(
             filepath, space, cells, param,

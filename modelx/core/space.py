@@ -292,7 +292,7 @@ class BaseSpace(BaseSpaceContainer):
 
         Alias to :py:meth:`spaces`
 
-        .. deprecated:: 0.2.0 Use named_spaces instead.
+        .. deprecated:: 0.2.0 Use :attr:`named_spaces` instead.
         """
         warnings.warn("static_spaces is deprecated. Use named_spaces instead.")
         return self._impl.named_spaces.interfaces
@@ -358,7 +358,7 @@ class BaseSpace(BaseSpaceContainer):
 
     @property
     def frame(self):
-        """Alias of ``to_frame()``."""
+        """Alias of :meth:`to_frame`."""
         return self._impl.to_frame(())
 
     # ----------------------------------------------------------------------
