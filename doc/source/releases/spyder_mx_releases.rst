@@ -1,6 +1,12 @@
 **spyder-modelx** releases
 ==========================
 
+.. _release-mxplugin-v0.2.0:
+
+spyder-modelx v0.2.0 (18 February 2020)
+---------------------------------------
+- Support modelx v0.3.0
+
 .. _release-mxplugin-v0.1.1:
 
 spyder-modelx v0.1.1 (8 February 2020)
