@@ -13,7 +13,7 @@ modelx v0.3.0 (18 February 2020)
 This release introduces some backward incompatible changes
 to make modelx design clearer and easier to understand.
 
-.. node::
+.. note::
 
     spyder-modelx needs to be updated to v0.2.0 for this version
     of modelx.
