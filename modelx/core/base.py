@@ -157,10 +157,10 @@ class Impl:
         if self.lazy_evals is None:
             return
         elif isinstance(self.lazy_evals, LazyEval):
-            self.lazy_evals.refresh
+            self.lazy_evals.fresh
         else:
             for lz in self.lazy_evals:
-                lz.refresh
+                lz.fresh
 
     def get_fullname(self, omit_model=False):
 
@@ -546,10 +546,10 @@ class LazyEval:
                 observer.set_update()
 
     @property
-    def refresh(self):
+    def fresh(self):
         if self.needs_update:
             for other in self.observing:
-                other.refresh
+                other.fresh
             self._update_data()
             self.needs_update = False
         return self
@@ -558,7 +558,7 @@ class LazyEval:
         raise NotImplementedError  # To be overwritten in derived classes
 
     def append_observer(self, observer):
-        if all(observer is not other for other in self.observers):
+        if observer not in self.observers:
             self.observers.append(observer)
             observer.observing.append(self)
             observer.set_update()
@@ -630,7 +630,7 @@ class LazyEvalChainMap(LazyEval, ChainMap):
     def _update_data(self):
         for map_ in self.maps:
             if isinstance(map_, LazyEval):
-                map_.refresh
+                map_.fresh
 
     def __setitem__(self, name, value):
         raise NotImplementedError

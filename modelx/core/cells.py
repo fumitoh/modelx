@@ -486,7 +486,7 @@ class CellsImpl(Derivable, Impl):
 
     @property
     def namespace(self):
-        return self._namespace.refresh.interfaces
+        return self._namespace.fresh.interfaces
 
     @property
     def doc(self):
@@ -542,7 +542,7 @@ class CellsImpl(Derivable, Impl):
 
     def on_eval_formula(self, key):
 
-        value = self.altfunc.refresh.altfunc(*key)
+        value = self.altfunc.fresh.altfunc(*key)
 
         if self.has_cell(key):
             # Assignment took place inside the cell.

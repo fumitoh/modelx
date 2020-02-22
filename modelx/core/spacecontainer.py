@@ -354,11 +354,11 @@ class BaseSpaceContainerImpl:
 
     @property
     def spaces(self):
-        return self._named_spaces.refresh
+        return self._named_spaces.fresh
 
     @property
     def all_spaces(self):
-        return self._all_spaces.refresh
+        return self._all_spaces.fresh
 
     def has_space(self, name):
         return name in self.spaces

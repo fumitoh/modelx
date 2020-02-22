@@ -266,11 +266,11 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     @property
     def global_refs(self):
-        return self._global_refs.refresh
+        return self._global_refs.fresh
 
     @property
     def namespace(self):
-        return self._namespace.refresh
+        return self._namespace.fresh
 
     def close(self):
         self.system.close_model(self)
@@ -834,7 +834,7 @@ class SpaceManager:
     def _find_name_in_subs(self, parent, name):
         for subspace in self._get_subs(parent, skip_self=False):
             if name in subspace.namespace:
-                return subspace._namespace.refresh[name]
+                return subspace._namespace.fresh[name]
         return None
 
     def _update_graphs(self, newsubg_inh, newsubg, remove_inh, remove):

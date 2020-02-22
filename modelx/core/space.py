@@ -738,7 +738,7 @@ class ItemSpaceParent:
     # Dynamic Space Operation
     @property
     def named_itemspaces(self):
-        return self._named_itemspaces.refresh
+        return self._named_itemspaces.fresh
 
     def set_formula(self, formula):
 
@@ -756,7 +756,7 @@ class ItemSpaceParent:
                 raise ValueError("formula already assigned.")
 
     def eval_formula(self, node):
-        return self.altfunc.refresh.altfunc(*node[KEY])
+        return self.altfunc.fresh.altfunc(*node[KEY])
 
     def _get_dynamic_base(self, bases_):
         """Create or get the base space from a list of spaces
@@ -907,19 +907,19 @@ class BaseSpaceImpl(
 
     @property
     def cells(self):
-        return self._cells.refresh
+        return self._cells.fresh
 
     @property
     def named_spaces(self):
-        return self._named_spaces.refresh
+        return self._named_spaces.fresh
 
     @property
     def refs(self):
-        return self._refs.refresh
+        return self._refs.fresh
 
     @property
     def self_refs(self):
-        return self._self_refs.refresh
+        return self._self_refs.fresh
 
     @property
     def local_refs(self):
@@ -927,7 +927,7 @@ class BaseSpaceImpl(
 
     @property
     def namespace(self):
-        return self._namespace.refresh.interfaces
+        return self._namespace.fresh.interfaces
 
     # --- Inheritance properties ---
 
@@ -1535,11 +1535,11 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     @property
     def arguments(self):
-        return self._arguments.refresh
+        return self._arguments.fresh
 
     @property
     def parentargs(self):
-        return self._arguments.refresh
+        return self._arguments.fresh
 
     def is_dynamic(self):
         return True
