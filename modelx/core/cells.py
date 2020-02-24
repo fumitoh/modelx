@@ -556,22 +556,8 @@ class CellsImpl(Derivable, Impl):
         return value
 
     def get_value(self, args, kwargs=None):
-
         node = get_node(self, *convert_args(args, kwargs))
-        key = node[KEY]
-
-        if self.has_cell(key):
-            value = self.data[key]
-        else:
-            value = self.system.executor.eval_cell(node)
-
-        graph = self.model.cellgraph
-        if self.system.callstack:
-            graph.add_path([node, self.system.callstack.last()])
-        else:
-            graph.add_node(node)
-
-        return value
+        return self.system.executor.eval_cell(node)
 
     def find_match(self, args, kwargs):
 

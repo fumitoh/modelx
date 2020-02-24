@@ -44,10 +44,24 @@ class Executor:
 
     def eval_cell(self, node):
 
-        if self.thread.signal_start.is_set():
-            return self._eval_formula(node)
+        cells = node[OBJ]
+        key = node[KEY]
+
+        if cells.has_cell(key):
+            value = cells.data[key]
         else:
-            return self._start_exec(node)
+            if self.thread.signal_start.is_set():
+                value = self._eval_formula(node)
+            else:
+                value = self._start_exec(node)
+
+        graph = cells.model.cellgraph
+        if self.callstack:
+            graph.add_path([node, self.callstack.last()])
+        else:
+            graph.add_node(node)
+
+        return value
 
     class ExecThread(threading.Thread):
 
