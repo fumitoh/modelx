@@ -167,7 +167,7 @@ class ModelWriter:
             """Generator yielding spaces in breadth-first order"""
             que = collections.deque([self.model])
             while que:
-                space = que.pop()
+                space = que.popleft()
                 yield space
                 for child in space.spaces.values():
                     que.append(child)
