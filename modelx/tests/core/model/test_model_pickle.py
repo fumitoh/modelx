@@ -53,8 +53,8 @@ def test_unpickled_model(pickletest):
     if not hasattr(model, "interface"):
         errors.append("no interface")
 
-    if not hasattr(model, "cellgraph"):
-        errors.append("no cellgraph")
+    if not hasattr(model, "tracegraph"):
+        errors.append("no tracegraph")
 
     assert not errors, "errors:\n{}".format("\n".join(errors))
 

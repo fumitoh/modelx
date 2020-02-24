@@ -49,7 +49,7 @@ from modelx.core.util import is_valid_name, AutoNamer
 _nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
 
 
-class DependencyGraph(nx.DiGraph):
+class TraceGraph(nx.DiGraph):
     """Directed Graph of ObjectArgs"""
 
     def remove_with_descs(self, source):
@@ -97,7 +97,7 @@ class DependencyGraph(nx.DiGraph):
 
     def fresh_copy(self):
         """Overriding Graph.fresh_copy"""
-        return DependencyGraph()
+        return TraceGraph()
 
     def add_path(self, nodes, **attr):
         """In replacement for Deprecated add_path method"""
@@ -171,9 +171,9 @@ class Model(EditableSpaceContainer):
         return self._impl.namespace.interfaces
 
     @property
-    def cellgraph(self):
+    def tracegraph(self):
         """A directed graph of cells."""
-        return self._impl.cellgraph
+        return self._impl.tracegraph
 
     @property
     def refs(self):
@@ -186,7 +186,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     interface_cls = Model
     __cls_stateattrs = [
-            "cellgraph",
+            "tracegraph",
             # "lexdep",
             "_namespace",
             "_global_refs",
@@ -207,8 +207,8 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         Impl.__init__(self, system=system, parent=None, name=name)
         EditableSpaceContainerImpl.__init__(self)
 
-        self.cellgraph = DependencyGraph()
-        # self.lexdep = DependencyGraph()  # Lexical dependency
+        self.tracegraph = TraceGraph()
+        # self.lexdep = TraceGraph()  # Lexical dependency
         self.spacemgr = SpaceManager(self)
         self.currentspace = None
 
@@ -240,7 +240,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     def clear_with_descs(self, source):
         """Clear values and nodes calculated from `source`."""
-        removed = self.cellgraph.remove_with_descs(source)
+        removed = self.tracegraph.remove_with_descs(source)
         for node in removed:
             node[OBJ].on_clear_value(node[KEY])
 
@@ -250,7 +250,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
     def clear_obj(self, obj):
         """Clear values and nodes of `obj` and their dependants."""
-        removed = self.cellgraph.clear_obj(obj)
+        removed = self.tracegraph.clear_obj(obj)
         for node in removed:
             del node[OBJ].data[node[KEY]]
 
@@ -303,7 +303,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         graphs = {
             name: graph
             for name, graph in state.items()
-            if isinstance(graph, DependencyGraph)
+            if isinstance(graph, TraceGraph)
         }
 
         for gname, graph in graphs.items():
@@ -326,7 +326,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
         Impl.restore_state(self, system)
         BaseSpaceContainerImpl.restore_state(self, system)
         mapping = {}
-        for node in self.cellgraph:
+        for node in self.tracegraph:
             if isinstance(node, tuple):
                 name, key = node
             else:
@@ -334,7 +334,7 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
             cells = self.get_object(name)
             mapping[node] = get_node(cells, key, None)
 
-        self.cellgraph = nx.relabel_nodes(self.cellgraph, mapping)
+        self.tracegraph = nx.relabel_nodes(self.tracegraph, mapping)
 
     def del_space(self, name):
         space = self.spaces[name]

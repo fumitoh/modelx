@@ -68,12 +68,12 @@ def test_mro_complicated(simplemodel):
     )
 
 
-def test_cellgraph(simplemodel):
+def test_tracegraph(simplemodel):
     def get_predec(node):
-        return simplemodel._impl.cellgraph.predecessors(node)
+        return simplemodel._impl.tracegraph.predecessors(node)
 
     def get_succ(node):
-        return simplemodel._impl.cellgraph.successors(node)
+        return simplemodel._impl.tracegraph.successors(node)
 
     space = simplemodel.spaces["Space1"]
 
@@ -96,7 +96,7 @@ def test_cellgraph(simplemodel):
             assert fibo_next2 in get_succ(fibo)
 
 
-def test_cellgraph_standalone():
+def test_tracegraph_standalone():
     model, space = new_model(), new_space()
 
     @defcells(space=space)
@@ -104,11 +104,11 @@ def test_cellgraph_standalone():
         return x
 
     foo(1)
-    nodes = model.cellgraph.nodes()
+    nodes = model.tracegraph.nodes()
     assert get_node(foo._impl, (1,), {}) in nodes
 
 
-def test_cellgraph_informula_assignment():
+def test_tracegraph_informula_assignment():
     model, space = new_model(), new_space()
 
     @defcells(space=space)
@@ -116,7 +116,7 @@ def test_cellgraph_informula_assignment():
         bar[x] = x
 
     bar(1)
-    nodes = model.cellgraph.nodes()
+    nodes = model.tracegraph.nodes()
     assert get_node(bar._impl, (1,), {}) in nodes
 
 

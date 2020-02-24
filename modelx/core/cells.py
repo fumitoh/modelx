@@ -593,10 +593,10 @@ class CellsImpl(Derivable, Impl):
                 raise KeyError("Assignment in cells other than %s" % key)
         else:
             if self.system._recalc_dependents:
-                targets = self.model.cellgraph.get_startnodes_from(node)
+                targets = self.model.tracegraph.get_startnodes_from(node)
             self.clear_value_at(key)
             self._store_value(key, value)
-            self.model.cellgraph.add_node(node)
+            self.model.tracegraph.add_node(node)
             self.input_keys.add(key)
             if self.system._recalc_dependents:
                 for trg in targets:
@@ -672,12 +672,12 @@ class CellsImpl(Derivable, Impl):
 
     def predecessors(self, args, kwargs):
         node = get_node(self, *convert_args(args, kwargs))
-        preds = self.model.cellgraph.predecessors(node)
+        preds = self.model.tracegraph.predecessors(node)
         return [CellNode(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = get_node(self, *convert_args(args, kwargs))
-        succs = self.model.cellgraph.successors(node)
+        succs = self.model.tracegraph.successors(node)
         return [CellNode(n) for n in succs]
 
 
