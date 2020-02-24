@@ -886,7 +886,7 @@ class BoundFunction(LazyEval):
             closure = create_closure(self.owner.interface)
 
         self.altfunc = FunctionType(
-            codeobj, self.owner.namespace, name=name, closure=closure
+            codeobj, self.owner.namespace.interfaces, name=name, closure=closure
         )
 
     def __getstate__(self):

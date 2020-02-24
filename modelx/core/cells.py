@@ -486,7 +486,7 @@ class CellsImpl(Derivable, Impl):
 
     @property
     def namespace(self):
-        return self._namespace.fresh.interfaces
+        return self._namespace.fresh
 
     @property
     def doc(self):

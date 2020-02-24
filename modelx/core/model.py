@@ -826,7 +826,7 @@ class SpaceManager:
                 node = parent.namedid
                 descs = nx.descendants(self._graph, node)
                 for desc in descs:
-                    ns = self._graph.to_space(desc).namespace
+                    ns = self._graph.to_space(desc).namespace.interfaces
                     if desc in ns and not isinstance(ns[desc], klass):
                         return False
                 return True

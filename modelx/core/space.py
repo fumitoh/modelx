@@ -220,12 +220,12 @@ class BaseSpace(BaseSpaceContainer):
 
     def __getattr__(self, name):
         if name in self._impl.namespace:
-            return self._impl.namespace[name]
+            return self._impl.namespace.interfaces[name]
         else:
             raise AttributeError  # Must return AttributeError for hasattr
 
     def __dir__(self):
-        return self._impl.namespace
+        return self._impl.namespace.interfaces
 
     @property
     def bases(self):
@@ -927,7 +927,7 @@ class BaseSpaceImpl(
 
     @property
     def namespace(self):
-        return self._namespace.fresh.interfaces
+        return self._namespace.fresh
 
     # --- Inheritance properties ---
 
