@@ -879,7 +879,7 @@ class BaseSpaceImpl(
         self._cells = CellsDict(self)
         self._named_spaces = SpaceDict(self)
         self._local_refs = {"_self": self, "_space": self}
-        self._refs = self._create_refs(arguments)
+        self._refs = self._init_refs(arguments)
         self._namespace = ImplChainMap(
             self, None, [self._cells, self._refs, self._named_spaces]
         )
@@ -898,7 +898,7 @@ class BaseSpaceImpl(
 
         container.set_item(name, self)
 
-    def _create_refs(self, arguments=None):
+    def _init_refs(self, arguments=None):
         raise NotImplementedError
 
     @property
@@ -1110,7 +1110,7 @@ class UserSpaceImpl(
         else:
             self.source = source
 
-    def _create_refs(self, arguments=None):
+    def _init_refs(self, arguments=None):
         return ImplChainMap(
             self,
             RefView,
@@ -1502,14 +1502,14 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             arguments,
             base.doc
         )
-        self._create_cells()
+        self._init_cells()
 
-    def _create_cells(self):
+    def _init_cells(self):
         for base in self._dynbase.cells.values():
             CellsImpl(space=self, base=base)
 
-    def _create_refs(self, arguments=None):
-        self._parentargs = self._create_parentargs()
+    def _init_refs(self, arguments=None):
+        self._parentargs = self._init_parentargs()
 
         return ImplChainMap(
             self,
@@ -1523,7 +1523,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             ],
         )
 
-    def _create_parentargs(self):
+    def _init_parentargs(self):
         if isinstance(self.parent, UserSpaceImpl):
             parentargs = []
         elif isinstance(self.parent, ItemSpaceImpl):
@@ -1602,16 +1602,16 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             self, parent, name, parent._named_itemspaces, base, refs, arguments
         )
         self._bind_args(self.arguments)
-        self._create_child_spaces(self)
+        self._init_child_spaces(self)
 
-    def _create_child_spaces(self, space):
+    def _init_child_spaces(self, space):
         for name, base in space._dynbase.named_spaces.items():
             child = DynamicSpaceImpl(space, name, space._named_spaces, base)
-            self._create_child_spaces(child)
+            self._init_child_spaces(child)
 
-    def _create_refs(self, arguments=None):
+    def _init_refs(self, arguments=None):
         self._arguments = RefDict(self, data=arguments)
-        refs = DynamicSpaceImpl._create_refs(self)
+        refs = DynamicSpaceImpl._init_refs(self)
         refs.maps.insert(0, self._arguments)
         refs.observe(self._arguments)
         return refs
