@@ -26,6 +26,7 @@ from modelx.core.base import (
     add_stateattrs,
     get_impls,
     get_interfaces,
+    get_mixinslots,
     Interface,
     Impl,
     NullImpl,
@@ -65,16 +66,19 @@ class ParamFunc(Formula):
 
 
 class SpaceDict(ImplDict):
+    __slots__ = get_mixinslots(ImplDict)
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, SpaceView, data, observers)
 
 
 class CellsDict(ImplDict):
+    __slots__ = get_mixinslots(ImplDict)
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, CellsView, data, observers)
 
 
 class RefDict(ImplDict):
+    __slots__ = get_mixinslots(ImplDict)
     def __init__(self, parent, data=None, observers=None):
         ImplDict.__init__(self, parent, RefView, None, observers)
 

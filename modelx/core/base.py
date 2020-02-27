@@ -19,6 +19,7 @@ from collections.abc import Sequence, Mapping
 from inspect import BoundArguments
 from modelx.core.formula import create_closure
 from modelx.core.node import get_node
+from  modelx.core.chainmap import CustomChainMap
 import modelx.core.system
 
 # To add new method apply_defaults to BoundArguments.
@@ -105,6 +106,59 @@ def add_stateattrs(cls):
     assert len(stateattrs) == len(set(stateattrs))
     cls.stateattrs = stateattrs
     return cls
+
+
+def _add_stateattrs(cls):
+    stateattrs = []
+    for c in cls.__mro__:
+        attrs = "_" + c.__name__ + "__stateattrs"
+        slots = "_" + c.__name__ + "__slots"
+        if hasattr(c, attrs):
+            stateattrs.extend(getattr(c, attrs))
+        elif hasattr(c, slots):     # Mix-in class
+            stateattrs.extend(getattr(c, slots))
+        elif hasattr(c, "__slots__") and len(c.__slots__):
+            stateattrs.extend(c.__slots__)
+
+    assert len(stateattrs) == len(set(stateattrs))
+    cls.stateattrs = stateattrs
+    return cls
+
+
+def add_statemethod(cls):
+
+    def __getstate__(self):
+        return {key: getattr(self, key) for key in self.stateattrs}
+
+    def __setstate__(self, state):
+        for key, value in state.items():
+            setattr(self, key, value)
+        for base in self.__class__.mro():
+            name = "_" + base.__name__ + "__setstate"
+            if hasattr(cls, name):
+                getattr(cls, name)(self, state)
+
+    cls = _add_stateattrs(cls)
+    cls.__getstate__ = __getstate__
+    cls.__setstate__ = __setstate__
+
+    return cls
+
+
+def get_mixinslots(*mixins):
+    class Temp(*mixins):
+        __slots__ = ()
+
+    slots = []
+    for b in Temp.__mro__[1:]:
+        if hasattr(b, "__slots__") and len(b.__slots__):
+            slots.extend(b.__slots__)
+            break   # Concrete class
+        attr = "_" + b.__name__ + "__slots"
+        if hasattr(b, attr):
+            slots.extend(getattr(b, attr))
+
+    return tuple(slots)
 
 
 class Impl:
@@ -529,6 +583,8 @@ class LazyEval:
     contents are updated depending on their update states.
     The updating operation can be customized by overwriting _update_data method.
     """
+    __slots__ = ()
+    __slots = ("needs_update", "observers", "observing")
 
     def __init__(self, observers):
         self.needs_update = False  # must be read only
@@ -573,13 +629,6 @@ class LazyEval:
     def unobserve(self, other):
         other.remove_observer(self)
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
     def debug_print_observers(self, indent_level=0):
         print(" " * indent_level * 4, self, ":", self.needs_update)
         for observer in self.observers:
@@ -587,6 +636,10 @@ class LazyEval:
 
 
 class LazyEvalDict(LazyEval, dict):
+
+    __stateattrs = ("_repr",)
+    __slots__ = __stateattrs + get_mixinslots(LazyEval, dict)
+
     def __init__(self, data=None, observers=None):
 
         if data is None:
@@ -609,8 +662,12 @@ class LazyEvalDict(LazyEval, dict):
         dict.__delitem__(self, name)
         self.set_update(skip_self)
 
+@add_statemethod
+class LazyEvalChainMap(LazyEval, CustomChainMap):
 
-class LazyEvalChainMap(LazyEval, ChainMap):
+    __stateattrs = ("_repr",)
+    __slots__ = __stateattrs + get_mixinslots(LazyEval, CustomChainMap)
+
     def __init__(self, maps=None, observers=None, observe_maps=True):
 
         if maps is None:
@@ -640,6 +697,10 @@ class LazyEvalChainMap(LazyEval, ChainMap):
 
 
 class OrderMixin:
+
+    __slots__ = ()
+    __slots = ("order",)
+
     def __init__(self):
         self.order = []  # sorted(list(self))
 
@@ -659,6 +720,9 @@ class InterfaceMixin:
 
     _update_interfaces needs to be manually called from _update_data.
     """
+    __slots__ = ()
+    __slots = ("_interfaces", "map_class", "interfaces")
+    __stateattrs = ("map_class",)
 
     def __init__(self, map_class):
         self._interfaces = dict()
@@ -677,21 +741,21 @@ class InterfaceMixin:
         self._interfaces.clear()
         self._interfaces.update(get_interfaces(self))
 
-    def __getstate__(self):
-        state = super().__getstate__()
-        state["_interfaces"] = dict()
-        del state["interfaces"]
-        return state
-
-    def __setstate__(self, state):
-        super().__setstate__(state)
-        if self.map_class == "BaseView":
-            self.map_class = BaseView
+    def __setstate(self, state):
+        self._interfaces = dict()
         self._set_interfaces(self.map_class)
         self.needs_update = True
 
 
-class ImplDict(InterfaceMixin, OrderMixin, LazyEvalDict):
+bases = InterfaceMixin, OrderMixin, LazyEvalDict
+
+
+@add_statemethod
+class ImplDict(*bases):
+
+    __stateattrs = ("owner",)
+    __slots__ = __stateattrs + get_mixinslots(*bases)
+
     def __init__(self, owner, ifclass, data=None, observers=None):
         self.owner = owner
         InterfaceMixin.__init__(self, ifclass)
@@ -704,7 +768,15 @@ class ImplDict(InterfaceMixin, OrderMixin, LazyEvalDict):
         self._update_interfaces()
 
 
-class ImplChainMap(InterfaceMixin, OrderMixin, LazyEvalChainMap):
+bases = InterfaceMixin, OrderMixin, LazyEvalChainMap
+
+
+@add_statemethod
+class ImplChainMap(*bases):
+
+    __stateattrs = ("owner",)
+    __slots__ = __stateattrs + get_mixinslots(*bases)
+
     def __init__(
         self, owner, ifclass, maps=None, observers=None, observe_maps=True
     ):
