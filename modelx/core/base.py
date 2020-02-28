@@ -614,7 +614,9 @@ class LazyEval:
         raise NotImplementedError  # To be overwritten in derived classes
 
     def append_observer(self, observer):
-        if observer not in self.observers:
+        # Speed deteriorates by a lot if below
+        # if observer not in self.observers:
+        if all(observer is not other for other in self.observers):
             self.observers.append(observer)
             observer.observing.append(self)
             observer.set_update()
