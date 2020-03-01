@@ -79,11 +79,6 @@ class ReferenceImpl(Derivable, Impl):
             interface=value)
         Derivable.__init__(self, is_derived)
 
-        # TODO: Remove?
-        self.parent = parent
-        self.model = parent.model
-        self.name = name
-
         self.container = container
         container.set_item(name, self)
 
