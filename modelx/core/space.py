@@ -24,6 +24,7 @@ from types import FunctionType, ModuleType
 from modelx.core.base import (
     # ObjectArgs,
     add_stateattrs,
+    add_statemethod,
     get_impls,
     get_interfaces,
     get_mixinslots,
@@ -33,6 +34,7 @@ from modelx.core.base import (
     Derivable,
     ImplDict,
     ImplChainMap,
+    RefChainMap,
     BaseView,
     SelectedView,
     BoundFunction,
@@ -54,7 +56,8 @@ from modelx.core.spacecontainer import (
 from modelx.core.formula import Formula, ModuleSource
 from modelx.core.cells import (
     Cells,
-    CellsImpl,
+    DynamicCellsImpl,
+    UserCellsImpl,
     convert_args,
     shareable_parameters,
 )
@@ -77,11 +80,16 @@ class CellsDict(ImplDict):
         ImplDict.__init__(self, space, CellsView, data, observers)
 
 
+@add_statemethod
 class RefDict(ImplDict):
-    __slots__ = get_mixinslots(ImplDict)
+
+    __stateattrs = ("scopes",)
+    __slots__ = __stateattrs + get_mixinslots(ImplDict)
+
     def __init__(self, parent, data=None, observers=None):
         ImplDict.__init__(self, parent, RefView, None, observers)
 
+        self.scopes = [parent]
         if data is not None:
             for name, value in data.items():
                 self.set_item(name, value)
@@ -970,7 +978,7 @@ class BaseSpaceImpl(
         if attr == "named_spaces":
             return self._new_space_member(name, is_derived)
         elif attr == "cells":
-            return CellsImpl(
+            return UserCellsImpl(
                 space=self, name=name, formula=None, is_derived=is_derived)
         elif attr == "self_refs":
             return ReferenceImpl(self, name, None,
@@ -1064,8 +1072,55 @@ class DynamicBase:
             getattr(dyns, method)(*args, **kwargs)
 
 
+class ReferenceManager:
+
+    __cls_stateattrs = [
+     "_names_to_impls",
+     "_impls_to_names"
+    ]
+
+    def __init__(self):
+        self._names_to_impls = {}
+        self._impls_to_names = {}
+
+    def update_referrer(self, referrer):
+        names = referrer.formula.func.__code__.co_names
+        if referrer in self._impls_to_names:
+            oldnames = self._impls_to_names[referrer]
+            for n in oldnames:
+                self._names_to_impls[n].remove(referrer)
+
+        self._impls_to_names[referrer] = names
+        for n in names:
+            if n in self._names_to_impls:
+                self._names_to_impls[n].add(referrer)
+            else:
+                self._names_to_impls[n] = {referrer}
+
+    def remove_referrer(self, referrer):
+        names = referrer.formula.func.__code__.co_names
+        for n in names:
+            self._names_to_impls[n].pop(referrer)
+        del self._impls_to_names[referrer]
+
+    def clear_referrers(self, name):
+        if name not in self._names_to_impls:
+            return
+        else:
+            impls = self._names_to_impls[name]
+
+        if self in impls:
+            # TODO: Implement clear items
+            # self.clear_items()
+            impls.pop(self)
+
+        for cells in impls:
+            cells.clear_all_values(clear_input=False)
+
+
 @add_stateattrs
 class UserSpaceImpl(
+    ReferenceManager,
     DynamicBase,
     BaseSpaceImpl,
     EditableSpaceContainerImpl,
@@ -1107,6 +1162,7 @@ class UserSpaceImpl(
         EditableSpaceContainerImpl.__init__(self)
         DynamicBase.__init__(self)
         Derivable.__init__(self, is_derived)
+        ReferenceManager.__init__(self)
         self.cellsnamer = AutoNamer("Cells")
 
         if isinstance(source, ModuleType):
@@ -1115,7 +1171,7 @@ class UserSpaceImpl(
             self.source = source
 
     def _init_refs(self, arguments=None):
-        return ImplChainMap(
+        return RefChainMap(
             self,
             RefView,
             [self._self_refs, self._local_refs, self.model._global_refs]
@@ -1510,7 +1566,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     def _init_cells(self):
         for base in self._dynbase.cells.values():
-            CellsImpl(space=self, base=base)
+            DynamicCellsImpl(space=self, base=base)
 
     def _init_refs(self, arguments=None):
         self._parentargs = self._init_parentargs()

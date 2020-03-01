@@ -92,6 +92,8 @@ class ReferenceImpl(Derivable, Impl):
             self.set_defined()
         self.interface = value
         self.container.set_update()
+        for sc in self.container.scopes:
+            sc.clear_referrers(self.name)
 
     def __getstate__(self):
         state = {
@@ -140,6 +142,8 @@ class ReferenceImpl(Derivable, Impl):
                 self.model.clear_obj(self)
             self.interface = bases[0].interface
             self.container.set_update()
+            for sc in self.container.scopes:
+                sc.clear_referrers(self.name)
 
 
 ReferenceImpl.picklers.append(_ModulePickler)

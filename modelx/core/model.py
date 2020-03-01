@@ -31,7 +31,7 @@ from modelx.core.base import (
     NullImpl
 )
 from modelx.core.reference import ReferenceImpl
-from modelx.core.cells import CellsImpl
+from modelx.core.cells import CellsImpl, UserCellsImpl
 from modelx.core.node import OBJ, KEY, get_node, node_has_key
 from modelx.core.spacecontainer import (
     BaseSpaceContainerImpl,
@@ -1248,7 +1248,7 @@ class SpaceManager:
         self._set_defined(space.namedid)
         space.set_defined()
 
-        cells = CellsImpl(space=space, name=name, formula=formula,
+        cells = UserCellsImpl(space=space, name=name, formula=formula,
                           source=source, is_derived=is_derived)
 
         self.update_subs(space)

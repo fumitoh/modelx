@@ -664,6 +664,7 @@ class LazyEvalDict(LazyEval, dict):
         dict.__delitem__(self, name)
         self.set_update(skip_self)
 
+
 @add_statemethod
 class LazyEvalChainMap(LazyEval, CustomChainMap):
 
@@ -792,6 +793,19 @@ class ImplChainMap(*bases):
         self._update_order()
         self._update_interfaces()
 
+
+class RefChainMap(ImplChainMap):
+
+    def __init__(
+        self, owner, ifclass, maps=None, observers=None, observe_maps=True
+    ):
+        ImplChainMap.__init__(
+            self, owner, ifclass,
+            maps=maps, observers=observers, observe_maps=observe_maps
+        )
+        for m in maps:
+            if hasattr(m, "scopes") and owner not in m.scopes:
+                m.scopes.append(owner)
 
 # The code below is modified from UserDict in Python's standard library.
 #

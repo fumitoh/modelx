@@ -483,6 +483,7 @@ class CellsImpl(Derivable, Impl):
                 self.model.clear_obj(self)
             self.formula = bases[0].formula
             self.altfunc.set_update()
+            self.parent.update_referrer(self)
 
     @property
     def namespace(self):
@@ -502,40 +503,6 @@ class CellsImpl(Derivable, Impl):
     @staticmethod
     def _get_members(other):
         return other.cells
-
-    # ----------------------------------------------------------------------
-    # Formula operations
-
-    def reload(self, module=None):
-        oldsrc = self.formula.source
-        newsrc = self.formula._reload(module).source
-        if oldsrc != newsrc:
-            self.model.clear_obj(self)
-
-    def clear_formula(self):
-
-        if self.is_derived:
-            self.is_derived = False
-
-        self.set_formula(NULL_FORMULA)
-
-    def set_formula(self, func):
-
-        if self.parent.is_dynamic():
-            raise ValueError("cannot set formula in dynamic space")
-
-        if self.is_derived:
-            self.is_derived = False
-
-        self.model.clear_obj(self)
-        if isinstance(func, Formula):
-            cls = func.__class__
-        else:
-            cls = Formula
-        self.formula = cls(func, name=self.name)
-        self.altfunc.set_update()
-
-        self.model.spacemgr.update_subs(self.parent)
 
     # ----------------------------------------------------------------------
     # Get/Set values
@@ -679,6 +646,60 @@ class CellsImpl(Derivable, Impl):
         node = get_node(self, *convert_args(args, kwargs))
         succs = self.model.tracegraph.successors(node)
         return [CellNode(n) for n in succs]
+
+
+class UserCellsImpl(CellsImpl):
+
+    def __init__(
+        self, space, name=None, formula=None, data=None, base=None,
+        source=None, is_derived=False
+    ):
+        CellsImpl.__init__(
+            self, space=space, name=name, formula=formula, data=data,
+            base=base,
+            source=source, is_derived=is_derived
+        )
+        self.parent.update_referrer(self)
+
+    # ----------------------------------------------------------------------
+    # Formula operations
+
+    def reload(self, module=None):
+        oldsrc = self.formula.source
+        newsrc = self.formula._reload(module).source
+        if oldsrc != newsrc:
+            self.model.clear_obj(self)
+
+    def clear_formula(self):
+
+        if self.is_derived:
+            self.is_derived = False
+
+        self.set_formula(NULL_FORMULA)
+        self.parent.remove_referrer(self)
+
+    def set_formula(self, func):
+
+        if self.parent.is_dynamic():
+            raise ValueError("cannot set formula in dynamic space")
+
+        if self.is_derived:
+            self.is_derived = False
+
+        self.model.clear_obj(self)
+        if isinstance(func, Formula):
+            cls = func.__class__
+        else:
+            cls = Formula
+        self.formula = cls(func, name=self.name)
+        self.altfunc.set_update()
+        self.parent.update_referrer(self)
+        self.model.spacemgr.update_subs(self.parent)
+
+
+
+class DynamicCellsImpl(CellsImpl):
+    pass
 
 
 class CellNode:

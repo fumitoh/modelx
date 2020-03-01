@@ -133,7 +133,6 @@ def test_ref(testmodel):
     assert foo(2) == 6
 
 
-@pytest.mark.skip()
 def test_setref_derived(testmodel):
     """Test if base/derived refs are property updated on their assignments"""
 

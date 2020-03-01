@@ -128,3 +128,6 @@ class CustomChainMap(_collections_abc.MutableMapping):
     def clear(self):
         'Clear maps[0], leaving maps[1:] intact.'
         self.maps[0].clear()
+
+    def get_map_from_key(self, key):
+        return next((m for m in self.maps if key in m), None)
