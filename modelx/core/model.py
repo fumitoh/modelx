@@ -25,6 +25,7 @@ from modelx.core.base import (
     Impl,
     get_interfaces,
     ImplDict,
+    ReferenceManager,
     ImplChainMap,
     BaseView,
     Derivable,
@@ -42,7 +43,7 @@ from modelx.core.space import (
     UserSpaceImpl,
     SpaceDict,
     SpaceView,
-    RefDict
+    SharedRefDict
 )
 from modelx.core.util import is_valid_name, AutoNamer
 
@@ -182,7 +183,10 @@ class Model(EditableSpaceContainer):
 
 
 @add_stateattrs
-class ModelImpl(EditableSpaceContainerImpl, Impl):
+class ModelImpl(
+    ReferenceManager,
+    EditableSpaceContainerImpl,
+    Impl):
 
     interface_cls = Model
     __cls_stateattrs = [
@@ -206,13 +210,14 @@ class ModelImpl(EditableSpaceContainerImpl, Impl):
 
         Impl.__init__(self, system=system, parent=None, name=name)
         EditableSpaceContainerImpl.__init__(self)
+        ReferenceManager.__init__(self)
 
         self.tracegraph = TraceGraph()
         # self.lexdep = TraceGraph()  # Lexical dependency
         self.spacemgr = SpaceManager(self)
         self.currentspace = None
 
-        self._global_refs = RefDict(self)
+        self._global_refs = SharedRefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
         self._named_spaces = SpaceDict(self)
         self._dynamic_bases = SpaceDict(self)

@@ -29,6 +29,7 @@ from modelx.core.base import (
     get_interfaces,
     get_mixinslots,
     Interface,
+    ReferenceManager,
     Impl,
     NullImpl,
     Derivable,
@@ -80,16 +81,11 @@ class CellsDict(ImplDict):
         ImplDict.__init__(self, space, CellsView, data, observers)
 
 
-@add_statemethod
 class RefDict(ImplDict):
-
-    __stateattrs = ("scopes",)
-    __slots__ = __stateattrs + get_mixinslots(ImplDict)
+    __slots__ = get_mixinslots(ImplDict)
 
     def __init__(self, parent, data=None, observers=None):
         ImplDict.__init__(self, parent, RefView, None, observers)
-
-        self.scopes = [parent]
         if data is not None:
             for name, value in data.items():
                 self.set_item(name, value)
@@ -103,6 +99,27 @@ class RefDict(ImplDict):
             return value
         else:
             return ReferenceImpl(parent, name, value, container=self)
+
+
+@add_statemethod
+class SharedRefDict(RefDict):
+
+    __stateattrs = ("scopes",)
+    __slots__ = __stateattrs + get_mixinslots(RefDict)
+
+    def __init__(self, parent, data=None, observers=None):
+        self.scopes = [parent]
+        RefDict.__init__(self, parent, data=data, observers=observers)
+
+    def set_item(self, name, value, skip_self=False):
+        RefDict.set_item(self, name, value, skip_self)
+        for sc in self.scopes:
+            sc.clear_referrers(name)
+
+    def del_item(self, name, skip_self=False):
+        RefDict.del_item(self, name, skip_self=skip_self)
+        for sc in self.scopes:
+            sc.clear_referrers(name)
 
 
 def _to_frame_inner(cellsiter, args):
@@ -887,7 +904,7 @@ class BaseSpaceImpl(
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self._self_refs = RefDict(self)
+        self._self_refs = self._init_self_refs()
         self._cells = CellsDict(self)
         self._named_spaces = SpaceDict(self)
         self._local_refs = {"_self": self, "_space": self}
@@ -900,6 +917,7 @@ class BaseSpaceImpl(
         self._all_spaces = ImplChainMap(
             self, SpaceView, [self._named_spaces, self._named_itemspaces]
         )
+        container.set_item(name, self)
 
         # ------------------------------------------------------------------
         # Add initial refs members
@@ -908,7 +926,10 @@ class BaseSpaceImpl(
             for key, value in refs.items():
                 ReferenceImpl(self, key, value, container=self._self_refs)
 
-        container.set_item(name, self)
+
+
+    def _init_self_refs(self):
+        raise NotImplementedError
 
     def _init_refs(self, arguments=None):
         raise NotImplementedError
@@ -1072,52 +1093,6 @@ class DynamicBase:
             getattr(dyns, method)(*args, **kwargs)
 
 
-class ReferenceManager:
-
-    __cls_stateattrs = [
-     "_names_to_impls",
-     "_impls_to_names"
-    ]
-
-    def __init__(self):
-        self._names_to_impls = {}
-        self._impls_to_names = {}
-
-    def update_referrer(self, referrer):
-        names = referrer.formula.func.__code__.co_names
-        if referrer in self._impls_to_names:
-            oldnames = self._impls_to_names[referrer]
-            for n in oldnames:
-                self._names_to_impls[n].remove(referrer)
-
-        self._impls_to_names[referrer] = names
-        for n in names:
-            if n in self._names_to_impls:
-                self._names_to_impls[n].add(referrer)
-            else:
-                self._names_to_impls[n] = {referrer}
-
-    def remove_referrer(self, referrer):
-        names = referrer.formula.func.__code__.co_names
-        for n in names:
-            self._names_to_impls[n].pop(referrer)
-        del self._impls_to_names[referrer]
-
-    def clear_referrers(self, name):
-        if name not in self._names_to_impls:
-            return
-        else:
-            impls = self._names_to_impls[name]
-
-        if self in impls:
-            # TODO: Implement clear items
-            # self.clear_items()
-            impls.pop(self)
-
-        for cells in impls:
-            cells.clear_all_values(clear_input=False)
-
-
 @add_stateattrs
 class UserSpaceImpl(
     ReferenceManager,
@@ -1150,6 +1125,7 @@ class UserSpaceImpl(
         source=None,
         doc=None
     ):
+        ReferenceManager.__init__(self)
         BaseSpaceImpl.__init__(
             self,
             parent=parent,
@@ -1162,13 +1138,16 @@ class UserSpaceImpl(
         EditableSpaceContainerImpl.__init__(self)
         DynamicBase.__init__(self)
         Derivable.__init__(self, is_derived)
-        ReferenceManager.__init__(self)
+
         self.cellsnamer = AutoNamer("Cells")
 
         if isinstance(source, ModuleType):
             self.source = source.__name__
         else:
             self.source = source
+
+    def _init_self_refs(self):
+        return SharedRefDict(self)
 
     def _init_refs(self, arguments=None):
         return RefChainMap(
@@ -1567,6 +1546,9 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     def _init_cells(self):
         for base in self._dynbase.cells.values():
             DynamicCellsImpl(space=self, base=base)
+
+    def _init_self_refs(self):
+        return RefDict(self)
 
     def _init_refs(self, arguments=None):
         self._parentargs = self._init_parentargs()

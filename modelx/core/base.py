@@ -117,8 +117,6 @@ def _add_stateattrs(cls):
             stateattrs.extend(getattr(c, attrs))
         elif hasattr(c, slots):     # Mix-in class
             stateattrs.extend(getattr(c, slots))
-        elif hasattr(c, "__slots__") and len(c.__slots__):
-            stateattrs.extend(c.__slots__)
 
     assert len(stateattrs) == len(set(stateattrs))
     cls.stateattrs = stateattrs
@@ -146,13 +144,29 @@ def add_statemethod(cls):
 
 
 def get_mixinslots(*mixins):
+    """Returns slots pushed down from mix-in classes.
+
+    Used to define ``__slots__`` in concrete classes.
+    For example::
+
+        class A(X):             # A concrete base class (Non-empty slot)
+            __slots__ = ("a",) + get_mixinslots(X)
+
+        class B:                # A mix-in class
+            __slots__ = ()      # Mixins must have empty slots.
+            __slots = ("b",)    # Mixin __slots to be pushed down.
+
+        class C(B, A):      # Mixins must come before concrete base classes.
+            __slots__ = ("c",) + get_mixinslots(B, A)
+                            # get_mixinslots adds mixin slots ("b")
+                            # before the nearest concrete class.
+    """
     class Temp(*mixins):
         __slots__ = ()
 
     slots = []
     for b in Temp.__mro__[1:]:
         if hasattr(b, "__slots__") and len(b.__slots__):
-            slots.extend(b.__slots__)
             break   # Concrete class
         attr = "_" + b.__name__ + "__slots"
         if hasattr(b, attr):
@@ -806,6 +820,53 @@ class RefChainMap(ImplChainMap):
         for m in maps:
             if hasattr(m, "scopes") and owner not in m.scopes:
                 m.scopes.append(owner)
+
+
+class ReferenceManager:
+
+    __cls_stateattrs = [
+     "_names_to_impls",
+     "_impls_to_names"
+    ]
+
+    def __init__(self):
+        self._names_to_impls = {}
+        self._impls_to_names = {}
+
+    def update_referrer(self, referrer):
+        names = referrer.formula.func.__code__.co_names
+        if referrer in self._impls_to_names:
+            oldnames = self._impls_to_names[referrer]
+            for n in oldnames:
+                self._names_to_impls[n].remove(referrer)
+
+        self._impls_to_names[referrer] = names
+        for n in names:
+            if n in self._names_to_impls:
+                self._names_to_impls[n].add(referrer)
+            else:
+                self._names_to_impls[n] = {referrer}
+
+    def remove_referrer(self, referrer):
+        names = referrer.formula.func.__code__.co_names
+        for n in names:
+            self._names_to_impls[n].pop(referrer)
+        del self._impls_to_names[referrer]
+
+    def clear_referrers(self, name):
+        if name not in self._names_to_impls:
+            return
+        else:
+            impls = self._names_to_impls[name]
+
+        if self in impls:
+            # TODO: Implement clear items
+            # self.clear_items()
+            impls.pop(self)
+
+        for cells in impls:
+            cells.clear_all_values(clear_input=False)
+
 
 # The code below is modified from UserDict in Python's standard library.
 #
