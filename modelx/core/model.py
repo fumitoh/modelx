@@ -1232,7 +1232,7 @@ class SpaceManager:
     def update_subs(self, space):
 
         for desc in list(self._graph.ordered_subs(
-                space.namedid))[1:]:
+                space.namedid)):
             s = self._graph.to_space(desc)
             b = self._get_space_bases(s, self._graph)
             s.inherit(b)
