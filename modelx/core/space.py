@@ -112,14 +112,15 @@ class SharedRefDict(RefDict):
         RefDict.__init__(self, parent, data=data, observers=observers)
 
     def set_item(self, name, value, skip_self=False):
-        RefDict.set_item(self, name, value, skip_self)
         for sc in self.scopes:
             sc.clear_referrers(name)
+        RefDict.set_item(self, name, value, skip_self)
+
 
     def del_item(self, name, skip_self=False):
-        RefDict.del_item(self, name, skip_self=skip_self)
         for sc in self.scopes:
             sc.clear_referrers(name)
+        RefDict.del_item(self, name, skip_self=skip_self)
 
 
 def _to_frame_inner(cellsiter, args):
@@ -1078,24 +1079,37 @@ class BaseSpaceImpl(
         return _to_frame_inner(self.cells, args)
 
 
-class DynamicBase:
+class DynamicBase(ReferenceManager):
 
     __cls_stateattrs = [
      "_dynamic_subs"
     ]
 
     def __init__(self):
+        ReferenceManager.__init__(self)
         self._dynamic_subs = []
 
-    def call_subs_method(self, method, args=(), kwargs=None):
+    def clear_dynsub_referrers(self, name):
+        for dyns in self._dynamic_subs:
+            refdict = dyns.refs.get_map_from_key(name)
+            if refdict is self._self_refs:
+                cells = {c.name for c in self._names_to_impls[name]}
+                for cellname in cells:
+                    dyns.cells[cellname].clear_all_values(clear_input=False)
+
+    def call_subs_method(self, method, args=(), kwargs=None):   # Not Used
         kwargs = kwargs if kwargs is not None else {}
         for dyns in self._dynamic_subs:
             getattr(dyns, method)(*args, **kwargs)
 
+    def clear_referrers(self, name):
+        if name in self._names_to_impls:
+            ReferenceManager.clear_referrers(self, name)
+            self.clear_dynsub_referrers(name)
+
 
 @add_stateattrs
 class UserSpaceImpl(
-    ReferenceManager,
     DynamicBase,
     BaseSpaceImpl,
     EditableSpaceContainerImpl,
@@ -1125,7 +1139,7 @@ class UserSpaceImpl(
         source=None,
         doc=None
     ):
-        ReferenceManager.__init__(self)
+        DynamicBase.__init__(self)
         BaseSpaceImpl.__init__(
             self,
             parent=parent,
@@ -1136,7 +1150,6 @@ class UserSpaceImpl(
             doc=doc
         )
         EditableSpaceContainerImpl.__init__(self)
-        DynamicBase.__init__(self)
         Derivable.__init__(self, is_derived)
 
         self.cellsnamer = AutoNamer("Cells")
