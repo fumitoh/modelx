@@ -1227,13 +1227,11 @@ class SpaceManager:
     def del_ref(self, space, name):
 
         space.self_refs.del_item(name)
-        self.update_subs(space)
+        self.update_subs(space, skip_self=False)
 
-    def update_subs(self, space):
+    def update_subs(self, space, skip_self=True):
 
-        for desc in list(self._graph.ordered_subs(
-                space.namedid)):
-            s = self._graph.to_space(desc)
+        for s in self._get_subs(space, skip_self):
             b = self._get_space_bases(s, self._graph)
             s.inherit(b)
 
@@ -1256,7 +1254,13 @@ class SpaceManager:
         cells = UserCellsImpl(space=space, name=name, formula=formula,
                           source=source, is_derived=is_derived)
 
-        self.update_subs(space)
+        for subspace in self._get_subs(space):
+            if name in subspace.cells:
+                break
+            else:
+                UserCellsImpl(
+                    space=subspace,
+                    base=cells, is_derived=True)
 
         return cells
 

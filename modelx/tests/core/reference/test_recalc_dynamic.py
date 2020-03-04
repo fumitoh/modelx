@@ -22,7 +22,7 @@ def test_recalc_dynamic():
     child.qux = 30
 
     base.new_cells(formula=foo)
-    # child.new_cells(formula=baz)
+    child.new_cells(formula=baz)
 
     base.bar = 3
     assert base[3].foo(1) == 3
@@ -32,9 +32,9 @@ def test_recalc_dynamic():
 
     assert sub[3].child.qux == 30
     assert sub[3].child[2].qux == 30
-    # assert sub[3].child[2].baz(4) == 30
+    assert sub[3].child[2].baz(4) == 30
 
     base.child.qux = 40
     assert sub[3].child.qux == 40
     assert sub[3].child[2].qux == 40
-    # assert sub[3].child[2].baz(4) == 40
+    assert sub[3].child[2].baz(4) == 40
