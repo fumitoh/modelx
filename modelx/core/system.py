@@ -57,7 +57,7 @@ class Executor:
 
         graph = cells.model.tracegraph
         if self.callstack:
-            graph.add_path([node, self.callstack.last()])
+            graph.add_edge(node, self.callstack.last())
         else:
             graph.add_node(node)
 
