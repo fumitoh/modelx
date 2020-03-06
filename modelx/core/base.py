@@ -859,13 +859,9 @@ class ReferenceManager:
         else:
             impls = self._names_to_impls[name]
 
-        if self in impls:
-            # TODO: Implement clear items
-            # self.clear_items()
-            impls.pop(self)
-
         for cells in impls:
-            cells.clear_all_values(clear_input=False)
+            if cells is not self:
+                cells.clear_all_values(clear_input=False)
 
 
 # The code below is modified from UserDict in Python's standard library.

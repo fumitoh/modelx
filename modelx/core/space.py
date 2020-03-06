@@ -782,6 +782,9 @@ class ItemSpaceParent:
                 else:
                     self.formula = ParamFunc(formula, name="_formula")
                 self.altfunc = BoundFunction(self)
+                self.altfunc.set_update()
+                if isinstance(self, ReferenceManager):
+                    self.update_referrer(self)
             else:
                 raise ValueError("formula already assigned.")
 
@@ -824,6 +827,16 @@ class ItemSpaceParent:
         )
         space.is_derived = False
         return space
+
+    def del_itemspace(self, name):
+        if name in self.named_itemspaces:
+            space = self.named_itemspaces[name]
+            space.destruct()
+            self.named_itemspaces.del_item(name)
+
+    def del_all_itemspaces(self):
+        for name in list(self.named_itemspaces.keys()):
+            self.del_itemspace(name)
 
     def get_itemspace(self, args, kwargs=None):
         """Create a dynamic root space
@@ -927,13 +940,18 @@ class BaseSpaceImpl(
             for key, value in refs.items():
                 ReferenceImpl(self, key, value, container=self._self_refs)
 
-
-
     def _init_self_refs(self):
         raise NotImplementedError
 
     def _init_refs(self, arguments=None):
         raise NotImplementedError
+
+    def destruct(self):
+        for space in list(self.named_spaces.values()):
+            space.destruct()
+            self.named_spaces.del_item(space.name)
+        self.clear_all_cells()
+        self.del_all_itemspaces()
 
     @property
     def spacemgr(self):
@@ -989,6 +1007,10 @@ class BaseSpaceImpl(
 
     def is_dynamic(self):
         raise NotImplementedError
+
+    def clear_all_cells(self):
+        for cells in self.cells:
+            cells.clear_all_values(clear_input=False)
 
     # ----------------------------------------------------------------------
     # Reference operation
@@ -1089,13 +1111,15 @@ class DynamicBase(ReferenceManager):
         ReferenceManager.__init__(self)
         self._dynamic_subs = []
 
-    def clear_dynsub_referrers(self, name):
+    def _clear_dynsub_referrers(self, name):
         for dyns in self._dynamic_subs:
             refdict = dyns.refs.get_map_from_key(name)
             if refdict is self._self_refs:
-                cells = {c.name for c in self._names_to_impls[name]}
-                for cellname in cells:
-                    dyns.cells[cellname].clear_all_values(clear_input=False)
+                for cells in self._names_to_impls[name]:
+                    if isinstance(cells, UserCellsImpl):
+                        dyns.cells[cells.name].clear_all_values(
+                            clear_input=False
+                        )
 
     def call_subs_method(self, method, args=(), kwargs=None):   # Not Used
         kwargs = kwargs if kwargs is not None else {}
@@ -1103,9 +1127,17 @@ class DynamicBase(ReferenceManager):
             getattr(dyns, method)(*args, **kwargs)
 
     def clear_referrers(self, name):
+
+        ReferenceManager.clear_referrers(self, name)
+
         if name in self._names_to_impls:
-            ReferenceManager.clear_referrers(self, name)
-            self.clear_dynsub_referrers(name)
+            impls = self._names_to_impls[name]
+            if self in impls:
+                self.del_all_itemspaces()
+                for dynsub in self._dynamic_subs:
+                    dynsub.del_all_itemspaces()
+
+            self._clear_dynsub_referrers(name)
 
 
 @add_stateattrs
@@ -1587,6 +1619,10 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             parentargs = [self.parent._parentargs]
 
         return ImplChainMap(self, None, parentargs)
+
+    def destruct(self):
+        BaseSpaceImpl.destruct(self)
+        self._dynbase._dynamic_subs.remove(self)
 
     @property
     def arguments(self):
