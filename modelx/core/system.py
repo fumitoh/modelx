@@ -49,17 +49,13 @@ class Executor:
 
         if cells.has_cell(key):
             value = cells.data[key]
+            if self.callstack:
+                cells.model.tracegraph.add_edge(node, self.callstack[-1])
         else:
             if self.thread.signal_start.is_set():
                 value = self._eval_formula(node)
             else:
                 value = self._start_exec(node)
-
-        graph = cells.model.tracegraph
-        if self.callstack:
-            graph.add_edge(node, self.callstack.last())
-        else:
-            graph.add_node(node)
 
         return value
 
@@ -135,7 +131,7 @@ class CallStack(deque):
 
         deque.__init__(self)
 
-    def last(self):
+    def last(self):     # Not used anymore
         return self[-1]
 
     def is_empty(self):
@@ -146,6 +142,18 @@ class CallStack(deque):
         if len(self) > self.maxdepth:
             raise DeepReferenceError(self.maxdepth, self.tracemessage())
         deque.append(self, item)
+
+    def pop(self):
+        node = deque.pop(self)
+        cells = node[OBJ]
+
+        graph = cells.model.tracegraph
+        if self:
+            graph.add_edge(node, self[-1])
+        else:
+            graph.add_node(node)
+
+        return node
 
     def tracemessage(self, maxlen=6):
         """

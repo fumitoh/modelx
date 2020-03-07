@@ -554,7 +554,7 @@ class CellsImpl(Derivable, Impl):
         key = node[KEY]
 
         if self.system.callstack:
-            if node == self.system.callstack.last():
+            if node == self.system.callstack[-1]:
                 self._store_value(key, value)
             else:
                 raise KeyError("Assignment in cells other than %s" % key)
