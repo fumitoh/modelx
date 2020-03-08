@@ -108,6 +108,10 @@ class TraceGraph(nx.DiGraph):
             return nx.add_path(self, nodes, **attr)
 
 
+class ReferenceGraph(nx.DiGraph):
+    pass
+
+
 class Model(EditableSpaceContainer):
     """Top-level container in modelx object hierarchy.
 
@@ -191,7 +195,7 @@ class ModelImpl(
     interface_cls = Model
     __cls_stateattrs = [
             "tracegraph",
-            # "lexdep",
+            "refgraph",
             "_namespace",
             "_global_refs",
             "_dynamic_bases",
@@ -213,7 +217,7 @@ class ModelImpl(
         ReferenceManager.__init__(self)
 
         self.tracegraph = TraceGraph()
-        # self.lexdep = TraceGraph()  # Lexical dependency
+        self.refgraph = ReferenceGraph()
         self.spacemgr = SpaceManager(self)
         self.currentspace = None
 

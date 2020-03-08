@@ -34,7 +34,8 @@ class Executor:
         # Ref: https://bugs.python.org/issue32570
 
         self.system = system
-        self.callstack = CallStack(maxdepth)
+        self.refstack = deque()
+        self.callstack = CallStack(self, maxdepth)
         self.thread = Executor.ExecThread(self)
         self.thread.daemon = True
         last_size = threading.stack_size(0xFFFFFFF)
@@ -88,6 +89,8 @@ class Executor:
             self.thread.signal_stop.wait()
             self.thread.signal_stop.clear()
             assert not self.callstack
+            assert not self.callstack.counter
+            assert not self.refstack
 
             if self.exception:
                 raise self.exception[1].with_traceback(
@@ -122,13 +125,16 @@ class CallStack(deque):
     else:
         default_maxdepth = 65000
 
-    def __init__(self, maxdepth=None):
+    def __init__(self, executor, maxdepth=None):
+        self.executor = executor
+        self.refstack = executor.refstack
 
         if maxdepth:
             self.maxdepth = maxdepth
         else:
             self.maxdepth = self.default_maxdepth
 
+        self.counter = 0
         deque.__init__(self)
 
     def last(self):     # Not used anymore
@@ -142,9 +148,11 @@ class CallStack(deque):
         if len(self) > self.maxdepth:
             raise DeepReferenceError(self.maxdepth, self.tracemessage())
         deque.append(self, item)
+        self.counter += 1
 
     def pop(self):
         node = deque.pop(self)
+        self.counter -= 1
         cells = node[OBJ]
 
         graph = cells.model.tracegraph
@@ -152,6 +160,13 @@ class CallStack(deque):
             graph.add_edge(node, self[-1])
         else:
             graph.add_node(node)
+
+        while self.refstack:
+            if self.refstack[-1][0] == self.counter:
+                _, ref = self.refstack.pop()
+                cells.model.refgraph.add_edge(ref, node)
+            else:
+                break
 
         return node
 
@@ -184,9 +199,9 @@ else:
 
 class TraceableCallStack(CallStack):
 
-    def __init__(self, maxdepth=None, maxlen=None):
+    def __init__(self, executor, maxdepth=None, maxlen=None):
 
-        CallStack.__init__(self, maxdepth)
+        CallStack.__init__(self, executor, maxdepth)
         self.tracestack = deque(maxlen=maxlen)
 
     def append(self, item):
@@ -252,6 +267,7 @@ class System:
         self.configure_python()
         self.executor = Executor(self, maxdepth)
         self.callstack = self.executor.callstack
+        self.refstack = self.executor.refstack
         self._modelnamer = AutoNamer("Model")
         self._backupnamer = AutoNamer("_BAK")
         self.currentmodel = None
@@ -455,6 +471,7 @@ class System:
 
         if self.callstack.is_empty():
             self.callstack = self.executor.callstack = TraceableCallStack(
+                self.executor,
                 maxdepth=self.callstack.maxdepth,
                 maxlen=maxlen
             )
@@ -470,6 +487,7 @@ class System:
 
         if self.callstack.is_empty():
             self.callstack = self.executor.callstack = CallStack(
+                self.executor,
                 maxdepth=self.callstack.maxdepth
             )
             warnings.warn("call stack trace deactivated")

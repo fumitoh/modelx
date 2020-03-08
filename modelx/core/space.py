@@ -249,8 +249,9 @@ class BaseSpace(BaseSpaceContainer):
     __slots__ = ()
 
     def __getattr__(self, name):
+
         if name in self._impl.namespace:
-            return self._impl.namespace.interfaces[name]
+            return self._impl.get_attr(name)
         else:
             raise AttributeError  # Must return AttributeError for hasattr
 
@@ -945,6 +946,18 @@ class BaseSpaceImpl(
 
     def _init_refs(self, arguments=None):
         raise NotImplementedError
+
+    def get_attr(self, name):
+
+        value = self.namespace[name]
+
+        if self.system.callstack.counter:
+            if isinstance(value, ReferenceImpl):
+                self.system.refstack.append(
+                    (self.system.callstack.counter - 1, value)
+                )
+
+        return self.namespace.interfaces[name]
 
     def destruct(self):
         for space in list(self.named_spaces.values()):
