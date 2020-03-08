@@ -1544,7 +1544,9 @@ class UserSpaceImpl(
         # self._dynamic_subs.clear()
 
     def on_change_ref(self, name, value, is_derived):
-        self.self_refs[name].change_value(value, is_derived)
+        ref = self.self_refs[name]
+        ref.change_value(value, is_derived)
+        self.model.clear_attr_referrers(ref)
         # self_ref is shared with dynamic subs, so no need to update theirs.
         # self.call_subs_method("_change_ref", (name, value))
 

@@ -109,7 +109,13 @@ class TraceGraph(nx.DiGraph):
 
 
 class ReferenceGraph(nx.DiGraph):
-    pass
+
+    def remove_with_descs(self, ref):
+        if ref not in self:
+            return set()
+        desc = nx.descendants(self, ref)
+        self.remove_nodes_from((ref, *desc))
+        return desc     # Not including ref
 
 
 class Model(EditableSpaceContainer):
@@ -186,16 +192,48 @@ class Model(EditableSpaceContainer):
         return self._impl.global_refs.interfaces
 
 
+class TraceManager:
+
+    __cls_stateattrs = [
+            "tracegraph",
+            "refgraph"
+    ]
+
+    def __init__(self):
+        self.tracegraph = TraceGraph()
+        self.refgraph = ReferenceGraph()
+
+    def clear_with_descs(self, node):
+        """Clear values and nodes calculated from `source`."""
+        removed = self.tracegraph.remove_with_descs(node)
+        self.refgraph.remove_nodes_from(removed)
+        for node in removed:
+            node[OBJ].on_clear_value(node[KEY])
+
+    def clear_obj(self, obj):
+        """Clear values and nodes of `obj` and their dependants."""
+        removed = self.tracegraph.clear_obj(obj)
+        self.refgraph.remove_nodes_from(removed)
+        for node in removed:
+            del node[OBJ].data[node[KEY]]
+
+    def clear_attr_referrers(self, ref):
+        removed = self.refgraph.remove_with_descs(ref)
+        for node in removed:
+            descs = self.tracegraph.remove_with_descs(node)
+            for desc in descs:
+                desc[OBJ].on_clear_value(desc[KEY])
+
+
 @add_stateattrs
 class ModelImpl(
     ReferenceManager,
+    TraceManager,
     EditableSpaceContainerImpl,
     Impl):
 
     interface_cls = Model
     __cls_stateattrs = [
-            "tracegraph",
-            "refgraph",
             "_namespace",
             "_global_refs",
             "_dynamic_bases",
@@ -215,12 +253,10 @@ class ModelImpl(
         Impl.__init__(self, system=system, parent=None, name=name)
         EditableSpaceContainerImpl.__init__(self)
         ReferenceManager.__init__(self)
+        TraceManager.__init__(self)
 
-        self.tracegraph = TraceGraph()
-        self.refgraph = ReferenceGraph()
         self.spacemgr = SpaceManager(self)
         self.currentspace = None
-
         self._global_refs = SharedRefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
         self._named_spaces = SpaceDict(self)
@@ -246,22 +282,6 @@ class ModelImpl(
                 return False
         else:
             raise ValueError("Invalid name '%s'." % name)
-
-    def clear_with_descs(self, source):
-        """Clear values and nodes calculated from `source`."""
-        removed = self.tracegraph.remove_with_descs(source)
-        for node in removed:
-            node[OBJ].on_clear_value(node[KEY])
-
-    # TODO
-    # def clear_lexdescendants(self, refnode):
-    #     """Clear values of cells that refer to `ref`."""
-
-    def clear_obj(self, obj):
-        """Clear values and nodes of `obj` and their dependants."""
-        removed = self.tracegraph.clear_obj(obj)
-        for node in removed:
-            del node[OBJ].data[node[KEY]]
 
     def repr_self(self, add_params=True):
         return self.name
