@@ -116,7 +116,6 @@ class SharedRefDict(RefDict):
             sc.clear_referrers(name)
         RefDict.set_item(self, name, value, skip_self)
 
-
     def del_item(self, name, skip_self=False):
         for sc in self.scopes:
             sc.clear_referrers(name)
@@ -1028,13 +1027,10 @@ class BaseSpaceImpl(
     # ----------------------------------------------------------------------
     # Reference operation
 
-    def _new_space_member(self, name, is_derived):
-        raise NotImplementedError
 
     def _new_member(self, attr, name, is_derived=False):
-        if attr == "named_spaces":
-            return self._new_space_member(name, is_derived)
-        elif attr == "cells":
+
+        if attr == "cells":
             return UserCellsImpl(
                 space=self, name=name, formula=None, is_derived=is_derived)
         elif attr == "self_refs":
@@ -1214,15 +1210,6 @@ class UserSpaceImpl(
             [self._self_refs, self._local_refs, self.model._global_refs]
         )
 
-    def _new_space_member(self, name, is_derived):
-
-        space = UserSpaceImpl(
-            parent=self,
-            name=name,
-            container=self._named_spaces,
-            is_derived=is_derived
-        )
-        return space
 
     # ----------------------------------------------------------------------
     # Cells creation
@@ -1508,7 +1495,7 @@ class UserSpaceImpl(
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
 
-    def inherit(self, bases, **kwargs):
+    def inherit(self, bases):
 
         if bases and self.is_derived:
             self.set_formula(bases[0].formula)
@@ -1530,11 +1517,8 @@ class UserSpaceImpl(
                         attr, name, is_derived=True)
 
                 if selfdict[name].is_derived:
-                    if "clear_value" not in kwargs:
-                        kwargs["clear_value"] = True
-
                     bs = [bm[name] for bm in basedict.maps if name in bm]
-                    selfdict[name].inherit(bs, **kwargs)
+                    selfdict[name].inherit(bs)
 
             for name in diffs:
                 if selfdict[name].is_derived:
@@ -1551,7 +1535,7 @@ class UserSpaceImpl(
         # self.call_subs_method("_change_ref", (name, value))
 
     def on_create_ref(self, name, value, is_derived):
-        ReferenceImpl(self, name, value,
+        return ReferenceImpl(self, name, value,
                       container=self._self_refs,
                       is_derived=is_derived)
 

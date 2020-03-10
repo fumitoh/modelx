@@ -471,16 +471,9 @@ class CellsImpl(Derivable, Impl):
         else:
             raise ValueError("%s not a scalar" % self.name)
 
-    def inherit(self, bases, **kwargs):
+    def inherit(self, bases):
 
-        if "clear_value" in kwargs:
-            clear_value = kwargs["clear_value"]
-        else:
-            clear_value = True
-
-        if bases:
-            if clear_value:
-                self.model.clear_obj(self)
+            self.model.clear_obj(self)
             self.formula = bases[0].formula
             self.altfunc.set_update()
             self.parent.update_referrer(self)

@@ -335,7 +335,7 @@ class Derivable:
     def _get_members(other):
         raise NotImplementedError
 
-    def inherit(self, bases, **kwargs):
+    def inherit(self, bases):
         raise NotImplementedError
 
 

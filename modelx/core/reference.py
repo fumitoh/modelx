@@ -125,16 +125,9 @@ class ReferenceImpl(Derivable, Impl):
     def _get_members(other):
         return other.self_refs
 
-    def inherit(self, bases, **kwargs):
+    def inherit(self, bases):
 
-        if "clear_value" in kwargs:
-            clear_value = kwargs["clear_value"]
-        else:
-            clear_value = True
-
-        if bases:
-            if clear_value:
-                self.model.clear_obj(self)
+            self.model.clear_obj(self)
             self.interface = bases[0].interface
             self.container.set_update()
             for sc in self.container.scopes:
