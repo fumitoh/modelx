@@ -842,23 +842,15 @@ class SpaceManager:
         self._graph = SpaceGraph()
         self._instructions = InstructionList()
 
-    # TODO: Rewrite or remove this.
     def _can_add(self, parent, name, klass):
-
         if parent is self.model:
             return name not in parent.namespace
 
-        else:  # parent is UserSpaceImpl
-            if name in parent.namespace:
-                return False
-            else:
-                node = parent.namedid
-                descs = nx.descendants(self._graph, node)
-                for desc in descs:
-                    ns = self._graph.to_space(desc).namespace.interfaces
-                    if desc in ns and not isinstance(ns[desc], klass):
-                        return False
-                return True
+        sub = self._find_name_in_subs(parent, name)
+        if sub is None or isinstance(sub, klass):
+            return True
+        else:
+            return False
 
     def _find_name_in_subs(self, parent, name):
         for subspace in self._get_subs(parent, skip_self=False):
