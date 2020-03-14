@@ -4,6 +4,10 @@ import pytest
 
 @pytest.fixture
 def refmodel():
+    """
+    m------SpaceA----bar
+        +--baz    +--foo
+    """
     m = mx.new_model()
     m.baz = 1
     s = m.new_space("SpaceA")

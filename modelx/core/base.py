@@ -13,6 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import dis
 from types import FunctionType
 from collections import ChainMap, OrderedDict
 from collections.abc import Sequence, Mapping
@@ -834,7 +835,7 @@ class ReferenceManager:
         self._impls_to_names = {}
 
     def update_referrer(self, referrer):
-        names = referrer.formula.func.__code__.co_names
+        names = referrer.altfunc.fresh.global_names
         if referrer in self._impls_to_names:
             oldnames = self._impls_to_names[referrer]
             for n in oldnames:
@@ -848,9 +849,9 @@ class ReferenceManager:
                 self._names_to_impls[n] = {referrer}
 
     def remove_referrer(self, referrer):
-        names = referrer.formula.func.__code__.co_names
+        names = referrer.altfunc.fresh.global_names
         for n in names:
-            self._names_to_impls[n].pop(referrer)
+            self._names_to_impls[n].remove(referrer)
         del self._impls_to_names[referrer]
 
     def clear_referrers(self, name):
@@ -1017,10 +1018,23 @@ class BoundFunction(LazyEval):
         # Must not update owner's namespace to avoid circular updates.
         self.observe(owner._namespace)
         self.altfunc = None
+        self.global_names = None
         self.set_update()
+
+    def _init_names(self):
+        insts = list(dis.get_instructions(self.owner.formula.func.__code__))
+
+        names = []
+        for inst in insts:
+            if inst.opname == "LOAD_GLOBAL" and inst.argval not in names:
+                names.append(inst.argval)
+
+        return tuple(names)
 
     def _update_data(self):
         """Update altfunc"""
+        if self.global_names is None:
+            self.global_names = self._init_names()
 
         func = self.owner.formula.func
         codeobj = func.__code__
@@ -1037,5 +1051,6 @@ class BoundFunction(LazyEval):
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["altfunc"]
+        state["global_names"] = None
         state["needs_update"] = True  # Reconstruct altfunc after unpickling
         return state

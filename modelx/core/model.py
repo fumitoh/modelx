@@ -374,6 +374,11 @@ class ModelImpl(
     def del_ref(self, name):
         self.global_refs.del_item(name)
 
+    def change_ref(self, name, value):
+        ref = self.global_refs[name]
+        ref.change_value(value, False)
+        self.model.clear_attr_referrers(ref)
+
     def get_attr(self, name):
         if name in self.spaces:
             return self.spaces[name].interface
@@ -387,8 +392,10 @@ class ModelImpl(
     def set_attr(self, name, value):
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
-
-        ReferenceImpl(self, name, value, container=self._global_refs)
+        elif name in self.global_refs:
+            self.change_ref(name, value)
+        else:
+            ReferenceImpl(self, name, value, container=self._global_refs)
 
     def del_attr(self, name):
 
@@ -1241,7 +1248,6 @@ class SpaceManager:
         NullImpl(cells)
 
     def del_ref(self, space, name):
-
         space.self_refs.del_item(name)
         self.update_subs(space, skip_self=False)
 

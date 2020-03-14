@@ -104,11 +104,15 @@ class RefDict(ImplDict):
 @add_statemethod
 class SharedRefDict(RefDict):
 
-    __stateattrs = ("scopes",)
+    __stateattrs = ("scopes", "manager")
     __slots__ = __stateattrs + get_mixinslots(RefDict)
 
-    def __init__(self, parent, data=None, observers=None):
+    def __init__(self, parent, manager=None, data=None, observers=None):
         self.scopes = [parent]
+        if manager is None:
+            self.manager = parent.model
+        else:
+            self.manager = manager
         RefDict.__init__(self, parent, data=data, observers=observers)
 
     def set_item(self, name, value, skip_self=False):
@@ -117,6 +121,7 @@ class SharedRefDict(RefDict):
         RefDict.set_item(self, name, value, skip_self)
 
     def del_item(self, name, skip_self=False):
+        self.manager.clear_attr_referrers(self.fresh[name])
         for sc in self.scopes:
             sc.clear_referrers(name)
         RefDict.del_item(self, name, skip_self=skip_self)
