@@ -1006,7 +1006,7 @@ class SelectedView(BaseView):
 class BoundFunction(LazyEval):
     """Hold function with updated namespace"""
 
-    def __init__(self, owner):
+    def __init__(self, owner, base=None):
         """Create altered function from owner's formula.
 
         owner is a UserSpaceImpl or CellsImpl, which has formula, and
@@ -1018,7 +1018,10 @@ class BoundFunction(LazyEval):
         # Must not update owner's namespace to avoid circular updates.
         self.observe(owner._namespace)
         self.altfunc = None
-        self.global_names = None
+        if base is None:
+            self.global_names = None
+        else:
+            self.global_names = base.global_names
         self.set_update()
 
     def _init_names(self):

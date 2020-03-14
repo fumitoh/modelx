@@ -429,7 +429,10 @@ class CellsImpl(Derivable, Impl):
         self.data.update(data)
 
         self._namespace = self.parent._namespace
-        self.altfunc = BoundFunction(self)
+        if base:
+            self.altfunc = BoundFunction(self, base.altfunc.fresh)
+        else:
+            self.altfunc = BoundFunction(self)
         self.input_keys = set(data.keys())
 
     # ----------------------------------------------------------------------
