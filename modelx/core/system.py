@@ -43,12 +43,12 @@ class Executor:
         threading.stack_size(last_size)
         self.initnode = None
 
-    def eval_cell(self, node):
+    def eval_node(self, node):
 
         cells = node[OBJ]
         key = node[KEY]
 
-        if cells.has_cell(key):
+        if cells.has_node(key):
             value = cells.data[key]
             if self.callstack:
                 cells.model.tracegraph.add_edge(node, self.callstack[-1])

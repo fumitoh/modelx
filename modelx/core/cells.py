@@ -69,7 +69,7 @@ class Cells(Interface, Mapping, Callable):
     __slots__ = ()
 
     def __contains__(self, key):
-        return self._impl.has_cell(tuplize_key(self, key))
+        return self._impl.has_node(tuplize_key(self, key))
 
     def __getitem__(self, key):
         return self._impl.get_value(tuplize_key(self, key))
@@ -461,7 +461,7 @@ class CellsImpl(Derivable, Impl):
     def repr_parent(self):
         return self.parent.repr_parent() + "." + self.parent.repr_self()
 
-    def has_cell(self, key):
+    def has_node(self, key):
         return key in self.data
 
     def is_scalar(self):  # TODO: Move to HasFormula
@@ -507,7 +507,7 @@ class CellsImpl(Derivable, Impl):
 
         value = self.altfunc.fresh.altfunc(*key)
 
-        if self.has_cell(key):
+        if self.has_node(key):
             # Assignment took place inside the cell.
             if value is not None:
                 raise ValueError("Duplicate assignment for %s" % key)
@@ -520,7 +520,10 @@ class CellsImpl(Derivable, Impl):
 
     def get_value(self, args, kwargs=None):
         node = get_node(self, *convert_args(args, kwargs))
-        return self.system.executor.eval_cell(node)
+        return self.system.executor.eval_node(node)
+
+    def get_value_from_key(self, key):
+        return self.system.executor.eval_node(key_to_node(self, key))
 
     def find_match(self, args, kwargs):
 
@@ -563,7 +566,7 @@ class CellsImpl(Derivable, Impl):
             self.input_keys.add(key)
             if self.system._recalc_dependents:
                 for trg in targets:
-                    trg[OBJ].get_value(trg[KEY])
+                    trg[OBJ].get_value_from_key(trg[KEY])
 
     def _store_value(self, key, value):
 
@@ -598,7 +601,7 @@ class CellsImpl(Derivable, Impl):
                     self.clear_value_at(key)
 
     def clear_value_at(self, key):
-        if self.has_cell(key):
+        if self.has_node(key):
             self.model.clear_with_descs(key_to_node(self, key))
 
     # ----------------------------------------------------------------------
@@ -717,13 +720,13 @@ class CellNode:
     @property
     def has_value(self):
         """Return ``True`` if the cell has a value."""
-        return self._impl[OBJ].has_cell(self._impl[KEY])
+        return self._impl[OBJ].has_node(self._impl[KEY])
 
     @property
     def value(self):
         """Return the value of the cells."""
         if self.has_value:
-            return self._impl[OBJ].get_value(self._impl[KEY])
+            return self._impl[OBJ].get_value_from_key(self._impl[KEY])
         else:
             raise ValueError("Value not found")
 

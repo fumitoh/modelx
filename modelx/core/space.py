@@ -45,6 +45,7 @@ from modelx.core.node import (
     node_get_args,
     tuplize_key,
     get_node,
+    key_to_node,
     OBJ,
     KEY
 )
@@ -775,6 +776,16 @@ class ItemSpaceParent:
     def named_itemspaces(self):
         return self._named_itemspaces.fresh
 
+    @property
+    def data(self):
+        return self.param_spaces
+
+    def has_node(self, key):
+        return key in self.param_spaces
+
+    def get_value_from_key(self, key):
+        return self.param_spaces[key]
+
     def set_formula(self, formula):
 
         if formula is None:
@@ -792,9 +803,6 @@ class ItemSpaceParent:
                     self.update_referrer(self)
             else:
                 raise ValueError("formula already assigned.")
-
-    def eval_formula(self, node):
-        return self.altfunc.fresh.altfunc(*node[KEY])
 
     def _get_dynamic_base(self, bases_):
         """Create or get the base space from a list of spaces
@@ -838,10 +846,16 @@ class ItemSpaceParent:
             space = self.named_itemspaces[name]
             space.destruct()
             self.named_itemspaces.del_item(name)
+            key = next(
+                k for k, v in self.param_spaces.items() if v is space)
+            del self.param_spaces[key]
 
     def del_all_itemspaces(self):
         for name in list(self.named_itemspaces.keys()):
             self.del_itemspace(name)
+
+    def on_clear_value(self, key):
+        self.del_itemspace(self.param_spaces[key].name)
 
     def get_itemspace(self, args, kwargs=None):
         """Create a dynamic root space
@@ -849,31 +863,29 @@ class ItemSpaceParent:
         Called from interface methods
         """
         node = get_node(self, *convert_args(args, kwargs))
-        key = node[KEY]
+        return self.system.executor.eval_node(node)
 
-        if key in self.param_spaces:
-            return self.param_spaces[key]
+    def on_eval_formula(self, key):
+        params = self.altfunc.fresh.altfunc(*key)
+
+        if params is None:
+            params = {"bases": [self]}  # Default
         else:
-            space_args = self.eval_formula(node)
-
-            if space_args is None:
-                space_args = {"bases": [self]}  # Default
-            else:
-                if "bases" in space_args:
-                    bases = get_impls(space_args["bases"])
-                    if isinstance(bases, UserSpaceImpl):
-                        space_args["bases"] = [bases]
-                    elif bases is None:
-                        space_args["bases"] = [self]  # Default
-                    else:
-                        space_args["bases"] = bases
+            if "bases" in params:
+                bases = get_impls(params["bases"])
+                if isinstance(bases, UserSpaceImpl):
+                    params["bases"] = [bases]
+                elif bases is None:
+                    params["bases"] = [self]  # Default
                 else:
-                    space_args["bases"] = [self]
+                    params["bases"] = bases
+            else:
+                params["bases"] = [self]
 
-            space_args["arguments"] = node_get_args(node)
-            space = self._new_itemspace(**space_args)
-            self.param_spaces[key] = space
-            return space
+        params["arguments"] = node_get_args(key_to_node(self, key))
+        space = self._new_itemspace(**params)
+        self.param_spaces[key] = space
+        return space
 
 
 @add_stateattrs
@@ -1026,7 +1038,7 @@ class BaseSpaceImpl(
         raise NotImplementedError
 
     def clear_all_cells(self):
-        for cells in self.cells:
+        for cells in self.cells.values():
             cells.clear_all_values(clear_input=False)
 
     # ----------------------------------------------------------------------
