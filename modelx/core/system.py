@@ -436,12 +436,12 @@ class System:
         """Retrieve an object by its absolute name."""
 
         parts = name.split(".")
-        obj = self.models[parts.pop(0)].interface
+        impl = self.models[parts.pop(0)]
         while parts:
-            attr = parts.pop(0)
-            obj = getattr(obj, attr)
+            child = parts.pop(0)
+            impl = impl.get_object(child)
 
-        return obj
+        return impl.interface
 
     def get_object_from_tupleid(self, tupleid):
         """Retrieve an object from tuple id."""

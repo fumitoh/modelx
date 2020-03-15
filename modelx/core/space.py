@@ -1084,7 +1084,10 @@ class BaseSpaceImpl(
         if parts:
             return self.all_spaces[child].get_object(".".join(parts))
         else:
-            return self._namespace[child]
+            if child in self.namespace:
+                return self._namespace[child]
+            elif child in self.named_itemspaces:
+                return self._named_itemspaces[child]
 
     # ----------------------------------------------------------------------
     # repr methods

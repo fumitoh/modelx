@@ -21,7 +21,7 @@ def testmodel():
         mx.new_model(name="testmodel"),
         mx.new_space(name="testspace"),
     )
-
+    space.formula = lambda i: None
     space.new_cells(formula=foo)
     space.bar = 3
     space.new_cells(formula=baz)
@@ -66,10 +66,14 @@ def test_get_object(testmodel):
     for obj in objs:
         assert mx.get_object(obj.fullname) is obj
 
-    attrs = ["spaces", "cells", "formula"]
 
-    for obj, attr in zip(objs, attrs):
-        assert mx.get_object(obj.fullname + "." + attr) is getattr(obj, attr)
+def test_get_object_named_itemspace(testmodel):
+
+    itemspace = testmodel.testspace[1]
+    name = itemspace.name
+    assert mx.get_object("testmodel.testspace." + name) is itemspace
+    assert mx.get_object("testmodel.testspace." + name + ".foo") is itemspace.foo
+    assert mx.get_object("testmodel.testspace." + name + ".bar") == 3
 
 
 @pytest.mark.parametrize(
