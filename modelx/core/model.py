@@ -309,12 +309,12 @@ class ModelImpl(
         with open(filepath, "wb") as file:
             pickle.dump(self.interface, file, protocol=4)
 
-    def get_object(self, name):
+    def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the model."""
         parts = name.split(".")
         space = self.spaces[parts.pop(0)]
         if parts:
-            return space.get_object(".".join(parts))
+            return space.get_impl_from_name(".".join(parts))
         else:
             return space
 
@@ -360,7 +360,7 @@ class ModelImpl(
                 name, key = node
             else:
                 name, key = node, None
-            cells = self.get_object(name)
+            cells = self.get_impl_from_name(name)
             mapping[node] = get_node(cells, key, None)
 
         self.tracegraph = nx.relabel_nodes(self.tracegraph, mapping)

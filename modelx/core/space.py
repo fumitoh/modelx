@@ -1089,14 +1089,14 @@ class BaseSpaceImpl(
     def has_linealrel(self, other):
         return self.has_ascendant(other) or self.has_descendant(other)
 
-    def get_object(self, name):
+    def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the space."""
 
         parts = name.split(".")
         child = parts.pop(0)
 
         if parts:
-            return self.all_spaces[child].get_object(".".join(parts))
+            return self.all_spaces[child].get_impl_from_name(".".join(parts))
         else:
             if child in self.namespace:
                 return self._namespace[child]

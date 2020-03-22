@@ -163,9 +163,9 @@ def test_rename():
 # ---- Test impl ----
 
 
-def test_get_object(simplemodel):
+def test_get_impl_from_name(simplemodel):
 
     assert (
-        simplemodel._impl.get_object("Space1.fibo")
+        simplemodel._impl.get_impl_from_name("Space1.fibo")
         is simplemodel._impl.spaces["Space1"].cells["fibo"]
     )
