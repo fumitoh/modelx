@@ -263,6 +263,20 @@ class BaseSpace(BaseSpaceContainer):
     def __dir__(self):
         return self._impl.namespace.interfaces
 
+    def _get_object(self, name):
+        parts = name.split(".")
+        attr = parts.pop(0)
+
+        if hasattr(self, attr):
+            return super()._get_object(name)
+        else:
+            if attr in self._named_itemspaces:
+                space = self._named_itemspaces[attr]
+                if parts:
+                    return space._get_object(".".join(parts))
+                else:
+                    return space
+
     @property
     def bases(self):
         """List of base classes."""

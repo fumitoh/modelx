@@ -67,6 +67,16 @@ def test_get_object(testmodel):
         assert mx.get_object(obj.fullname) is obj
 
 
+def test_get_object_attrs(testmodel):
+    """Used by spyder-modelx"""
+
+    objs = [testmodel, testmodel.testspace, testmodel.testspace.foo]
+    attrs = ["spaces", "cells", "formula"]
+
+    for obj, attr in zip(objs, attrs):
+        assert mx.get_object(obj.fullname + "." + attr) is getattr(obj, attr)
+
+
 def test_get_object_named_itemspace(testmodel):
 
     itemspace = testmodel.testspace[1]

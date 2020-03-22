@@ -410,6 +410,14 @@ class Interface:
         else:
             raise ValueError("Invalid direct constructor call.")
 
+    def _get_object(self, name):
+        parts = name.split(".")
+        obj = getattr(self, parts.pop(0))
+        if parts:
+            return obj._get_object(".".join(parts))
+        else:
+            return obj
+
     @property
     def name(self):
         """Name of the object."""
