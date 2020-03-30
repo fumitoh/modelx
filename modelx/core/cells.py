@@ -22,6 +22,7 @@ from modelx.core.node import OBJ, KEY, get_node, tuplize_key, key_to_node
 from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
+from modelx.core.node import ItemProxy
 
 
 def convert_args(args, kwargs):
@@ -332,13 +333,13 @@ class Cells(Interface, Mapping, Callable):
     # ----------------------------------------------------------------------
     # Dependency
     def node(self, *args, **kwargs):
-        """Return a :class:`CellNode` object for the given arguments."""
-        return CellNode(get_node(self._impl, *convert_args(args, kwargs)))
+        """Return a :class:`ItemProxy` object for the given arguments."""
+        return ItemProxy(get_node(self._impl, *convert_args(args, kwargs)))
 
     def preds(self, *args, **kwargs):
         """Return a list of predecessors of a cell.
 
-        This method returns a list of CellNode objects, whose elements are
+        This method returns a list of ItemProxy objects, whose elements are
         predecessors of (i.e. referenced in the formula
         of) the cell specified by the given arguments.
         """
@@ -347,7 +348,7 @@ class Cells(Interface, Mapping, Callable):
     def succs(self, *args, **kwargs):
         """Return a list of successors of a cell.
 
-        This method returns a list of CellNode objects, whose elements are
+        This method returns a list of ItemProxy objects, whose elements are
         successors of (i.e. referencing in their formulas)
         the cell specified by the given arguments.
         """
@@ -639,12 +640,12 @@ class CellsImpl(Derivable, Impl):
     def predecessors(self, args, kwargs):
         node = get_node(self, *convert_args(args, kwargs))
         preds = self.model.tracegraph.predecessors(node)
-        return [CellNode(n) for n in preds]
+        return [ItemProxy(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = get_node(self, *convert_args(args, kwargs))
         succs = self.model.tracegraph.successors(node)
-        return [CellNode(n) for n in succs]
+        return [ItemProxy(n) for n in succs]
 
 
 class UserCellsImpl(CellsImpl):
@@ -696,93 +697,8 @@ class UserCellsImpl(CellsImpl):
         self.model.spacemgr.update_subs(self.parent)
 
 
-
 class DynamicCellsImpl(CellsImpl):
     pass
-
-
-class CellNode:
-    """A combination of a cells, its args and its value."""
-
-    def __init__(self, node):
-        self._impl = node
-
-    @property
-    def cells(self):
-        """Return the Cells object"""
-        return self._impl[OBJ].interface
-
-    @property
-    def args(self):
-        """Return a tuple of the cells' arguments."""
-        return self._impl[KEY]
-
-    @property
-    def has_value(self):
-        """Return ``True`` if the cell has a value."""
-        return self._impl[OBJ].has_node(self._impl[KEY])
-
-    @property
-    def value(self):
-        """Return the value of the cells."""
-        if self.has_value:
-            return self._impl[OBJ].get_value_from_key(self._impl[KEY])
-        else:
-            raise ValueError("Value not found")
-
-    def is_input(self):
-        """``True`` if this is input.
-
-        Return ``True`` if this cell is input, ``False`` if calculated.
-        Raise an error if there is no value.
-
-        .. versionadded:: 0.1.0
-        """
-        if self.has_value:
-            return self._impl[KEY] in self._impl[OBJ].input_keys
-        else:
-            raise ValueError("Value not found")
-
-    @property
-    def preds(self):
-        """A list of nodes that this node refers to."""
-        return self.cells.preds(*self.args)
-
-    @property
-    def succs(self):
-        """A list of nodes that refer to this  node."""
-        return self.cells.succs(*self.args)
-
-    @property
-    def _baseattrs(self):
-        """A dict of members expressed in literals"""
-
-        result = {
-            "type": type(self).__name__,
-            "obj": self.cells._baseattrs,
-            "args": self.args,
-            "value": self.value if self.has_value else None,
-            "predslen": len(self.preds),
-            "succslen": len(self.succs),
-            "repr_parent": self.cells._impl.repr_parent(),
-            "repr": self.cells._get_repr(),
-        }
-
-        return result
-
-    def __repr__(self):
-
-        name = self.cells._get_repr(fullname=True, add_params=False)
-        params = self.cells._impl.formula.parameters
-
-        arglist = ", ".join(
-            "%s=%s" % (param, repr(arg)) for param, arg in zip(params, self.args)
-        )
-
-        if self.has_value:
-            return name + "(" + arglist + ")" + "=" + repr(self.value)
-        else:
-            return name + "(" + arglist + ")"
 
 
 def shareable_parameters(cells):

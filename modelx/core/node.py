@@ -107,3 +107,90 @@ def get_node_repr(node):
         return name + "(" + arglist + ")" + "=" + str(obj.data[key])
     else:
         return name + "(" + arglist + ")"
+
+
+class ItemProxy:
+    """A combination of a cells, its args and its value."""
+
+    __slots__ = ("_impl",)
+
+    def __init__(self, node):
+        self._impl = node
+
+    @property
+    def cells(self):
+        """Return the Cells object"""
+        return self._impl[OBJ].interface
+
+    @property
+    def args(self):
+        """Return a tuple of the cells' arguments."""
+        return self._impl[KEY]
+
+    @property
+    def has_value(self):
+        """Return ``True`` if the cell has a value."""
+        return self._impl[OBJ].has_node(self._impl[KEY])
+
+    @property
+    def value(self):
+        """Return the value of the cells."""
+        if self.has_value:
+            return self._impl[OBJ].get_value_from_key(self._impl[KEY])
+        else:
+            raise ValueError("Value not found")
+
+    def is_input(self):
+        """``True`` if this is input.
+
+        Return ``True`` if this cell is input, ``False`` if calculated.
+        Raise an error if there is no value.
+
+        .. versionadded:: 0.1.0
+        """
+        if self.has_value:
+            return self._impl[KEY] in self._impl[OBJ].input_keys
+        else:
+            raise ValueError("Value not found")
+
+    @property
+    def preds(self):
+        """A list of nodes that this node refers to."""
+        return self.cells.preds(*self.args)
+
+    @property
+    def succs(self):
+        """A list of nodes that refer to this  node."""
+        return self.cells.succs(*self.args)
+
+    @property
+    def _baseattrs(self):
+        """A dict of members expressed in literals"""
+
+        result = {
+            "type": type(self).__name__,
+            "obj": self.cells._baseattrs,
+            "args": self.args,
+            "value": self.value if self.has_value else None,
+            "predslen": len(self.preds),
+            "succslen": len(self.succs),
+            "repr_parent": self.cells._impl.repr_parent(),
+            "repr": self.cells._get_repr(),
+        }
+
+        return result
+
+    def __repr__(self):
+
+        name = self.cells._get_repr(fullname=True, add_params=False)
+        params = self.cells._impl.formula.parameters
+
+        arglist = ", ".join(
+            "%s=%s" % (param, repr(arg)) for param, arg in
+            zip(params, self.args)
+        )
+
+        if self.has_value:
+            return name + "(" + arglist + ")" + "=" + repr(self.value)
+        else:
+            return name + "(" + arglist + ")"
