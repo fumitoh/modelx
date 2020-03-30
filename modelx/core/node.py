@@ -118,7 +118,7 @@ class ItemProxy:
         self._impl = node
 
     @property
-    def cells(self):
+    def obj(self):
         """Return the Cells object"""
         return self._impl[OBJ].interface
 
@@ -140,28 +140,15 @@ class ItemProxy:
         else:
             raise ValueError("Value not found")
 
-    def is_input(self):
-        """``True`` if this is input.
-
-        Return ``True`` if this cell is input, ``False`` if calculated.
-        Raise an error if there is no value.
-
-        .. versionadded:: 0.1.0
-        """
-        if self.has_value:
-            return self._impl[KEY] in self._impl[OBJ].input_keys
-        else:
-            raise ValueError("Value not found")
-
     @property
     def preds(self):
         """A list of nodes that this node refers to."""
-        return self.cells.preds(*self.args)
+        return self.obj.preds(*self.args)
 
     @property
     def succs(self):
         """A list of nodes that refer to this  node."""
-        return self.cells.succs(*self.args)
+        return self.obj.succs(*self.args)
 
     @property
     def _baseattrs(self):
@@ -169,21 +156,21 @@ class ItemProxy:
 
         result = {
             "type": type(self).__name__,
-            "obj": self.cells._baseattrs,
+            "obj": self.obj._baseattrs,
             "args": self.args,
             "value": self.value if self.has_value else None,
             "predslen": len(self.preds),
             "succslen": len(self.succs),
-            "repr_parent": self.cells._impl.repr_parent(),
-            "repr": self.cells._get_repr(),
+            "repr_parent": self.obj._impl.repr_parent(),
+            "repr": self.obj._get_repr(),
         }
 
         return result
 
     def __repr__(self):
 
-        name = self.cells._get_repr(fullname=True, add_params=False)
-        params = self.cells._impl.formula.parameters
+        name = self.obj._get_repr(fullname=True, add_params=False)
+        params = self.obj._impl.formula.parameters
 
         arglist = ", ".join(
             "%s=%s" % (param, repr(arg)) for param, arg in

@@ -46,8 +46,8 @@ def test_clear_with_param(clearsample, method, input, expected):
     if input:
         clearsample.fibo[0] = 0
         clearsample.fibo[1] = 1
-        assert clearsample.fibo.node(0).is_input()
-        assert clearsample.fibo.node(1).is_input()
+        assert clearsample.fibo.is_input(0)
+        assert clearsample.fibo.is_input(1)
 
     clearsample.fibo[5]
 
@@ -68,7 +68,7 @@ def test_clear_no_param(clearsample, method, input, expected):
 
     if input:
         clearsample.no_param = 5
-        assert clearsample.no_param.node().is_input()
+        assert clearsample.no_param.is_input()
     assert clearsample.no_param == 5
     getattr(clearsample.no_param, method)()
     assert set(clearsample.no_param) == expected

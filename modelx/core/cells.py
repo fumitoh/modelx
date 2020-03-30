@@ -354,6 +354,21 @@ class Cells(Interface, Mapping, Callable):
         """
         return self._impl.successors(args, kwargs)
 
+    def is_input(self, *args, **kwargs):
+        """``True`` if this is input.
+
+        Return ``True`` if this cell is input, ``False`` if calculated.
+        Raise an error if there is no value.
+
+        .. versionadded:: 0.1.0
+        """
+        node = get_node(self._impl, *convert_args(args, kwargs))
+
+        if self._impl.has_node(node[KEY]):
+            return node[KEY] in self._impl.input_keys
+        else:
+            raise ValueError("Value not found")
+
     # ----------------------------------------------------------------------
     # Override base class methods
 
