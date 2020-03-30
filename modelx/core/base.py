@@ -567,6 +567,7 @@ class Interface:
             "name": self.name,
             "fullname": self.fullname,
             "repr": self._get_repr(),
+            "namedid": self._namedid
         }
 
         return result
@@ -594,6 +595,11 @@ class Interface:
             return (self.name,)
         else:
             return self.parent._tupleid + (self.name,)
+
+    @property
+    def _namedid(self):
+        return self._impl.namedid
+
 
 
 class LazyEval:
