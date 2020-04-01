@@ -55,7 +55,10 @@ class BaseSpaceContainer(Interface):
         and the space is returned.
         """
         if name is None:
-            return self._impl.model.currentspace.interface
+            if self._impl.model.currentspace:
+                return self._impl.model.currentspace.interface
+            else:
+                return None
         else:
             self._impl.model.currentspace = self._impl.spaces[name]
             return self.cur_space()
