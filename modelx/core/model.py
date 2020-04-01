@@ -191,6 +191,10 @@ class Model(EditableSpaceContainer):
         """Return a mapping of global references."""
         return self._impl.global_refs.interfaces
 
+    def _get_from_name(self, name):
+        """Get object by named id"""
+        return self._impl.get_impl_from_name(name).interface
+
 
 class TraceManager:
 
