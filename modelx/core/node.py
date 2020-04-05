@@ -117,6 +117,13 @@ class ItemProxy:
     def __init__(self, node):
         self._impl = node
 
+    def __eq__(self, other):
+        return (self._impl[OBJ] is other._impl[OBJ] and
+                self._impl[KEY] == other._impl[KEY])
+
+    def __hash__(self):
+        return hash((self._impl[OBJ], self._impl[KEY]))
+
     @property
     def obj(self):
         """Return the Cells object"""
@@ -181,3 +188,57 @@ class ItemProxy:
             return name + "(" + arglist + ")" + "=" + repr(self.value)
         else:
             return name + "(" + arglist + ")"
+
+
+class ElementFactory:
+
+    __slots__ = ()
+
+    def node(self, *args, **kwargs):
+        """Return a :class:`ItemProxy` object for the given arguments."""
+        from .cells import convert_args  # TODO: Remove this
+        return ItemProxy(get_node(self._impl, *convert_args(args, kwargs)))
+
+    def preds(self, *args, **kwargs):
+        """Return a list of predecessors of a cell.
+
+        This method returns a list of ItemProxy objects, whose elements are
+        predecessors of (i.e. referenced in the formula
+        of) the cell specified by the given arguments.
+        """
+        return self._impl.predecessors(args, kwargs)
+
+    def succs(self, *args, **kwargs):
+        """Return a list of successors of a cell.
+
+        This method returns a list of ItemProxy objects, whose elements are
+        successors of (i.e. referencing in their formulas)
+        the cell specified by the given arguments.
+        """
+        return self._impl.successors(args, kwargs)
+
+
+class ElementFactoryImpl:
+
+    __slots__ = ()
+
+    # ----------------------------------------------------------------------
+    # Dependency
+
+    def predecessors(self, args, kwargs):
+        from .cells import convert_args  # TODO: Remove this
+        node = get_node(self, *convert_args(args, kwargs))
+        preds = self.model.tracegraph.predecessors(node)
+        return [ItemProxy(n) for n in preds]
+
+    def successors(self, args, kwargs):
+        from .cells import convert_args  # TODO: Remove this
+        node = get_node(self, *convert_args(args, kwargs))
+        succs = self.model.tracegraph.successors(node)
+        return [ItemProxy(n) for n in succs]
+
+    def get_value_from_key(self, key):
+        raise NotImplementedError
+
+    def has_node(self, key):
+        raise NotImplementedError

@@ -22,7 +22,7 @@ from modelx.core.node import OBJ, KEY, get_node, tuplize_key, key_to_node
 from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
-from modelx.core.node import ItemProxy
+from modelx.core.node import ElementFactory, ElementFactoryImpl
 
 
 def convert_args(args, kwargs):
@@ -59,7 +59,7 @@ class CellsMaker:
 ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
 
 
-class Cells(Interface, Mapping, Callable):
+class Cells(Interface, Mapping, Callable, ElementFactory):
     """Data container with a formula to calculate its own values.
 
     Cells are created by ``new_cells`` method or its variant methods of
@@ -332,27 +332,7 @@ class Cells(Interface, Mapping, Callable):
 
     # ----------------------------------------------------------------------
     # Dependency
-    def node(self, *args, **kwargs):
-        """Return a :class:`ItemProxy` object for the given arguments."""
-        return ItemProxy(get_node(self._impl, *convert_args(args, kwargs)))
 
-    def preds(self, *args, **kwargs):
-        """Return a list of predecessors of a cell.
-
-        This method returns a list of ItemProxy objects, whose elements are
-        predecessors of (i.e. referenced in the formula
-        of) the cell specified by the given arguments.
-        """
-        return self._impl.predecessors(args, kwargs)
-
-    def succs(self, *args, **kwargs):
-        """Return a list of successors of a cell.
-
-        This method returns a list of ItemProxy objects, whose elements are
-        successors of (i.e. referencing in their formulas)
-        the cell specified by the given arguments.
-        """
-        return self._impl.successors(args, kwargs)
 
     def is_input(self, *args, **kwargs):
         """``True`` if this is input.
@@ -390,7 +370,7 @@ class Cells(Interface, Mapping, Callable):
 
 
 @add_stateattrs
-class CellsImpl(Derivable, Impl):
+class CellsImpl(Derivable, ElementFactoryImpl, Impl):
     """Cells implementation"""
 
     interface_cls = Cells
@@ -648,19 +628,6 @@ class CellsImpl(Derivable, Impl):
 
         args = self.tuplize_arg_sequence(args)
         return cells_to_dataframe(self, args)
-
-    # ----------------------------------------------------------------------
-    # Dependency
-
-    def predecessors(self, args, kwargs):
-        node = get_node(self, *convert_args(args, kwargs))
-        preds = self.model.tracegraph.predecessors(node)
-        return [ItemProxy(n) for n in preds]
-
-    def successors(self, args, kwargs):
-        node = get_node(self, *convert_args(args, kwargs))
-        succs = self.model.tracegraph.successors(node)
-        return [ItemProxy(n) for n in succs]
 
 
 class UserCellsImpl(CellsImpl):

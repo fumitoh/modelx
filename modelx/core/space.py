@@ -47,7 +47,9 @@ from modelx.core.node import (
     get_node,
     key_to_node,
     OBJ,
-    KEY
+    KEY,
+    ElementFactory,
+    ElementFactoryImpl
 )
 from modelx.core.spacecontainer import (
     BaseSpaceContainer,
@@ -249,7 +251,7 @@ class RefView(SelectedView):
         return result
 
 
-class BaseSpace(BaseSpaceContainer):
+class BaseSpace(BaseSpaceContainer, ElementFactory):
 
     __slots__ = ()
 
@@ -762,7 +764,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         self._impl.doc = value
 
 
-class ItemSpaceParent:
+class ItemSpaceParent(ElementFactoryImpl):
 
     __cls_stateattrs = [
         "_named_itemspaces",
@@ -793,12 +795,6 @@ class ItemSpaceParent:
     @property
     def data(self):
         return self.param_spaces
-
-    def has_node(self, key):
-        return key in self.param_spaces
-
-    def get_value_from_key(self, key):
-        return self.param_spaces[key]
 
     def set_formula(self, formula):
 
@@ -901,10 +897,20 @@ class ItemSpaceParent:
         self.param_spaces[key] = space
         return space
 
+    # ----------------------------------------------------------------------
+    # ElementFactoryImpl override
+
+    def has_node(self, key):
+        return key in self.param_spaces
+
+    def get_value_from_key(self, key):
+        return self.param_spaces[key].interface
+
 
 @add_stateattrs
 class BaseSpaceImpl(
     ItemSpaceParent,
+    ElementFactoryImpl,
     BaseSpaceContainerImpl,
     Impl
 ):
