@@ -576,9 +576,13 @@ class Interface:
         """Get extra attributes"""
         result = self._baseattrs
 
-        for attr in attrs:
-            if hasattr(self, attr):
-                result[attr] = getattr(self, attr)._to_attrdict(attrs)
+        for name in attrs:
+            if hasattr(self, name):
+                attr = getattr(self, name)
+                if hasattr(attr, "_to_attrdict"):
+                    result[name] = attr._to_attrdict(attrs)
+                else:
+                    result[name] = attr
 
         return result
 
