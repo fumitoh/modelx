@@ -771,7 +771,7 @@ class InterfaceMixin:
         elif map_class is dict:
             raise RuntimeError
         else:
-            self.interfaces = map_class(self._interfaces)
+            self.interfaces = map_class(self._interfaces, self)
 
     def _update_interfaces(self):
         self._interfaces.clear()
@@ -894,8 +894,9 @@ class ReferenceManager:
 class BaseView(Mapping):
 
     # Start by filling-out the abstract methods
-    def __init__(self, data):
+    def __init__(self, data, impl):
         self._data = data
+        self.impl = impl
 
     def __len__(self):
         return len(self._data)
@@ -982,15 +983,15 @@ class SelectedView(BaseView):
         keys: Iterable of selected keys.
     """
 
-    def __init__(self, data, keys=None):
-        BaseView.__init__(self, data)
+    def __init__(self, data, impl, keys=None):
+        BaseView.__init__(self, data, impl)
         self._set_keys(keys)
 
     def __getitem__(self, key):
         if isinstance(key, str):
             return BaseView.__getitem__(self, key)
         if isinstance(key, Sequence):
-            return type(self)(self._data, key)
+            return type(self)(self._data, self.impl, key)
         else:
             raise KeyError
 
