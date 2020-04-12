@@ -427,6 +427,7 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
         result["dynamic_spaces"] = self._named_itemspaces._baseattrs_private
         result["cells"] = self.cells._baseattrs
         result["refs"] = self.refs._baseattrs
+        result["bases"] = [base._namedid for base in self.bases]
 
         if self.has_params():
             result["params"] = ", ".join(self.parameters)
