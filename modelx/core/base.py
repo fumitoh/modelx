@@ -410,11 +410,11 @@ class Interface:
         else:
             raise ValueError("Invalid direct constructor call.")
 
-    def _get_object(self, name):
+    def _get_object(self, name, as_proxy=False):
         parts = name.split(".")
         obj = getattr(self, parts.pop(0))
         if parts:
-            return obj._get_object(".".join(parts))
+            return obj._get_object(".".join(parts), as_proxy)
         else:
             return obj
 

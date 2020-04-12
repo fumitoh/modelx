@@ -15,9 +15,10 @@
 import sys
 import builtins
 import importlib
-from types import ModuleType
+from types import ModuleType, FunctionType
+import functools
 
-from modelx.core.base import add_stateattrs, Derivable, Impl
+from modelx.core.base import add_stateattrs, Derivable, Impl, Interface
 
 
 # For backward compatibility with -v0.0.23
@@ -136,3 +137,25 @@ class ReferenceImpl(Derivable, Impl):
 
 ReferenceImpl.picklers.append(_ModulePickler)
 
+
+class ReferenceProxy:
+
+    __slots__ = ("_impl",)
+
+    def __init__(self, impl):
+        self._impl = impl
+
+    def __getattr__(self, item):
+        item = getattr(Interface, item)
+        if isinstance(item, property):
+            return item.fget(self)
+        elif isinstance(item, FunctionType):
+            return functools.partial(item, self)
+
+    @property
+    def value(self):
+        return self._impl.interface
+
+    @property
+    def _baseattrs(self):
+        return Interface._baseattrs.fget(self)

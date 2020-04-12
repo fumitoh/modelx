@@ -60,6 +60,7 @@ def test_get_object(testmodel):
     assert mx.get_object("testmodel.testspace") is testmodel.testspace
     assert mx.get_object("testmodel.testspace.foo") is testmodel.testspace.foo
     assert mx.get_object("testmodel.testspace.bar") == 3
+    assert mx.get_object("testmodel.testspace.bar", as_proxy=True).value == 3
 
     objs = [testmodel, testmodel.testspace, testmodel.testspace.foo]
 

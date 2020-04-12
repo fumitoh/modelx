@@ -40,7 +40,7 @@ from modelx.core.base import (
     SelectedView,
     BoundFunction,
 )
-from modelx.core.reference import ReferenceImpl
+from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.node import (
     node_get_args,
     tuplize_key,
@@ -266,17 +266,19 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
     def __dir__(self):
         return self._impl.namespace.interfaces
 
-    def _get_object(self, name):
+    def _get_object(self, name, as_proxy=False):
         parts = name.split(".")
         attr = parts.pop(0)
 
-        if hasattr(self, attr):
-            return super()._get_object(name)
+        if as_proxy and attr in self.refs:
+            return ReferenceProxy(self._impl.refs[attr])
+        elif hasattr(self, attr):
+            return super()._get_object(name, as_proxy)
         else:
             if attr in self._named_itemspaces:
                 space = self._named_itemspaces[attr]
                 if parts:
-                    return space._get_object(".".join(parts))
+                    return space._get_object(".".join(parts), as_proxy)
                 else:
                     return space
 

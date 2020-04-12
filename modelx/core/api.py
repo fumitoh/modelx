@@ -233,9 +233,9 @@ if _sys.version_info >= (3, 7):
         return names
 
 
-def get_object(name: str):
+def get_object(name: str, as_proxy=False):
     """Get a modelx object from its full name."""
-    return _system.get_object(name)
+    return _system.get_object(name, as_proxy)
 
 
 def _get_node(name: str, args: str):

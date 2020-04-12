@@ -432,13 +432,13 @@ class System:
         if self.currentmodel is model:
             self.currentmodel = None
 
-    def get_object(self, name):
+    def get_object(self, name, as_proxy=False):
         """Retrieve an object by its absolute name."""
 
         parts = name.split(".")
         model = self.models[parts.pop(0)].interface
         if parts:
-            return model._get_object(".".join(parts))
+            return model._get_object(".".join(parts), as_proxy)
         else:
             return model
 
