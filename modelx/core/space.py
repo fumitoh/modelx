@@ -233,6 +233,7 @@ class SpaceView(BaseView):
 
 
 class RefView(SelectedView):
+
     @property
     def _baseattrs(self):
 
@@ -241,13 +242,7 @@ class RefView(SelectedView):
         result["items"] = items = {}
         for name, item in self.items():
             if name[0] != "_":
-                itemattrs = {
-                    "repr": name,
-                    "id": id(item),
-                    "type": "Reference",
-                    "value_type": type(item).__name__
-                }
-                items[name] = itemattrs
+                items[name] = ReferenceProxy(self.impl[name])._baseattrs
 
         return result
 

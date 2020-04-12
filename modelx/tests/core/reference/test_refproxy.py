@@ -11,4 +11,3 @@ def test_baseattrs():
     assert attrs["fullname"] == s.fullname + "." + "bar"
     assert attrs["repr"] == "bar"
     assert attrs["namedid"] == s.name + ".bar"
-    print(attrs["type"])

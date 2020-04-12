@@ -158,4 +158,7 @@ class ReferenceProxy:
 
     @property
     def _baseattrs(self):
-        return Interface._baseattrs.fget(self)
+        result = Interface._baseattrs.fget(self)
+        result["type"] = "Reference"
+        result["value_type"] = type(self.value).__name__
+        return result
