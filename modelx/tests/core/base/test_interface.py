@@ -30,7 +30,7 @@ def test_baseattrs(model_obj_pair):
 
     baseattrs = {
         "type": type(obj).__name__,
-        "id": id(obj),
+        "id": id(obj._impl),
         "name": obj.name,
         "fullname": obj.fullname,
         "repr": obj._get_repr(),

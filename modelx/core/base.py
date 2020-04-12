@@ -563,7 +563,7 @@ class Interface:
 
         result = {
             "type": type(self).__name__,
-            "id": id(self),
+            "id": id(self._impl),
             "name": self.name,
             "fullname": self.fullname,
             "repr": self._get_repr(),
