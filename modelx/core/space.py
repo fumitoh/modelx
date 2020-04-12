@@ -244,7 +244,8 @@ class RefView(SelectedView):
                 itemattrs = {
                     "repr": name,
                     "id": id(item),
-                    "type": type(item).__name__,
+                    "type": "Reference",
+                    "value_type": type(item).__name__
                 }
                 items[name] = itemattrs
 
