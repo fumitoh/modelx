@@ -404,19 +404,25 @@ class ModelReader:
     def __init__(self, system, path: pathlib.Path):
         self.path = path
         self.kwargs = None
+        self.model = None
 
     def read_model(self, **kwargs):
 
-        self.kwargs = kwargs
-        instructions, model = self._parse_dir()
+        try:
+            self.kwargs = kwargs
+            instructions, model = self._parse_dir()
 
-        instructions.run_methods([
-            "fset",
-            "set_formula",
-            "set_property",
-            "new_cells"] + list(_Instruction._METHODS.keys()))
-        instructions.run_methods(["add_bases"])
-        instructions.run_methods(["__setattr__"])
+            instructions.run_methods([
+                "fset",
+                "set_formula",
+                "set_property",
+                "new_cells"] + list(_Instruction._METHODS.keys()))
+            instructions.run_methods(["add_bases"])
+            instructions.run_methods(["__setattr__"])
+        except:
+            if self.model:
+                self.model.close()
+            raise
 
         return model
 
@@ -425,7 +431,7 @@ class ModelReader:
         result = _InstructionList()
         if target is None:
             path_ = self.path
-            target = model = mx.new_model(path_.name)
+            self.model = target = model = mx.new_model(path_.name)
             result.extend(self._parse_source(path_ / "_model.py", model))
 
         for source in path_.glob("[!_]*.py"):

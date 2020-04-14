@@ -789,6 +789,11 @@ class ModelReader:
             self.instructions.execute_selected_methods(["__setattr__"])
             self.instructions.execute_selected_methods(
                 ["_set_dynamic_inputs"])
+        except:
+            if self.model:
+                self.model.close()
+            raise
+
         finally:
             self.system.serializing = None
 
