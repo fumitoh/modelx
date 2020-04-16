@@ -1072,7 +1072,7 @@ class BoundFunction(LazyEval):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        del state["altfunc"]
+        state["altfunc"] = None
         state["global_names"] = None
         state["needs_update"] = True  # Reconstruct altfunc after unpickling
         return state

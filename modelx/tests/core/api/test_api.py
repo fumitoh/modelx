@@ -140,3 +140,16 @@ def test_open_model_leave_old(savetestmodel, name, newname, renamed):
     assert newmodel.name == newname
     assert model.name[: len(oldname)] == oldname
     assert renamed != (len(model.name) == len(oldname))
+
+
+def test_save_again(tmpdir_factory):
+
+    m, s = mx.new_model(), mx.new_space()
+
+    @mx.defcells
+    def a():
+        return 1
+    file = str(tmpdir_factory.mktemp("data").join("test_save_again.mx"))
+    m.save(file)
+    m2 = mx.open_model(file)
+    m2.save(file)
