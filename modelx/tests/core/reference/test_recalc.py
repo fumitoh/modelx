@@ -29,7 +29,7 @@ def refspace(request, refmodel, tmpdir_factory):
         file = str(tmpdir_factory.mktemp("data").join("refmodel.mx"))
         model.save(file)
         model.close()
-        model = mx.open_model(file)
+        model = mx.restore_model(file)
 
     yield model.SpaceA
     model.close()

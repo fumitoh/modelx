@@ -78,7 +78,7 @@ def sample_dynamic_model(request, build_sample_dynamic_model, tmpdir_factory):
         file = str(tmpdir_factory.mktemp("data").join(model.name + ".mx"))
         model.save(file)
         model.close()
-        model = mx.open_model(file)
+        model = mx.restore_model(file)
 
     yield model
     model.close()

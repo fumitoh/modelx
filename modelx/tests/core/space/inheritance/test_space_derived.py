@@ -38,7 +38,7 @@ def unpickled_model(request, derived_sample, tmpdir_factory):
         file = str(tmpdir_factory.mktemp("data").join("testmodel.mx"))
         model.save(file)
         model.close()
-        model = mx.open_model(file)
+        model = mx.restore_model(file)
 
     yield model
     model.close()

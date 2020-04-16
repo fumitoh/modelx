@@ -33,7 +33,7 @@ def savetestmodel(testmodel, tmpdir_factory):
 
     model = testmodel
     old_name = testmodel.name
-    file = str(tmpdir_factory.mktemp("data").join("test_open_model.mx"))
+    file = str(tmpdir_factory.mktemp("data").join("test_restore_model.mx"))
     model.save(file)
     return model, file
 
@@ -109,12 +109,12 @@ def test_get_node(testmodel, name, argstr, args):
         [None, "testmodel"],
     ],
 )
-def test_open_model_close_old(savetestmodel, name, newname):
-    """Test open_model API with/without name args."""
+def test_restore_model_close_old(savetestmodel, name, newname):
+    """Test restore_model API with/without name args."""
 
     model, file = savetestmodel
     model.close()
-    newmodel = mx.open_model(file, name)
+    newmodel = mx.restore_model(file, name)
     assert newmodel.name == newname
 
 
@@ -126,17 +126,17 @@ def test_open_model_close_old(savetestmodel, name, newname):
         [None, "testmodel", True],
     ],
 )
-def test_open_model_leave_old(savetestmodel, name, newname, renamed):
-    """Test open_model API with/without name args when old model exists.
+def test_restore_model_leave_old(savetestmodel, name, newname, renamed):
+    """Test restore_model API with/without name args when old model exists.
 
     Args:
-        name: Name passed to open_model
+        name: Name passed to restore_model
         newname: Name the new model should have
         renamed: True if the old model is renamed
     """
     model, file = savetestmodel
     oldname = model.name
-    newmodel = mx.open_model(file, name)
+    newmodel = mx.restore_model(file, name)
     assert newmodel.name == newname
     assert model.name[: len(oldname)] == oldname
     assert renamed != (len(model.name) == len(oldname))
@@ -151,5 +151,5 @@ def test_save_again(tmpdir_factory):
         return 1
     file = str(tmpdir_factory.mktemp("data").join("test_save_again.mx"))
     m.save(file)
-    m2 = mx.open_model(file)
+    m2 = mx.restore_model(file)
     m2.save(file)

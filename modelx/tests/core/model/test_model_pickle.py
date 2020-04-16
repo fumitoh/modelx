@@ -119,7 +119,7 @@ def test_pickle_module(tmp_path):
     m, s = new_model(), new_space("TestModule")
     m.np = numpy
     m.save(tmp_path / "pickle_module.mx")
-    m = open_model(tmp_path / "pickle_module.mx")
+    m = restore_model(tmp_path / "pickle_module.mx")
     assert m.np is numpy
     assert m.TestModule.np is numpy
     assert m.__builtins__ is builtins

@@ -403,7 +403,7 @@ class System:
             m.currentspace = m.spacemgr.new_space(m)
             return m.currentspace
 
-    def open_model(self, path, name):
+    def restore_model(self, path, name):
         with open(path, "rb") as file:
             model = pickle.load(file)
 

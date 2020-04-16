@@ -26,6 +26,7 @@ or by::
 """
 import sys as _sys
 import ast as _ast
+import warnings
 from types import FunctionType as _FunctionType
 
 from modelx.core import mxsys as _system
@@ -300,7 +301,7 @@ def cur_space(space=None):
         return cur_space()
 
 
-def open_model(path, name=None):
+def restore_model(path, name=None):
     """Load a model saved from a file and return it.
 
     Args:
@@ -310,7 +311,24 @@ def open_model(path, name=None):
     Returns:
         A new model created from the file.
     """
-    return _system.open_model(path, name)
+    return _system.restore_model(path, name)
+
+
+def open_model(path, name=None):
+    """Load a model saved from a file and return it.
+
+    Args:
+        path (:obj:`str`): Path to the file to load the model from.
+        name (optional): If specified, the model is renamed to this name.
+
+    Returns:
+        A new model created from the file.
+
+    .. deprecated:: 0.5.0 Use :func:`restore_model` instead.
+    """
+    warnings.warn(
+        "'open_model' function is deprecated. Use 'restore_model' instead.")
+    return _system.restore_model(path, name)
 
 
 def start_stacktrace(maxlen=10000):
