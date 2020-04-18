@@ -196,8 +196,7 @@ class ElementFactory:
 
     def node(self, *args, **kwargs):
         """Return a :class:`ItemProxy` object for the given arguments."""
-        from .cells import convert_args  # TODO: Remove this
-        return ItemProxy(get_node(self._impl, *convert_args(args, kwargs)))
+        return ItemProxy(get_node(self._impl, args, kwargs))
 
     def preds(self, *args, **kwargs):
         """Return a list of predecessors of a cell.
@@ -226,14 +225,12 @@ class ElementFactoryImpl:
     # Dependency
 
     def predecessors(self, args, kwargs):
-        from .cells import convert_args  # TODO: Remove this
-        node = get_node(self, *convert_args(args, kwargs))
+        node = get_node(self, args, kwargs)
         preds = self.model.tracegraph.predecessors(node)
         return [ItemProxy(n) for n in preds]
 
     def successors(self, args, kwargs):
-        from .cells import convert_args  # TODO: Remove this
-        node = get_node(self, *convert_args(args, kwargs))
+        node = get_node(self, args, kwargs)
         succs = self.model.tracegraph.successors(node)
         return [ItemProxy(n) for n in succs]
 

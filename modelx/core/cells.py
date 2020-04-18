@@ -25,28 +25,6 @@ from modelx.core.errors import NoneReturnedError
 from modelx.core.node import ElementFactory, ElementFactoryImpl
 
 
-def convert_args(args, kwargs):
-    """If args and kwargs contains Cells, Convert them to their values."""
-
-    found = False
-    for arg in args:
-        if isinstance(arg, Cells):
-            found = True
-            break
-
-    if found:
-        args = tuple(
-            arg.value if isinstance(arg, Cells) else arg for arg in args
-        )
-
-    if kwargs is not None:
-        for key, arg in kwargs.items():
-            if isinstance(arg, Cells):
-                kwargs[key] = arg.value
-
-    return args, kwargs
-
-
 class CellsMaker:
     def __init__(self, *, space, name):
         self.space = space  # SpaceImpl
@@ -154,7 +132,7 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
         See Also:
             :meth:`celar`, :meth:`clear_all`
         """
-        node = get_node(self._impl, *convert_args(args, kwargs))
+        node = get_node(self._impl, args, kwargs)
         return self._impl.clear_value_at(node[KEY])
 
     # ----------------------------------------------------------------------
@@ -342,7 +320,7 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
 
         .. versionadded:: 0.1.0
         """
-        node = get_node(self._impl, *convert_args(args, kwargs))
+        node = get_node(self._impl, args, kwargs)
 
         if self._impl.has_node(node[KEY]):
             return node[KEY] in self._impl.input_keys
@@ -515,7 +493,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         return value
 
     def get_value(self, args, kwargs=None):
-        node = get_node(self, *convert_args(args, kwargs))
+        node = get_node(self, args, kwargs)
         return self.system.executor.eval_node(node)
 
     def get_value_from_key(self, key):
@@ -523,7 +501,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
 
     def find_match(self, args, kwargs):
 
-        node = get_node(self, *convert_args(args, kwargs))
+        node = get_node(self, args, kwargs)
         key = node[KEY]
         keylen = len(key)
 
@@ -545,7 +523,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
 
     def set_value(self, args, value):
 
-        node = get_node(self, *convert_args(args, {}))
+        node = get_node(self, args, {})
         key = node[KEY]
 
         if self.system.callstack:

@@ -62,7 +62,6 @@ from modelx.core.cells import (
     Cells,
     DynamicCellsImpl,
     UserCellsImpl,
-    convert_args,
     shareable_parameters,
 )
 from modelx.core.util import AutoNamer, is_valid_name, get_module
@@ -871,7 +870,7 @@ class ItemSpaceParent(ElementFactoryImpl):
 
         Called from interface methods
         """
-        node = get_node(self, *convert_args(args, kwargs))
+        node = get_node(self, args, kwargs)
         return self.system.executor.eval_node(node)
 
     def on_eval_formula(self, key):
