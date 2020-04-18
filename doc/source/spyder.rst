@@ -76,6 +76,24 @@ Note that you need to restart Spyder to bring the change into effect.
    User Module Reloader setting
 
 
+**Import modelx as IPython startup**
+
+When you use modelx in IPython, you need to import modelx first.
+Doing so every time you open a new IPython session is tedious,
+so there's a way to import modelx at each IPython session's startup.
+From the Spyder menu, select *Tools->Preferences* to bring up Preferences window.
+Choose *IPython console* in the left pane, and select
+*Startup* tab from the tabs on the right.
+Enter ``import modelx as mx`` in the box titled *Lines:* in the *Run code* area,
+and click *Okay*. Next time you open a new IPython session,
+modelx is imported as ``mx`` in the IPython's global namespace.
+
+.. figure:: /images/spyder/PreferencesStartup.png
+
+   IPython startup setting
+
+
+
 Installing Spyder plugin for modelx
 -----------------------------------
 

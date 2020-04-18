@@ -1,5 +1,5 @@
-**spyder-modelx** releases
-==========================
+Old **spyder-modelx** releases
+==============================
 
 .. _release-mxplugin-v0.2.0:
 

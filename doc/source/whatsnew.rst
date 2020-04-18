@@ -23,6 +23,11 @@ What's New
 
 .. End Development Sate
 
+
+.. contents::
+   :depth: 1
+   :local:
+
 Updates
 =======
 
@@ -37,12 +42,13 @@ Updates
 
    updates
 
-Release Notes
-=============
+Release Notes - modelx
+======================
 
 .. toctree::
    :maxdepth: 2
 
+   releases/relnotes_v0_5_0
    releases/relnotes_v0_4_0
    releases/relnotes_v0_3_0
    releases/relnotes_v0_2_0
@@ -52,4 +58,13 @@ Release Notes
    releases/relnotes_v0_0_23
    releases/relnotes_v0_0_22
    releases/old_mx_releases
+
+
+Release Notes - spyder-modelx
+=============================
+
+.. toctree::
+   :maxdepth: 2
+
+   releases/spymx_relnotes_v0.3.0.rst
    releases/spyder_mx_releases

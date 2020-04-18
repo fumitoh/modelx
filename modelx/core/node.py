@@ -110,7 +110,7 @@ def get_node_repr(node):
 
 
 class ItemProxy:
-    """A combination of a cells, its args and its value."""
+    """A combination of a modelx object, its args and its value."""
 
     __slots__ = ("_impl",)
 
