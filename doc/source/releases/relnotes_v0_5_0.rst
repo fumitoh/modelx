@@ -17,7 +17,7 @@ The calculation speed is improved by 10% due to the change.
 
     Due to the introduction of the backward incompatible changes in this release,
     the source code of `lifelib`_ models based on the past lifelib versions needs
-    manual changes to work with version of modelx. See `commit 605802a`_ and
+    manual changes to work with this version of modelx. See `commit 605802a`_ and
     `commit df083f6`_ for where and how to make changes in your lifelib source code.
 
 .. _commit 605802a: https://github.com/fumitoh/lifelib/commit/605802a0ea52d8fbec9a7380b6a0a0717de9bd71
