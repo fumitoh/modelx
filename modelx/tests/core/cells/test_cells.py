@@ -1,8 +1,7 @@
 from textwrap import dedent
 import pytest
 
-from modelx import *
-from modelx.core.errors import NoneReturnedError
+
 
 
 def test_parent(sample_space):
@@ -144,49 +143,3 @@ def test_fullname_omit_model(sample_space):
     )
 
 
-# --------------------------------------------------------------------------
-# Test errors
-
-
-def test_none_returned_error():
-
-    errfunc = dedent(
-        """\
-        def return_none(x, y):
-            return None"""
-    )
-
-    space = new_model(name="ErrModel").new_space(name="ErrSpace")
-    cells = space.new_cells(formula=errfunc)
-    cells.allow_none = False
-    with pytest.raises(NoneReturnedError) as errinfo:
-        cells(1, 3)
-
-    errmsg = dedent(
-        """\
-        None returned from ErrModel.ErrSpace.return_none(x=1, y=3).
-        Call stack traceback:
-        0: ErrModel.ErrSpace.return_none(x=1, y=3)"""
-    )
-
-    assert errinfo.value.args[0] == errmsg
-
-
-def test_zerodiv():
-
-    from modelx.core.errors import RewindStackError
-
-    zerodiv = dedent(
-        """\
-        def zerodiv(x):
-            if x == 3:
-                return x / 0
-            else:
-                return zerodiv(x + 1)"""
-    )
-
-    space = new_model().new_space(name="ZeroDiv")
-    cells = space.new_cells(formula=zerodiv)
-
-    with pytest.raises(RewindStackError):
-        cells(0)

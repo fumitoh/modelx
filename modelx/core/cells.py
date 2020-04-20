@@ -607,6 +607,14 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         args = self.tuplize_arg_sequence(args)
         return cells_to_dataframe(self, args)
 
+    # ----------------------------------------------------------------------
+    # Sanity Check
+
+    def check_sanity(self):
+        # Check consistency between data elements and nodes in trace graph
+        nodes = self.model.tracegraph.get_nodes_with(self)
+        assert set(self.data.keys()) == set(n[KEY] for n in nodes)
+        return True
 
 class UserCellsImpl(CellsImpl):
 

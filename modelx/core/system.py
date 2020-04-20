@@ -108,14 +108,19 @@ class Executor:
         cells, key = node[OBJ], node[KEY]
 
         try:
-            return cells.on_eval_formula(key)
+            value = cells.on_eval_formula(key)
 
         except ZeroDivisionError:
             tracemsg = self.callstack.tracemessage()
+            self.callstack.discard()
             raise RewindStackError(node, tracemsg)
-
-        finally:
+        except:
+            self.callstack.discard()
+            raise
+        else:
             self.callstack.pop()
+
+        return value
 
 
 class CallStack(deque):
@@ -169,6 +174,21 @@ class CallStack(deque):
                 break
 
         return node
+
+    def discard(self):
+        node = deque.pop(self)
+        self.counter -= 1
+        cells = node[OBJ]
+
+        graph = cells.model.tracegraph
+        if graph.has_node(node):
+            graph.remove_node(node)
+
+        while self.refstack:
+            if self.refstack[-1][0] == self.counter:
+                _, ref = self.refstack.pop()
+            else:
+                break
 
     def tracemessage(self, maxlen=6):
         """
