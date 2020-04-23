@@ -232,6 +232,21 @@ def is_funcdef(src: str):
         return False
 
 
+def is_lambda(src: str):
+    """True if src is a function definition
+
+    ``src`` must be a valid Python expression
+    """
+    module_node = ast.parse(dedent(src))
+    if len(module_node.body) == 1:
+        expr_node = module_node.body[0]
+        if isinstance(expr_node, ast.Expr) and isinstance(
+                expr_node.value, ast.Lambda):
+            return True
+
+    return False
+
+
 def remove_decorator(source: str):
     """Remove decorators from function definition"""
     lines = source.splitlines()
@@ -290,7 +305,7 @@ def has_lambda(src):
     return bool(lambdaexp)
 
 
-def is_lambda(func: FunctionType):
+def is_func_lambda(func: FunctionType):
     return func.__code__.co_name == "<lambda>"
 
 
@@ -368,7 +383,7 @@ class Formula:
 
     def _init_from_func(self, func: FunctionType, name: str):
 
-        if is_lambda(func):
+        if is_func_lambda(func):
             src = extract_lambda_from_func(func)
             self._init_from_lambda(src, name)
         else:
