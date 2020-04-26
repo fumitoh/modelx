@@ -3,6 +3,7 @@ import pytest
 
 import modelx as mx
 from modelx.core.errors import NoneReturnedError
+from modelx.testing.testutil import SuppressFormulaError
 
 # --------------------------------------------------------------------------
 # Test errors
@@ -19,22 +20,31 @@ def test_none_returned_error():
     space = mx.new_model(name="ErrModel").new_space(name="ErrSpace")
     cells = space.new_cells(formula=errfunc)
     cells.allow_none = False
-    with pytest.raises(NoneReturnedError) as errinfo:
+
+    with SuppressFormulaError():
+        with pytest.raises(NoneReturnedError) as errinfo:
+            cells(1, 3)
+
+    errmsg = "ErrModel.ErrSpace.return_none(x=1, y=3)"
+    assert errinfo.value.args[0] == errmsg
+
+    with pytest.raises(mx.core.system.FormulaError) as errinfo:
         cells(1, 3)
 
-    errmsg = dedent(
-        """\
-        None returned from ErrModel.ErrSpace.return_none(x=1, y=3).
-        Call stack traceback:
-        0: ErrModel.ErrSpace.return_none(x=1, y=3)"""
-    )
+    errmsg = dedent("""\
+        Error raised during formula execution
+        modelx.core.errors.NoneReturnedError: ErrModel.ErrSpace.return_none(x=1, y=3)
+        Formula traceback:
+        0: ErrModel.ErrSpace.return_none(x=1, y=3)
+        Formula source:
+        def return_none(x, y):
+            return None
+        """)
 
     assert errinfo.value.args[0] == errmsg
 
 
 def test_zerodiv():
-
-    from modelx.core.errors import RewindStackError
 
     zerodiv = dedent(
         """\
@@ -48,8 +58,9 @@ def test_zerodiv():
     space = mx.new_model().new_space(name="ZeroDiv")
     cells = space.new_cells(formula=zerodiv)
 
-    with pytest.raises(RewindStackError):
-        cells(0)
+    with SuppressFormulaError():
+        with pytest.raises(ZeroDivisionError):
+            cells(0)
 
 
 # --------------------------------------------------------------------------
@@ -63,8 +74,9 @@ def test_trace_cleanup_value_error():
         return foo(i - 1).replace(
             month=foo(i - 1).month + 1) if i > 0 else datetime.date(2016, 1, 1)
 
-    with pytest.raises(ValueError):
-        foo(20)
+    with SuppressFormulaError():
+        with pytest.raises(ValueError):
+            foo(20)
 
     assert foo._impl.check_sanity()
     assert len(foo) == 12
@@ -79,8 +91,9 @@ def test_trace_cleanup_type_error():
         else:
             return 0
 
-    with pytest.raises(TypeError):
-        foo(2)
+    with SuppressFormulaError():
+        with pytest.raises(TypeError):
+            foo(2)
 
     assert foo._impl.check_sanity()
     assert len(foo) == 2

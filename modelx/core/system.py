@@ -14,16 +14,18 @@
 
 import sys
 import time
+import os.path
 import warnings
 import pickle
 import threading
+import traceback
 from collections import deque
+import modelx   # https://bugs.python.org/issue18145
 from modelx.core.node import get_node_repr
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
-from modelx.core.errors import DeepReferenceError
-from modelx.core.node import OBJ, KEY
-from modelx.core.errors import RewindStackError
+from modelx.core.errors import DeepReferenceError, FormulaError
+from modelx.core.node import OBJ, KEY, ItemProxy
 
 
 class Executor:
@@ -35,6 +37,8 @@ class Executor:
 
         self.system = system
         self.refstack = deque()
+        self.errorstack = None
+        self.rolledback = deque()
         self.callstack = CallStack(self, maxdepth)
         self.thread = Executor.ExecThread(self)
         self.thread.daemon = True
@@ -76,14 +80,15 @@ class Executor:
                     self.buffer = self.executor._eval_formula(
                         self.executor.initnode)
                 except:
-                    self.executor.exception = sys.exc_info()
+                    self.executor.excinfo = sys.exc_info()
 
                 self.signal_start.clear()
                 self.signal_stop.set()
 
     def _start_exec(self, node):
         self.initnode = node
-        self.exception = None
+        self.excinfo = None
+        self.errorstack = None
         try:
             self.thread.signal_start.set()
             self.thread.signal_stop.wait()
@@ -92,10 +97,24 @@ class Executor:
             assert not self.callstack.counter
             assert not self.refstack
 
-            if self.exception:
-                raise self.exception[1].with_traceback(
-                    self.exception[2]
+            if self.excinfo:
+
+                self.errorstack = ErrorStack(
+                    self.excinfo[1],
+                    self.rolledback
                 )
+                if self.system.formula_error:
+                    errmsg = traceback.format_exception_only(
+                        self.excinfo[0],
+                        self.excinfo[1]
+                    )
+                    errmsg = "".join(errmsg)
+                    errmsg += self.errorstack.tracemessage()
+                    raise FormulaError(
+                        "Error raised during formula execution\n" + errmsg)
+                else:
+                    raise self.excinfo[1]
+
             else:
                 return self.thread.buffer
 
@@ -110,12 +129,8 @@ class Executor:
         try:
             value = cells.on_eval_formula(key)
 
-        except ZeroDivisionError:
-            tracemsg = self.callstack.tracemessage()
-            self.callstack.discard()
-            raise RewindStackError(node, tracemsg)
         except:
-            self.callstack.discard()
+            self.callstack.rollback()
             raise
         else:
             self.callstack.pop()
@@ -151,7 +166,8 @@ class CallStack(deque):
     def append(self, item):
 
         if len(self) > self.maxdepth:
-            raise DeepReferenceError(self.maxdepth, self.tracemessage())
+            raise DeepReferenceError(
+                "Formula chain exceeded the %s limit" % self.maxdepth)
         deque.append(self, item)
         self.counter += 1
 
@@ -175,8 +191,9 @@ class CallStack(deque):
 
         return node
 
-    def discard(self):
+    def rollback(self):
         node = deque.pop(self)
+        self.executor.rolledback.append(node)
         self.counter -= 1
         cells = node[OBJ]
 
@@ -239,6 +256,57 @@ class TraceableCallStack(CallStack):
         )
 
 
+class ErrorStack(deque):
+
+    def __init__(self, exception, rolledback):
+        deque.__init__(self)
+        tbexc = traceback.TracebackException.from_exception(exception)
+
+        mxdir = os.path.dirname(modelx.__file__)
+
+        for frame in tbexc.stack:
+            if not mxdir in frame.filename:
+                node = rolledback.pop()
+                self.append(
+                    (node, frame.lineno)
+                )
+
+        while rolledback:
+            node = rolledback.pop()
+            self.append(
+                (node, 0)
+            )
+
+    def get_traceback(self):
+        return [(ItemProxy(frame[0]), frame[1]) for frame in self]
+
+    def tracemessage(self, maxlen=6):
+        """
+        if maxlen > 0, the message is shortened to maxlen traces.
+        """
+        result = "Formula traceback:\n"
+        for i, frame in enumerate(self):
+            result += "{0}: {1}".format(i, get_node_repr(frame[0]))
+            if frame[1]:
+                result += ", line %s" % frame[1]
+            result += "\n"
+
+        result = result.strip("\n")
+        lines = result.split("\n")
+
+        if maxlen and len(lines) > maxlen:
+            i = int(maxlen / 2)
+            lines = lines[:i] + ["..."] + lines[-(maxlen - i):]
+            result = "\n".join(lines)
+
+        # last formula
+        src = "Formula source:\n"
+        src += self[-1][0][OBJ].formula.source
+        result += "\n" + src
+
+        return result
+
+
 def custom_showwarning(
     message, category, filename="", lineno=-1, file=None, line=None
 ):
@@ -285,6 +353,7 @@ class System:
     def __init__(self, maxdepth=None, setup_shell=False):
 
         self.configure_python()
+        self.formula_error = True
         self.executor = Executor(self, maxdepth)
         self.callstack = self.executor.callstack
         self.refstack = self.executor.refstack

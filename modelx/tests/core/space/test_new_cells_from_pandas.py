@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import modelx as mx
 from modelx.core.util import is_valid_name
+from modelx.testing.testutil import SuppressFormulaError
 
 def make_sample1(name, param_names):
     """Series with Index"""
@@ -63,8 +64,11 @@ def test_new_cells_from_series(sample_model, sample_series):
     series, name, param = sample_series
 
     if not any(series.index.names) and not param:
-        with pytest.raises(ValueError):
-            space.new_cells_from_pandas(series, cells=name, param=param)
+
+        with SuppressFormulaError():
+            with pytest.raises(ValueError):
+                space.new_cells_from_pandas(series, cells=name, param=param)
+
     else:
         cells = space.new_cells_from_pandas(series, cells=name, param=param)
         assert cells.series.equals(series)

@@ -1,3 +1,4 @@
+import modelx
 from modelx.core.base import Interface
 
 
@@ -52,3 +53,13 @@ def compare_cells(src, trg):
 
     assert src.doc == trg.doc
     assert src.formula.source == trg.formula.source
+
+
+class SuppressFormulaError:
+
+    def __enter__(self):
+        self.saved = modelx.use_formula_error()
+        modelx.use_formula_error(False)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        modelx.use_formula_error(self.saved)

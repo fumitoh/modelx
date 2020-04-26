@@ -18,7 +18,8 @@ from itertools import combinations
 
 from modelx.core.base import (
     add_stateattrs, Impl, Derivable, Interface, BoundFunction)
-from modelx.core.node import OBJ, KEY, get_node, tuplize_key, key_to_node
+from modelx.core.node import (
+    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node)
 from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
@@ -506,9 +507,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         keylen = len(key)
 
         if not self.get_property("allow_none"):
-            # raise ValueError('Cells %s cannot return None' % self.name)
-            tracemsg = self.system.callstack.tracemessage()
-            raise NoneReturnedError(node, tracemsg)
+            raise NoneReturnedError(get_node_repr(node))
 
         for match_len in range(keylen, -1, -1):
             for idxs in combinations(range(keylen), match_len):
@@ -553,8 +552,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         elif self.get_property("allow_none"):
             self.data[key] = value
         else:
-            tracemsg = self.system.callstack.tracemessage()
-            raise NoneReturnedError(get_node(self, key, None), tracemsg)
+            raise NoneReturnedError(get_node_repr((self, key, None)))
 
         return value
 

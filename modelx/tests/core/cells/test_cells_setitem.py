@@ -2,9 +2,7 @@ import pytest
 
 import modelx as mx
 from modelx import new_model, defcells
-
-import pytest
-
+from modelx.testing.testutil import SuppressFormulaError
 
 @pytest.fixture
 def setitemsample():
@@ -64,8 +62,9 @@ def test_setitem_in_formula_invalid_assignment_error(setitemsample):
         invalid_in_formula_assignment[x + 1] = 3 * x
 
     setitemsample.new_cells(formula=invalid_in_formula_assignment)
-    with pytest.raises(KeyError):
-        setitemsample.invalid_in_formula_assignment[3]
+    with SuppressFormulaError():
+        with pytest.raises(KeyError):
+            setitemsample.invalid_in_formula_assignment[3]
 
 
 def test_setitem_in_formula_duplicate_assignment_error(setitemsample):
@@ -75,8 +74,9 @@ def test_setitem_in_formula_duplicate_assignment_error(setitemsample):
         return 4 * x
 
     setitemsample.new_cells(formula=duplicate_assignment)
-    with pytest.raises(ValueError):
-        setitemsample.duplicate_assignment[4]
+    with SuppressFormulaError():
+        with pytest.raises(ValueError):
+            setitemsample.duplicate_assignment[4]
 
 
 @pytest.mark.parametrize("recalc", [True, False])

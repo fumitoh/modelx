@@ -1,7 +1,9 @@
 import sys
+import modelx as mx
 from textwrap import dedent
 from modelx.core.system import mxsys
 from modelx.core.api import *
+from modelx.testing.testutil import SuppressFormulaError
 from modelx.core.errors import DeepReferenceError
 import pytest
 
@@ -62,30 +64,44 @@ def test_deep_reference_error():
     from modelx.core import mxsys
 
     last_maxdepth = mxsys.callstack.maxdepth
-    set_recursion(3)
 
-    errfunc = dedent(
-        """\
-    def erronerous(x, y):
-        return erronerous(x + 1, y - 1)"""
-    )
+    try:
+        set_recursion(3)
 
-    space = new_model(name="ErrModel").new_space(name="ErrSpace")
-    cells = space.new_cells(formula=errfunc)
-    with pytest.raises(DeepReferenceError) as errinfo:
-        cells(1, 3)
+        errfunc = dedent(
+            """\
+        def erronerous(x, y):
+            return erronerous(x + 1, y - 1)"""
+        )
 
-    errmsg = dedent(
-        """\
-    Formula chain exceeded the 3 limit.
-    Call stack traceback:
-    0: ErrModel.ErrSpace.erronerous(x=1, y=3)
-    1: ErrModel.ErrSpace.erronerous(x=2, y=2)
-    2: ErrModel.ErrSpace.erronerous(x=3, y=1)
-    3: ErrModel.ErrSpace.erronerous(x=4, y=0)"""
-    )
+        space = new_model(name="ErrModel").new_space(name="ErrSpace")
+        cells = space.new_cells(formula=errfunc)
 
-    set_recursion(last_maxdepth)
+        with SuppressFormulaError():
+            with pytest.raises(DeepReferenceError) as errinfo:
+                cells(1, 3)
+
+        assert errinfo.value.args[0] == "Formula chain exceeded the 3 limit"
+
+        with pytest.raises(mx.core.system.FormulaError) as errinfo:
+            cells(1, 3)
+
+        errmsg = dedent(
+            """\
+            Error raised during formula execution
+            modelx.core.errors.DeepReferenceError: Formula chain exceeded the 3 limit
+            Formula traceback:
+            0: ErrModel.ErrSpace.erronerous(x=1, y=3), line 2
+            1: ErrModel.ErrSpace.erronerous(x=2, y=2), line 2
+            2: ErrModel.ErrSpace.erronerous(x=3, y=1), line 2
+            3: ErrModel.ErrSpace.erronerous(x=4, y=0), line 2
+            Formula source:
+            def erronerous(x, y):
+                return erronerous(x + 1, y - 1)
+            """
+        )
+    finally:
+        set_recursion(last_maxdepth)
     assert errinfo.value.args[0] == errmsg
 
 

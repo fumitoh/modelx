@@ -80,6 +80,11 @@ def set_recursion(maxdepth=1000):
     _system.callstack.maxdepth = maxdepth
 
 
+def get_recursion():
+    """Returns formula recursion limit"""
+    return _system.callstack.maxdepth
+
+
 def new_model(name=None):
     """Create and return a new model.
 
@@ -540,3 +545,49 @@ def set_recalc(recalc):
         :func:`get_recalc`
     """
     _system._recalc_dependents = bool(recalc)
+
+
+def get_error():
+    """Returns exception raised during last formula execution
+
+    If the last formula execution is failed, returns the exception,
+    otherwise returns None.
+    """
+    if _system.executor.excinfo:
+        return _system.executor.excinfo[1]
+    else:
+        return None
+
+
+def get_traceback():
+    """Returns traceback of exception raised during last formula execution
+
+    Returns traceback information if the last formula execution is failed.
+    Otherwise, returns an empty list.
+    The traceback is a list of tuples each of which represents a formula
+    call in the formula failed execution, and contains three elements.
+    The first element is the modelx object, the second in the arguments
+    to the formula as a tuple, and the third is the line number
+    of the formula's source.
+    """
+    if _system.executor.errorstack:
+        return _system.executor.errorstack.get_traceback()
+    else:
+        return []
+
+
+def use_formula_error(use=None):
+    """Specifies whether to replace error raised during formula execution
+
+    By default, modelx traps errors raised during formula execution,
+    and raise ``FormulaError`` instead. :func:`get_formula_error` can be used
+    to get the original errors.
+    You can change the behaviour by passing ``False`` to this function,
+    so that the original errors are raised.
+    If no argument is given, returns the current setting.
+    """
+    if use is not None:
+        _system.formula_error = bool(use)
+
+    return _system.formula_error
+

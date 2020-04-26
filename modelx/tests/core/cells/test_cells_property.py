@@ -3,6 +3,7 @@ import pytest
 
 from modelx import *
 from modelx.core.errors import NoneReturnedError
+from modelx.testing.testutil import SuppressFormulaError
 
 paramx = [[False, False, True], [False, True, None], [True, None, None]]
 paramy = ["get", "set"]
@@ -40,8 +41,10 @@ def test_with_sapce_allow_none_false(
     space.allow_none = space_param
     cells.allow_none = cells_param
 
-    with pytest.raises(NoneReturnedError) as errinfo:
-        if op == "get":
-            assert cells[1] == None
-        else:
-            cells[1] = None
+    with SuppressFormulaError():
+        with pytest.raises(NoneReturnedError):
+            if op == "get":
+                assert cells[1] == None
+            else:
+                cells[1] = None
+

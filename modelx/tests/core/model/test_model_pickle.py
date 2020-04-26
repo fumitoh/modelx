@@ -103,6 +103,7 @@ def test_pickle_argvalues(pickletest_dynamicspace):
 def test_pickle_argvalues_none(pickletest_dynamicspace):
 
     model, check = pickletest_dynamicspace
+
     with pytest.raises(AttributeError):
         model.Space1.argvalues is None
 

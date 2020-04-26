@@ -1,7 +1,7 @@
 import pytest
 import modelx as mx
 from modelx import defcells, new_space
-
+from modelx.testing.testutil import SuppressFormulaError
 
 @pytest.fixture
 def testmodel():
@@ -19,11 +19,11 @@ def test_delattr_cells(testmodel):
     foo(3)
     del space.foo
 
-    with pytest.raises(AttributeError):
-        space.foo(3)
-
-    with pytest.raises(RuntimeError):
-        foo(3)
+    with SuppressFormulaError():
+        with pytest.raises(AttributeError):
+            space.foo(3)
+        with pytest.raises(RuntimeError):
+            foo(3)
 
 
 def test_delattr_space(testmodel):
@@ -40,5 +40,8 @@ def test_delattr_ref(testmodel):
     s.x = 3
     assert s.x == 3
     del s.x
-    with pytest.raises(AttributeError):
-        s.x
+
+    with SuppressFormulaError():
+        with pytest.raises(AttributeError):
+            s.x
+

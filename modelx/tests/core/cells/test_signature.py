@@ -1,5 +1,6 @@
 import modelx as mx
 from modelx import defcells
+from modelx.testing.testutil import SuppressFormulaError
 import pytest
 
 
@@ -37,34 +38,38 @@ def test_get_too_many_args(cells_signatures):
 
     space = cells_signatures
 
-    with pytest.raises(TypeError):
-        space.no_param(1)
+    with SuppressFormulaError():
 
-    with pytest.raises(TypeError):
-        space.no_param[1]
+        with pytest.raises(TypeError):
+            space.no_param(1)
 
-    with pytest.raises(TypeError):
-        space.single_param(1, 2)
+        with pytest.raises(TypeError):
+            space.no_param[1]
 
-    with pytest.raises(TypeError):
-        space.single_param[1, 2]
+        with pytest.raises(TypeError):
+            space.single_param(1, 2)
 
-    with pytest.raises(TypeError):
-        space.single_param[(1, 2)]  # Intepreted as [1, 2]
+        with pytest.raises(TypeError):
+            space.single_param[1, 2]
+
+        with pytest.raises(TypeError):
+            space.single_param[(1, 2)]  # Intepreted as [1, 2]
 
 
 def test_get_too_few_args(cells_signatures):
 
     space = cells_signatures
 
-    with pytest.raises(TypeError):
-        space.single_param()
+    with SuppressFormulaError():
 
-    with pytest.raises(TypeError):
-        space.mult_params(1)
+        with pytest.raises(TypeError):
+            space.single_param()
 
-    with pytest.raises(TypeError):
-        space.mult_params[1]
+        with pytest.raises(TypeError):
+            space.mult_params(1)
+
+        with pytest.raises(TypeError):
+            space.mult_params[1]
 
 
 def test_get_default_args(cells_signatures):

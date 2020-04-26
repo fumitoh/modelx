@@ -3,6 +3,7 @@ import pytest
 from modelx.core.api import *
 from modelx.core.node import get_node
 from modelx.core.base import get_interfaces
+from modelx.testing.testutil import SuppressFormulaError
 
 
 @pytest.fixture
@@ -147,8 +148,9 @@ def test_global_ref_delattr():
     model.n = 2
     del model.n
 
-    with pytest.raises(NameError):
-        func1(4)
+    with SuppressFormulaError():
+        with pytest.raises(NameError):
+            func1(4)
 
 
 def test_rename():

@@ -1,4 +1,5 @@
 import modelx as mx
+from modelx.testing.testutil import SuppressFormulaError
 import pytest
 
 
@@ -44,8 +45,10 @@ def test_update_ref(refspace):
 def test_delete_ref(refspace):
 
     del refspace.bar
-    with pytest.raises(NameError):
-        refspace.foo()
+
+    with SuppressFormulaError():
+        with pytest.raises(NameError):
+            refspace.foo()
 
 
 def test_override_global(refspace):
@@ -59,6 +62,7 @@ def test_delete_global(refspace):
 
     assert refspace.foo() == 3
     del refspace.model.baz
-    with pytest.raises(NameError):
-        refspace.foo()
+    with SuppressFormulaError():
+        with pytest.raises(NameError):
+            refspace.foo()
 
