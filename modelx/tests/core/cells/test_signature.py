@@ -95,7 +95,7 @@ def test_getitem_string(cells_signatures):
 def test_scalar_cells_arg(cells_signatures):
 
     space = cells_signatures
-    assert isinstance(space.single_param(space.no_param), int)
+    assert isinstance(space.single_param(space.no_param), type(space.no_param))
 
 
 def test_cells_as_arg(cells_signatures):

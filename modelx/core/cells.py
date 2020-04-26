@@ -543,10 +543,6 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
 
     def _store_value(self, key, value):
 
-        if isinstance(value, Cells):
-            if value._impl.is_scalar():
-                value = value._impl.single_value
-
         if value is not None:
             self.data[key] = value
         elif self.get_property("allow_none"):
