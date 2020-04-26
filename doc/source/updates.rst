@@ -4,6 +4,10 @@ Updates
 
 .. Latest Updates Begin
 
+* *27 April 2020:*
+  modelx v0.6.0 is released. See :doc:`releases/relnotes_v0_6_0` release
+  notes for details.
+
 * *19 April 2020:*
   spyder-modelx v0.3.1 is released.
   See :doc:`releases/spymx_relnotes_v0.3.1`

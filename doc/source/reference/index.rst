@@ -23,6 +23,7 @@ Function Reference
    ~modelx.open_model
    ~modelx.setup_ipython
    ~modelx.restore_ipython
+   ~modelx.get_recursion
    ~modelx.set_recursion
    ~modelx.start_stacktrace
    ~modelx.stop_stacktrace
@@ -30,6 +31,9 @@ Function Reference
    ~modelx.clear_stacktrace
    ~modelx.get_recalc
    ~modelx.set_recalc
+   ~modelx.get_error
+   ~modelx.get_traceback
+   ~modelx.use_formula_error
 
 
 Class Reference
