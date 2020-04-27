@@ -261,16 +261,19 @@ class ErrorStack(deque):
     def __init__(self, exception, rolledback):
         deque.__init__(self)
         tbexc = traceback.TracebackException.from_exception(exception)
+        self.on_eval_flag = False
 
         mxdir = os.path.dirname(modelx.__file__)
 
         for frame in tbexc.stack:
-            if not mxdir in frame.filename:
-                if frame.name.isidentifier():   # To exclude '<listcomp>'
-                    node = rolledback.pop()
-                    self.append(
-                        (node, frame.lineno)
-                    )
+            if mxdir in frame.filename and frame.name == "on_eval_formula":
+                self.on_eval_flag = True
+            elif not mxdir in frame.filename and self.on_eval_flag:
+                node = rolledback.pop()
+                self.append(
+                    (node, frame.lineno)
+                )
+                self.on_eval_flag = False
 
         while rolledback:
             node = rolledback.pop()

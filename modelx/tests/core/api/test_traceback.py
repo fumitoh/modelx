@@ -39,6 +39,18 @@ def errormodel():
         else:
             raise ValueError()
 
+    s.new_cells("lam", formula=lambda x: qux(x-1) if x > 0 else 1/0)
+
+    @mx.defcells
+    def qux(x):
+        return lam(x)
+
+    @mx.defcells
+    def quux(t):
+        def my_sum(*args):
+            return sum(args)
+        return my_sum('a')
+
     return m
 
 
@@ -152,3 +164,49 @@ def test_listcomp_error(errormodel):
     assert isinstance(mx.get_error(), ValueError)
     assert mx.get_traceback() == [(cells.node(1), 3),
                                   (cells.node(0), 5)]
+
+
+def test_lambda_error(errormodel):
+
+    cells = errormodel.ErrorSpace.lam
+    qux = errormodel.ErrorSpace.qux
+    with pytest.raises(FormulaError) as errinfo:
+        cells(1)
+
+    errmsg = dedent("""\
+        Error raised during formula execution
+        ZeroDivisionError: division by zero
+        Formula traceback:
+        0: ErrorModel.ErrorSpace.lam(x=1), line 1
+        1: ErrorModel.ErrorSpace.qux(x=0), line 2
+        2: ErrorModel.ErrorSpace.lam(x=0), line 1
+        Formula source:
+        lambda x: qux(x-1) if x > 0 else 1/0""")
+
+    assert errinfo.value.args[0] == errmsg
+    assert isinstance(mx.get_error(), ZeroDivisionError)
+    assert mx.get_traceback() == [(cells.node(1), 1),
+                                  (qux.node(0), 2),
+                                  (cells.node(0), 1)]
+
+
+def test_nested_def_error(errormodel):
+
+    cells = errormodel.ErrorSpace.quux
+    with pytest.raises(FormulaError) as errinfo:
+        cells(1)
+
+    errmsg = dedent("""\
+    Error raised during formula execution
+    TypeError: unsupported operand type(s) for +: 'int' and 'str'
+    Formula traceback:
+    0: ErrorModel.ErrorSpace.quux(t=1), line 4
+    Formula source:
+    def quux(t):
+        def my_sum(*args):
+            return sum(args)
+        return my_sum('a')
+    """)
+    assert errinfo.value.args[0] == errmsg
+    assert isinstance(mx.get_error(), TypeError)
+    assert mx.get_traceback() == [(cells.node(1), 4)]
