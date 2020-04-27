@@ -266,10 +266,11 @@ class ErrorStack(deque):
 
         for frame in tbexc.stack:
             if not mxdir in frame.filename:
-                node = rolledback.pop()
-                self.append(
-                    (node, frame.lineno)
-                )
+                if frame.name.isidentifier():   # To exclude '<listcomp>'
+                    node = rolledback.pop()
+                    self.append(
+                        (node, frame.lineno)
+                    )
 
         while rolledback:
             node = rolledback.pop()

@@ -32,6 +32,13 @@ def errormodel():
     def infinite(x):
         return infinite(x-1)
 
+    @mx.defcells
+    def listcomp(t):
+        if t > 0:
+            return sum([listcomp(t - i) for i in range(1, 2)])
+        else:
+            raise ValueError()
+
     return m
 
 
@@ -119,4 +126,29 @@ def test_deep_reference_error(errormodel):
                                   (cells.node(0), 2)]
 
 
+def test_listcomp_error(errormodel):
 
+    # https://github.com/fumitoh/modelx/issues/31
+
+    cells = errormodel.ErrorSpace.listcomp
+    with pytest.raises(FormulaError) as errinfo:
+        cells(1)
+
+    errmsg = dedent("""\
+        Error raised during formula execution
+        ValueError
+        Formula traceback:
+        0: ErrorModel.ErrorSpace.listcomp(t=1), line 3
+        1: ErrorModel.ErrorSpace.listcomp(t=0), line 5
+        Formula source:
+        def listcomp(t):
+            if t > 0:
+                return sum([listcomp(t - i) for i in range(1, 2)])
+            else:
+                raise ValueError()
+        """)
+
+    assert errinfo.value.args[0] == errmsg
+    assert isinstance(mx.get_error(), ValueError)
+    assert mx.get_traceback() == [(cells.node(1), 3),
+                                  (cells.node(0), 5)]
