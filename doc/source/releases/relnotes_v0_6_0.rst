@@ -1,5 +1,23 @@
 .. currentmodule:: modelx
 
+.. _release-v0.6.1:
+
+================================
+modelx v0.6.1 (29 April 2020)
+================================
+
+This release is for a bug fix.
+
+Bug Fixes
+=========
+
+* Bug in :func:`get_traceback` when formula in traceback
+  contains lambda expressions, formula calls within comprehensions or
+  nested functions (`GH31`_).
+
+.. _GH31: https://github.com/fumitoh/modelx/issues/31
+
+
 .. _release-v0.6.0:
 
 ================================
