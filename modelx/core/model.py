@@ -138,7 +138,33 @@ class Model(EditableSpaceContainer):
             new_name=name, old_name=self.name, rename_old=rename_old)
 
     def save(self, filepath):
-        """Save the model to a file."""
+        """Back up the model to a file.
+
+        Alias for :meth:`backup`. See :meth:`backup` for details.
+        """
+        self._impl.save(filepath)
+
+    def backup(self, filepath):
+        """Back up the model to a file.
+
+        Backup the model to a single binary file. This method internally
+        utilizes Python's standard library,
+        `pickle <https://docs.python.org/3/library/pickle.html>`_.
+        This method should only be used for saving the model temporarily,
+        as the saved model may not be restored by different
+        versions of modelx, or when the Python environment changes,
+        for example, due to package upgrade.
+        Saving the model by :meth:`write` method is more robust.
+
+        .. versionadded:: 0.7.0
+
+        Args:
+            filepath(str): file path
+
+        See Also:
+            :meth:`write`
+            :func:`~modelx.restore_model`
+        """
         self._impl.save(filepath)
 
     def close(self):

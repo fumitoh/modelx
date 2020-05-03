@@ -307,14 +307,21 @@ def cur_space(space=None):
 
 
 def restore_model(path, name=None):
-    """Load a model saved from a file and return it.
+    """Restore a model and return it.
+
+    Restore a model saved by the :meth:`~modelx.core.model.Model.backup` method
+    from ``path``.
 
     Args:
-        path (:obj:`str`): Path to the file to load the model from.
+        path (:obj:`str`): Path to the file to restore the model from.
         name (optional): If specified, the model is renamed to this name.
 
     Returns:
         A new model created from the file.
+
+    See Also:
+        :py:meth:`~modelx.core.model.Model.backup`
+
     """
     return _system.restore_model(path, name)
 

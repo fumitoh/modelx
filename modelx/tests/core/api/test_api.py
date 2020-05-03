@@ -28,13 +28,13 @@ def testmodel():
     return model
 
 
-@pytest.fixture
-def savetestmodel(testmodel, tmpdir_factory):
+@pytest.fixture(params=["save", "backup"])
+def savetestmodel(request, testmodel, tmpdir_factory):
 
     model = testmodel
     old_name = testmodel.name
     file = str(tmpdir_factory.mktemp("data").join("test_restore_model.mx"))
-    model.save(file)
+    getattr(model, request.param)(file)    #model.save(file)
     return model, file
 
 
