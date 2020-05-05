@@ -1,15 +1,20 @@
-Tutorial
-========
-This tutorial aims to introduce core concepts and features of modelx, and
-demonstrate how to use modelx by going through some examples.
+modelx API Tutorial
+===================
+
+This modelx API tutorial an introduction for using modelx API functions
+and objects directly in Python scripts, or from IPython interactive sessions.
 
 This tutorial supplements modelx reference,
 which is build from docstrings of the API functions and classes.
 The reference should cover the details of each API element,
 which may not be fully explained in this tutorial.
 
-Typical workflow
-----------------
+.. contents:: Contents
+   :local:
+
+modelx API
+----------
+
 modelx is a Python package, and you use it by writing a Python script
 and importing it, as you would normally do with any other Python package.
 
@@ -30,40 +35,6 @@ in a Python shell window where you are prompted to enter Python code to
 evaluate the model. Jupyter Notebook and many other popular Python shell
 environments have similar capability.
 
-Model, Space and Cells
-----------------------
-Before taking a look at the very first example, you might want to
-have an idea on what Model, Space and Cells are, as those three types
-of objects are central to modelx.
-
-Model, Space and Cells are to modelx
-what workbook, worksheet and cells are to a spreadsheet program respectively,
-although there are differences.
-The diagram below illustrates containment
-relationships between those objects.
-
-.. figure:: images/ObjectContainment.png
-
-   Model, Space and Cells
-
-
-A model is a workspace that contains all the modelx objects.
-It can be saved to a file and loaded again.
-A model contains spaces. In turn, spaces can contain cells and also other
-spaces (subspaces). Each cells ('cells' is singular here)
-belongs to one and only one space.
-We call the object that contains another object, the parent of the contained
-object.
-The parent of a cells is the space that contains the cells,
-and the parent of a space is the model or space that contains the space.
-Spaces also serves as the namespace for contained
-cells but we'll get to this later.
-
-A Cells can have a formula that calculates the cells' values, just like
-spreadsheet cells can have formulas. Cells values are either calculated
-by the formula or assigned as an input. We will learn how to define
-cells formulas through the examples soon.
-
 
 Basic Operation
 ---------------
@@ -72,7 +43,7 @@ such as creating models, spaces and cells,
 by talking a closer look at the simple example
 we saw in the overview section.
 
-.. literalinclude:: samples/example_overview.py
+.. literalinclude:: /samples/example_overview.py
    :lines: 1-11
 
 Importing modelx
@@ -81,7 +52,7 @@ Importing modelx
 To start using modelx, import the package by the import statement, as is the
 case with any other package.
 
-.. literalinclude:: samples/example_overview.py
+.. literalinclude:: /samples/example_overview.py
    :lines: 1
 
 By doing so, you get to use modelx API functions in ``__main__`` module.
@@ -187,7 +158,7 @@ There are a few ways to create a cells object and defiene the formula
 associated with the cells. As seen in the example above,
 one way is to define a python function with ``defcells`` decorator.
 
-.. literalinclude:: samples/example_overview.py
+.. literalinclude:: /samples/example_overview.py
    :lines: 3-
 
 By ``defcells`` decorator, the name ``fibo`` in this scope points
@@ -590,7 +561,7 @@ to get output shorter. As long as we use a constant mortality age,
 it shouldn't affect the results whether the starting age is 0 or 50.
 Below the modelx code for this life model:
 
-.. literalinclude:: samples/sample_inheritance.py
+.. literalinclude:: /samples/sample_inheritance.py
    :lines: 6-21
 
 The second to last line of the code above has the same effect as putting
@@ -652,7 +623,7 @@ discounting rate for the present value calculation.
 Continued from the previous code, we are going to derive the ``TermLife`` space
 from the ``Life`` space, to add the benefits and present value calculations.
 
-.. literalinclude:: samples/sample_inheritance.py
+.. literalinclude:: /samples/sample_inheritance.py
    :lines: 25-41
 
 The first line in the sample above creates ``TermLife`` space derived
@@ -667,7 +638,7 @@ that are not defined yet. Those are ``n``, ``disc_rate``.
 We need to define those in the ``TermLife`` space.
 The reference ``x0`` is inherited from the ``Life`` space.
 
-.. literalinclude:: samples/sample_inheritance.py
+.. literalinclude:: /samples/sample_inheritance.py
    :lines: 46-47
 
 
@@ -714,7 +685,7 @@ below shows the relationships of the 3 spaces considered here.
 A space from which an arrow originates is derived from the space the
 arrow points to.
 
-.. figure:: images/Inheritance1.png
+.. figure:: /images/Inheritance1.png
    :align: center
 
    Life, TermLife and Endowment
@@ -729,7 +700,7 @@ and maturity benefits, but here we are considering an probabilistic model,
 so the benefits would be the sum of expected value of death and maturity
 benefits:
 
-.. literalinclude:: samples/sample_inheritance.py
+.. literalinclude:: /samples/sample_inheritance.py
    :lines: 53-62
 
 And the same operations on the ``Endowment`` space produces the following
@@ -814,11 +785,11 @@ it is also the base space of them.
 This inheritance is represented by the unfilled arrowhead next the
 filled diamond.
 
-.. figure:: images/Inheritance2.png
+.. figure:: /images/Inheritance2.png
 
 Below is a script to extend the model as we designed above.
 
-.. literalinclude:: samples/sample_inheritance.py
+.. literalinclude:: /samples/sample_inheritance.py
    :lines: 72-86
 
 The ``params`` function is passed to the constructor of the ``Policy`` space

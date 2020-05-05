@@ -30,7 +30,7 @@ What Next
 ---------
 
 - :doc:`Installation </installation>`
-- :doc:`Tutorial <tutorial>`
+- :doc:`Tutorial <tutorial/index>`
 - :doc:`Reference </reference/index>`
 
 .. toctree::
@@ -40,7 +40,7 @@ What Next
    whatsnew
    installation
    spyder
-   tutorial
+   tutorial/index
    userguide/index
    reference/index
 

@@ -3,11 +3,21 @@ Installation
 
 .. note::
 
-   For `lifelib`_ users, when installing `lifelib`_ using
-   ``pip``, modelx is automatically installed due to its dependency, so
-   no need to install modelx separately.
+    This page explains how to install and configure
+    modelx and related packages manually, and is intended for
+    advanced Python users or Linux/Mac users.
 
-.. _lifelib: http://lifelib.io
+    For Windows users,
+    it is recommended to use the latest custom WinPython with modelx,
+    which is available `here <https://lifelib.io/download.html>`_.
+    You can start using modelx just by unzipping the downloaded file,
+    and no need to follow the steps on this page.
+
+
+.. contents:: Contents
+   :depth: 1
+   :local:
+
 
 Python version
 --------------
@@ -51,8 +61,9 @@ to enable modelx to interface with Excel files.
 
 Spyder
 ^^^^^^
-If you use modelx with `Spyder <https://www.spyder-ide.org/>`_,
-a plugin for modelx is available.
+To use modelx with `Spyder <https://www.spyder-ide.org/>`_,
+a popular open-source Python IDE,
+A plugin for modelx is available.
 ``spyder-modelx`` is a separate package to add custom IPython consoles
 and Modelx explorer, a widget that shows the current model in a tree view.
 The supported Spyder version is 3.2.5 or newer.
@@ -63,11 +74,12 @@ Installing modelx
 
 .. note::
 
-   If you install :ref:`Spyder plugin for modelx <install-spyder-plugin>`
-   as explained below,
-   no need to install modelx separately as modelx is installed
-   together with the plugin, so skip to the
-   :ref:`Plugin installation <install-spyder-plugin>` section.
+   For `lifelib`_ users, when installing `lifelib`_ using
+   ``pip``, modelx is automatically installed due to its dependency, so
+   no need to install modelx separately.
+
+.. _lifelib: http://lifelib.io
+
 
 Just like other Python packages, you can install ``modelx`` by
 running ``pip`` command from a terminal on Linux, or from a command prompt on
@@ -104,3 +116,80 @@ Spyder integration
 `Spyder`_ is a popular open-source Python IDE, and
 a Spyder plugin for modelx is avaialble. To install and use the plugin,
 see the :doc:`spyder` page
+
+
+Configuring Spyder
+^^^^^^^^^^^^^^^^^^
+
+**Disable User Module Reloader**
+
+When you use modelx with Spyder, sometimes you may want to re-run the
+same file in the editor window multiple times in the same IPython session.
+You don't want to reload modelx because reloading modelx module creates
+multiple instances of modelx systems within the same Python process,
+causing models created before and after a reload to reside in different
+modelx systems. To avoid that, you need to change *User Module Rloader (UMR)*
+setting.
+
+From the Spyder menu, select *Tools->Preferences* to bring up Preferences window.
+Choose *Python interpreter* in the left pane, and you'll find an area titled
+*User Module Reloader (UMR)* on the bottom right side of the Preferences window.
+Leave *Enable UMR* option checked,
+click *Set UMR excluded(not reloaded) modules* and then UMR dialog box pops up
+as the figure blow.
+Enter "modelx" in the dialog box. This prevents
+Spyder from reloading the modelx module every time you re-run the same script
+from *Run* menu, while allowing other modules to be reloaded.
+
+Note that you need to restart Spyder to bring the change into effect.
+
+.. figure:: /images/spyder/PreferencesUMR.png
+
+   User Module Reloader setting
+
+
+**Import modelx at IPython startup**
+
+When you use modelx in IPython, you need to import modelx first.
+Doing so every time you open a new IPython session is tedious,
+so there's a way to import modelx at each IPython session's startup.
+From the Spyder menu, select *Tools->Preferences* to bring up Preferences window.
+Choose *IPython console* in the left pane, and select
+*Startup* tab from the tabs on the right.
+Enter ``import modelx as mx`` in the box titled *Lines:* in the *Run code* area,
+and click *Okay*. Next time you open a new IPython session,
+modelx is imported as ``mx`` in the IPython's global namespace.
+
+.. figure:: /images/spyder/PreferencesStartup.png
+
+   IPython startup setting
+
+
+Installing Spyder plugin for modelx
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The plugin is available as a separate Python package named ``spyder-modelx``.
+
+The supported version of Spyder is 3.2.5 or newer. The plugin does not
+work with Spyder versions older than 3.2.5.
+
+``spyder-modelx`` package is available on PyPI, and
+can be installed using ``pip`` command.
+
+If you're using Anaconda distribution,
+run the following command in Anaconda command prompt to install the plugin
+after installing ``modelx``::
+
+    $ pip install --no-deps spyder-modelx
+
+.. warning::
+
+    On Anaconda environments, install modelx manually if it is not yet installed.
+    Do not forget to add ``--no-deps`` parameter when installing
+    spyder-modelx on Anaconda environments, otherwise,
+    `pip` will overwrite packages spyder-modelx depends on.
+
+If Spyder is running while the plugin gets installed, close Spyder once
+and restart it to bring the plugin into effect.
+
+.. _MxExplorerAndMxConsole:

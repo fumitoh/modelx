@@ -4,6 +4,9 @@ Updates
 
 .. Latest Updates Begin
 
+* *5 May 2020:*
+  :doc:`tutorial/index` and :doc:`installation` pages are updated.
+
 * *29 April 2020:*
   modelx v0.6.1 is released. See :ref:`release-v0.6.1` release
   notes for details.
