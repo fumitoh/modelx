@@ -654,7 +654,7 @@ class UserCellsImpl(CellsImpl):
         else:
             cls = Formula
         self.formula = cls(func, name=self.name)
-        self.altfunc.set_update()
+        self.altfunc = BoundFunction(self)
         self.parent.update_referrer(self)
         self.model.spacemgr.update_subs(self.parent)
 

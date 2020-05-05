@@ -26,6 +26,27 @@ def test_change_attrref():
     assert foo(3) == qux(3) == "baz"
 
 
+def test_change_ref_on_reassinged_formula():
+
+    m = mx.new_model()
+    s = mx.new_space()
+
+    @mx.defcells
+    def foo():
+        return bar
+
+    def temp():
+        return baz
+
+    foo.formula = temp
+
+    s.baz = 4
+    assert foo() == 4
+
+    s.baz = 5
+    assert foo() == 5
+
+
 def test_del_global_attrref():
     """
     m-----SpaceA-----foo
