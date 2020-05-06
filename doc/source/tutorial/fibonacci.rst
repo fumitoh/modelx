@@ -44,7 +44,7 @@ Create Cells and Define Formula
 
 Find MxExplorer widget in your Spyder IDE.
 
-.. figure:: /images/tutorial/BlankMxExplorer.png
+.. figure:: /images/tutorial/Fibonacci/BlankMxExplorer.png
    :align: center
 
    Blank MxExplorer
@@ -60,14 +60,14 @@ Right click on the blank space in
 MxExplorer then a context menu shows up. Select *Create New Cells* item in the
 menu.
 
-.. figure:: /images/tutorial/MxExplorerContextMenu.png
+.. figure:: /images/tutorial/Fibonacci/MxExplorerContextMenu.png
    :align: center
 
    ContextMenu in MxExplorer
 
 A dialog box for creating a new Cells pops up.
 
-.. figure:: /images/tutorial/NewCellsDialogBox.png
+.. figure:: /images/tutorial/Fibonacci/NewCellsDialogBox.png
    :align: center
 
    New Cells Dialog Box
@@ -129,7 +129,7 @@ Write the following code in the *Formula* box then click *OK*::
         else:
             return n
 
-.. figure:: /images/tutorial/NewCellsDialogBoxWithFormula.png
+.. figure:: /images/tutorial/Fibonacci/NewCellsDialogBoxWithFormula.png
    :align: center
 
    New Cells Dialog Box
@@ -146,7 +146,7 @@ Select *Fibo* and right-click to bring up the context menu.
 Select *Show Properties* from the context menu,
 then you will see the formula in the bottom right pane.
 
-.. figure:: /images/tutorial/MxExplorerWithFormula.png
+.. figure:: /images/tutorial/Fibonacci/MxExplorerWithFormula.png
    :align: center
 
    MxExplorer
@@ -241,7 +241,7 @@ By unfolding precedents entries recursively, you can trace
 the calculation of ``Fibo[10]`` many steps back till the
 trace reaches ``Fibo[1]`` and ``Fibo[0]``.
 
-.. figure:: /images/tutorial/PrecedentsFibo.png
+.. figure:: /images/tutorial/Fibonacci/PrecedentsFibo.png
    :align: center
 
    MxAnalyzer Precedents Tab
@@ -251,7 +251,7 @@ say ``Fibo[5]``, in the *Dependents* tab.
 The dependents are those elements whose calculation uses the value
 of ``Fibo[5]`` directly or indirectly.
 
-.. figure:: /images/tutorial/DependentsFibo.png
+.. figure:: /images/tutorial/Fibonacci/DependentsFibo.png
    :align: center
 
    MxAnalyzer Dependents Tab
@@ -298,7 +298,7 @@ Save the Work
 The last step is to save the Model we created. Bring up the context menu
 in *MxExplorer* by right-clicking in the widget, and select *Write Model* item.
 
-.. figure:: /images/tutorial/WriteModel.png
+.. figure:: /images/tutorial/Fibonacci/WriteModel.png
    :align: center
 
    Write Model Dialog Box
@@ -310,7 +310,7 @@ in a folder placed under the selected location.
 Enter the folder name in the *Folder Name* box.
 We'll name the folder *FiboModel* here, but you can name it as you like.
 
-.. figure:: /images/tutorial/WriteModelFibo.png
+.. figure:: /images/tutorial/Fibonacci/WriteModelFibo.png
    :align: center
 
    Write Model Dialog Box
@@ -337,7 +337,7 @@ If left blank, the variable name is set equal to the Model name.
 For this exercise, let's leave *Model Name* blank and *Import As* checked
 and blank, and see what happens.
 
-.. figure:: /images/tutorial/ReadModelFibo.png
+.. figure:: /images/tutorial/Fibonacci/ReadModelFibo.png
    :align: center
 
    Read Model Dialog Box
@@ -347,7 +347,7 @@ is renamed to ``Model1_BAK1`` as you can check
 in the *Model* box in *MxExplorer*.
 
 
-.. figure:: /images/tutorial/SelectModelBackup.png
+.. figure:: /images/tutorial/Fibonacci/SelectModelBackup.png
    :align: center
 
    Model list

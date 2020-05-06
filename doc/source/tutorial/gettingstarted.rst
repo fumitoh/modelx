@@ -18,7 +18,7 @@ Unzip the downloaded zip file. You can unzip it from the Windows default
 context menu by right-clicking on the file and select *Extract All...*,
 or instead you can use your favorite third party tool for unzipping.
 
-.. figure:: /images/tutorial/ExtractAllContextMenu.png
+.. figure:: /images/tutorial/GettingStarted/ExtractAllContextMenu.png
    :align: center
 
    Windows context menu for extracting zip file
@@ -31,7 +31,7 @@ so no need to install them separately.
 Within the unzipped folder, find *Spyder.exe* and start Spyder by
 double-clicking it.
 
-.. figure:: /images/tutorial/StartSpyder.png
+.. figure:: /images/tutorial/GettingStarted/StartSpyder.png
    :align: center
 
    Spyder.exe in unzipped folder
@@ -42,7 +42,7 @@ in the menu bar and select *Pane* and then select
 three modelx items (*MxExplorer*, *MxDataView*, *MxAnalyzer*)
 at the bottom.
 
-.. figure:: /images/tutorial/ViewMenuMxWidgets.png
+.. figure:: /images/tutorial/GettingStarted/ViewMenuMxWidgets.png
    :align: center
 
    modelx Widgets in View menu
@@ -51,7 +51,7 @@ Now you should be able to see the 3 widgets. You can move them around
 and change their locations by unlocking panes.
 To unlock panes, go to *View* menu and uncheck *Lock panes and toolbars* item.
 
-.. figure:: /images/tutorial/ViewMenuUnlockPane.png
+.. figure:: /images/tutorial/GettingStarted/ViewMenuUnlockPane.png
    :align: center
 
    Lock and Unlock Panes
@@ -67,7 +67,7 @@ select "New MxConsole". A new tab named "MxConsole 2/A" is created,
 and after a few seconds, an IPython session starts in the MxConsole
 and waits for your command.
 
-.. figure:: /images/tutorial/BlankMxConsole.png
+.. figure:: /images/tutorial/GettingStarted/BlankMxConsole.png
    :align: center
 
    MxConsole
