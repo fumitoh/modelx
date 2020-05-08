@@ -63,9 +63,11 @@ def test_value_error(errormodel):
     errmsg = dedent("""\
         Error raised during formula execution
         ValueError
+        
         Formula traceback:
         0: ErrorModel.ErrorSpace.foo(x=1), line 3
         1: ErrorModel.ErrorSpace.foo(x=0), line 5
+        
         Formula source:
         def foo(x):
             if x > 0:
@@ -89,9 +91,11 @@ def test_none_returned_error(errormodel):
     errmsg = dedent("""\
         Error raised during formula execution
         modelx.core.errors.NoneReturnedError: ErrorModel.ErrorSpace.bar(x=0)
+        
         Formula traceback:
         0: ErrorModel.ErrorSpace.bar(x=1), line 3
         1: ErrorModel.ErrorSpace.bar(x=0)
+        
         Formula source:
         def bar(x):
             if x > 0:
@@ -120,11 +124,13 @@ def test_deep_reference_error(errormodel):
     errmsg = dedent("""\
         Error raised during formula execution
         modelx.core.errors.DeepReferenceError: Formula chain exceeded the 3 limit
+        
         Formula traceback:
         0: ErrorModel.ErrorSpace.infinite(x=3), line 2
         1: ErrorModel.ErrorSpace.infinite(x=2), line 2
         2: ErrorModel.ErrorSpace.infinite(x=1), line 2
         3: ErrorModel.ErrorSpace.infinite(x=0), line 2
+        
         Formula source:
         def infinite(x):
             return infinite(x-1)
@@ -149,9 +155,11 @@ def test_listcomp_error(errormodel):
     errmsg = dedent("""\
         Error raised during formula execution
         ValueError
+        
         Formula traceback:
         0: ErrorModel.ErrorSpace.listcomp(t=1), line 3
         1: ErrorModel.ErrorSpace.listcomp(t=0), line 5
+        
         Formula source:
         def listcomp(t):
             if t > 0:
@@ -176,10 +184,12 @@ def test_lambda_error(errormodel):
     errmsg = dedent("""\
         Error raised during formula execution
         ZeroDivisionError: division by zero
+        
         Formula traceback:
         0: ErrorModel.ErrorSpace.lam(x=1), line 1
         1: ErrorModel.ErrorSpace.qux(x=0), line 2
         2: ErrorModel.ErrorSpace.lam(x=0), line 1
+        
         Formula source:
         lambda x: qux(x-1) if x > 0 else 1/0""")
 
@@ -199,8 +209,10 @@ def test_nested_def_error(errormodel):
     errmsg = dedent("""\
     Error raised during formula execution
     TypeError: unsupported operand type(s) for +: 'int' and 'str'
+    
     Formula traceback:
     0: ErrorModel.ErrorSpace.quux(t=1), line 4
+    
     Formula source:
     def quux(t):
         def my_sum(*args):

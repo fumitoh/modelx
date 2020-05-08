@@ -90,11 +90,13 @@ def test_deep_reference_error():
             """\
             Error raised during formula execution
             modelx.core.errors.DeepReferenceError: Formula chain exceeded the 3 limit
+            
             Formula traceback:
             0: ErrModel.ErrSpace.erronerous(x=1, y=3), line 2
             1: ErrModel.ErrSpace.erronerous(x=2, y=2), line 2
             2: ErrModel.ErrSpace.erronerous(x=3, y=1), line 2
             3: ErrModel.ErrSpace.erronerous(x=4, y=0), line 2
+            
             Formula source:
             def erronerous(x, y):
                 return erronerous(x + 1, y - 1)

@@ -34,8 +34,10 @@ def test_none_returned_error():
     errmsg = dedent("""\
         Error raised during formula execution
         modelx.core.errors.NoneReturnedError: ErrModel.ErrSpace.return_none(x=1, y=3)
+        
         Formula traceback:
         0: ErrModel.ErrSpace.return_none(x=1, y=3)
+        
         Formula source:
         def return_none(x, y):
             return None

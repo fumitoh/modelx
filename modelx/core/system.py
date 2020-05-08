@@ -288,14 +288,14 @@ class ErrorStack(deque):
         """
         if maxlen > 0, the message is shortened to maxlen traces.
         """
-        result = "Formula traceback:\n"
+        result = "\nFormula traceback:\n"
         for i, frame in enumerate(self):
             result += "{0}: {1}".format(i, get_node_repr(frame[0]))
             if frame[1]:
                 result += ", line %s" % frame[1]
             result += "\n"
 
-        result = result.strip("\n")
+        result = result.rstrip("\n")
         lines = result.split("\n")
 
         if maxlen and len(lines) > maxlen:
@@ -304,7 +304,7 @@ class ErrorStack(deque):
             result = "\n".join(lines)
 
         # last formula
-        src = "Formula source:\n"
+        src = "\nFormula source:\n"
         src += self[-1][0][OBJ].formula.source
         result += "\n" + src
 
