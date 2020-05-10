@@ -4,6 +4,11 @@ Updates
 
 .. Latest Updates Begin
 
+* *10 May 2020:*
+  spyder-modelx v0.4.0 is released.
+  See :doc:`releases/spymx_relnotes_v0.4.0`
+  release notes for details.
+
 * *5 May 2020:*
   :doc:`tutorial/index` and :doc:`installation` pages are updated.
 
@@ -46,6 +51,8 @@ Updates
   spyder-modelx v0.1.0 is released.
   See :ref:`release-mxplugin-v0.1.0` release notes for details.
 
+.. Latest Updates End
+
 * *1 December 2019:*
   modelx v0.1.0 is released. See :doc:`releases/relnotes_v0_1_0`
   release notes for details.
@@ -65,8 +72,6 @@ Updates
 * *4 June 2019:*
   modelx v0.0.22 is released. See :doc:`releases/relnotes_v0_0_22`
   release notes for details.
-
-.. Latest Updates End
 
 * *24 March 2019:*
   spyder-modelx v0.0.9 is released.
