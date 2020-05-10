@@ -5,7 +5,7 @@
 
 modelx
 ======
-*Escape from spreadsheet models!*
+*Use Python like a spreadsheet!*
 
 .. figure:: images/spyder/MxPluginImage.png
 

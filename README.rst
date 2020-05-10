@@ -36,7 +36,7 @@ develop, run and scrutinize complex models in smart ways:
 - Space inheritance
 - Dynamic parametrized spaces created interactively
 - GUI as Spyder plugin (spyder-modelx)
-- Cells graph to track cells interdependency (Under development)
+- Cells graph to track cells interdependency
 - Saving to / loading from files
 - Conversion to Pandas objects
 - Reading from Excel files
