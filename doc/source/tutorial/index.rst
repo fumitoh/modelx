@@ -25,4 +25,5 @@ except for Windows specific parts.
 
    gettingstarted
    fibonacci
+   mortgage
    api_tutorial

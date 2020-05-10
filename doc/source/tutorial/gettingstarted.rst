@@ -61,11 +61,18 @@ an IPython console that communicates with the modelx widgets.
 modelx works fine in Spyder's default IPython consoles,
 but the default consoles do not communicate with the modelx widgets,
 so you want to use *MxConsoles* instead.
-You should have IPython console pane and a tab named "Console 1/A".
+You should have IPython console pane and a tab named *Console 1/A*.
 Right-click on the tab, and from the context menu,
-select "New MxConsole". A new tab named "MxConsole 2/A" is created,
-and after a few seconds, an IPython session starts in the MxConsole
-and waits for your command.
+select *New MxConsole*.
+
+.. figure:: /images/tutorial/GettingStarted/OpenNewMxConsole.png
+   :align: center
+
+   Console Tab Context Menu
+
+A new tab named *MxConsole 2/A* is created,
+and after a few seconds, an IPython session starts in the *MxConsole*
+and waits for your input.
 
 .. figure:: /images/tutorial/GettingStarted/BlankMxConsole.png
    :align: center

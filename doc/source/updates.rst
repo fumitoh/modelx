@@ -5,6 +5,9 @@ Updates
 .. Latest Updates Begin
 
 * *10 May 2020:*
+  :doc:`tutorial/mortgage` is added in :doc:`tutorial/index`.
+
+* *10 May 2020:*
   spyder-modelx v0.4.0 is released.
   See :doc:`releases/spymx_relnotes_v0.4.0`
   release notes for details.
