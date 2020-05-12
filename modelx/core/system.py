@@ -529,7 +529,11 @@ class System:
         """Retrieve an object by its absolute name."""
 
         parts = name.split(".")
-        model = self.models[parts.pop(0)].interface
+        try:
+            model = self.models[parts.pop(0)].interface
+        except  KeyError:
+            raise NameError("'%s' not found" % name)
+
         if parts:
             return model._get_object(".".join(parts), as_proxy)
         else:

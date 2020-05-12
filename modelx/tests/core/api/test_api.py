@@ -78,6 +78,18 @@ def test_get_object_attrs(testmodel):
         assert mx.get_object(obj.fullname + "." + attr) is getattr(obj, attr)
 
 
+def test_get_object_error(testmodel):
+
+    with pytest.raises(NameError):
+        assert mx.get_object("testerror")
+
+    with pytest.raises(NameError):
+        assert mx.get_object("testmodel.testerror")
+
+    with pytest.raises(NameError):
+        assert mx.get_object("testmodel.testspace.testerror")
+
+
 def test_get_object_named_itemspace(testmodel):
 
     itemspace = testmodel.testspace[1]

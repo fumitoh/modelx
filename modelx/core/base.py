@@ -412,7 +412,12 @@ class Interface:
 
     def _get_object(self, name, as_proxy=False):
         parts = name.split(".")
-        obj = getattr(self, parts.pop(0))
+
+        try:
+            obj = getattr(self, parts.pop(0))
+        except AttributeError:
+            raise NameError("'%s' not found" % name)
+
         if parts:
             return obj._get_object(".".join(parts), as_proxy)
         else:

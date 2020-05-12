@@ -275,6 +275,8 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
                     return space._get_object(".".join(parts), as_proxy)
                 else:
                     return space
+            else:
+                raise NameError("'%s' not found" % name)
 
     @property
     def bases(self):
