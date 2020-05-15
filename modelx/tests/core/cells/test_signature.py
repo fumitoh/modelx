@@ -79,7 +79,8 @@ def test_get_default_args(cells_signatures):
     assert space.mult_params_with_default(1, 2) == 6
     assert space.mult_params_with_default[1, 2] == 6
     assert space.mult_params_with_default[(1, 2)] == 6
-    assert space.mult_params_with_default[[1, 2]] == 6
+    with pytest.raises(TypeError):
+        assert space.mult_params_with_default[[1, 2]] == 6
 
 
 def test_getitem_string(cells_signatures):
@@ -89,7 +90,8 @@ def test_getitem_string(cells_signatures):
     assert space.single_param_with_default["bar"] == "bar"
     assert space.mult_params["foo", "bar"] == "foobar"
     assert space.mult_params[("foo", "bar")] == "foobar"
-    assert space.mult_params[["foo", "bar"]] == "foobar"
+    with pytest.raises(TypeError):
+        assert space.mult_params[["foo", "bar"]] == "foobar"
 
 
 def test_scalar_cells_arg(cells_signatures):
