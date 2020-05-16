@@ -354,16 +354,6 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
         return self._impl.named_itemspaces.interfaces
 
     @property
-    def _self_spaces(self):
-        """A mapping associating names to self spaces."""
-        return self._impl.self_spaces.interfaces
-
-    @property
-    def _derived_spaces(self):
-        """A mapping associating names to derived spaces."""
-        return self._impl.derived_spaces.interfaces
-
-    @property
     def parameters(self):
         """A tuple of parameter strings."""
         return tuple(self._impl.formula.parameters)
