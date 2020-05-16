@@ -19,7 +19,7 @@ import uuid
 import warnings
 from collections import ChainMap, deque
 from collections.abc import Sequence
-from types import FunctionType, ModuleType
+from types import FunctionType, ModuleType, MappingProxyType
 
 from modelx.core.base import (
     # ObjectArgs,
@@ -347,6 +347,27 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
         """
         warnings.warn("static_spaces is deprecated. Use named_spaces instead.")
         return self._impl.named_spaces.interfaces
+
+    @property
+    def itemspaces(self):
+        """A mapping of arguments to :class:`ItemSpace` objects.
+
+        A read-only mapping associating child :class:`ItemSpace` objects
+        as its values to  their arguments as its keys.
+        """
+
+        def untuplize(k):
+            length = len(k)
+            if length > 1:
+                return k
+            elif length == 1:
+                return k[0]
+            else:
+                return None
+
+        d = {untuplize(k): v.interface
+             for k, v in self._impl.param_spaces.items()}
+        return MappingProxyType(d)
 
     @property
     def _named_itemspaces(self):

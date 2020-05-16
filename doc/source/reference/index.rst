@@ -50,7 +50,7 @@ Class Reference
    ~modelx.core.cells.Cells
    ~modelx.core.space.SpaceView
    ~modelx.core.space.CellsView
-   ~modelx.core.node.ItemProxy
+   ~modelx.core.node.Element
 
 
 Miscellaneous
