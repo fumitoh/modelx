@@ -778,7 +778,15 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
             self._impl.set_attr(name, value)
 
     def __delattr__(self, name):
-        self._impl.del_attr(name)
+        if hasattr(type(self), name):
+            attr = getattr(type(self), name)
+            if isinstance(attr, property):
+                if hasattr(attr, 'fdel'):
+                    attr.fdel(self)
+                else:
+                    raise AttributeError("cannot delete %s" % name)
+        else:
+            self._impl.del_attr(name)
 
     # ----------------------------------------------------------------------
     # Formula
@@ -790,9 +798,17 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
     def formula(self, formula):
         self._impl.set_formula(formula)
 
+    @formula.deleter
+    def formula(self):
+        self._impl.del_formula()
+
     def set_formula(self, formula):
         """Set if the parameter function."""
         self._impl.set_formula(formula)
+
+    def del_formula(self):
+        """Delete formula"""
+        self._impl.del_formula()
 
     @Interface.doc.setter
     def doc(self, value):
@@ -835,7 +851,7 @@ class ItemSpaceParent(ElementFactoryImpl):
 
         if formula is None:
             if self.formula is not None:
-                self.altfunc = self.formula = None
+                self.del_formula()
         else:
             if self.formula is None:
                 if isinstance(formula, ParamFunc):
@@ -847,7 +863,19 @@ class ItemSpaceParent(ElementFactoryImpl):
                 if isinstance(self, ReferenceManager):
                     self.update_referrer(self)
             else:
-                raise ValueError("formula already assigned.")
+                self.del_formula()
+                self.set_formula(formula)
+
+    def del_formula(self):
+        """Delete formula
+
+        All child itemspaces are deleted
+        """
+        if self.formula is None:
+            return
+        else:
+            self.del_all_itemspaces()
+            self.altfunc = self.formula = None
 
     def _get_dynamic_base(self, bases_):
         """Create or get the base space from a list of spaces
