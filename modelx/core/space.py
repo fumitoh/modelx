@@ -406,6 +406,7 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
         return self._impl.get_itemspace(tuplize_key(self, key)).interface
 
     def __delitem__(self, key):
+        """Delete a child :class:`ItemSpace` object"""
 
         key = tuplize_key(self, key)
         if key in self._impl.param_spaces:
@@ -415,6 +416,7 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
             raise KeyError(key)
 
     def clear_at(self, *args, **kwargs):
+        """Delete a child :class:`ItemSpace` object"""
 
         key = get_node(self, args, kwargs)[KEY]
         if key in self._impl.param_spaces:
@@ -424,6 +426,7 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
             raise KeyError(key)
 
     def clear_all(self):
+        """Delete all child :class:`ItemSpace` objects"""
         self._impl.del_all_itemspaces()
 
     def __iter__(self):
