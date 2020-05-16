@@ -108,7 +108,7 @@ def get_node_repr(node):
         return name + "(" + arglist + ")"
 
 
-class ItemProxy:
+class Element:
     """A combination of a modelx object, its args and its value."""
 
     __slots__ = ("_impl",)
@@ -194,13 +194,13 @@ class ElementFactory:
     __slots__ = ()
 
     def node(self, *args, **kwargs):
-        """Return a :class:`ItemProxy` object for the given arguments."""
-        return ItemProxy(get_node(self._impl, args, kwargs))
+        """Return a :class:`Element` object for the given arguments."""
+        return Element(get_node(self._impl, args, kwargs))
 
     def preds(self, *args, **kwargs):
         """Return a list of predecessors of a cell.
 
-        This method returns a list of ItemProxy objects, whose elements are
+        This method returns a list of Element objects, whose elements are
         predecessors of (i.e. referenced in the formula
         of) the cell specified by the given arguments.
         """
@@ -209,7 +209,7 @@ class ElementFactory:
     def succs(self, *args, **kwargs):
         """Return a list of successors of a cell.
 
-        This method returns a list of ItemProxy objects, whose elements are
+        This method returns a list of Element objects, whose elements are
         successors of (i.e. referencing in their formulas)
         the cell specified by the given arguments.
         """
@@ -226,12 +226,12 @@ class ElementFactoryImpl:
     def predecessors(self, args, kwargs):
         node = get_node(self, args, kwargs)
         preds = self.model.tracegraph.predecessors(node)
-        return [ItemProxy(n) for n in preds]
+        return [Element(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = get_node(self, args, kwargs)
         succs = self.model.tracegraph.successors(node)
-        return [ItemProxy(n) for n in succs]
+        return [Element(n) for n in succs]
 
     def get_value_from_key(self, key):
         raise NotImplementedError
