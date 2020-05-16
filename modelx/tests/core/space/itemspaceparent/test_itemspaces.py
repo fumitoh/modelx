@@ -1,28 +1,50 @@
 import modelx as mx
 from types import MappingProxyType
-import inspect
 import pytest
 
-@pytest.mark.parametrize(
-    "paramfunc",
-    [lambda i: None,
-     lambda i, j: None]
-)
-def test_namespaces(paramfunc):
 
-    m, s = mx.new_model(), mx.new_space(formula=paramfunc)
+def test_itemspaces(itemspacetest):
 
-    @mx.defcells
-    def foo(x):
-        return x
-
-    for i in range(10):
-        paramlen = len(inspect.signature(paramfunc).parameters)
-        assert s(*((i,) * paramlen)).foo(i) == i
-
+    _, s = itemspacetest
     items = s.itemspaces
 
     assert isinstance(items, MappingProxyType)
     assert len(items) == 10
     for k, v in items.items():
         assert s[k] is v
+
+
+def test_delitem(itemspacetest):
+
+    paramlen, s = itemspacetest
+
+    assert s.itemspaces
+
+    for i in range(10):
+        del s[(i,) * paramlen]
+
+    for i in range(10):
+        with pytest.raises(KeyError):
+            del s[(i,) * paramlen]
+
+    assert not s.itemspaces
+
+
+def test_clear_all(itemspacetest):
+
+    paramlen, s = itemspacetest
+
+    assert s.itemspaces
+    s.clear_all()
+    assert not s.itemspaces
+
+
+def test_clear_at(itemspacetest):
+
+    paramlen, s = itemspacetest
+
+    assert s.itemspaces
+    for i in range(10):
+        s.clear_at(*((i,) * paramlen))
+
+    assert not s.itemspaces

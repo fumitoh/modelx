@@ -405,6 +405,27 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
     def __getitem__(self, key):
         return self._impl.get_itemspace(tuplize_key(self, key)).interface
 
+    def __delitem__(self, key):
+
+        key = tuplize_key(self, key)
+        if key in self._impl.param_spaces:
+            name = self._impl.param_spaces[key].name
+            self._impl.del_itemspace(name)
+        else:
+            raise KeyError(key)
+
+    def clear_at(self, *args, **kwargs):
+
+        key = get_node(self, args, kwargs)[KEY]
+        if key in self._impl.param_spaces:
+            name = self._impl.param_spaces[key].name
+            self._impl.del_itemspace(name)
+        else:
+            raise KeyError(key)
+
+    def clear_all(self):
+        self._impl.del_all_itemspaces()
+
     def __iter__(self):
         raise TypeError("'Space' is not iterable")
 
