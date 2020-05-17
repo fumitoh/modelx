@@ -397,7 +397,7 @@ class ModelImpl(
 
     def del_space(self, name):
         space = self.spaces[name]
-        self.spaces.del_item(name)
+        self.spacemgr.del_defined_space(self, name)
         if space is self.currentspace:
             self.currentspace = None
 
@@ -966,8 +966,7 @@ class SpaceManager:
             parent = self._graph.to_space(parent_node)
             method = parent.named_spaces.del_item
         else:
-            # parent = self.model
-            method = self.model.del_space
+            method = self.model.spaces.del_item
 
         self._instructions.append(
             Instruction(method, (name,))

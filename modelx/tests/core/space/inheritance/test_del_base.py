@@ -36,3 +36,17 @@ def test_del_defined_base():
     assert not hasattr(m.B.X, "N")
     assert hasattr(m.C.X, "M")
     assert not hasattr(m.C.X, "N")
+
+
+def test_del_base_in_model():
+    m, base = mx.new_model(), mx.new_space("Base")
+    child = base.new_space("BaseChild")
+    cells = base.new_cells("BaseCells")
+    child.new_cells("BaseChildCells")
+
+    m.new_space("Sub", bases=base)
+
+    del m.Base
+
+    assert not m.Sub.cells
+    assert not m.Sub.spaces
