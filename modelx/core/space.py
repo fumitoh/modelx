@@ -1603,7 +1603,10 @@ class UserSpaceImpl(
         if bases and self.is_derived:
             self.set_formula(bases[0].formula)
 
-        attrs = ("cells", "self_refs")
+        attrs = {
+            "cells": self.on_del_cells,
+            "self_refs": self.on_del_ref
+        }
 
         for attr in attrs:
             selfdict = getattr(self, attr)
@@ -1625,10 +1628,16 @@ class UserSpaceImpl(
 
             for name in diffs:
                 if selfdict[name].is_derived:
-                    selfdict.del_item(name)
+                    attrs[attr](name)
 
         # TODO: Update dynamic subs
         # self._dynamic_subs.clear()
+
+    def on_del_cells(self, name):
+        cells = self.cells[name]
+        self.model.clear_obj(cells)
+        self.cells.del_item(name)
+        NullImpl(cells)
 
     def on_change_ref(self, name, value, is_derived):
         ref = self.self_refs[name]
@@ -1641,6 +1650,9 @@ class UserSpaceImpl(
         return ReferenceImpl(self, name, value,
                       container=self._self_refs,
                       is_derived=is_derived)
+
+    def on_del_ref(self, name):
+        self.self_refs.del_item(name)
 
 
 class DynamicSpace(BaseSpace):

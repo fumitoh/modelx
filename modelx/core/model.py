@@ -1269,15 +1269,11 @@ class SpaceManager:
         return [self._inheritance.to_space(n) for n in preds]
 
     def del_cells(self, space, name):
-
-        cells = space.cells[name]
-        space.cells.del_item(name)
-
+        space.on_del_cells(name)
         self.update_subs(space)
-        NullImpl(cells)
 
     def del_ref(self, space, name):
-        space.self_refs.del_item(name)
+        space.on_del_ref(name)
         self.update_subs(space, skip_self=False)
 
     def update_subs(self, space, skip_self=True):
