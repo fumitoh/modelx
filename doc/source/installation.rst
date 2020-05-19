@@ -114,8 +114,8 @@ Spyder integration
 ------------------
 
 `Spyder`_ is a popular open-source Python IDE, and
-a Spyder plugin for modelx is avaialble. To install and use the plugin,
-see the :doc:`spyder` page
+a Spyder plugin for modelx is avaialble. For more about the Spyder plugin
+for modelx, see the :doc:`spyder` page
 
 
 Configuring Spyder
@@ -193,3 +193,16 @@ If Spyder is running while the plugin gets installed, close Spyder once
 and restart it to bring the plugin into effect.
 
 .. _MxExplorerAndMxConsole:
+
+
+Updating packages
+-----------------
+
+To update modelx to the latest version, use ``-U`` option with ``pip install``::
+
+    $ pip install -U modelx
+
+To update spyder-modelx, use ``-U`` options together with ``--no-deps``::
+
+    $ pip install -U --no-deps spyder-modelx
+

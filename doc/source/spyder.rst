@@ -2,7 +2,9 @@ Spyder plugin
 =============
 
 `Spyder`_ is a popular open-source Python IDE,
-and it's bundled in with `Anaconda <https://www.anaconda.com/>`_ by default.
+and it's bundled in with popular Python distributions such as
+`Anaconda <https://www.anaconda.com/>`_
+or `WinPython <https://winpython.github.io/>`_ by default.
 `Spyder`_ allows plugins to be installed to add extra features to itself.
 
 **Spyder plugin for modelx** enriches user interface to modelx in Spyder.
