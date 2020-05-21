@@ -1,6 +1,6 @@
 
-Technical Guide
-===============
+Technical Note (Draft)
+======================
 
 
 **modelx** embodies software engineering concepts in Object-oriented programming (OOP) paradigm, such as composition and inheritance. However, modelx is not a programming language, rather it is a system of objects. So, some of the OOP terminologies are redefined for the purpose of describing modelx specifications below, although there is strong resemblance. In reading the specifications, readers should be aware that the meanings of the terms in modelx may differ from those in the context of OOP.

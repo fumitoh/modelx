@@ -1,5 +1,5 @@
-Model Structure
-===============
+Model Structure (Draft)
+=======================
 
 .. Begin diagram how-to
 
