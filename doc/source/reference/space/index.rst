@@ -2,7 +2,7 @@ Space Types
 =======================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
    userspace
    itemspace
