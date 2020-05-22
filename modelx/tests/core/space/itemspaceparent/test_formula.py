@@ -1,3 +1,4 @@
+import modelx as mx
 
 
 def test_set_formula(itemspacetest):
@@ -22,4 +23,14 @@ def test_del_formula(itemspacetest):
     del s.formula
     assert not s.formula
     assert not s.itemspaces
+
+
+def test_set_parameters():
+
+    s = mx.new_space()
+    s.parameters = ('x', 'y=1')
+    assert s[1].x == 1
+    assert s[2].y == 1
+    assert s[2, 3].x == 2
+    assert s[2, 3].y == 3
 

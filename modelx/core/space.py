@@ -806,6 +806,12 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         """Set if the parameter function."""
         self._impl.set_formula(formula)
 
+    @BaseSpace.parameters.setter
+    def parameters(self, parameters):
+        """Set formula from parameter list"""
+        src = "lambda " + ", ".join(parameters) + ": None"
+        self._impl.set_formula(src)
+
     def del_formula(self):
         """Delete formula"""
         self._impl.del_formula()
