@@ -87,9 +87,9 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
         else:
             return iter(self._impl.data)
 
-    def copy(self, space=None, name=None):
-        """Make a copy of itself and return it."""
-        return Cells(space=space, name=name, formula=self.formula)
+    # def copy(self, space=None, name=None):
+    #     """Make a copy of itself and return it."""
+    #     return Cells(space=space, name=name, formula=self.formula)
 
     def __hash__(self):
         return hash(id(self))
