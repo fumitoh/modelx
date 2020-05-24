@@ -46,8 +46,9 @@ to rearrange the widgets positions in the main window as you like.
 
 
 .. _Spyder: https://www.spyder-ide.org/
-.. _install-spyder-plugin:
 
+
+.. _MxExplorerAndMxConsole:
 
 MxExplorer and MxConsole
 ------------------------

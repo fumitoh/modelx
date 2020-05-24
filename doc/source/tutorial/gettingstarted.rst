@@ -7,12 +7,18 @@ learn about core modelx objects before sample exercises.
 .. contents:: Contents
    :local:
 
-Set Up Python and modelx
-^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up Python and modelx
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Setting up a Python environment for modelx is pretty straight-forward.
 Download the WinPython distribution customized for modelx from
 `here <https://lifelib.io/download.html>`_.
+
+This tutorial assumes you're using the latest modelx and spyde-modelx,
+so if you have downloaded the distribution before,
+make sure you update modelx and spyder-modelx to the latest versions
+by following the instruction :ref:`here<updating-packages>`,
+or download the latest distribution from the site above.
 
 Unzip the downloaded zip file. You can unzip it from the Windows default
 context menu by right-clicking on the file and select *Extract All...*,
@@ -80,8 +86,8 @@ and waits for your input.
    MxConsole
 
 
-modelx Object Overview
-^^^^^^^^^^^^^^^^^^^^^^
+Overview of core modelx objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 modelx is designed to let the users build models consisting
 of a few types of objects.

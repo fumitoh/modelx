@@ -1,5 +1,5 @@
-Mortgage Example
-================
+Modeling Mortgage Loan
+======================
 
 For the second example, we are going to model a fixed-rate mortgage loan,
 one of the basic types of amortized mortgage loans.
@@ -15,12 +15,30 @@ for a given principal, interest rate and term.
 We also model the outstanding loan balance at each year throughout
 the payment term.
 
+Through this second exercise, we are going to learn many new techniques, such as:
+
+* How to create a Model and Space explicitly,
+* How to set the Formula of an existing Cells,
+* What namespaces the Formulas of Cells are evaluated in,
+* What are *References* and how to define them,
+* How to interpret error messages,
+* How to change the values of References,
+* How to parameterize Spaces to create *ItemSpaces*.
+
+
+For your reference, mortgage loans can also be modeled without using modelx.
+If you want to know how to model mortgage loans using Python and Pandas,
+check out `great articles <https://pbpython.com/amortization-model-revised.html>`_
+on the `Practical Business Python <https://pbpython.com>`_ site.
+
+
 .. contents:: Contents
    :local:
 
 
-Create Model and Space
-----------------------
+Creating a Model and a Space explicitly
+---------------------------------------
+
 We start by creating a new *MxConsole* for this exercise.
 Right-click on the tab of the existing *MxConsole* or the default Console,
 and select *New MxConsole*.
@@ -89,8 +107,8 @@ Now you should have the *Fixed* Space item in the *MxExplorer*.
    MxExplorer
 
 
-Create Cells
-------------
+Creating Cells and defining their Formulas
+------------------------------------------
 
 The annual payment for a fixed-rate mortgage can be calculated by
 a well-known formula and can be expressed as follows:
@@ -185,8 +203,8 @@ of ``Balance`` and put the function above in the *Formula* Pane.
    MxExplorer
 
 
-Understand Error
-----------------
+Reading error messages
+----------------------
 
 The ``Payment`` Formula
 refers to names such as ``Principal``, ``Rate`` and ``Term``.
@@ -223,8 +241,8 @@ it only shows one Formula call, ``Payment()``.
 The last block shows the Formula that raised the error.
 
 
-Create References
------------------
+Creating References
+-------------------
 
 The ``Payment`` Formula refers to the names ``Principal``, ``Rate``
 and ``Term`` so we need to define those names.
@@ -271,8 +289,8 @@ is :obj:`float`.
 
    MxExplorer
 
-Get Results
------------
+Getting calculated results
+--------------------------
 
 Now that you have defined all the References referenced by
 the ``Payment``, calling the Formula should succeed::
@@ -366,15 +384,222 @@ becomes fully repaid.
    Mortgage Loan Balance
 
 
-Recap
------
-Through this exercise, we learned:
+Changing Reference values
+-------------------------
 
-* How to create a Model and Space explicitly,
-* How to set the Formula of an existing Cells,
-* The Formula of a Cells is evaluated in the parent's namespace,
-* What are *References* and how to define them,
-* How to interpret error messages and,
-* How to output Cells values as a graph.
+So far, we considered only one combination of principals,
+payment terms and interest rates. Usually, you want to explore
+other patterns as well. For example, you may want to know
+the annual payment amount when the payment term is 20 years.
 
+To change ``Term`` from ``30`` to ``20``, assign ``20`` to ``Terms`` as follows::
+
+    >>> Fixed.Term = 20
+
+The above changes the payment term to 20 years, and
+the values of ``Payment`` and ``Balance`` Cells are cleared because
+their calculations are dependent on ``Fixed.Term``, except for ``Balance(0)``,
+which only depends on ``Principal``. You can check
+how many values the Cells have by the :func:`len` built-in function::
+
+    >>> len(Payment)
+    0
+
+    >>> len(Balance)
+    1
+
+To get the annual payment amount, simply call ``Payment``::
+
+    >>> Payment()
+    6721.570759685908
+
+The same applies to the interest rate. If you want to know what the payment is
+when the interest rate is 4%, assign ``0.04`` to ``Rate``::
+
+    >>> Fixed.Rate = 0.04
+
+    >>> Payment()
+    7358.175032862885
+
+
+When assigning a value to a Reference, be aware that you need to specify
+its parent Space, such as ``Fixed.Term = 20`` and ``Fixed.Rate = 0.04``
+as explained in the previous section.
+Statements like ``Term = 20`` and ``Rate = 0.04`` will not work,
+because they are interpreted as just defining variables in the IPython's
+global namespace.
+
+
+Parameterizing the Space
+------------------------
+
+One drawback of changing Reference values to get results for various
+combinations of input is that, you can have results for only one combination
+of input at a time. If you update a Reference value, then the result
+for the previous value disappears. This is inconvenient if you want
+to use results from different combinations of input
+for subsequent calculations.
+
+Space parameterization is a very powerful feature to quickly and
+naturally extend a Space written in terms of one combination of input
+into a parameterized Space.
+The parameterized Space supports the subscription operator(``[]``)
+and the call operator(``()``). By passing arguments to the parameters
+through either of the operators, child Spaces of the ItemSpace type
+are dynamically created in the parameterized Space.
+The ItemSpaces are read-only Spaces and they inherit child Spaces,
+Cells and References from the parent Space, but the
+values of References that
+have the same names as the parameters are overridden by the arguments.
+
+Using this feature, you can get results
+for any combinations of ``Term`` and ``Rate`` and maintain the
+results for all the combinations.
+To parameterize the ``Fixed`` Space by ``Term`` and ``Rate``,
+assign a tuple of the Reference names to ``Fixed``'s ``parameters``
+property as follows::
+
+    >>> Fixed.parameters = ("Term", "Rate")
+
+You can optionally give default values.
+For example, to give a default value of ``30`` to ``Term`` and
+``0.03`` to ``Rate``, execute the following assignment::
+
+    >>> Fixed.parameters = ("Term=30", "Rate=0.03")
+
+Now the ``Fixed`` Space is parameterized by ``Term`` and ``Rate``.
+By adding arguments to the ``Fixed`` Space as a subscription or call
+operators, a new child Space is created under the ``Fixed`` Space::
+
+    >>> Fixed[20, 0.03]
+    <ItemSpace Fixed[20, 0.03] in Mortgage>
+
+The ItemSpace has the same Cells and References as the parent Space,
+except for the values of ``Term`` and ``Rate``, which are
+set to the arguments::
+
+    >>> Fixed[20, 0.03].Term
+    20
+
+    >>> Fixed[20, 0.04].Rate
+    0.04
+
+Let's try to calculate ``Payment``
+for various combinations of ``Term`` and ``Rate``::
+
+    >>> Fixed[20, 0.03].Payment()
+    6721.570759685908
+
+    >>> Fixed[30, 0.03].Payment()
+    5101.925932025255
+
+    >>> Fixed[20, 0.04].Payment()
+    7358.175032862885
+
+    >>> Fixed[30, 0.04].Payment()
+    5783.009913366131
+
+You can use ``()`` in place of ``[]`` in the code above.
+Since ``Term`` and ``Rate`` have default values,
+expressions like below yields the same ItemSpaces as above::
+
+    >>> Fixed[20].Payment()
+    6721.570759685908
+
+    >>> Fixed().Payment()   # Or Fixed[()].Payment()
+    5101.925932025255
+
+    >>> Fixed(Rate=0.04).Payment()
+    7358.175032862885
+
+    >>> Fixed[30].Payment()
+    5783.009913366131
+
+In MxExplorer, you see that the ItemSpaces are created under
+the ``Fixed`` Space.
+
+.. figure:: /images/tutorial/Mortgage/ItemSpaces.png
+   :align: center
+
+   ItemSpaces in MxExplorer
+
+Open one of the ItemSpaces and you see that the Cells and References
+in the ItemSpace are the same as the parent Space, except for
+``Term`` and ``Rate``, whose values are set to the arguments of
+the ItemSpace.
+
+.. figure:: /images/tutorial/Mortgage/ItemSpaces2.png
+   :align: center
+
+   ItemSpaces in MxExplorer
+
+
+Instead of manually specifying the arguments of the ItemSpaces,
+you can take full advantage of Python's iterator and comprehension
+expressions. For example, suppose you want to
+compare the annual payment amounts for all the possible combinations
+of payment terms and interest rates, where
+the payment terms range from 20 years stepping up by 5 years
+to 35 years, and the interest rates from 2% to 4% by 1%.
+For this task, you can use the
+`product <https://docs.python.org/3/library/itertools.html#itertools.product>`_
+iterator, available from the Python standard library.
+The code below shows how to get the desired results as a :obj:`dict`
+with tuples of ``Term`` and ``Rate`` as keys and ``Payment`` as values::
+
+
+    >>> from itertools import product
+
+    >>> {(term, rate): Fixed[term, rate/100].Payment() for term, rate in product(range(20, 36, 5), range(2, 5))}
+    {(20, 2): 6115.671812529034,
+     (20, 3): 6721.570759685908,
+     (20, 4): 7358.175032862885,
+     (25, 2): 5122.043841739468,
+     (25, 3): 5742.787103912777,
+     (25, 4): 6401.196278645458,
+     (30, 2): 4464.992229340292,
+     (30, 3): 5101.925932025255,
+     (30, 4): 5783.009913366131,
+     (35, 2): 4000.2209190750104,
+     (35, 3): 4653.929156959947,
+     (35, 4): 5357.732236826054}
+
+The code above use a form of expressions called
+`dict comprehensions <https://www.python.org/dev/peps/pep-0274/>`_.
+If you're not familiar with the expression,
+you can simply use ``for`` statement::
+
+    >>> result = {}
+
+    >>> for term, rate in product(range(20, 36, 5), range(2, 5)):
+            result[(term, rate)] = Fixed[term, rate/100].Payment()
+
+    >>> result
+    {(20, 2): 6115.671812529034,
+     (20, 3): 6721.570759685908,
+     (20, 4): 7358.175032862885,
+     (25, 2): 5122.043841739468,
+     (25, 3): 5742.787103912777,
+     (25, 4): 6401.196278645458,
+     (30, 2): 4464.992229340292,
+     (30, 3): 5101.925932025255,
+     (30, 4): 5783.009913366131,
+     (35, 2): 4000.2209190750104,
+     (35, 3): 4653.929156959947,
+     (35, 4): 5357.732236826054}
+
+
+Saving the work
+---------------
+
+You can save the Model in the same way we did in the fist exercise.
+From the context menu in *MxExplorer*, select *Write Model*
+and follow the same steps as the first example.
+
+Note that the ItemSpaces in the Model are not saved, as they
+are dynamically created when you get them through the subscription
+or call operations for the first time.
+So, when you read the saved Model, the ItemSpaces do not exists, but
+they appear as you try to get them by the subscription or call operations,
+such as ``Fixed[20, 0.02]``.
 

@@ -165,6 +165,8 @@ modelx is imported as ``mx`` in the IPython's global namespace.
    IPython startup setting
 
 
+.. _install-spyder-plugin:
+
 Installing Spyder plugin for modelx
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -192,8 +194,8 @@ after installing ``modelx``::
 If Spyder is running while the plugin gets installed, close Spyder once
 and restart it to bring the plugin into effect.
 
-.. _MxExplorerAndMxConsole:
 
+.. _updating-packages:
 
 Updating packages
 -----------------
