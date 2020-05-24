@@ -228,7 +228,7 @@ you should get the following error message:
 
 The error message consists of 3 blocks of text. The first block
 shows the type and message of the original error.
-The original error in this case is ``NameError``, as
+The original error in this case is :obj:`NameError`, as
 the name ``Principal`` is not defined.
 
 The second block is Formula traceback.
@@ -348,7 +348,7 @@ You should get the following error, as there is a typo in the formula.
         else:
             return Principle
 
-The error message tells you that a ``NameError`` is raised
+The error message tells you that a :obj:`NameError` is raised
 in ``Mortgage.FixedRate.Balance(t=0)`` at line 6,
 because the name ``Principle`` is not found in the namespace in which
 ``Mortgage.FixedRate.Balance(t=0)`` is executed.

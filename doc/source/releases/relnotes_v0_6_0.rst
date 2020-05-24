@@ -45,7 +45,7 @@ shows the error message from the original exception, followed by
 a traceback of modelx elements, and the source code of the formula
 the exception is raised from. To retrieve the original exception, use
 :func:`get_error` function.
-This default behaviour can be altered by the user by passing ``False``
+This default behaviour can be altered by the user by passing :obj:`False`
 to :func:`use_formula_error` function, in which case the original errors
 are raised.
 :func:`get_traceback` function returns the traceback information

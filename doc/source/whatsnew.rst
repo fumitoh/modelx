@@ -48,6 +48,7 @@ Release Notes - modelx
 .. toctree::
    :maxdepth: 2
 
+   releases/relnotes_v0_7_0
    releases/relnotes_v0_6_0
    releases/relnotes_v0_5_0
    releases/relnotes_v0_4_0
@@ -67,6 +68,7 @@ Release Notes - spyder-modelx
 .. toctree::
    :maxdepth: 2
 
+   releases/spymx_relnotes_v0.5.0.rst
    releases/spymx_relnotes_v0.4.0.rst
    releases/spymx_relnotes_v0.3.1.rst
    releases/spymx_relnotes_v0.3.0.rst

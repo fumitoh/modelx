@@ -4,8 +4,20 @@ Updates
 
 .. Latest Updates Begin
 
+
+* *24 May 2020:*
+  modelx v0.7.0 is released. See
+  :doc:`releases/relnotes_v0_7_0` release notes for details.
+
+* *24 May 2020:*
+  spyder-modelx v0.5.0 is released. See
+  :doc:`releases/spymx_relnotes_v0.5.0` release notes for details.
+
+* *24 May 2020:*
+  The :doc:`tutorial/mortgage` page is updated.
+
 * *10 May 2020:*
-  :doc:`tutorial/mortgage` is added in :doc:`tutorial/index`.
+  The :doc:`tutorial/mortgage` page is added in :doc:`tutorial/index`.
 
 * *10 May 2020:*
   spyder-modelx v0.4.0 is released.
