@@ -4,6 +4,8 @@ Updates
 
 .. Latest Updates Begin
 
+* *31 May 2020:*
+  `The modelx home page <https://modelx.io>`_ is opened.
 
 * *24 May 2020:*
   modelx v0.7.0 is released. See
@@ -26,6 +28,8 @@ Updates
 
 * *5 May 2020:*
   :doc:`tutorial/index` and :doc:`installation` pages are updated.
+
+.. Latest Updates End
 
 * *29 April 2020:*
   modelx v0.6.1 is released. See :ref:`release-v0.6.1` release
@@ -65,8 +69,6 @@ Updates
 * *2 January 2020:*
   spyder-modelx v0.1.0 is released.
   See :ref:`release-mxplugin-v0.1.0` release notes for details.
-
-.. Latest Updates End
 
 * *1 December 2019:*
   modelx v0.1.0 is released. See :doc:`releases/relnotes_v0_1_0`

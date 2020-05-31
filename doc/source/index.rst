@@ -3,8 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-modelx
-======
+modelx Documentation
+====================
+
 *Use Python like a spreadsheet!*
 
 .. figure:: images/spyder/MxPluginImage.png

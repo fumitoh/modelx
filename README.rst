@@ -20,26 +20,34 @@ modelx
 What is modelx?
 ---------------
 **modelx** is a Python package to build object-oriented models
-containing formulas and values to carry out complex calculations.
+consisting of formulas and values to carry out complex calculations.
 You can think of it as a hierarchical and multidimensional extension
 of spreadsheet, but there's so much more to it!
 
+.. rubric:: modelx sites
+
+========================== ====================================
+Home page                  https://modelx.io
+Documentation site         https://docs.modelx.io
+Development site           https://github.com/fumitoh/modelx
+modelx on PyPI             https://pypi.org/project/modelx/
+========================== ====================================
+
 Feature highlights
 ------------------
-**modelx** comes with features that enable users to interactively
+**modelx** enables you to interactively
 develop, run and scrutinize complex models in smart ways:
 
-- Only little Python knowledge required
-- Model composed of a tree of Spaces containing Cells
-- Cells containing formulas and data
-- Dynamic name binding for evaluating formulas within a Space
-- Space inheritance
-- Dynamic parametrized spaces created interactively
+- Only basic Python knowledge required
+- Formulas defined by Python functions
+- Object-oriented, supports composition and inheritance
+- Parameterization
+- Dependency tracing
+- Reading from Excel and CSV files
 - GUI as Spyder plugin (spyder-modelx)
-- Cells graph to track cells interdependency
-- Saving to / loading from files
-- Conversion to Pandas objects
-- Reading from Excel files
+- Saving to text files, enabling use of version control systems
+- Document integration enabling use of document generators
+- Pandas interface
 
 Who is modelx for?
 ------------------
