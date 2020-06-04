@@ -41,12 +41,28 @@ ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
 class Cells(Interface, Mapping, Callable, ElementFactory):
     """Data container with a formula to calculate its own values.
 
-    Cells are created by ``new_cells`` method or its variant methods of
-    the containing space, or by function definitions with ``defcells``
-    decorator.
+    Cells are created by :meth:`~modelx.core.space.UserSpace.new_cells`
+    method or its variant methods of
+    the containing Space, or by function definitions with
+    :func:`modelx.defcells` decorator.
     """
 
     __slots__ = ()
+
+    def copy(self, parent, name=None):
+        """Make a copy of itself
+
+        Make a copy of the Cells in the :class:`~modelx.core.space.UserSpace`
+        passed as ``parent``. If ``name`` is given,
+        the copied cells is renamed to the name.
+
+        Args:
+            parent(:class:`~modelx.core.space.UserSpace`): Parent
+                of the copied cells
+            name(:obj:`str`, optional): New name to replace the original name
+        """
+        return self._impl.parent.spacemgr.copy_cells(
+            parent._impl, self._impl, name)
 
     def __contains__(self, key):
         return self._impl.has_node(tuplize_key(self, key))
@@ -366,6 +382,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         self, *, space, name=None, formula=None, data=None, base=None,
         source=None, is_derived=False
     ):
+        # Determine name
         if base:
             name = base.name
         elif is_valid_name(name):
@@ -387,28 +404,30 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         )
         Derivable.__init__(self, is_derived)
         self.source = source
-        space._cells.set_item(self.name, self)
+        space._cells.set_item(name, self)
 
+        # Set formula
         if base:
             self.formula = base.formula
         elif formula is None:
-            self.formula = NullFormula(NULL_FORMULA, name=self.name)
+            self.formula = NullFormula(NULL_FORMULA, name=name)
         elif isinstance(formula, Formula):
-            self.formula = formula.__class__(formula, name=self.name)
+            self.formula = formula.__class__(formula, name=name)
         else:
-            self.formula = Formula(formula, name=self.name)
+            self.formula = Formula(formula, name=name)
 
+        # Set data
         self.data = {}
         if data is None:
             data = {}
         self.data.update(data)
+        self.input_keys = set(data.keys())
 
         self._namespace = self.parent._namespace
         if base:
             self.altfunc = BoundFunction(self, base.altfunc.fresh)
         else:
             self.altfunc = BoundFunction(self)
-        self.input_keys = set(data.keys())
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
@@ -609,6 +628,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         nodes = self.model.tracegraph.get_nodes_with(self)
         assert set(self.data.keys()) == set(n[KEY] for n in nodes)
         return True
+
 
 class UserCellsImpl(CellsImpl):
 

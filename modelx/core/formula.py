@@ -351,9 +351,10 @@ class Formula:
 
     def __init__(self, func, name=None, module=None):
 
-        if isinstance(func, Formula):
+        if isinstance(func, NullFormula):   # TODO: Make NULL_FORMULA singleton
             self._copy_other(func)
-
+        elif isinstance(func, Formula):
+            self.__init__(func.source, name, module)
         elif isinstance(func, FunctionType):
             if module is not None:
                 self.module = module

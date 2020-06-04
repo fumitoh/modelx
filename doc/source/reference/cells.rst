@@ -23,6 +23,16 @@ Basic properties
   ~Cells.set_property
 
 
+Cells operations
+----------------
+
+.. autosummary::
+  :toctree: generated/
+  :template: mxbase.rst
+
+  ~Cells.copy
+
+
 Value operations
 ----------------
 

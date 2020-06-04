@@ -879,12 +879,14 @@ class SpaceManager:
         self._graph = SpaceGraph()
         self._instructions = InstructionList()
 
-    def _can_add(self, parent, name, klass):
+    def _can_add(self, parent, name, klass, replace=True):
         if parent is self.model:
             return name not in parent.namespace
 
         sub = self._find_name_in_subs(parent, name)
-        if sub is None or isinstance(sub, klass):
+        if sub is None:
+            return True
+        elif isinstance(sub, klass) and replace:
             return True
         else:
             return False
@@ -1289,17 +1291,19 @@ class SpaceManager:
                 self._graph.ordered_subs(space.namedid))[idx:]
         ]
 
-    def new_cells(self, space, name=None, formula=None, is_derived=False,
-                  source=None):
+    def new_cells(self, space, name=None, formula=None, data=None,
+                  is_derived=False, source=None, replace=True):
 
-        if not self._can_add(space, name, CellsImpl):
+        if not self._can_add(space, name, CellsImpl, replace=replace):
             raise ValueError("Cannot create cells '%s'" % name)
 
         self._set_defined(space.namedid)
         space.set_defined()
 
-        cells = UserCellsImpl(space=space, name=name, formula=formula,
-                          source=source, is_derived=is_derived)
+        cells = UserCellsImpl(
+            space=space, name=name, formula=formula,
+            data=data,
+            source=source, is_derived=is_derived)
 
         for subspace in self._get_subs(space):
             if name in subspace.cells:
@@ -1310,6 +1314,20 @@ class SpaceManager:
                     base=cells, is_derived=True)
 
         return cells
+
+    def copy_cells(self, space: UserSpaceImpl,
+                   source: UserCellsImpl, name=None):
+        """``space`` can be of another Model"""
+
+        if space.model is not self.model:
+            return space.model.spacemgr.copy_cells(space, source, name)
+
+        if name is None:
+            name = source.name
+
+        data = {k: v for k, v in source.data.items() if k in source.input_keys}
+        return self.new_cells(space, name=name, formula=source.formula,
+                       data=data, is_derived=False, replace=False)
 
     def new_ref(self, space, name, value):
 
