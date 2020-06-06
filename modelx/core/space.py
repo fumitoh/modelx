@@ -499,6 +499,20 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         # Outside formulas only
         return self._impl.new_cells(name, formula).interface
 
+    def copy(self, parent, name=None):
+        """Make a copy of itself
+
+        Create a new :class:`UserSpace` in ``parent`` by copying itself.
+        If ``name`` is given, the copied :class:`UserSpace`
+        is named ``name`` in stead of the original name.
+
+        Args:
+            parent(:class:`UserSpace`): parent of the copied :class:`UserSpace`
+            name(:obj:`str`, optional): name of the copied :class:`UserSpace`
+        """
+        return self._impl.spacemgr.copy_space(
+            parent._impl, self._impl, name)
+
     def add_bases(self, *bases):
         """Add base spaces."""
         return self._impl.spacemgr.add_bases(self._impl, get_impls(bases))

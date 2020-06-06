@@ -23,6 +23,15 @@ Basic properties
   ~UserSpace.has_params
   ~UserSpace.set_property
 
+Space operations
+----------------
+
+.. autosummary::
+  :toctree: generated/
+  :template: mxbase.rst
+
+  ~UserSpace.copy
+
 Inheritance operations
 ----------------------
 

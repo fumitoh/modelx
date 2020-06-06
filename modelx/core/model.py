@@ -1096,6 +1096,52 @@ class SpaceManager:
 
         return space
 
+    def copy_space(
+            self,
+            parent: EditableSpaceContainerImpl,
+            source: UserSpaceImpl,
+            name=None
+    ):
+        if parent.has_ascendant(source):
+            raise ValueError("Cannot copy to child")
+
+        if parent.model is not self.model:
+            return parent.model.spacemgr.copy_space(parent, source, name)
+
+        if name is None:
+            name = source.name
+
+        if self._can_add(
+            parent, name, EditableSpaceContainerImpl, overwrite=False):
+            return self._copy_space_recursively(
+                parent, source, name
+            )
+        else:
+            raise ValueError("Cannot create space '%s'" % name)
+
+    def _copy_space_recursively(self, parent, source, name):
+
+        space = self.new_space(
+            parent,
+            name=name,
+            bases=None,
+            formula=source.formula,
+            refs={k: v.interface for k, v in source.self_refs.items()},
+            source=source.source,
+            is_derived=False,
+            prefix="",
+            doc=source.doc,
+            container=None
+        )
+
+        for cells in source.cells.values():
+            self.copy_cells(space, cells)
+
+        for child in source.named_spaces.values():
+            self._copy_space_recursively(space, child, child.name)
+
+        return space
+
     def add_bases(self, space, bases):
         """Add bases to space in graph
         """
