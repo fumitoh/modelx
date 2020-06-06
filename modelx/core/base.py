@@ -266,6 +266,21 @@ class Impl:
     def is_model(self):
         return self.parent is None
 
+    def has_ascendant(self, other):
+
+        if self.is_model():
+            return False
+        elif other is self.parent:
+            return True
+        else:
+            return self.parent.has_ascendant(other)
+
+    def has_descendant(self, other):
+        return other.has_ascendant(self)
+
+    def has_linealrel(self, other):
+        return self.has_ascendant(other) or self.has_descendant(other)
+
     # ----------------------------------------------------------------------
     # repr methods
 
@@ -319,14 +334,6 @@ class Derivable:
         if not is_derived:
             if not self.parent.is_model() and self.parent.is_derived:
                 self.parent.is_derived = is_derived
-
-    def has_ascendant(self, other):
-        if other is self.parent:
-            return True
-        elif self.parent.parent is None:
-            return False
-        else:
-            return self.parent.has_ascendant(self.parent)
 
     @property
     def bases(self):

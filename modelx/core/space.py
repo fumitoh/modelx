@@ -1149,21 +1149,6 @@ class BaseSpaceImpl(
     # ----------------------------------------------------------------------
     # Component properties
 
-    def has_descendant(self, other):
-        if self.spaces:
-            if other in self.spaces.values():
-                return True
-            else:
-                return any(
-                    child.has_descendant(other)
-                    for child in self.spaces.values()
-                )
-        else:
-            return False
-
-    def has_linealrel(self, other):
-        return self.has_ascendant(other) or self.has_descendant(other)
-
     def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the space."""
 
