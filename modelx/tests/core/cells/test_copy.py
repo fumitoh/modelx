@@ -1,5 +1,6 @@
 import modelx as mx
 import pytest
+import itertools
 
 
 @pytest.fixture(params=["foo", "bar"])
@@ -11,17 +12,21 @@ def samplecells(request):
     def foo(x):
         return x
 
+    foo[0] = 1
     s.new_cells("bar", lambda x: 2 * x)
-
+    s.bar[0] = 1
     return s.cells[request.param]
 
 
-@pytest.mark.parametrize("name", [None, "baz"])
-def test_copy(samplecells, name):
+@pytest.mark.parametrize(
+    "to_another_model, name",
+    list(itertools.product([False, True], [None, "baz"])))
+def test_copy(samplecells, to_another_model, name):
 
     src = samplecells
-    m = samplecells.model
+    m = mx.new_model() if to_another_model else samplecells.model
     s2 = m.new_space()
     samplecells.copy(s2, name=name)
 
+    assert s2.cells[name or src.name](0) == 1
     assert s2.cells[name or src.name](1) == src[1]

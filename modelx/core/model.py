@@ -879,14 +879,14 @@ class SpaceManager:
         self._graph = SpaceGraph()
         self._instructions = InstructionList()
 
-    def _can_add(self, parent, name, klass, replace=True):
+    def _can_add(self, parent, name, klass, overwrite=True):
         if parent is self.model:
             return name not in parent.namespace
 
         sub = self._find_name_in_subs(parent, name)
         if sub is None:
             return True
-        elif isinstance(sub, klass) and replace:
+        elif isinstance(sub, klass) and overwrite:
             return True
         else:
             return False
@@ -1292,9 +1292,9 @@ class SpaceManager:
         ]
 
     def new_cells(self, space, name=None, formula=None, data=None,
-                  is_derived=False, source=None, replace=True):
+                  is_derived=False, source=None, overwrite=True):
 
-        if not self._can_add(space, name, CellsImpl, replace=replace):
+        if not self._can_add(space, name, CellsImpl, overwrite=overwrite):
             raise ValueError("Cannot create cells '%s'" % name)
 
         self._set_defined(space.namedid)
@@ -1327,7 +1327,7 @@ class SpaceManager:
 
         data = {k: v for k, v in source.data.items() if k in source.input_keys}
         return self.new_cells(space, name=name, formula=source.formula,
-                       data=data, is_derived=False, replace=False)
+                       data=data, is_derived=False, overwrite=False)
 
     def new_ref(self, space, name, value):
 
