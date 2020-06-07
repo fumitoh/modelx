@@ -122,12 +122,12 @@ class Model(EditableSpaceContainer):
     """Top-level container in modelx object hierarchy.
 
     Model instances are the top-level objects and directly contain
-    :py:class:`UserSpace <modelx.core.space.UserSpace>` objects, which in turn
+    :py:class:`~modelx.core.space.UserSpace` objects, which in turn
     contain other spaces or
-    :py:class:`Cells <modelx.core.cells.Cells>` objects.
+    :py:class:`~modelx.core.cells.Cells` objects.
 
     A model can be created by
-    :py:func:`new_model <modelx.core.model.Model>` API function.
+    :py:func:`~modelx.new_model` API function.
     """
 
     __slots__ = ()

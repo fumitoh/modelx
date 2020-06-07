@@ -1,5 +1,13 @@
-Top-level module
+modelx module
 ================
+
+The top-level module :mod:`modelx` includes API functions.
+By convention, :mod:`modelx` is assigned to the name ``mx`` in
+the global namespace::
+
+    >> import modelx as mx
+
+
 
 .. automodule:: modelx
 

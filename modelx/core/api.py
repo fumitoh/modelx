@@ -96,7 +96,7 @@ def new_model(name=None):
             being an automatically assigned integer.
 
     Returns:
-        The new model.
+        :class:`~modelx.core.model.Model`: The new model.
     """
     return _system.new_model(name).interface
 
@@ -218,7 +218,7 @@ def defcells(space=None, name=None, *funcs):
 def get_models():
     """Returns a dict that maps model names to models.
 
-    From Python 3.7, ``models`` attribute of ``modelx`` module
+    From Python 3.7, :attr:`modelx.models` attribute of :mod:`modelx` module
     is available as an alias for this function.
     """
     return _get_interfaces(_system.models)
