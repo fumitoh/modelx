@@ -17,13 +17,15 @@ import ast
 import enum
 from collections import namedtuple
 import tokenize
-import shutil
 import pickle
+import tempfile
+import zipfile
 import modelx as mx
 from modelx.core.model import Model
 from modelx.core.base import Interface
 from modelx.core.util import abs_to_rel, rel_to_abs
 import asttokens
+from . import ziputil
 
 
 Section = namedtuple("Section", ["id", "symbol"])
@@ -91,17 +93,20 @@ class BaseInstruction:
 
 class Instruction(BaseInstruction):
 
-    def __init__(self, func, args=(), arghook=None, kwargs=None):
+    def __init__(self, func, args=(), arghook=None, kwargs=None, parser=None):
 
         self.func = func
         self.args = args
         self.arghook = arghook
         self.kwargs = kwargs if kwargs else {}
+        self.parser = parser
 
     @classmethod
-    def from_method(cls, obj, method, args=(), arghook=None, kwargs=None):
+    def from_method(cls, obj, method, args=(), arghook=None, kwargs=None,
+                    parser=None):
         func = getattr(obj, method)
-        return cls(func, args=args, arghook=arghook, kwargs=kwargs)
+        return cls(func, args=args, arghook=arghook, kwargs=kwargs,
+                   parser=parser)
 
     def execute(self):
         if self.arghook:
@@ -174,6 +179,25 @@ class CompoundInstruction(BaseInstruction):
             return inst.func.__name__ in methods
 
         self.execute_selected(cond, pop_executed)
+
+    def execute_selected_parser(self, parser_type, pop_executed=True):
+
+        def cond(inst):
+            return isinstance(inst.parser, parser_type)
+
+        self.execute_selected(cond, pop_executed)
+
+    def find_instruction(self, cond):
+
+        for inst in self.instructions:
+            if isinstance(inst, CompoundInstruction):
+                result = inst.find_instruction(cond)
+                if result:
+                    return result
+            else:
+                result = cond(inst)
+                if result:
+                    return result
 
 
 # --------------------------------------------------------------------------
@@ -271,10 +295,10 @@ class ModelWriter(BaseEncoder):
 
     def write_pickledata(self):
         if self.pickledata:
-            self.datapath.mkdir(parents=True, exist_ok=True)
             file = self.datapath / "data.pickle"
-            with file.open("wb") as f:
-                pickle.dump(self.pickledata, f)
+            ziputil.write_file(
+                lambda f: pickle.dump(self.pickledata, f), file, mode="b")
+
 
     def instruct(self):
         insts = []
@@ -286,9 +310,7 @@ class ModelWriter(BaseEncoder):
 
         try:
             self.system.serializing = self
-            # Create _model.py
-            with self.srcpath.open("w", encoding="utf-8") as f:
-                f.write(self.encode())
+            ziputil.write_str(self.encode(), self.srcpath)
 
             self.instruct().execute()
 
@@ -383,9 +405,7 @@ class SpaceWriter(BaseEncoder):
     def write_space(self):
 
         file = self.srcpath
-        file.parent.mkdir(parents=True, exist_ok=True)
-        with open(file, "w", encoding="utf-8") as f:
-            f.write(self.encode())
+        ziputil.write_str(self.encode(), file)
 
         for space in self.space.spaces.values():
             if not MethodCallEncoder.from_method(space):
@@ -547,10 +567,12 @@ class CellsEncoder(BaseEncoder):
                 cellsdata.append((keyid, valid))
 
         if cellsdata:   # Save IDs
-            self.datapath.parent.mkdir(parents=True, exist_ok=True)
-            with self.datapath.open(mode="w") as f:
+
+            def write_dataid(f):
                 for keyid, valid in cellsdata:
                     f.write("(%s, %s)\n" % (keyid, valid))
+
+            ziputil.write_file(write_dataid, self.datapath, "t")
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -590,9 +612,9 @@ class MethodCallEncoder(BaseEncoder):
 def copy_file(obj, path_: pathlib.Path):
     src = obj._impl.source
     srcpath = pathlib.Path(src["args"][0])
-    shutil.copyfile(
-        str(srcpath),
-        str(path_.joinpath(srcpath.name))
+    ziputil.copy_file(
+        srcpath,
+        path_.joinpath(srcpath.name)
     )
 
 
@@ -725,9 +747,7 @@ class PickleEncoder(BaseEncoder):
 
     def pickle_value(self, path: pathlib.Path, value):
         key = id(value)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open(mode="w") as f:
-            f.write(str(key))
+        ziputil.write_str(str(key), path)
         if key not in self.writer.pickledata:
             self.writer.pickledata[key] = value
 
@@ -757,6 +777,19 @@ RefViewEncoder.selector_class = EncoderSelector
 # --------------------------------------------------------------------------
 # Model Reading
 
+def _replace_saved_path(space, temppath: str, path: str):
+
+    if space.source and "args" in space.source:
+        if space.source["args"][0] == temppath:
+            space.source["args"][0] = path
+
+    if not space.is_model():
+        for cells in space.cells.values():
+            if cells.source and cells.source["args"][0] == temppath:
+                cells.source["args"][0] = path
+
+    for child in space.spaces.values():
+        _replace_saved_path(child, temppath, path)
 
 class ModelReader:
 
@@ -765,12 +798,13 @@ class ModelReader:
 
     def __init__(self, system, path: pathlib.Path):
         self.system = system
-        self.path = path
+        self.path = path.resolve()
         self.kwargs = None
         self.instructions = CompoundInstruction()
         self.result = None      # To pass list of space names
         self.model = None
         self.pickledata = None
+        self.tempdir = None
 
     def read_model(self, **kwargs):
 
@@ -782,7 +816,23 @@ class ModelReader:
                 "doc",
                 "set_formula",
                 "set_property",
-                "new_cells"] + CONSTRUCTOR_METHODS)
+                "new_cells"])
+
+            if self.instructions.find_instruction(
+                lambda inst: isinstance(inst.parser, MethodCallParser)
+            ):
+                if zipfile.is_zipfile(self.path):
+                    with tempfile.TemporaryDirectory()as tempdir:
+                        self.tempdir = pathlib.Path(tempdir)
+                        self.instructions.execute_selected_parser(
+                            MethodCallParser
+                        )
+                        self.tempdir = None
+                else:
+                    self.instructions.execute_selected_parser(
+                        MethodCallParser
+                    )
+
             self.instructions.execute_selected_methods(["add_bases"])
             self.read_pickledata()
             self.instructions.execute_selected_methods(["load_pickledata"])
@@ -822,9 +872,7 @@ class ModelReader:
 
     def parse_source(self, path_, obj: Interface):
 
-        with open(path_, "r", encoding="utf-8") as f:
-            src = f.read()
-
+        src = ziputil.read_str(path_)
         srcstructure = SourceStructure(src)
         atok = asttokens.ASTTokens(src, parse=True)
 
@@ -841,9 +889,8 @@ class ModelReader:
 
     def read_pickledata(self):
         file = self.path / "data/data.pickle"
-        if file.exists():
-            with file.open("rb") as f:
-                self.pickledata = pickle.load(f)
+        if ziputil.exists(file):
+            self.pickledata = ziputil.read_file(pickle.load, file, "b")
 
 
 class BaseNodeParser:
@@ -961,11 +1008,28 @@ class FromFileParser(MethodCallParser):
         )
         args = method.pop("args")
         args[0] = str(self.srcpath.with_name(args[0]))
-        return Instruction.from_method(
-            obj=self.impl,
-            method=method["method"],
+
+        def exec_from_file(*args, **kwargs):
+
+            tempargs = list(args)
+
+            if self.reader.tempdir:
+                srcpath = pathlib.Path(args[0])
+                rel = srcpath.relative_to(self.reader.path)
+                temppath = self.reader.tempdir.joinpath(rel)
+                tempargs[0] = str(temppath)
+                ziputil.copy_file(srcpath, temppath)
+
+            func = getattr(self.impl, method["method"])
+            func(*tempargs, **kwargs)
+            if self.reader.tempdir:
+                _replace_saved_path(self.impl, tempargs[0], args[0])
+
+        return Instruction(
+            func=exec_from_file,
             args=args,
-            kwargs=method["kwargs"]
+            kwargs=method["kwargs"],
+            parser=self
         )
 
 
@@ -997,12 +1061,29 @@ class FromPandasParser(MethodCallParser):
         args = method.pop("args")
         callid = method["kwargs"]["call_id"]
         args[0] = str(self.srcpath.parent.joinpath(args[0]) / callid)
-        return Instruction.from_method(
-            obj=self.impl,
-            method=method["method"],
+
+        def exec_from_pandas(*args, **kwargs):
+
+            newargs = list(args)
+
+            if self.reader.tempdir:
+                srcpath = pathlib.Path(args[0])
+                rel = srcpath.relative_to(self.reader.path)
+                temppath = self.reader.tempdir.joinpath(rel)
+                newargs[0] = str(temppath)
+                ziputil.copy_file(srcpath, temppath)
+
+            import pandas as pd
+            newargs[0] = pd.read_pickle(newargs[0])
+            func = getattr(self.impl, method["method"])
+            func(*newargs, **kwargs)
+
+        return Instruction(
+            func=exec_from_pandas,
             args=args,
             kwargs=method["kwargs"],
-            arghook=pandashook
+            arghook=None,
+            parser=self
         )
 
 
@@ -1123,8 +1204,9 @@ class CellsInputDataMixin(BaseNodeParser):
     def load_pickledata(self):
         if self.datapath.exists():
             data = {}
-            with self.datapath.open("r") as f:
-                lines = f.readlines()
+            lines = ziputil.read_file(lambda f: f.readlines(),
+                                      self.datapath,
+                                      "t")
             for line in lines:
                 keyid, valid = ast.literal_eval(line)
                 key = self.reader.pickledata[keyid]
@@ -1286,8 +1368,7 @@ class PickleDecoder(TupleDecoder):
         return self.srcpath.parent / self.elm(1)
 
     def restore(self):
-        with self.decode().open("rb") as f:
-            key = int(f.read())
+        key = ziputil.read_file(lambda f: int(f.read()), self.decode(), "t")
 
         return self.reader.pickledata[key]
 

@@ -493,7 +493,30 @@ def write_model(model, model_path, backup=True, version=None):
 
     """
     return _serialize.write_model(
-        _system, model, model_path, backup=backup, version=version)
+        _system, model, model_path, is_zip=False,
+        backup=backup, version=version)
+
+
+def zip_model(model, model_path, backup=True, version=None):
+    """Archive model to a zip file
+
+    Write ``model`` to a single zip file. The contents are the
+    same as the directory tree output by the :func:`write_model` function.
+
+    Args:
+        model: Model object to archive.
+        model_path(str): Path to the zip file.
+        backup(bool, optional): Whether to backup an existing file with
+            the same name if it already exists. Defaults to ``True``.
+        version(int, optional): Format version to write model.
+            Defaults to the most recent version.
+
+    See Also:
+        :func:`write_model`
+    """
+    return _serialize.write_model(
+        _system, model, model_path, is_zip=True,
+        backup=backup, version=version)
 
 
 def read_model(model_path, name=None):

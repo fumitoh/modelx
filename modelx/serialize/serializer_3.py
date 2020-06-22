@@ -49,6 +49,7 @@ from .serializer_2 import (
     LiteralDecoder
 )
 from .serializer_2 import PickleDecoder as PickleDecoder2
+from . import ziputil
 
 
 class TupleID(tuple):
@@ -110,10 +111,12 @@ class SpaceWriter(SpaceWriter2):
         datafile = self.datapath / "_dynamic_inputs"
 
         if self.space._named_itemspaces:
-            datafile.parent.mkdir(parents=True, exist_ok=True)
-            with datafile.open(mode="w") as f:
-                for dynspace in self.space._named_itemspaces.values():
-                    self._pickle_dynamic_space(f, dynspace)
+
+            def callback(f):
+                for s in self.space._named_itemspaces.values():
+                    self._pickle_dynamic_space(f, s)
+
+            ziputil.write_file(callback, datafile, "t")
 
     def _pickle_dynamic_space(self, file, space):
 
@@ -213,8 +216,12 @@ class ModelReader(ModelReader2):
 
         file = path_ / "data/_dynamic_inputs"
         if file.exists():
-            with file.open("r") as f:
-                lines = f.readlines()
+
+            lines = ziputil.read_file(
+                lambda f: f.readlines(),
+                file,
+                "t"
+            )
 
             instructuions = []
             for line in lines:

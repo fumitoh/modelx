@@ -405,6 +405,7 @@ class ModelReader:
         self.path = path
         self.kwargs = None
         self.model = None
+        self.is_renamed = False
 
     def read_model(self, **kwargs):
 
@@ -431,7 +432,19 @@ class ModelReader:
         result = _InstructionList()
         if target is None:
             path_ = self.path
-            self.model = target = model = mx.new_model(path_.name)
+            if "name" in self.kwargs and self.kwargs["name"]:
+                name = self.kwargs["name"]
+                self.is_renamed = True
+            else:
+                i = 1
+                while True:
+                    name = "Temp" + ("%04d" % i)
+                    if name in mx.get_models():
+                        i += 1
+                    else:
+                        break
+
+            self.model = target = model = mx.new_model(name)
             result.extend(self._parse_source(path_ / "_model.py", model))
 
         for source in path_.glob("[!_]*.py"):
@@ -489,16 +502,14 @@ class ModelReader:
 
                 if node.first_token.string == "_name":
                     method = "rename"
-                    if "name" in self.kwargs and self.kwargs["name"]:
-                        val = self.kwargs["name"]
-                    else:
+                    if not self.is_renamed:
                         val = ast.literal_eval(atok.get_text(node.value))
-                    _Instruction(
-                        path_=path_,
-                        obj=obj,
-                        method=method,
-                        args=(val,),
-                        kwargs={"rename_old": True}).run()
+                        _Instruction(
+                            path_=path_,
+                            obj=obj,
+                            method=method,
+                            args=(val,),
+                            kwargs={"rename_old": True}).run()
                     return []
 
                 elif node.first_token.string == "_formula":
