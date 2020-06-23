@@ -8,9 +8,9 @@ import modelx as mx
 from modelx.tests.testdata import XL_TESTDATA
 
 @pytest.fixture(
-    params=[("C9:E25", False), ("C36:S38", True)])
+    params=[("C9:E25", False, "write_model"), ("C36:S38", True, "zip_model")])
 def single_param(request, tmp_path):
-    range_, orientation = request.param
+    range_, orientation, write_method = request.param
 
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
@@ -23,11 +23,11 @@ def single_param(request, tmp_path):
         transpose=orientation,
     )
 
-    mx.write_model(model, tmp_path)
+    getattr(mx, write_method)(model, tmp_path)
     m2 = mx.read_model(tmp_path)
 
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, tmp_path)
+    getattr(mx, write_method)(m2, tmp_path)
     target = mx.read_model(tmp_path).spaces[space.name]
 
     return space, target
@@ -46,10 +46,11 @@ def test_single_param(single_param):
     compare_model(src.model, trg.model)
 
 
-@pytest.fixture(params=[("H9:K25", False), ("C42:S45", True)])
+@pytest.fixture(params=[("H9:K25", False, "write_model"),
+                        ("C42:S45", True, "zip_model")])
 def multiple_prams(request, tmp_path):
 
-    range_, orientation = request.param
+    range_, orientation, write_method = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
         book=XL_TESTDATA,
@@ -60,11 +61,11 @@ def multiple_prams(request, tmp_path):
         param_order=[0, 1],
         transpose=orientation,
     )
-    mx.write_model(model, tmp_path)
+    getattr(mx, write_method)(model, tmp_path)
     m2 = mx.read_model(tmp_path)
 
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, tmp_path)
+    getattr(mx, write_method)(m2, tmp_path)
     target = mx.read_model(tmp_path).spaces[space.name]
 
     return space, target
@@ -84,10 +85,11 @@ def test_multiple_params(multiple_prams):
     compare_model(src.model, trg.model)
 
 
-@pytest.fixture(params=[("N8:R25", False), ("C49:T53", True)])
+@pytest.fixture(params=[("N8:R25", False, "write_model"),
+                        ("C49:T53", True, "zip_model")])
 def extra_params(request, tmp_path):
 
-    range_, orientation = request.param
+    range_, orientation, write_method = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
         book=XL_TESTDATA,
@@ -100,11 +102,11 @@ def extra_params(request, tmp_path):
         param_order=[1, 0],
         transpose=orientation,
     )
-    mx.write_model(model, tmp_path)
+    getattr(mx, write_method)(model, tmp_path)
     m2 = mx.read_model(tmp_path)
 
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, tmp_path)
+    getattr(mx, write_method)(m2, tmp_path)
     target = mx.read_model(tmp_path).spaces[space.name]
     return space, target
 
@@ -124,10 +126,11 @@ def test_extra_params(extra_params):
     compare_model(src.model, trg.model)
 
 
-@pytest.fixture(params=[("U8:Z29", False), ("C57:X62", True)])
+@pytest.fixture(params=[("U8:Z29", False, "write_model"),
+                        ("C57:X62", True, "zip_model")])
 def extra_multiple_prams(request, tmp_path):
 
-    range_, orientation = request.param
+    range_, orientation, write_method = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
         book=XL_TESTDATA,
@@ -140,11 +143,11 @@ def extra_multiple_prams(request, tmp_path):
         param_order=[1, 2, 0],
         transpose=orientation,
     )
-    mx.write_model(model, tmp_path)
+    getattr(mx, write_method)(model, tmp_path)
     m2 = mx.read_model(tmp_path)
 
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, tmp_path)
+    getattr(mx, write_method)(m2, tmp_path)
     target = mx.read_model(tmp_path).spaces[space.name]
     return space, target
 
@@ -168,10 +171,11 @@ def test_extra_multiple_prams(extra_multiple_prams):
     compare_model(src.model, trg.model)
 
 
-@pytest.fixture(params=[("AC8:AD9", False), ("C66:D67", True)])
+@pytest.fixture(params=[("AC8:AD9", False, "write_model"),
+                        ("C66:D67", True, "zip_model")])
 def consts(request, tmp_path):
 
-    range_, orientation = request.param
+    range_, orientation, write_method = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
         book=XL_TESTDATA,
@@ -182,11 +186,11 @@ def consts(request, tmp_path):
         param_order=[],
         transpose=orientation,
     )
-    mx.write_model(model, tmp_path)
+    getattr(mx, write_method)(model, tmp_path)
     m2 = mx.read_model(tmp_path)
 
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, tmp_path)
+    getattr(mx, write_method)(m2, tmp_path)
     target = mx.read_model(tmp_path).spaces[space.name]
     return space, target
 
@@ -202,10 +206,11 @@ def test_consts(consts):
     compare_model(src.model, trg.model)
 
 
-@pytest.fixture(params=[("AG8:AJ11", False), ("C71:F74", True)])
+@pytest.fixture(params=[("AG8:AJ11", False, "write_model"),
+                        ("C71:F74", True, "zip_model")])
 def empty_params(request, tmp_path):
 
-    range_, orientation = request.param
+    range_, orientation, write_method = request.param
     model, space = mx.new_model(), mx.new_space()
     space.new_cells_from_excel(
         book=XL_TESTDATA,
@@ -216,11 +221,11 @@ def empty_params(request, tmp_path):
         param_order=[0, 1],
         transpose=orientation,
     )
-    mx.write_model(model, tmp_path)
+    getattr(mx, write_method)(model, tmp_path)
     m2 = mx.read_model(tmp_path)
 
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, tmp_path)
+    getattr(mx, write_method)(m2, tmp_path)
     target = mx.read_model(tmp_path).spaces[space.name]
     return space, target
 

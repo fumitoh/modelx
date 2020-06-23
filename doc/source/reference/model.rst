@@ -44,6 +44,7 @@ Saving operations
   :template: mxbase.rst
 
   ~Model.write
+  ~Model.zip
   ~Model.backup
   ~Model.save
 

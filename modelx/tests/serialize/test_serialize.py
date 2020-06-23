@@ -5,7 +5,6 @@ from modelx import (
     read_model)
 from modelx.testing import testutil
 import modelx as mx
-from . import SERIALIZE_VERS
 
 
 @pytest.fixture
@@ -50,16 +49,22 @@ def testmodel():
 
 
 @pytest.mark.parametrize(
-    ["name", "version", "as_method"],
-    itertools.product([None, "renamed"], SERIALIZE_VERS, [True, False])
+    ["name", "version", "as_method", "write_method"],
+    itertools.product(
+        [None, "renamed"],
+        [2, 3],
+        [True, False],
+        ["write", "zip"]
+    )
 )
-def test_read_write_model(testmodel, tmp_path, name, version, as_method):
+def test_read_write_model(testmodel, tmp_path, name, version, as_method,
+                          write_method):
 
     path_ = tmp_path / "testdir"
     if as_method:
-        testmodel.write(path_)
+        getattr(testmodel, write_method)(path_)
     else:
-        write_model(testmodel, path_, version=version)
+        getattr(mx, write_method + "_model")(testmodel, path_, version=version)
     m = read_model(path_, name=name)
 
     assert m.name == (name if name else "TestModel")
@@ -124,13 +129,13 @@ def pickletest():
 
 
 @pytest.mark.parametrize(
-    "name",
-    [None, "renamed"]
+    "name, write_method",
+    [[None, "write_model"], ["renamed", "zip_model"]]
 )
-def test_reference_identity(pickletest, tmp_path, name):
+def test_reference_identity(pickletest, tmp_path, name, write_method):
 
     path_ = tmp_path / "testdir"
-    write_model(pickletest, path_)
+    getattr(mx, write_method)(pickletest, path_)
     m = read_model(path_, name=name)
 
     assert m.SpaceA.another_space is m.SpaceB
@@ -150,3 +155,21 @@ def test_reference_identity(pickletest, tmp_path, name):
     # Cells input data
     assert dict(m.SpaceA.foo) == {0: 0, 1: m}
     assert dict(m.SpaceA.lambdacells) == {0: "123", m.SpaceA: 3}
+
+
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_nested_space(tmp_path, write_method):
+
+    m, s = mx.new_model(), mx.new_space()
+    ns = s.new_space()
+
+    @mx.defcells
+    def foo(x):
+        return x
+
+    foo[0] = 2
+
+    getattr(mx, write_method)(m, tmp_path / "model")
+    m2 = read_model(tmp_path / "model")
+
+    testutil.compare_model(m, m2)

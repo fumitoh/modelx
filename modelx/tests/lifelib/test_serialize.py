@@ -1,10 +1,9 @@
 import sys
 import importlib
+import itertools
 import pytest
-from modelx import (
-    write_model,
-    read_model)
 from modelx.testing import testutil
+import modelx as mx
 
 
 def _compare_results_simplelife(src, trg):
@@ -61,14 +60,17 @@ def testpaths(tmp_path):
     path2 = tmp_path / "write"
     path2.mkdir()
 
-    return path1, path2
+    path3 = tmp_path / "zip"
+    path3.mkdir()
+
+    return path1, path2, path3
 
 
 # @pytest.mark.skip()
 @pytest.mark.parametrize("project", _PROJECTS.keys())
 def test_with_lifelib(testpaths, project):
 
-    build_path, write_path = testpaths
+    build_path, write_path, zip_path = testpaths
 
     from lifelib.commands import create
 
@@ -94,8 +96,14 @@ def test_with_lifelib(testpaths, project):
             m.Input.new_cells(formula=lambda x: 3 * x)
             m.none = None
 
-            write_model(m, str(write_path / project))
-            m2 = read_model(str(write_path / project))
+            mx.write_model(m, str(write_path / project))
+            mx.zip_model(m, str(zip_path / project))
+
+            m2 = mx.read_model(str(write_path / project))
             testutil.compare_model(m, m2)
 
+            m3 = mx.read_model(str(zip_path / project))
+            testutil.compare_model(m, m3)
+
     _PROJECTS[project](m, m2)
+    _PROJECTS[project](m, m3)

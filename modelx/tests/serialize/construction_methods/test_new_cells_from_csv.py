@@ -1,6 +1,8 @@
 import pathlib
 from modelx.testing.testutil import compare_model
+from modelx.serialize import ziputil
 import modelx as mx
+import pytest
 
 from modelx.tests.testdata import (
     CSV_SINGLE_PARAM,
@@ -8,7 +10,8 @@ from modelx.tests.testdata import (
 )
 
 
-def test_single_param(tmp_path):
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_single_param(tmp_path, write_method):
 
     m, s = mx.new_model(), mx.new_space()
 
@@ -19,11 +22,11 @@ def test_single_param(tmp_path):
         index_col=0
     )
     modelpath = tmp_path / "csv_single_param"
-    mx.write_model(m, modelpath)
-    assert modelpath.joinpath(CSV_SINGLE_PARAM.name).exists()
+    getattr(mx, write_method)(m, modelpath)
+    assert ziputil.exists(modelpath.joinpath(CSV_SINGLE_PARAM.name))
     m2 = mx.read_model(modelpath)
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, modelpath)
+    getattr(mx, write_method)(m2, modelpath)
     m2 = mx.read_model(modelpath)
 
     # Compare components
@@ -37,7 +40,8 @@ def test_single_param(tmp_path):
             assert trg.cells[cells](param) == offset + param
 
 
-def test_multiple_params(tmp_path):
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_multiple_params(tmp_path, write_method):
 
     m, s = mx.new_model(), mx.new_space()
 
@@ -49,12 +53,12 @@ def test_multiple_params(tmp_path):
     )
 
     modelpath = tmp_path / "csv_mult_params"
-    mx.write_model(m, modelpath)
-    assert modelpath.joinpath(CSV_MULTI_PARAMS.name).exists()
+    getattr(mx, write_method)(m, modelpath)
+    assert ziputil.exists(modelpath.joinpath(CSV_MULTI_PARAMS.name))
     m2 = mx.read_model(modelpath)
 
     # Write twice to check copy from renamed backup.
-    mx.write_model(m2, modelpath)
+    getattr(mx, write_method)(m2, modelpath)
     m2 = mx.read_model(modelpath)
 
     # Compare components

@@ -44,6 +44,7 @@ Saving Models
    :toctree: generated/
 
    ~modelx.write_model
+   ~modelx.zip_model
    ~modelx.read_model
    ~modelx.restore_model
    ~modelx.open_model

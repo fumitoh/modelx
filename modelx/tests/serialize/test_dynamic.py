@@ -5,6 +5,7 @@ import modelx as mx
 def t_arg(t):
     pass
 
+
 @pytest.fixture
 def dynmodel():
     """
@@ -27,10 +28,11 @@ def dynmodel():
     return m
 
 
-def test_dynmodel(dynmodel, tmp_path):
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_dynmodel(dynmodel, tmp_path, write_method):
 
     path_ = tmp_path / "testdir"
-    mx.write_model(dynmodel, path_)
+    getattr(mx, write_method)(dynmodel, path_)
     m = mx.read_model(path_)
 
     assert m.SpaceA[0] is m.SpaceB.RefSpaceA
@@ -83,10 +85,11 @@ def dyntotal():
     return m
 
 
-def test_dyntotal(dyntotal, tmp_path):
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_dyntotal(dyntotal, tmp_path, write_method):
 
     path_ = tmp_path / "testdir"
-    mx.write_model(dyntotal, path_)
+    getattr(mx, write_method)(dyntotal, path_)
     m = mx.read_model(path_)
 
     assert m.s(-1).a(2) == 2 * 10
@@ -95,7 +98,8 @@ def test_dyntotal(dyntotal, tmp_path):
     assert m.s(0).b(2, 3) == 2 * 3
 
 
-def test_assign_dynamic_space_to_ref(tmp_path):
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_assign_dynamic_space_to_ref(tmp_path, write_method):
     # https://github.com/fumitoh/modelx/issues/25
 
     m, s1 = mx.new_model(), mx.new_space("s1")
@@ -107,7 +111,7 @@ def test_assign_dynamic_space_to_ref(tmp_path):
     s3 = s1.new_space(name='s3')
     s3.b = m.s2(0)
     path_ = tmp_path / "assign_dynamic_space_to_ref"
-    mx.write_model(m, path_)
+    getattr(mx, write_method)(m, path_)
     m2 = mx.read_model(path_)
     assert m2.s2.a == 1
     assert m2.s2(0).a == 1

@@ -1,36 +1,36 @@
 import sys
 import os.path
-from textwrap import dedent
 import modelx as mx
 import modelx.tests.testdata
 import pytest
+import pathlib
+
+datadir = pathlib.Path(os.path.dirname(mx.tests.testdata.__file__))
 
 
 @pytest.fixture
-def reloadtest():
-    import pathlib
+def reloadtest(tmp_path):
 
-    datadir = pathlib.Path(os.path.dirname(mx.tests.testdata.__file__))
-    sys.path.insert(0, str(datadir))
+    with open(tmp_path / "__init__.py", "w") as f:
+        f.write("")
+
+    sys.path.insert(0, str(tmp_path))
     sample = "reloadtest"
 
     model = mx.new_model()
-    yield model, sample, datadir
+    yield model, sample, tmp_path
 
-    os.remove(str(datadir.joinpath(sample + ".py")))
-    if sys.path[0] == str(datadir):
+    if sys.path[0] == str(tmp_path):
         del sys.path[0]
 
 
 def test_space_reload(reloadtest):
     import shutil
 
-    model, samplename, datadir = reloadtest
-    sample = str(datadir.joinpath(samplename + ".py"))
-    sample_before = os.path.splitext(sample)[0] + "_before.py"
-    sample_after = os.path.splitext(sample)[0] + "_after.py"
+    model, samplename, tempdir = reloadtest
+    sample = str(tempdir.joinpath(samplename + ".py"))
 
-    shutil.copy(sample_before, sample)
+    shutil.copy(str(datadir.joinpath(samplename + "_before.py")), sample)
     # import reloadtest as src
     import importlib
 
@@ -40,7 +40,7 @@ def test_space_reload(reloadtest):
     assert space.foo(3) == 0
     assert "baz" in space.cells
 
-    shutil.copy(sample_after, sample)
+    shutil.copy(str(datadir.joinpath(samplename + "_after.py")), sample)
     space.reload()
 
     assert space.foo(3) == 1

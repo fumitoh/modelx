@@ -1,2 +1,2 @@
 
-SERIALIZE_VERS = [1, 2, 3]
+SERIALIZE_VERS = [2, 3]

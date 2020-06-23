@@ -215,7 +215,7 @@ class ModelReader(ModelReader2):
     def _parse_dynamic_inputs(self, path_):
 
         file = path_ / "data/_dynamic_inputs"
-        if file.exists():
+        if ziputil.exists(file):
 
             lines = ziputil.read_file(
                 lambda f: f.readlines(),

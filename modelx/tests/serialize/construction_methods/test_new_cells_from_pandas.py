@@ -17,13 +17,14 @@ testdf = pd.DataFrame(np.random.randn(8, 4), index=index)
 testdf.columns = ["Foo", "Bar", "Baz", "Qux"]
 
 
-def test_write_cells_from_pandas(tmp_path):
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_write_cells_from_pandas(tmp_path, write_method):
 
     m, space = mx.new_model(), mx.new_space()
     space.new_cells_from_pandas(testdf)
 
     modelpath = tmp_path / "write_cells_from_pandas"
-    mx.write_model(m, modelpath)
+    getattr(mx, write_method)(m, modelpath)
 
     m2 = mx.read_model(modelpath)
 

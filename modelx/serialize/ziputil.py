@@ -74,13 +74,38 @@ def exists(path: pathlib.Path):
         if archive:
             if archive in namelist:
                 return True
+            elif archive + "/" in set(
+                    n[:len(archive) + 1] for n in namelist):
+                return True
+            else:
+                return False
         else:
             return True
     else:
         return path.exists()
 
 
-def archive_exists(archive: str, file: zipfile.ZipFile):
+def is_dir(path: pathlib.Path):
+
+    root = find_zip_parent(path)
+
+    if root:
+        archive = get_archive_path(path, root)
+
+        if archive:
+            namelist = zipfile.ZipFile(root).namelist()
+            if archive + "/" in set(
+                    n[:len(archive) + 1] for n in namelist):
+                return True
+            else:
+                return False
+        else:
+            return True
+    else:
+        return path.is_dir()
+
+
+def _archive_exists(archive: str, file: zipfile.ZipFile):
 
     if archive not in file.namelist():
         return False
@@ -130,7 +155,7 @@ def pandas_to_pickle(obj, path: pathlib.Path):
             obj.to_pickle(filepath)
             archive = get_archive_path(path, root)
             with zipfile.ZipFile(root, mode="a") as f:
-                if not archive_exists(archive, f):
+                if not _archive_exists(archive, f):
                     if is_valid_archive_path(archive, f):
                         f.write(filepath, archive)
                     else:
@@ -170,7 +195,7 @@ def write_file(callback, path: pathlib.Path, mode,
         archive = get_archive_path(path, root)
         with get_io(mode) as buff:
             with zipfile.ZipFile(root, mode="a") as f:
-                if not archive_exists(archive, f):
+                if not _archive_exists(archive, f):
                     if is_valid_archive_path(archive, f):
                         callback(buff)
                         buff.seek(0)
@@ -196,7 +221,7 @@ def copy_file(src, dst):
         with zipfile.ZipFile(root_src, mode="r") as zip_src:
             with zip_src.open(arc_src, mode="r") as f_src:
                 with zipfile.ZipFile(root_dst, mode="a") as zip_dst:
-                    if not archive_exists(arc_dst, zip_dst):
+                    if not _archive_exists(arc_dst, zip_dst):
                         if is_valid_archive_path(arc_dst, zip_dst):
                             zip_dst.writestr(arc_dst, f_src.read())
                         else:
@@ -208,6 +233,7 @@ def copy_file(src, dst):
         with zipfile.ZipFile(root_src, mode="r") as zip_src:
             with tempfile.TemporaryDirectory() as dirname:
                 zip_src.extract(arc_src, path=dirname)
+                make_parent_dir(dst)
                 shutil.copyfile(
                     str(pathlib.Path(dirname) / arc_src),
                     str(pathlib.Path(dst))
@@ -217,7 +243,7 @@ def copy_file(src, dst):
 
         arc_dst = get_archive_path(dst, root_dst)
         with zipfile.ZipFile(root_dst, mode="a") as zip_dst:
-            if not archive_exists(arc_dst, zip_dst):
+            if not _archive_exists(arc_dst, zip_dst):
                 if is_valid_archive_path(arc_dst, zip_dst):
                     zip_dst.write(src, arc_dst)
                 else:

@@ -651,8 +651,7 @@ def write_pandas(obj, path_: pathlib.Path, filename=None):
     data = src["args"][0]
     if not filename:
         filename = obj.name + ".pandas"
-    path_.mkdir(parents=True, exist_ok=True)
-    data.to_pickle(str(path_.joinpath(filename)))
+    ziputil.pandas_to_pickle(data, path_.joinpath(filename))
 
 
 class FromPandasEncoder(MethodCallEncoder):
@@ -779,11 +778,11 @@ RefViewEncoder.selector_class = EncoderSelector
 
 def _replace_saved_path(space, temppath: str, path: str):
 
-    if space.source and "args" in space.source:
-        if space.source["args"][0] == temppath:
-            space.source["args"][0] = path
-
     if not space.is_model():
+        if space.source and "args" in space.source:
+            if space.source["args"][0] == temppath:
+                space.source["args"][0] = path
+
         for cells in space.cells.values():
             if cells.source and cells.source["args"][0] == temppath:
                 cells.source["args"][0] = path
@@ -862,7 +861,7 @@ class ModelReader:
             self.parse_source(path_ / ("%s.py" % name), space)
             nextdir = path_ / name
             self._parse_dynamic_inputs(nextdir)
-            if nextdir.exists() and nextdir.is_dir():
+            if ziputil.exists(nextdir) and ziputil.is_dir(nextdir):
                 self.parse_dir(nextdir, target=space, spaces=self.result)
 
         return target
@@ -1202,7 +1201,7 @@ class CellsInputDataMixin(BaseNodeParser):
             cells.set_value(key, val)
 
     def load_pickledata(self):
-        if self.datapath.exists():
+        if ziputil.exists(self.datapath):
             data = {}
             lines = ziputil.read_file(lambda f: f.readlines(),
                                       self.datapath,
