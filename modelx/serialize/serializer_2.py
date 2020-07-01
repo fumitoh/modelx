@@ -203,6 +203,66 @@ class CompoundInstruction(BaseInstruction):
 # --------------------------------------------------------------------------
 # Model Writing
 
+class ModelWriter:
+
+    version = 2
+    model_encoder = None
+    space_encoder = None
+
+    def __init__(self, system, model: Model, path: pathlib.Path):
+
+        self.system = system
+        self.model = model
+        self.root = path
+        self.call_ids = []
+        self.pickledata = {}
+        self.method_encoders = []
+
+    def write_model(self):
+
+        try:
+            self.system.serializing = self
+
+            encoder = self.model_encoder(
+                self, self.model,
+                self.root / "_model.py",
+                self.root / "data")
+
+            self._write_recursive(encoder)
+            self.write_pickledata()
+
+        finally:
+            self.system.serializing = None
+            self.call_ids.clear()
+
+    def _write_recursive(self, encoder):
+
+        ziputil.write_str(encoder.encode(), encoder.srcpath)
+
+        for space in encoder.target.spaces.values():
+
+            if not MethodCallEncoder.from_method(space):
+                if isinstance(encoder.target, Model):
+                    srcpath = encoder.srcpath.parent / (space.name + ".py")
+                else:
+                    srcpath = (encoder.srcpath.parent /
+                               encoder.target.name / (space.name + ".py"))
+
+                e = self.space_encoder(
+                    self,
+                    space,
+                    srcpath=srcpath
+                    )
+                self._write_recursive(e)
+
+        encoder.instruct().execute()
+
+    def write_pickledata(self):
+        if self.pickledata:
+            file = self.root / "data/data.pickle"
+            ziputil.write_file(
+                lambda f: pickle.dump(self.pickledata, f), file, mode="b")
+
 
 class BaseEncoder:
 
@@ -230,22 +290,19 @@ class BaseEncoder:
         return self.writer.pickledata
 
 
-class ModelWriter(BaseEncoder):
+class ModelEncoder(BaseEncoder):
 
     version = 2
-    space_writer = None
     refview_encoder_class = None
 
-    def __init__(self, system, model: Model, path: pathlib.Path):
-        super().__init__(self, model,
+    def __init__(self, writer,
+                 model: Model, srcpath: pathlib.Path, datapath: pathlib.Path):
+        super().__init__(writer, model,
+                         parent=None,
                          name=model.name,
-                         srcpath=path / "_model.py",
-                         datapath=path / "data")
-        self.system = system
+                         srcpath=srcpath,
+                         datapath=datapath)
         self.model = model
-        self.root = path
-        self._call_ids = []
-        self._pickledata = {}
 
         self.refview_encoder = self.refview_encoder_class(
             self,
@@ -293,60 +350,22 @@ class ModelWriter(BaseEncoder):
         lines.append(self.refview_encoder.encode())
         return "\n\n".join(lines)
 
-    def write_pickledata(self):
-        if self.pickledata:
-            file = self.datapath / "data.pickle"
-            ziputil.write_file(
-                lambda f: pickle.dump(self.pickledata, f), file, mode="b")
-
-
     def instruct(self):
         insts = []
         insts.append(self.refview_encoder.instruct())
         insts.extend(e.instruct() for e in self.method_encoders)
         return CompoundInstruction(insts)
 
-    def write_model(self):
 
-        try:
-            self.system.serializing = self
-            ziputil.write_str(self.encode(), self.srcpath)
-
-            self.instruct().execute()
-
-            # Create Space.py
-            for space in self.model.spaces.values():
-                if not MethodCallEncoder.from_method(space):
-
-                    relpath = "/".join(space.fullname.split(".")[1:]) + ".py"
-                    srcpath = self.root / relpath
-                    sw = self.space_writer(
-                        self, space, parent=self.model, name=space.name,
-                        srcpath=srcpath)
-                    sw.write_space()
-
-            self.write_pickledata()
-        finally:
-            self.system.serializing = None
-            self.call_ids.clear()
-
-    @property
-    def call_ids(self):
-        return self._call_ids
-
-    @property
-    def pickledata(self):
-        return self._pickledata
+ModelWriter.model_encoder = ModelEncoder
 
 
-class SpaceWriter(BaseEncoder):
+class SpaceEncoder(BaseEncoder):
 
     refview_encoder_class = None
 
-    def __init__(self,
-                 writer,
-                 target, parent, name=None, srcpath=None):
-        super().__init__(writer, target, parent, name, srcpath,
+    def __init__(self, writer, target, srcpath=None, datapath=None):
+        super().__init__(writer, target, target.parent, target.name, srcpath,
                          datapath=srcpath.parent / srcpath.stem / "data")
         self.space = target
 
@@ -401,25 +420,6 @@ class SpaceWriter(BaseEncoder):
                             datapath=self.datapath / cells.name
                         )
                     )
-
-    def write_space(self):
-
-        file = self.srcpath
-        ziputil.write_str(self.encode(), file)
-
-        for space in self.space.spaces.values():
-            if not MethodCallEncoder.from_method(space):
-                srcpath = (self.srcpath.parent /
-                           self.target.name / (space.name + ".py"))
-                self.__class__(
-                    self,
-                    space,
-                    parent=self.space,
-                    name=space.name,
-                    srcpath=srcpath
-                ).write_space()
-
-        self.instruct().execute()
 
     def encode(self):
 
@@ -489,7 +489,7 @@ class SpaceWriter(BaseEncoder):
         return CompoundInstruction(insts)
 
 
-ModelWriter.space_writer = SpaceWriter
+ModelWriter.space_encoder = SpaceEncoder
 
 
 class RefViewEncoder(BaseEncoder):
@@ -532,8 +532,8 @@ class RefViewEncoder(BaseEncoder):
             [encoder.instruct() for encoder in self.encoders])
 
 
-ModelWriter.refview_encoder_class = RefViewEncoder
-SpaceWriter.refview_encoder_class = RefViewEncoder
+ModelEncoder.refview_encoder_class = RefViewEncoder
+SpaceEncoder.refview_encoder_class = RefViewEncoder
 
 
 class CellsEncoder(BaseEncoder):
@@ -789,6 +789,7 @@ def _replace_saved_path(space, temppath: str, path: str):
 
     for child in space.spaces.values():
         _replace_saved_path(child, temppath, path)
+
 
 class ModelReader:
 

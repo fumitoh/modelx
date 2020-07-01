@@ -24,7 +24,8 @@ from .serializer_2 import (
     ModuleEncoder
 )
 from .serializer_2 import ModelWriter as ModelWriter2
-from .serializer_2 import SpaceWriter as SpaceWriter2
+from .serializer_2 import ModelEncoder as ModelEncoder2
+from .serializer_2 import SpaceEncoder as SpaceEncoder2
 from .serializer_2 import RefViewEncoder as RefViewEncoder2
 from .serializer_2 import PickleEncoder as PickleEncoder2
 
@@ -103,7 +104,7 @@ class RefViewEncoder(RefViewEncoder2):
     pass
 
 
-class SpaceWriter(SpaceWriter2):
+class SpaceEncoder(SpaceEncoder2):
     refview_encoder_class = RefViewEncoder
 
     def pickle_dynamic_inputs(self):
@@ -148,11 +149,16 @@ class SpaceWriter(SpaceWriter2):
         return inst
 
 
+class ModelEncoder(ModelEncoder2):
+
+    refview_encoder_class = RefViewEncoder
+
+
 class ModelWriter(ModelWriter2):
 
     version = 3
-    space_writer = SpaceWriter
-    refview_encoder_class = RefViewEncoder
+    space_encoder = SpaceEncoder
+    model_encoder = ModelEncoder
 
 
 class InterfaceRefEncoder(BaseEncoder):
