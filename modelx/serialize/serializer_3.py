@@ -50,6 +50,7 @@ from .serializer_2 import (
     LiteralDecoder
 )
 from .serializer_2 import PickleDecoder as PickleDecoder2
+from .serializer_2 import output_input
 from . import ziputil
 
 
@@ -136,6 +137,10 @@ class SpaceEncoder(SpaceEncoder2):
                 file.write(
                     "(%s, %s, %s)\n" % (tupleid.serialize(), keyid, valid)
                 )
+
+                if self.writer.log_input:
+                    self.writer.input_log.append(
+                        output_input(cells, key))
 
         for subspace in space.named_spaces.values():
             self._pickle_dynamic_space(file, subspace)

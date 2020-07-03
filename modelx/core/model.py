@@ -175,21 +175,23 @@ class Model(EditableSpaceContainer):
     def doc(self, value):
         self._impl.doc = value
 
-    def write(self, model_path):
+    def write(self, model_path, backup=True, log_input=False):
         """Write model to files.
 
         This method performs the :py:func:`~modelx.write_model`
         on self. See :py:func:`~modelx.write_model` section for the details.
 
+        .. versionchanged:: 0.8.0
         .. versionadded:: 0.0.22
 
         Args:
             model_path(str): Folder(directory) path where the model is saved.
         """
         from modelx.serialize import write_model
-        write_model(self._impl.system, self, model_path, is_zip=False)
+        write_model(self._impl.system, self, model_path, is_zip=False,
+                    backup=backup, log_input=log_input)
 
-    def zip(self, model_path):
+    def zip(self, model_path, backup=True, log_input=False):
         """Archive model to a zip file.
 
         This method performs the :py:func:`~modelx.zip_model`
@@ -201,7 +203,8 @@ class Model(EditableSpaceContainer):
             model_path(str): Folder(directory) path where the model is saved.
         """
         from modelx.serialize import write_model
-        write_model(self._impl.system, self, model_path, is_zip=True)
+        write_model(self._impl.system, self, model_path, is_zip=True,
+                    backup=backup, log_input=log_input)
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes

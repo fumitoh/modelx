@@ -447,7 +447,7 @@ def get_stacktrace():
     return _system.get_stacktrace()
 
 
-def write_model(model, model_path, backup=True, version=None):
+def write_model(model, model_path, backup=True, log_input=False, version=None):
     """Write model to files.
 
     Write ``model`` to text files in a folder(directory) tree at ``model_path``.
@@ -475,6 +475,8 @@ def write_model(model, model_path, backup=True, version=None):
 
     Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
 
+    .. versionchanged:: 0.8.0 ``log_input`` parameter is added.
+
     .. versionchanged:: 0.1.0 ``version`` parameter is added.
 
     .. versionadded:: 0.0.22
@@ -488,26 +490,34 @@ def write_model(model, model_path, backup=True, version=None):
         model_path(str): Folder path where the model will be output.
         backup(bool, optional): Whether to backup the directory/folder
             if it already exists. Defaults to ``True``.
+        log_input(bool, optional): If ``True``, input values in Cells are
+            output to *_input_log.txt* under ``model_path``. Defaults
+            to ``False``.
         version(int, optional): Format version to write model.
             Defaults to the most recent version.
 
     """
     return _serialize.write_model(
         _system, model, model_path, is_zip=False,
-        backup=backup, version=version)
+        backup=backup, log_input=log_input, version=version)
 
 
-def zip_model(model, model_path, backup=True, version=None):
+def zip_model(model, model_path, backup=True, log_input=False, version=None):
     """Archive model to a zip file
 
     Write ``model`` to a single zip file. The contents are the
     same as the directory tree output by the :func:`write_model` function.
+
+    .. versionadded:: 0.8.0
 
     Args:
         model: Model object to archive.
         model_path(str): Path to the zip file.
         backup(bool, optional): Whether to backup an existing file with
             the same name if it already exists. Defaults to ``True``.
+        log_input(bool, optional): If ``True``, input values in Cells are
+            output to *_input_log.txt* under ``model_path``. Defaults
+            to ``False``.
         version(int, optional): Format version to write model.
             Defaults to the most recent version.
 
@@ -516,7 +526,7 @@ def zip_model(model, model_path, backup=True, version=None):
     """
     return _serialize.write_model(
         _system, model, model_path, is_zip=True,
-        backup=backup, version=version)
+        backup=backup, log_input=log_input, version=version)
 
 
 def read_model(model_path, name=None):

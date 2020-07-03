@@ -110,7 +110,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         Args:
             module: a module object or name of the module object.
             recursive: Not yet implemented.
-            **params: arguments to pass to ``new_space``
+            **params: arguments to pass to :meth:`new_space`
 
         Returns:
             The new child space created from the module.
@@ -141,7 +141,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         Args:
             module: a module object or name of the module object.
             recursive: Not yet implemented.
-            **params: arguments to pass to ``new_space``
+            **params: arguments to pass to :meth:`new_space`
 
         Returns:
             The new child space created from the module.

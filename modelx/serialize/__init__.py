@@ -88,8 +88,7 @@ def _get_model_serializer(model_path):
 
 
 def write_model(system, model, model_path,
-                is_zip,
-                backup=True, version=None):
+                is_zip, backup=True, log_input=False, version=None):
 
     version = version or HIGHEST_VERSION
     max_backups = DEFAULT_MAX_BACKUPS if backup else 0
@@ -102,7 +101,8 @@ def write_model(system, model, model_path,
                       root / "_system.json")
 
     serializer = _get_serializer(version)
-    serializer.ModelWriter(system, model, root).write_model()
+    serializer.ModelWriter(system, model, root, log_input=log_input
+                           ).write_model()
 
     return model
 

@@ -203,13 +203,31 @@ class CompoundInstruction(BaseInstruction):
 # --------------------------------------------------------------------------
 # Model Writing
 
+def output_input(obj, key):
+
+    name = obj._get_repr(fullname=True, add_params=False)
+    name = name[name.index(".")+1:]
+    params = obj.parameters
+
+    arglist = ", ".join(
+        "%s=%s" % (param, repr(arg)) for param, arg in
+        zip(params, key)
+    )
+
+    if obj._impl.has_node:
+        return name + "(" + arglist + ")" + "=" + repr(obj(*key))
+    else:
+        return name + "(" + arglist + ")"
+
+
 class ModelWriter:
 
     version = 2
     model_encoder = None
     space_encoder = None
 
-    def __init__(self, system, model: Model, path: pathlib.Path):
+    def __init__(self, system, model: Model, path: pathlib.Path,
+                 log_input: bool):
 
         self.system = system
         self.model = model
@@ -217,6 +235,8 @@ class ModelWriter:
         self.call_ids = []
         self.pickledata = {}
         self.method_encoders = []
+        self.log_input = log_input
+        self.input_log = []
 
     def write_model(self):
 
@@ -230,6 +250,12 @@ class ModelWriter:
 
             self._write_recursive(encoder)
             self.write_pickledata()
+
+            if self.log_input:
+                ziputil.write_str(
+                    "\n".join(self.input_log),
+                    self.root / "_input_log.txt"
+                )
 
         finally:
             self.system.serializing = None
@@ -412,7 +438,7 @@ class SpaceEncoder(BaseEncoder):
                 if not MethodCallEncoder.from_method(cells):
                     self.cells_encoders.append(
                         CellsEncoder(
-                            self,
+                            writer,
                             cells,
                             parent=self.space,
                             name=cells.name,
@@ -565,6 +591,10 @@ class CellsEncoder(BaseEncoder):
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
                 cellsdata.append((keyid, valid))
+
+                if self.writer.log_input:
+                    self.writer.input_log.append(
+                        output_input(self.target, key))
 
         if cellsdata:   # Save IDs
 
