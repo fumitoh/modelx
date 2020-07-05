@@ -28,9 +28,11 @@ def test_copy(name):
     source.parameters = ("a",)
     source.a = 1
     source.foo[0] = 1
-    source.copy(base, name)
+    target = source.copy(base, name)
 
     name = name or source.name
+
+    assert target is base.spaces[name]
 
     assert base.spaces[name].foo[0] == 1
     assert base.spaces[name].foo[1] == 1
@@ -56,5 +58,42 @@ def test_copy_error_name_conflict():
 
     with pytest.raises(ValueError):
         source.copy(base, "SpaceA")
+
+
+@pytest.mark.parametrize("parent", ["model", "space"])
+def test_copy_defined(parent):
+    """
+        Base----Child---foo
+         |
+        Sub(Base)----bar
+
+    """
+
+    m, b = mx.new_model(), mx.new_space("Base")
+    b.new_space("Child")
+
+    @mx.defcells
+    def foo(x):
+        return x
+
+    s = m.new_space("Sub", bases=b)
+
+    @mx.defcells
+    def bar(y):
+        return y
+
+    if parent == "model":
+        parent = m
+    else:
+        parent = m.new_space()
+
+    bc = b.copy(parent, "BaseCopy", True)
+
+    assert "foo" in bc.Child.cells
+
+    sc = s.copy(parent, "SubCopy", True)
+
+    assert "Child" not in sc.spaces
+    assert "bar" in sc.cells
 
 

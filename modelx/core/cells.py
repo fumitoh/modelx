@@ -62,7 +62,7 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
             name(:obj:`str`, optional): New name to replace the original name
         """
         return self._impl.parent.spacemgr.copy_cells(
-            parent._impl, self._impl, name)
+            parent._impl, self._impl, name).interface
 
     def __contains__(self, key):
         return self._impl.has_node(tuplize_key(self, key))

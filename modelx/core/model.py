@@ -1117,13 +1117,15 @@ class SpaceManager:
             self,
             parent: EditableSpaceContainerImpl,
             source: UserSpaceImpl,
-            name=None
+            name=None,
+            defined_only=False
     ):
         if parent.has_ascendant(source):
             raise ValueError("Cannot copy to child")
 
         if parent.model is not self.model:
-            return parent.model.spacemgr.copy_space(parent, source, name)
+            return parent.model.spacemgr.copy_space(
+                parent, source, name, defined_only)
 
         if name is None:
             name = source.name
@@ -1131,12 +1133,16 @@ class SpaceManager:
         if self._can_add(
             parent, name, EditableSpaceContainerImpl, overwrite=False):
             return self._copy_space_recursively(
-                parent, source, name
+                parent, source, name, defined_only
             )
         else:
             raise ValueError("Cannot create space '%s'" % name)
 
-    def _copy_space_recursively(self, parent, source, name):
+    def _copy_space_recursively(
+            self, parent, source, name, defined_only):
+
+        if source.is_derived:
+            return
 
         space = self.new_space(
             parent,
@@ -1152,10 +1158,12 @@ class SpaceManager:
         )
 
         for cells in source.cells.values():
-            self.copy_cells(space, cells)
+            if cells.is_defined:
+                self.copy_cells(space, cells)
 
         for child in source.named_spaces.values():
-            self._copy_space_recursively(space, child, child.name)
+            self._copy_space_recursively(
+                space, child, child.name, defined_only)
 
         return space
 
@@ -1419,7 +1427,7 @@ class SpaceManager:
 
         for subspace in self._get_subs(space):
             subref = subspace.self_refs[name]
-            if subref.is_defined():
+            if subref.is_defined:
                 break
             elif subref.bases[0] is not space.self_refs[name]:
                 break

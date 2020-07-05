@@ -321,6 +321,7 @@ class Derivable:
         if not self.parent.is_model() and self.parent.is_derived:
             self.parent.set_defined()
 
+    @property
     def is_defined(self):
         return not self.is_derived
 

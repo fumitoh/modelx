@@ -307,7 +307,7 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
 
     def _is_defined(self):
         """True if the space is a defined space, False otherwise."""
-        return self._impl.is_defined()
+        return self._impl.is_defined
 
     def _is_root(self):
         """True if ths space is a dynamic space, False otherwise."""
@@ -499,7 +499,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         # Outside formulas only
         return self._impl.new_cells(name, formula).interface
 
-    def copy(self, parent, name=None):
+    def copy(self, parent, name=None, defined_only=False):
         """Make a copy of itself
 
         Create a new :class:`UserSpace` in ``parent`` by copying itself.
@@ -509,9 +509,11 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         Args:
             parent(:class:`UserSpace`): parent of the copied :class:`UserSpace`
             name(:obj:`str`, optional): name of the copied :class:`UserSpace`
+            defined_only(:obj:`bool`, optional): If ``True``, only defined
+                Spaces are copied. Defaults to ``False``.
         """
         return self._impl.spacemgr.copy_space(
-            parent._impl, self._impl, name)
+            parent._impl, self._impl, name, defined_only).interface
 
     def add_bases(self, *bases):
         """Add base spaces."""
