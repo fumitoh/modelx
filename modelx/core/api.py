@@ -532,14 +532,16 @@ def zip_model(model, model_path, backup=True, log_input=False, version=None):
 def read_model(model_path, name=None):
     """Read model from files.
 
-    Read model form a folder(directory) tree ``model_path``.
-    The model must be saved by :py:func:`~write_model` function or
-    :py:meth:`~modelx.core.model.Model.write` method.
+    Read model form a folder(directory) tree or a zip file ``model_path``.
+    The model must be saved either by :py:func:`~write_model`,
+    :py:meth:`Model.write<modelx.core.model.Model.write>`,
+    :py:func:`~write_model`
+    or :py:meth:`Model.zip<modelx.core.model.Model.zip>`.
 
     .. versionadded:: 0.0.22
 
     Args:
-        model_path(str): A folder(directory) path where model is stored.
+        model_path(str): Path to a model folder or a zipped model file.
         name(str, optional): Model name to overwrite the saved name.
 
     Returns:

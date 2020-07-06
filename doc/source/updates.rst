@@ -4,6 +4,10 @@ Updates
 
 .. Latest Updates Begin
 
+* *6 July 2020:*
+  modelx v0.8.0 is released. See
+  :doc:`releases/relnotes_v0_8_0` release notes for details.
+
 * *31 May 2020:*
   `The modelx home page <https://modelx.io>`_ is opened.
 
