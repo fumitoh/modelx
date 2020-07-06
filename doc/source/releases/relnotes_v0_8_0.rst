@@ -6,7 +6,7 @@ modelx v0.8.0 (6 July 2020)
 
 This release introduces new methods to copy Spaces and Cells,
 functions and methods to save models to zip files, and
-an output input values to a log file.
+a feature to output input values to a log file.
 
 Enhancements
 ============
