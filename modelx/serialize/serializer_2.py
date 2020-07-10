@@ -252,7 +252,7 @@ class ModelWriter:
             self.write_pickledata()
 
             if self.log_input:
-                ziputil.write_str(
+                ziputil.write_str_utf8(
                     "\n".join(self.input_log),
                     self.root / "_input_log.txt"
                 )
@@ -263,7 +263,7 @@ class ModelWriter:
 
     def _write_recursive(self, encoder):
 
-        ziputil.write_str(encoder.encode(), encoder.srcpath)
+        ziputil.write_str_utf8(encoder.encode(), encoder.srcpath)
 
         for space in encoder.target.spaces.values():
 
@@ -286,7 +286,7 @@ class ModelWriter:
     def write_pickledata(self):
         if self.pickledata:
             file = self.root / "data/data.pickle"
-            ziputil.write_file(
+            ziputil.write_file_utf8(
                 lambda f: pickle.dump(self.pickledata, f), file, mode="b")
 
 
@@ -602,7 +602,7 @@ class CellsEncoder(BaseEncoder):
                 for keyid, valid in cellsdata:
                     f.write("(%s, %s)\n" % (keyid, valid))
 
-            ziputil.write_file(write_dataid, self.datapath, "t")
+            ziputil.write_file_utf8(write_dataid, self.datapath, "t")
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -776,7 +776,7 @@ class PickleEncoder(BaseEncoder):
 
     def pickle_value(self, path: pathlib.Path, value):
         key = id(value)
-        ziputil.write_str(str(key), path)
+        ziputil.write_str_utf8(str(key), path)
         if key not in self.writer.pickledata:
             self.writer.pickledata[key] = value
 
@@ -902,7 +902,7 @@ class ModelReader:
 
     def parse_source(self, path_, obj: Interface):
 
-        src = ziputil.read_str(path_)
+        src = ziputil.read_str_utf8(path_)
         srcstructure = SourceStructure(src)
         atok = asttokens.ASTTokens(src, parse=True)
 
@@ -920,7 +920,7 @@ class ModelReader:
     def read_pickledata(self):
         file = self.path / "data/data.pickle"
         if ziputil.exists(file):
-            self.pickledata = ziputil.read_file(pickle.load, file, "b")
+            self.pickledata = ziputil.read_file_utf8(pickle.load, file, "b")
 
 
 class BaseNodeParser:
@@ -1234,7 +1234,7 @@ class CellsInputDataMixin(BaseNodeParser):
     def load_pickledata(self):
         if ziputil.exists(self.datapath):
             data = {}
-            lines = ziputil.read_file(lambda f: f.readlines(),
+            lines = ziputil.read_file_utf8(lambda f: f.readlines(),
                                       self.datapath,
                                       "t")
             for line in lines:
@@ -1398,7 +1398,8 @@ class PickleDecoder(TupleDecoder):
         return self.srcpath.parent / self.elm(1)
 
     def restore(self):
-        key = ziputil.read_file(lambda f: int(f.read()), self.decode(), "t")
+        key = ziputil.read_file_utf8(
+            lambda f: int(f.read()), self.decode(), "t")
 
         return self.reader.pickledata[key]
 

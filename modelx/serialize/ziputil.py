@@ -141,8 +141,8 @@ def write_str(string: str, path: pathlib.Path,
                  encoding=encoding, newline=newline)
 
 
-def write_str_utf8(string: str, path: pathlib.Path):
-    write_str(string, path, encoding="utf-8", newline="\n")
+def write_str_utf8(string: str, path: pathlib.Path, newline=None):
+    write_str(string, path, encoding="utf-8", newline=newline)
 
 
 def pandas_to_pickle(obj, path: pathlib.Path):
@@ -209,6 +209,10 @@ def write_file(callback, path: pathlib.Path, mode,
             callback(f)
 
 
+def write_file_utf8(callback, path: pathlib.Path, mode, newline=None):
+    return write_file(callback, path, mode, encoding="utf-8", newline=newline)
+
+
 def copy_file(src, dst):
 
     root_src = find_zip_parent(src)
@@ -262,8 +266,8 @@ def read_str(path: pathlib.Path, encoding=None, newline=None):
         lambda f: f.read(), path, "t", encoding=encoding, newline=newline)
 
 
-def read_str_utf8(path: pathlib.Path):
-    return read_str(path, encoding="utf-8", newline="\n")
+def read_str_utf8(path: pathlib.Path, newline=None):
+    return read_str(path, encoding="utf-8", newline=newline)
 
 
 def read_file(callback, path: pathlib.Path, mode,
@@ -294,3 +298,6 @@ def read_file(callback, path: pathlib.Path, mode,
         with open_path(mode) as f:
             return callback(f)
 
+
+def read_file_utf8(callback, path: pathlib.Path, mode, newline=None):
+    return read_file(callback, path, mode, encoding="utf-8", newline=newline)

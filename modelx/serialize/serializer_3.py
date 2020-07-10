@@ -118,7 +118,7 @@ class SpaceEncoder(SpaceEncoder2):
                 for s in self.space._named_itemspaces.values():
                     self._pickle_dynamic_space(f, s)
 
-            ziputil.write_file(callback, datafile, "t")
+            ziputil.write_file_utf8(callback, datafile, "t")
 
     def _pickle_dynamic_space(self, file, space):
 
@@ -228,7 +228,7 @@ class ModelReader(ModelReader2):
         file = path_ / "data/_dynamic_inputs"
         if ziputil.exists(file):
 
-            lines = ziputil.read_file(
+            lines = ziputil.read_file_utf8(
                 lambda f: f.readlines(),
                 file,
                 "t"
