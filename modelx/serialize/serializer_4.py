@@ -294,8 +294,8 @@ class ModelWriter:
 
             encoder = self.model_encoder(
                 self, self.model,
-                self.root / "_model.py",
-                self.root / "data")
+                self.root / "__init__.py",
+                self.root / "_data")
 
             self._write_recursive(encoder)
             self.write_pickledata()
@@ -317,11 +317,7 @@ class ModelWriter:
         for space in encoder.target.spaces.values():
 
             if not MethodCallEncoder.from_method(space):
-                if isinstance(encoder.target, Model):
-                    srcpath = encoder.srcpath.parent / (space.name + ".py")
-                else:
-                    srcpath = (encoder.srcpath.parent /
-                               encoder.target.name / (space.name + ".py"))
+                srcpath = (encoder.srcpath.parent / space.name / "__init__.py")
 
                 e = self.space_encoder(
                     self,
@@ -334,7 +330,7 @@ class ModelWriter:
 
     def write_pickledata(self):
         if self.pickledata:
-            file = self.root / "data/data.pickle"
+            file = self.root / "_data/data.pickle"
             ziputil.write_file_utf8(
                 lambda f: pickle.dump(self.pickledata, f), file, mode="b")
 
@@ -439,9 +435,9 @@ class SpaceEncoder(BaseEncoder):
 
     refview_encoder_class = None
 
-    def __init__(self, writer, target, srcpath=None, datapath=None):
+    def __init__(self, writer, target, srcpath=None):
         super().__init__(writer, target, target.parent, target.name, srcpath,
-                         datapath=srcpath.parent / srcpath.stem / "data")
+                         datapath=srcpath.parent / "_data")
         self.space = target
 
         self.refview_encoder = self.refview_encoder_class(
@@ -614,7 +610,8 @@ class RefViewEncoder(BaseEncoder):
     selector_class = None
 
     def __init__(self, writer, target, parent, name=None, srcpath=None):
-        super().__init__(writer, target, parent, name, srcpath)
+        super().__init__(writer, target, parent, name, srcpath,
+                         datapath=srcpath.parent / "_data")
 
         # TODO: Refactor
         is_model = parent._impl.is_model()
@@ -629,11 +626,11 @@ class RefViewEncoder(BaseEncoder):
             if key[0] != "_":
                 # TODO: Refactor
                 if (is_model or not parent._impl.refs[key].is_derived):
-                    datapath = datadir / key
+                    datafile = self.datapath / key
                     self.encoders.append(self.selector_class.select(val)(
                         writer,
                         val, parent=parent, name=key, srcpath=srcpath,
-                        datapath=datapath))
+                        datapath=datafile))
 
     def encode(self):
         lines = []
@@ -986,12 +983,12 @@ class ModelReader:
         if target is None:
             path_ = self.path
             target = self.model = mx.new_model()
-            self.parse_source(path_ / "_model.py", self.model)
+            self.parse_source(path_ / "__init__.py", self.model)
             spaces = self.result
 
         for name in spaces:
             space = target.new_space(name=name)
-            self.parse_source(path_ / ("%s.py" % name), space)
+            self.parse_source(path_ / name / "__init__.py", space)
             nextdir = path_ / name
             self._parse_dynamic_inputs(nextdir)
             if ziputil.exists(nextdir) and ziputil.is_dir(nextdir):
@@ -1001,7 +998,7 @@ class ModelReader:
 
     def _parse_dynamic_inputs(self, path_):
 
-        file = path_ / "data/_dynamic_inputs"
+        file = path_ / "_data/_dynamic_inputs"
         if ziputil.exists(file):
 
             lines = ziputil.read_file_utf8(
@@ -1045,7 +1042,7 @@ class ModelReader:
                 self.instructions.append(ist)
 
     def read_pickledata(self):
-        file = self.path / "data/data.pickle"
+        file = self.path / "_data/data.pickle"
         if ziputil.exists(file):
             self.pickledata = ziputil.read_file_utf8(pickle.load, file, "b")
 
@@ -1350,8 +1347,7 @@ class CellsInputDataMixin(BaseNodeParser):
 
     @property
     def datapath(self) -> pathlib.Path:
-        return (self.srcpath.parent
-                / self.srcpath.stem / "data" / self.cellsname)
+        return self.srcpath.parent / "_data" / self.cellsname
 
     def set_values(self, data):
         cells = self.impl.cells[self.cellsname]
