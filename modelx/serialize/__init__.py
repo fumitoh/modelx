@@ -8,7 +8,8 @@ from . import ziputil
 _MX_TO_FORMAT = {
     (0, 0, 25): 1,
     (0, 1, 0): 2,
-    (0, 2, 0): 3
+    (0, 2, 0): 3,
+    (0, 9, 0): 4
 }
 
 HIGHEST_VERSION = list(_MX_TO_FORMAT.values())[-1]

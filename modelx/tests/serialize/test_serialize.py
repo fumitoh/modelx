@@ -52,7 +52,7 @@ def testmodel():
     ["name", "version", "as_method", "write_method"],
     itertools.product(
         [None, "renamed"],
-        [2, 3],
+        [2, 3, 4],
         [True, False],
         ["write", "zip"]
     )
