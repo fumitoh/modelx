@@ -72,20 +72,29 @@ def test_with_lifelib(testpaths, project):
 
     build_path, write_path, zip_path = testpaths
 
-    from lifelib.commands import create
+    import lifelib
 
     testproj = project + "_test"
     projpath = build_path / testproj
 
-    create.main([
-        "--template",
-        project,
-        str(projpath)
-    ])
+    if lifelib.VERSION > (0, 0, 14):
+        lifelib.create(project, projpath)
+        scriptpath = projpath / "scripts"
+    else:
+        from lifelib.commands import create
+        create.main([
+            "--template",
+            project,
+            str(projpath)
+        ])
+        scriptpath = projpath.parent
 
-    with SysPath(str(projpath.parent)):
+    with SysPath(str(scriptpath)):
 
-        module = importlib.import_module(testproj + "." + project)
+        if lifelib.VERSION > (0, 0, 14):
+            module = importlib.import_module(project)
+        else:
+            module = importlib.import_module(testproj + "." + project)
 
         with SysPath(str(projpath)):
 
