@@ -616,11 +616,6 @@ class RefViewEncoder(BaseEncoder):
         # TODO: Refactor
         is_model = parent._impl.is_model()
 
-        if is_model:
-            datadir = srcpath.parent / "data"
-        else:
-            datadir = srcpath.parent / parent.name / "data"
-
         self.encoders = []
         for key, val in self.target.items():
             if key[0] != "_":
