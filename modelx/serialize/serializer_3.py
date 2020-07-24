@@ -223,6 +223,7 @@ RefViewEncoder.selector_class = EncoderSelector
 
 class ModelReader(ModelReader2):
 
+    version = ModelWriter.version
     def _parse_dynamic_inputs(self, path_):
 
         file = path_ / "data/_dynamic_inputs"

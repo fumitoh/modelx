@@ -917,7 +917,7 @@ def _replace_saved_path(space, temppath: str, path: str):
 
 class ModelReader:
 
-    version = 2
+    version = ModelWriter.version
     parser_selector_class = None
 
     def __init__(self, system, path: pathlib.Path):
