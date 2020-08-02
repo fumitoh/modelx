@@ -213,7 +213,7 @@ def write_file_utf8(callback, path: pathlib.Path, mode, newline=None):
     return write_file(callback, path, mode, encoding="utf-8", newline=newline)
 
 
-def copy_file(src, dst):
+def copy_file(src: pathlib.Path, dst: pathlib.Path):
 
     root_src = find_zip_parent(src)
     root_dst = find_zip_parent(dst)
@@ -258,6 +258,22 @@ def copy_file(src, dst):
 
     else:
         raise RuntimeError("must not happen")
+
+
+def copy_dir_to_zip(src: pathlib.Path, dest: pathlib.Path):
+    """Copy directory tree into a zip file
+
+    Arg:
+        src: path-like object pointing to a directory
+        dest: path pointing to a zip file
+    """
+    src = src.resolve()
+    for d, _, files in os.walk(src):
+        for f in files:
+            srcfile = pathlib.Path(os.path.join(d, f))
+            rel = srcfile.relative_to(src)
+            destfile = dest.joinpath(rel)
+            copy_file(srcfile, destfile)
 
 
 def read_str(path: pathlib.Path, encoding=None, newline=None):

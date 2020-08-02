@@ -1385,7 +1385,7 @@ class UserSpaceImpl(
             param_rows: integer or string expression, or a sequence of them
                 indicating row (or column) to be interpreted as parameters.
         """
-        import modelx.io.excel as xl
+        import modelx.io.excel_legacy as xl
 
         cellstable = xl.CellsTable(
             book,

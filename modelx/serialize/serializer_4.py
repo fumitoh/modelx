@@ -26,6 +26,7 @@ from modelx.core.model import Model
 from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
+from modelx.io.baseio import BaseSharedData, IOManager
 import asttokens
 from . import ziputil
 
@@ -51,6 +52,53 @@ FROM_PANDAS_METHODS = [
 ]
 
 CONSTRUCTOR_METHODS = FROM_FILE_METHODS + FROM_PANDAS_METHODS
+
+
+class ModelPickler(pickle.Pickler):
+
+    def persistent_id(self, obj):
+
+        if isinstance(obj, BaseSharedData):
+            return "BaseSharedData", obj.path, obj.__class__
+        elif isinstance(obj, IOManager):
+            return "IOManager", None
+        else:
+            return None
+
+
+class ModelUnpickler(pickle.Unpickler):
+
+    def __init__(self, file, reader):
+        super().__init__(file)
+        self.reader = reader
+        self.manager = reader.system.iomanager
+        self.model = reader.model
+
+    def persistent_load(self, pid):
+
+        if pid[0] == "BaseSharedData":
+
+            _, path, cls = pid
+
+            if not path.is_absolute():
+                src = self.reader.path.joinpath(path)
+                if self.reader.temproot:
+                    dst = self.reader.temproot.joinpath(path)
+                    if not dst.exists():
+                        ziputil.copy_file(src, dst)
+                    loadpath = dst
+                else:
+                    loadpath = src
+            else:
+                loadpath = path
+
+            return self.manager.get_or_create_data(
+                path, model=self.model, cls=cls, loadpath=loadpath)
+
+        elif pid[0] == "IOManager":
+            return self.manager
+        else:
+            raise pickle.UnpicklingError("unsupported persistent object")
 
 
 class TupleID(tuple):
@@ -299,6 +347,16 @@ class ModelWriter:
 
             self._write_recursive(encoder)
             self.write_pickledata()
+            if zipfile.is_zipfile(self.root):
+                with tempfile.TemporaryDirectory() as tempdir:
+                    temproot = pathlib.Path(tempdir)
+                    self.system.iomanager.save_file(
+                        model=self.model, root=temproot
+                    )
+                    ziputil.copy_dir_to_zip(temproot, self.root)
+            else:
+                self.system.iomanager.save_file(
+                    model=self.model, root=self.root)
 
             if self.log_input:
                 ziputil.write_str_utf8(
@@ -332,7 +390,8 @@ class ModelWriter:
         if self.pickledata:
             file = self.root / "_data/data.pickle"
             ziputil.write_file_utf8(
-                lambda f: pickle.dump(self.pickledata, f), file, mode="b")
+                lambda f: ModelPickler(f).dump(self.pickledata),
+                file, mode="b")
 
 
 class BaseEncoder:
@@ -363,7 +422,6 @@ class BaseEncoder:
 
 class ModelEncoder(BaseEncoder):
 
-    version = 2
     refview_encoder_class = None
 
     def __init__(self, writer,
@@ -928,41 +986,21 @@ class ModelReader:
         self.result = None      # To pass list of space names
         self.model = None
         self.pickledata = None
-        self.tempdir = None
+        self.temproot = None
 
     def read_model(self, **kwargs):
 
         try:
             self.system.serializing = self
             self.kwargs = kwargs
-            model = self.parse_dir()
-            self.instructions.execute_selected_methods([
-                "doc",
-                "set_formula",
-                "set_property",
-                "new_cells"])
+            if zipfile.is_zipfile(self.path):
+                with tempfile.TemporaryDirectory() as tempdir:
+                    self.temproot = pathlib.Path(tempdir)
+                    model = self._read_model_inner()
+                self.temproot = None
+            else:
+                model = self._read_model_inner()
 
-            if self.instructions.find_instruction(
-                lambda inst: isinstance(inst.parser, MethodCallParser)
-            ):
-                if zipfile.is_zipfile(self.path):
-                    with tempfile.TemporaryDirectory()as tempdir:
-                        self.tempdir = pathlib.Path(tempdir)
-                        self.instructions.execute_selected_parser(
-                            MethodCallParser
-                        )
-                        self.tempdir = None
-                else:
-                    self.instructions.execute_selected_parser(
-                        MethodCallParser
-                    )
-
-            self.instructions.execute_selected_methods(["add_bases"])
-            self.read_pickledata()
-            self.instructions.execute_selected_methods(["load_pickledata"])
-            self.instructions.execute_selected_methods(["__setattr__"])
-            self.instructions.execute_selected_methods(
-                ["_set_dynamic_inputs"])
         except:
             if self.model:
                 self.model.close()
@@ -970,6 +1008,29 @@ class ModelReader:
 
         finally:
             self.system.serializing = None
+
+        return model
+
+    def _read_model_inner(self):
+
+        model = self.parse_dir()
+        self.instructions.execute_selected_methods([
+            "doc",
+            "set_formula",
+            "set_property",
+            "new_cells"])
+
+        if self.instructions.find_instruction(
+                lambda inst: isinstance(inst.parser, MethodCallParser)
+        ):
+            self.instructions.execute_selected_parser(MethodCallParser)
+
+        self.instructions.execute_selected_methods(["add_bases"])
+        self.read_pickledata()
+        self.instructions.execute_selected_methods(["load_pickledata"])
+        self.instructions.execute_selected_methods(["__setattr__"])
+        self.instructions.execute_selected_methods(
+            ["_set_dynamic_inputs"])
 
         return model
 
@@ -1037,9 +1098,14 @@ class ModelReader:
                 self.instructions.append(ist)
 
     def read_pickledata(self):
+
+        def custom_load(file):
+            unpickler = ModelUnpickler(file, self)
+            return unpickler.load()
+
         file = self.path / "_data/data.pickle"
         if ziputil.exists(file):
-            self.pickledata = ziputil.read_file_utf8(pickle.load, file, "b")
+            self.pickledata = ziputil.read_file_utf8(custom_load, file, "b")
 
 
 class BaseNodeParser:
@@ -1162,16 +1228,16 @@ class FromFileParser(MethodCallParser):
 
             tempargs = list(args)
 
-            if self.reader.tempdir:
+            if self.reader.temproot:
                 srcpath = pathlib.Path(args[0])
                 rel = srcpath.relative_to(self.reader.path)
-                temppath = self.reader.tempdir.joinpath(rel)
+                temppath = self.reader.temproot.joinpath(rel)
                 tempargs[0] = str(temppath)
                 ziputil.copy_file(srcpath, temppath)
 
             func = getattr(self.impl, method["method"])
             func(*tempargs, **kwargs)
-            if self.reader.tempdir:
+            if self.reader.temproot:
                 _replace_saved_path(self.impl, tempargs[0], args[0])
 
         return Instruction(
@@ -1215,10 +1281,10 @@ class FromPandasParser(MethodCallParser):
 
             newargs = list(args)
 
-            if self.reader.tempdir:
+            if self.reader.temproot:
                 srcpath = pathlib.Path(args[0])
                 rel = srcpath.relative_to(self.reader.path)
-                temppath = self.reader.tempdir.joinpath(rel)
+                temppath = self.reader.temproot.joinpath(rel)
                 newargs[0] = str(temppath)
                 ziputil.copy_file(srcpath, temppath)
 
@@ -1311,7 +1377,8 @@ class RefAssignParser(BaseAssignParser):
         name = self.target
         valnode = self.node.value
 
-        decoder = self.selector_class.select(valnode)(
+        decoder_class = self.selector_class.select(valnode)
+        decoder = decoder_class(
             self.reader, valnode, self.atok,
             self.obj, name=name, srcpath=self.srcpath)
 
@@ -1483,8 +1550,8 @@ class ValueDecoder:
 class TupleDecoder(ValueDecoder):
     DECTYPE = None
 
-    def elm(self, index):
-        return ast.literal_eval(self.atok.get_text(self.node.elts[index]))
+    def elm(self, index, decoder=ast.literal_eval):
+        return decoder(self.atok.get_text(self.node.elts[index]))
 
     @classmethod
     def condition(cls, node):
@@ -1511,6 +1578,7 @@ class InterfaceDecoder(TupleDecoder):
 
 class ModuleDecoder(TupleDecoder):
     DECTYPE = "Module"
+
     def decode(self):
         return importlib.import_module(self.elm(1))
 

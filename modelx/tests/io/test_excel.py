@@ -1,6 +1,6 @@
 import os
 import sys
-import modelx.io.excel as xl
+import modelx.io.excel_legacy as xl
 
 import pytest
 import openpyxl as opxl

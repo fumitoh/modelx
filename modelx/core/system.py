@@ -26,6 +26,7 @@ from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError, FormulaError
 from modelx.core.node import OBJ, KEY, Element
+from modelx.io.baseio import IOManager
 
 
 class Executor:
@@ -378,6 +379,8 @@ class System:
         else:
             self.is_ipysetup = False
 
+        self.iomanager = IOManager()
+
     def setup_ipython(self):
         """Monkey patch shell's error handler.
 
@@ -524,6 +527,7 @@ class System:
         del self.models[model.name]
         if self.currentmodel is model:
             self.currentmodel = None
+        self.iomanager.remove_model(model.interface)
 
     def get_object(self, name, as_proxy=False):
         """Retrieve an object by its absolute name."""
@@ -603,6 +607,14 @@ class System:
             self.callstack.tracestack.clear()
         else:
             raise RuntimeError("call stack trace not active")
+
+    def _check_sanity(self):
+
+        for models in self.iomanager.dataid_to_models.values():
+            for m in models:
+                assert m._impl in self._models.values()
+
+        self.iomanager._check_sanity()
 
 
 mxsys = System()

@@ -314,6 +314,93 @@ class EditableSpaceContainer(BaseSpaceContainer):
             filepath, space, cells, param,
             space_params, cells_params, args, kwargs).interface
 
+    def new_excel_range(self, name,
+            path, range_, sheet=None, keyids=None, loadpath=None):
+        """Creates a Reference to an Excel range
+
+        Reads an Excel range from an Excel file,
+        creates an ExcelRange object and assigns it to ``name``.
+
+        The user can read and write values to an Excel file through the
+        object. The Excel range is read from a workbook specified by
+        ``loadpath`` and saved to ``path``.
+        If no ``loadpath`` is given, ``path`` is used also
+        for reading.
+
+        The ``path`` is a path-like object, and can be either or a
+        relative or absolute. If relative path is given, the output
+        file is saved in the model path, and
+        ``path`` is interpreted as a path relative to the model path.
+
+        The object returned by this method is an ExcelRange object.
+        It is a mapping object, and has the same methods and operations
+        as other mapping objects, such as :obj:`dict`.
+
+        The ``range_`` parameter takes a string
+        that indicates an Excel range, such as "A1:D5", or
+        the name of a named range. When the name of a named range is specified,
+        the ``sheet`` argument is ignored.
+
+        The ``keys`` parameter takes a list of strings, each element of which
+        is a string starting with "r" or "c" followed by a 0-indexed integer.
+        For example, ``["r0", "c1"]`` indicates that the 1st row and the
+        2nd column in ``range_`` are interpreted as keys.
+
+        Example:
+
+            Suppose below is the range "A1:D4" on Sheet1 in Book1.xlsx.
+
+            +-----+-----+-----+-----+
+            |     | AA  | BB  | CCC |
+            +-----+-----+-----+-----+
+            |  0  | 10  | 11  | 12  |
+            +-----+-----+-----+-----+
+            |  1  | 20  | 21  | 22  |
+            +-----+-----+-----+-----+
+            |  2  | 30  | 31  | 32  |
+            +-----+-----+-----+-----+
+
+            The next code creates a Reference named ``x`` in a Space ``space``::
+
+                >>> space.new_excel_range("x", "files/Book1.xlsx", "A1:D4",
+                        sheet="Sheet1", keys=["r0", "c0"], loadpath="Book1.xlsx")
+
+            The values in the range are accessible
+            through the ``[]`` operator. "r0" in the ``keys`` parameter
+            denotes the first row, and "c0" denotes the first column.
+            So keys to be passed in the ``[]`` operator are
+            taken from the row and the column, for example::
+
+                >>> space.x["BB", 1]
+                21
+
+        Note:
+            This method reads and writes values from
+            Excel files, not formulas.
+            From cells with formulas in the ``loadpath`` file, last-saved
+            values stored in the file.
+
+        Args:
+            name: A name of a Reference or a Cells object with no arguments.
+            path: The path of the output Excel file.
+                Can be a :obj:`str` or path-like object.
+            range_(:obj:`str`): A range expression such as "A1:D5", or
+                a named range name string.
+            sheet: The sheet name of the range. Ignored when a named range is
+                given to ``range_``.
+            keys(optional): A list of indicating rows and columns to be
+                interpreted as keys. For example, ``['r0', 'c0']`` indicates
+                the fist row and the first column are to interpreted as keys
+                in that order.
+            loadpath(optional): The path of the input Excel file.
+
+        .. versionadded:: 0.9.0
+
+        """
+        return self._impl.new_excel_range(name,
+            path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath
+        )
+
 
 @add_stateattrs
 class BaseSpaceContainerImpl:
@@ -418,7 +505,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         call_id=None
     ):
 
-        import modelx.io.excel as xl
+        import modelx.io.excel_legacy as xl
 
         if space_param_order is None:
             # if [] then dynamic space without params
@@ -527,8 +614,28 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                 "call_id": call_id or str(uuid.uuid4())
             }
         }
-
         return new_space_from_pandas(
             self, pd.read_csv(filepath, *args, **kwargs),
             space, cells, param,
             space_params, cells_params, source)
+
+    def new_excel_range(self, name, path, range_, sheet, keyids, loadpath):
+
+        from modelx.io.excelio import ExcelRange
+
+        result = ExcelRange(
+            path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath)
+
+        self.system.iomanager.register_client(
+            result, model=self.model.interface)
+
+        try:
+            self.set_attr(name, result)
+        except (ValueError, KeyError, AttributeError):
+            result._data.remove_client(result)
+            raise KeyError("cannot assign '%s'" % name)
+
+        return result
+
+    def set_attr(self, name, value):
+        raise NotImplementedError

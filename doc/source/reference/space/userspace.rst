@@ -62,6 +62,7 @@ Child Space operations
   ~UserSpace.new_space_from_module
   ~UserSpace.new_space_from_pandas
   ~UserSpace.reload
+  ~UserSpace.new_excel_range
 
 
 Child Cells operations

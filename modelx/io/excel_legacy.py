@@ -12,95 +12,11 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-import re
-import string
+
 import itertools
 from collections import namedtuple
-
 import openpyxl as opxl
-
-
-def _get_col_index(name):
-    """Convert column name to index."""
-
-    index = string.ascii_uppercase.index
-    col = 0
-    for c in name.upper():
-        col = col * 26 + index(c) + 1
-    return col
-
-
-def _is_range_address(range_addr):
-
-    # RANGE_EXPR modified from openpyxl.utils.cells
-    # see https://bitbucket.org/openpyxl/openpyxl
-
-    RANGE_EXPR = """
-    (?P<cells>
-    [$]?(?P<min_col>[A-Za-z]{1,3})?
-    [$]?(?P<min_row>\d+)?
-    (:[$]?(?P<max_col>[A-Za-z]{1,3})?
-    [$]?(?P<max_row>\d+)?)?
-    )$
-    """
-    RANGE_EXPR_RE = re.compile(RANGE_EXPR, re.VERBOSE)
-
-    match = RANGE_EXPR_RE.match(range_addr)
-
-    if not match:
-        return False
-    else:
-        cells = match.group("cells")
-
-    if not cells:
-        return False
-    else:
-        min_col = _get_col_index(match.group("min_col"))
-        min_row = int(match.group("min_row"))
-
-        # if range_addr is for a single cell,
-        # max_col and max_row are None.
-        max_col = match.group("max_col")
-        max_col = max_col and _get_col_index(max_col)
-
-        max_row = match.group("max_row")
-        max_row = max_row and int(max_row)
-
-        if max_col and max_row:
-            return (
-                (min_col <= max_col)
-                and (min_row <= max_row)
-                and (max_col <= 16384)
-                and (max_row <= 1048576)
-            )
-        else:
-            return (min_col <= 16384) and (min_row <= 1048576)
-
-
-def _get_range(book, range_, sheet):
-    """Return a range as nested dict of openpyxl cells."""
-
-    filename = None
-    if isinstance(book, str):
-        filename = book
-        book = opxl.load_workbook(book, data_only=True)
-    elif isinstance(book, opxl.Workbook):
-        pass
-    else:
-        raise TypeError
-
-    if _is_range_address(range_):
-        sheet_names = [name.upper() for name in book.sheetnames]
-        index = sheet_names.index(sheet.upper())
-        data = book.worksheets[index][range_]
-    else:
-        data = _get_namedrange(book, range_, sheet)
-        if data is None:
-            raise ValueError(
-                "Named range '%s' not found in %s" % (range_, filename or book)
-            )
-
-    return data
+from .excelio import _is_range_address, _get_namedrange, _get_range
 
 
 def read_range(filepath, range_expr, sheet=None, dict_generator=None):
@@ -158,87 +74,6 @@ def read_range(filepath, range_expr, sheet=None, dict_generator=None):
     return {keyval[0]: keyval[1] for keyval in gen}
 
 
-def _get_namedrange(book, rangename, sheetname=None):
-    """Get range from a workbook.
-
-    A workbook can contain multiple definitions for a single name,
-    as a name can be defined for the entire book or for
-    a particular sheet.
-
-    If sheet is None, the book-wide def is searched,
-    otherwise sheet-local def is looked up.
-
-    Args:
-        book: An openpyxl workbook object.
-        rangename (str): Range expression, such as "A1", "$G4:$K10",
-            named range "NamedRange1".
-        sheetname (str, optional): None for book-wide name def,
-            sheet name for sheet-local named range.
-
-    Returns:
-        Range object specified by the name.
-
-    """
-
-    def cond(namedef):
-
-        if namedef.type.upper() == "RANGE":
-            if namedef.name.upper() == rangename.upper():
-
-                if sheetname is None:
-                    if not namedef.localSheetId:
-                        return True
-
-                else:  # sheet local name
-                    sheet_id = [sht.upper() for sht in book.sheetnames].index(
-                        sheetname.upper()
-                    )
-
-                    if namedef.localSheetId == sheet_id:
-                        return True
-
-        return False
-
-    def get_destinations(name_def):
-        """Workaround for the bug in DefinedName.destinations"""
-
-        from openpyxl.formula import Tokenizer
-        from openpyxl.utils.cell import SHEETRANGE_RE
-
-        if name_def.type == "RANGE":
-            tok = Tokenizer("=" + name_def.value)
-            for part in tok.items:
-                if part.subtype == "RANGE":
-                    m = SHEETRANGE_RE.match(part.value)
-                    if m.group("quoted"):
-                        sheet_name = m.group("quoted")
-                    else:
-                        sheet_name = m.group("notquoted")
-
-                    yield sheet_name, m.group("cells")
-
-    namedef = next(
-        (item for item in book.defined_names.definedName if cond(item)), None
-    )
-
-    if namedef is None:
-        return None
-
-    dests = get_destinations(namedef)
-    xlranges = []
-
-    sheetnames_upper = [name.upper() for name in book.sheetnames]
-
-    for sht, addr in dests:
-        if sheetname:
-            sht = sheetname
-        index = sheetnames_upper.index(sht.upper())
-        xlranges.append(book.worksheets[index][addr])
-
-    if len(xlranges) == 1:
-        return xlranges[0]
-    else:
-        return xlranges
 
 
 _IndexRange = namedtuple("_IndexRange", ["begin", "len", "skip"])
