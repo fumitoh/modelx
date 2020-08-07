@@ -19,6 +19,7 @@ from types import ModuleType, FunctionType
 import functools
 
 from modelx.core.base import add_stateattrs, Derivable, Impl, Interface
+from modelx.io.excelio import BaseDataClient
 
 
 # For backward compatibility with -v0.0.23
@@ -80,16 +81,27 @@ class ReferenceImpl(Derivable, Impl):
             interface=value)
         Derivable.__init__(self, is_derived)
 
+        if isinstance(value, BaseDataClient):
+            self.model.datarefmgr.add_reference(self, value)
+
         self.container = container
         container.set_item(name, self)
 
     def change_value(self, value, is_derived):
         if not is_derived:
             self.set_defined()
+        if isinstance(self.interface, BaseDataClient):
+            self.model.datarefmgr.del_reference(self, self.interface)
+        if isinstance(value, BaseDataClient):
+            self.model.datarefmgr.add_reference(self, value)
         self.interface = value
         self.container.set_update()
         for sc in self.container.scopes:
             sc.clear_referrers(self.name)
+
+    def on_delete(self):
+        if isinstance(self.interface, BaseDataClient):
+            self.model.datarefmgr.del_reference(self, self.interface)
 
     def __getstate__(self):
         state = {

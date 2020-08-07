@@ -1,11 +1,11 @@
 from textwrap import dedent
 import pytest
-import pickle
 import builtins
+import io
 
 from modelx.core.api import *
 from modelx.core import mxsys
-
+from modelx.core.system import SystemPickler, SystemUnpickler
 
 # ---- Test impl ----
 
@@ -35,8 +35,10 @@ def pickletest():
 
     func2(5)
 
-    byte_obj = pickle.dumps(model._impl)
-    unpickled = pickle.loads(byte_obj)
+    f = io.BytesIO()
+    SystemPickler(f).dump(model._impl)
+    f.seek(0)
+    unpickled = SystemUnpickler(f, mxsys).load()
 
     return [model._impl, unpickled]
 
@@ -80,9 +82,11 @@ def pickletest_dynamicspace():
 
     check = space[2].fibo(3)
 
-    byte_obj = pickle.dumps(model._impl)
-    unpickled = pickle.loads(byte_obj)
-    unpickled.restore_state(mxsys)
+    f = io.BytesIO()
+    SystemPickler(f).dump(model._impl)
+    f.seek(0)
+    unpickled = SystemUnpickler(f, mxsys).load()
+    unpickled.restore_state()
     model = unpickled.interface
 
     return (model, check)

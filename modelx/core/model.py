@@ -46,6 +46,7 @@ from modelx.core.space import (
     SharedRefDict
 )
 from modelx.core.util import is_valid_name, AutoNamer
+from modelx.io.baseio import DataClientReferenceManager
 
 _nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
 
@@ -137,14 +138,14 @@ class Model(EditableSpaceContainer):
         self._impl.system.rename_model(
             new_name=name, old_name=self.name, rename_old=rename_old)
 
-    def save(self, filepath):
+    def save(self, filepath, datapath=None):
         """Back up the model to a file.
 
         Alias for :meth:`backup`. See :meth:`backup` for details.
         """
-        self._impl.save(filepath)
+        self._impl.system.backup_model(self, filepath, datapath)
 
-    def backup(self, filepath):
+    def backup(self, filepath, datapath=None):
         """Back up the model to a file.
 
         Backup the model to a single binary file. This method internally
@@ -165,7 +166,7 @@ class Model(EditableSpaceContainer):
             :meth:`write`
             :func:`~modelx.restore_model`
         """
-        self._impl.save(filepath)
+        self._impl.system.backup_model(self, filepath, datapath)
 
     def close(self):
         """Close the model."""
@@ -223,6 +224,10 @@ class Model(EditableSpaceContainer):
 
     def __dir__(self):
         return self._impl.namespace.interfaces
+
+    @property
+    def dataclients(self):
+        return list(self._impl.datarefmgr.clients)
 
     @property
     def tracegraph(self):
@@ -287,7 +292,8 @@ class ModelImpl(
             "_dynamic_bases_inverse",
             "_dynamic_base_namer",
             "spacemgr",
-            "currentspace"
+            "currentspace",
+            "datarefmgr"
     ]
 
     def __init__(self, *, system, name):
@@ -318,6 +324,7 @@ class ModelImpl(
         )
         self.allow_none = False
         self.lazy_evals = self._namespace
+        self.datarefmgr = DataClientReferenceManager()
 
     def rename(self, name):
         """Rename self. Must be called only by its system."""
@@ -350,11 +357,6 @@ class ModelImpl(
 
     def close(self):
         self.system.close_model(self)
-
-    def save(self, filepath):
-        self.update_lazyevals()
-        with open(filepath, "wb") as file:
-            pickle.dump(self.interface, file, protocol=4)
 
     def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the model."""
@@ -397,10 +399,14 @@ class ModelImpl(
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def restore_state(self, system):
+    def restore_state(self, datapath=None):
         """Called after unpickling to restore some attributes manually."""
-        Impl.restore_state(self, system)
-        BaseSpaceContainerImpl.restore_state(self, system)
+        BaseSpaceContainerImpl.restore_state(self)
+
+        for client in self.datarefmgr.clients:
+            self.system.iomanager.register_client(
+                client, model=self.interface, datapath=datapath)
+
         mapping = {}
         for node in self.tracegraph:
             if isinstance(node, tuple):
@@ -419,6 +425,7 @@ class ModelImpl(
             self.currentspace = None
 
     def del_ref(self, name):
+        self.global_refs[name].on_delete()
         self.global_refs.del_item(name)
 
     def change_ref(self, name, value):

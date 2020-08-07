@@ -40,7 +40,7 @@ class BaseSharedData:
         self.clients = {}
         self.manager = None
 
-    def save(self, root, **kwargs):
+    def save(self, root):
         raise NotImplementedError
 
     def can_add_client(self, client):
@@ -67,21 +67,21 @@ class BaseSharedData:
         for client in self.clients.values():
             client._after_save_file()
 
+    def _check_sanity(self):
+        for client in self.clients.values():
+            assert client._data is self
+            assert client.manager is self.manager
+
 
 class IOManager:
 
-    def __init__(self):
+    def __init__(self, system):
         self.data = {}
-        self.dataid_to_models = {}
+        self.system = system
 
     def _check_sanity(self):
-
-        assert len(self.data) == len(self.dataid_to_models)
-        assert (set(id(d) for d in self.data.values())
-                == set(self.dataid_to_models.keys()))
-
-        # values of dataid_to_models  must not be empty
-        assert all(models for models in self.dataid_to_models.values())
+        for data in self.data.values():
+            data._check_sanity()
 
     def get_data(self, path: pathlib.Path, model=None):
         return self.data.get(self._get_dataid(path, model), None)
@@ -100,49 +100,23 @@ class IOManager:
     def _register_data(self, data: BaseSharedData, model):
         if not self.get_data(data.path, model):
             self.data[self._get_dataid(data.path, model)] = data
-            if model:
-                self._add_model_to_data(data, model)
-            else:
-                RuntimeError("must not happen")
             data.manager = self
-
-    def _add_model_to_data(self, data, model):
-        if id(data) in self.dataid_to_models:
-            if model not in self.dataid_to_models[id(data)]:
-                self.dataid_to_models[id(data)].append(model)
-        else:
-            self.dataid_to_models[id(data)] = [model]
 
     def get_or_create_data(self, path, model, cls, **kwargs):
         data = self.get_data(path, model)
         if data:
-            self._add_model_to_data(data, model)
             return data
         else:
             return self.new_data(path, model, cls, **kwargs)
 
     def remove_data(self, data):
+
+        if data.clients:
+            raise RuntimeError("clients must be deleted beforehand")
+
         key = next((k for k, v in self.data.items() if v is data), None)
         if key:
             del self.data[key]
-            if id(data) in self.dataid_to_models:
-                del self.dataid_to_models[id(data)]
-
-    def remove_model(self, model):
-        datalist = []
-        for dataid, models in self.dataid_to_models.items():
-            if model in models:
-                data = next(
-                    d for d in self.data.values() if id(d) == dataid)
-                datalist.append(data)
-        for data in datalist:
-            data.remove_all_clients()
-
-            assert data not in self.data.values()
-            assert id(data) not in self.dataid_to_models
-
-        for models in self.dataid_to_models.values():
-            assert model not in models
 
     def register_client(self, client, model, **kwargs):
         client._on_register(self, model=model, **kwargs)
@@ -151,11 +125,6 @@ class IOManager:
     def unpickle_client(self, client):
         client._on_unpickle()
         client._data.add_client(client)
-
-    def save_file(self, model, root):
-        for data in self.data.values():
-            if model in self.dataid_to_models[id(data)]:
-                data.save(root=root)
 
 
 class BaseDataClient:
@@ -172,6 +141,53 @@ class BaseDataClient:
     def _can_add_other(self, other):
         raise NotImplementedError
 
+    def __hash__(self):
+        return hash(id(self))
+
+    def remove_self(self):
+        self._data.remove_client(self)
+
+    def save_data(self, root):
+        self._data.save(root=root)
+
+
+class DataClientReferenceManager:
+    """Maintains dataclient-reference mapping"""
+
+    def __init__(self):
+        self._client_to_refs = {}
+
+    def add_reference(self, ref, client):
+
+        refs = self._client_to_refs.get(client, None)
+        if refs:
+            refs.add(ref)
+        else:
+            self._client_to_refs[client] = {ref}
+
+    def del_reference(self, ref, client):
+
+        if isinstance(client, BaseDataClient):
+            refs = self._client_to_refs[client]
+            refs.remove(ref)
+            if not refs:
+                del self._client_to_refs[client]
+            client.remove_self()
+        else:
+            raise ValueError("client must be BaseDataClient")
+
+    def save_data(self, root):
+        for client in self._client_to_refs:
+            client.save_data(root)
+
+    def del_all(self):
+        for client, refs in self._client_to_refs.copy().items():
+            for ref in refs.copy():
+                self.del_reference(ref, client)
+
+    @property
+    def clients(self):
+        return self._client_to_refs.keys()
 
 
 

@@ -19,6 +19,7 @@ import warnings
 import pickle
 import threading
 import traceback
+import pathlib
 from collections import deque
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.node import get_node_repr
@@ -26,7 +27,7 @@ from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError, FormulaError
 from modelx.core.node import OBJ, KEY, Element
-from modelx.io.baseio import IOManager
+from modelx.io.baseio import IOManager, BaseSharedData
 
 
 class Executor:
@@ -348,6 +349,43 @@ def is_ipython():
         return False
 
 
+class SystemPickler(pickle.Pickler):
+
+    def __init__(self, file, datapath=None, **kwargs):
+        super().__init__(file, **kwargs)
+        self.datapath = pathlib.Path(datapath) if datapath else None
+
+    def persistent_id(self, obj):
+
+        if isinstance(obj, System):
+            return "System", None
+        elif isinstance(obj, IOManager):
+            return "IOManager", None
+        elif isinstance(obj, BaseSharedData):
+            obj.save(self.datapath)
+            return "BaseSharedData", None
+        else:
+            return None
+
+
+class SystemUnpickler(pickle.Unpickler):
+
+    def __init__(self, file, system):
+        super().__init__(file)
+        self.system = system
+
+    def persistent_load(self, pid):
+
+        if pid[0] == "System":
+            return self.system
+        elif pid[0] == "IOManager":
+            return self.system.iomanager
+        elif pid[0] == "BaseSharedData":
+            return None
+        else:
+            raise pickle.UnpicklingError("unsupported persistent object")
+
+
 class System:
 
     orig_settings = {
@@ -379,7 +417,7 @@ class System:
         else:
             self.is_ipysetup = False
 
-        self.iomanager = IOManager()
+        self.iomanager = IOManager(self)
 
     def setup_ipython(self):
         """Monkey patch shell's error handler.
@@ -499,11 +537,16 @@ class System:
             m.currentspace = m.spacemgr.new_space(m)
             return m.currentspace
 
-    def restore_model(self, path, name):
-        with open(path, "rb") as file:
-            model = pickle.load(file)
+    def backup_model(self, model, filepath, datapath):
+        model._impl.update_lazyevals()
+        with open(filepath, "wb") as file:
+            SystemPickler(file, datapath, protocol=4).dump(model)
 
-        model._impl.restore_state(self)
+    def restore_model(self, path, name, datapath):
+        with open(path, "rb") as file:
+            model = SystemUnpickler(file, self).load()
+
+        model._impl.restore_state(datapath)
 
         if name is not None:
             if not is_valid_name(name):
@@ -527,7 +570,7 @@ class System:
         del self.models[model.name]
         if self.currentmodel is model:
             self.currentmodel = None
-        self.iomanager.remove_model(model.interface)
+        model.datarefmgr.del_all()
 
     def get_object(self, name, as_proxy=False):
         """Retrieve an object by its absolute name."""
@@ -609,11 +652,6 @@ class System:
             raise RuntimeError("call stack trace not active")
 
     def _check_sanity(self):
-
-        for models in self.iomanager.dataid_to_models.values():
-            for m in models:
-                assert m._impl in self._models.values()
-
         self.iomanager._check_sanity()
 
 

@@ -186,6 +186,7 @@ class Impl:
     for users."""
 
     __cls_stateattrs = [
+        "system",
         "interface",
         "parent",
         "name",
@@ -259,10 +260,6 @@ class Impl:
         else:
             return self.parent.evalrepr + "." + self.name
 
-    def restore_state(self, system):
-        """Called after unpickling to restore some attributes manually."""
-        self.system = system
-
     def is_model(self):
         return self.parent is None
 
@@ -280,6 +277,9 @@ class Impl:
 
     def has_linealrel(self, other):
         return self.has_ascendant(other) or self.has_descendant(other)
+
+    def on_delete(self):
+        raise NotImplementedError
 
     # ----------------------------------------------------------------------
     # repr methods

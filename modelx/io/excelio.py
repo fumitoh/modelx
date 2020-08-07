@@ -207,7 +207,7 @@ class ExcelWorkbook(BaseSharedData):
         self.book = opxl.load_workbook(loadpath, data_only=True)
         self.is_updated = True
 
-    def save(self, root, **kwargs):
+    def save(self, root):
         if not self.path.is_absolute():
             path = root.joinpath(self.path)
         else:
@@ -252,13 +252,19 @@ class ExcelRange(BaseDataClient, Mapping):
         self._data = None
         self.range = range_
         self.sheet = sheet
-        self.keyids = keyids
+        self.keyids = tuple(keyids) if keyids else None
 
     def _on_register(self, manager, model, **kwargs):
 
+        if "datapath" in kwargs:
+            datapath = pathlib.Path(kwargs["datapath"])
+            loadpath = datapath / self.path
+        else:
+            loadpath = self.loadpath
+
         self.manager = manager
         self._data = self.manager.get_or_create_data(
-            self.path, model, cls=ExcelWorkbook, loadpath=self.loadpath)
+            self.path, model, cls=ExcelWorkbook, loadpath=loadpath)
         self._load_cells(self.keyids)
 
     def _on_unpickle(self):
@@ -281,7 +287,8 @@ class ExcelRange(BaseDataClient, Mapping):
         self.range = state["range"]
         self.sheet = state["sheet"]
         self.keyids = state["keyids"]
-        self.manager.unpickle_client(self)
+        if self.manager.system.serializing:
+            self.manager.unpickle_client(self)
 
     def _on_delete(self, manager, **kwargs):
         self._data.remove_client(self)

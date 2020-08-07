@@ -306,7 +306,7 @@ def cur_space(space=None):
         return cur_space()
 
 
-def restore_model(path, name=None):
+def restore_model(path, name=None, datapath=None):
     """Restore a model and return it.
 
     Restore a model saved by the :meth:`~modelx.core.model.Model.backup` method
@@ -323,10 +323,10 @@ def restore_model(path, name=None):
         :py:meth:`~modelx.core.model.Model.backup`
 
     """
-    return _system.restore_model(path, name)
+    return _system.restore_model(path, name, datapath)
 
 
-def open_model(path, name=None):
+def open_model(path, name=None, datapath=None):
     """Load a model saved from a file and return it.
 
     Args:
@@ -340,7 +340,7 @@ def open_model(path, name=None):
     """
     warnings.warn(
         "'open_model' function is deprecated. Use 'restore_model' instead.")
-    return _system.restore_model(path, name)
+    return _system.restore_model(path, name, datapath)
 
 
 def start_stacktrace(maxlen=10000):

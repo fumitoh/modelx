@@ -48,7 +48,7 @@ params = [[*p1, p2, p3] for p1, p2, p3 in
         [("new_model", True),
          ("new_space", False)],
         (True, False),
-        ("write", "zip")
+        ("write", "zip", "backup")
     )
 ]
 
@@ -85,9 +85,18 @@ def test_new_excel_range(tmp_path, meth, is_relative, edit_value, save_meth):
 
         assert xlr == expected
 
-    getattr(p.model, save_meth)(tmp_path / "model")
-    p.model.close()
-    m2 = mx.read_model(tmp_path / "model")
+    if save_meth == "backup":
+        datapath = tmp_path / "data"
+        datapath.mkdir()
+        getattr(p.model, save_meth)(tmp_path / "model", datapath=datapath)
+
+        p.model.close()
+        m2 = mx.restore_model(tmp_path / "model", datapath=datapath)
+
+    else:
+        getattr(p.model, save_meth)(tmp_path / "model")
+        p.model.close()
+        m2 = mx.read_model(tmp_path / "model")
 
     p2 = m2 if meth == "new_model" else m2.spaces[parent_name]
 
@@ -277,3 +286,40 @@ def test_scalar_range(tmp_path, save_meth):
 
     assert not mx.core.mxsys._check_sanity()
     m.close()
+
+
+@pytest.mark.parametrize(
+    "parent, is_relative, erroneous",
+    itertools.product(
+        ["new_model", "new_space"], [True, False], [True, False])
+)
+def test_range_conflict_error(tmp_path, parent, is_relative, erroneous):
+
+    m_or_s = getattr(mx, parent)()
+    s = m_or_s.new_space()
+
+    kwargs = testargs[0].copy()
+    expected = kwargs.pop("expected")
+
+    kwargs["path"] = ("files/testexcel.xlsx"
+                      if is_relative else tmp_path / "testexcel.xlsx")
+    kwargs["sheet"] = "TestTables"
+    kwargs["loadpath"] = XL_TESTDATA
+
+    xlr = m_or_s.new_excel_range(**kwargs)
+
+    assert xlr == expected
+
+    # Select value range
+    kwargs["range_"] = "D10:E25"
+    kwargs["keyids"] = None
+
+    if erroneous:
+        with pytest.raises(ValueError):
+            s.new_excel_range(**kwargs)
+        del m_or_s.table1
+    else:
+        del m_or_s.table1
+        xlr = s.new_excel_range(**kwargs)
+        assert set(xlr.values()) == set(expected.values())
+        del s.table1

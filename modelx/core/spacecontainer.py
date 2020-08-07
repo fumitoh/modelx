@@ -319,10 +319,16 @@ class EditableSpaceContainer(BaseSpaceContainer):
         """Creates a Reference to an Excel range
 
         Reads an Excel range from an Excel file,
-        creates an ExcelRange object and assigns it to ``name``.
+        creates an ExcelRange object and assigns it to a Reference
+        named ``name``.
 
+        The object returned by this method is an ExcelRange object.
+        It is a mapping object, and has the same methods and operations
+        as other mapping objects, such as :obj:`dict`.
         The user can read and write values to an Excel file through the
-        object. The Excel range is read from a workbook specified by
+        object by the same operators and methods as :obj:`dict`.
+
+        The Excel range is read from a workbook specified by
         ``loadpath`` and saved to ``path``.
         If no ``loadpath`` is given, ``path`` is used also
         for reading.
@@ -332,33 +338,35 @@ class EditableSpaceContainer(BaseSpaceContainer):
         file is saved in the model path, and
         ``path`` is interpreted as a path relative to the model path.
 
-        The object returned by this method is an ExcelRange object.
-        It is a mapping object, and has the same methods and operations
-        as other mapping objects, such as :obj:`dict`.
-
         The ``range_`` parameter takes a string
         that indicates an Excel range, such as "A1:D5", or
         the name of a named range. When the name of a named range is specified,
         the ``sheet`` argument is ignored.
 
-        The ``keys`` parameter takes a list of strings, each element of which
+        The ``keyids`` paramter is for specifying rows and columns
+        in the range to be interpreted as key rows and columns.
+        The ``keyids`` parameter takes a list of strings, each element of which
         is a string starting with "r" or "c" followed by a 0-indexed integer.
         For example, ``["r0", "c1"]`` indicates that the 1st row and the
-        2nd column in ``range_`` are interpreted as keys.
+        2nd column in ``range_`` are interpreted as keys in that order.
+        If ``keyids`` is not given, all rows and columns are interpreted
+        as value rows and columns, and the values are
+        assigned to 0-indexed integer keys.
+
 
         Example:
 
             Suppose below is the range "A1:D4" on Sheet1 in Book1.xlsx.
 
-            +-----+-----+-----+-----+
-            |     | AA  | BB  | CCC |
-            +-----+-----+-----+-----+
-            |  0  | 10  | 11  | 12  |
-            +-----+-----+-----+-----+
-            |  1  | 20  | 21  | 22  |
-            +-----+-----+-----+-----+
-            |  2  | 30  | 31  | 32  |
-            +-----+-----+-----+-----+
+            +-----+-----+-----+
+            |     | AA  | BB  |
+            +-----+-----+-----+
+            |  0  | 10  | 11  |
+            +-----+-----+-----+
+            |  1  | 20  | 21  |
+            +-----+-----+-----+
+            |  2  | 30  | 31  |
+            +-----+-----+-----+
 
             The next code creates a Reference named ``x`` in a Space ``space``::
 
@@ -388,7 +396,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
                 a named range name string.
             sheet: The sheet name of the range. Ignored when a named range is
                 given to ``range_``.
-            keys(optional): A list of indicating rows and columns to be
+            keyids(optional): A list of indicating rows and columns to be
                 interpreted as keys. For example, ``['r0', 'c0']`` indicates
                 the fist row and the first column are to interpreted as keys
                 in that order.
@@ -433,11 +441,11 @@ class BaseSpaceContainerImpl:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def restore_state(self, system):
+    def restore_state(self):
         """Called after unpickling to restore some attributes manually."""
 
         for space in self._all_spaces.values():
-            space.restore_state(system)
+            space.restore_state()
 
     # ----------------------------------------------------------------------
     # Properties

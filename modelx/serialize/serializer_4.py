@@ -350,13 +350,10 @@ class ModelWriter:
             if zipfile.is_zipfile(self.root):
                 with tempfile.TemporaryDirectory() as tempdir:
                     temproot = pathlib.Path(tempdir)
-                    self.system.iomanager.save_file(
-                        model=self.model, root=temproot
-                    )
+                    self.model._impl.datarefmgr.save_data(root=temproot)
                     ziputil.copy_dir_to_zip(temproot, self.root)
             else:
-                self.system.iomanager.save_file(
-                    model=self.model, root=self.root)
+                self.model._impl.datarefmgr.save_data(root=self.root)
 
             if self.log_input:
                 ziputil.write_str_utf8(

@@ -1205,13 +1205,9 @@ class BaseSpaceImpl(
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-    def restore_state(self, system):
+    def restore_state(self):
         """Called after unpickling to restore some attributes manually."""
-        Impl.restore_state(self, system)
-        BaseSpaceContainerImpl.restore_state(self, system)
-
-        for cells in self._cells.values():
-            cells.restore_state(system)
+        BaseSpaceContainerImpl.restore_state(self)
 
     # ----------------------------------------------------------------------
     # Pandas, Module, Excel I/O
@@ -1659,6 +1655,7 @@ class UserSpaceImpl(
                       is_derived=is_derived)
 
     def on_del_ref(self, name):
+        self.self_refs[name].on_delete()
         self.self_refs.del_item(name)
 
 
@@ -1833,9 +1830,9 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         self.argvalues = tuple(self.boundargs.arguments.values())
         self.argvalues_if = tuple(get_interfaces(self.argvalues))
 
-    def restore_state(self, system):
+    def restore_state(self):
 
-        super().restore_state(system)
+        super().restore_state()
 
         # From Python 3.5, signature is pickable,
         # pickling logic involving signature may be simplified.
