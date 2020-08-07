@@ -70,7 +70,7 @@ class BaseSharedData:
     def _check_sanity(self):
         for client in self.clients.values():
             assert client._data is self
-            assert client.manager is self.manager
+            assert client._manager is self.manager
 
 
 class IOManager:
@@ -128,6 +128,13 @@ class IOManager:
 
 
 class BaseDataClient:
+    """Abstract base class for accessing data stored in files
+
+    See Also:
+        :class:`~modelx.io.excelio.ExcelRange`
+        :attr:`~modelx.core.model.Model.dataclients`
+
+    """
 
     def _on_register(self, manager, model, **kwargs):
         raise NotImplementedError
@@ -143,12 +150,6 @@ class BaseDataClient:
 
     def __hash__(self):
         return hash(id(self))
-
-    def remove_self(self):
-        self._data.remove_client(self)
-
-    def save_data(self, root):
-        self._data.save(root=root)
 
 
 class DataClientReferenceManager:
@@ -172,13 +173,13 @@ class DataClientReferenceManager:
             refs.remove(ref)
             if not refs:
                 del self._client_to_refs[client]
-            client.remove_self()
+            client._data.remove_client(client)
         else:
             raise ValueError("client must be BaseDataClient")
 
     def save_data(self, root):
         for client in self._client_to_refs:
-            client.save_data(root)
+            client._data.save(root)
 
     def del_all(self):
         for client, refs in self._client_to_refs.copy().items():

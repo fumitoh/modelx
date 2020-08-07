@@ -228,27 +228,55 @@ class _RangeType:
 
 
 class ExcelRange(BaseDataClient, Mapping):
-    """
+    """Mapping class for accessing Excel ranges
 
-    Args:
-        path: Path to the Excel file for saving data. If a relative
-            path is given, it is relative to the model folder.
-        keys(optional): sequence of strings to specify
-            rows and columns to be interpreted as keys.
-            E.g. ``["r0", "c1"]`` means keys are pairs of values
-            taken from the 1st row and the second column in the ``range_``.
-        loadpath(optional): Absolute path to the Excel file to be read in.
-            Defaults to ``path``.
+    An ExcelRange is a dict-like object that
+    represents a range in an Excel file.
+    The user can read values from the range or write values to it by
+    the subscription operator ``[]``.
+    ExcelRange is a mapping class, thus it implements all the mapping
+    methods and operations.
+
+    ExcelRange objects can only be created by the
+    :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+    or
+    :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+    method.
+
+    :class:`ExcelRange` is a subclass of the
+    :class:`~modelx.io.baseio.BaseDataClient` abstract class.
+    The :attr:`~modelx.core.model.Model.dataclients` property
+    list all the :class:`~modelx.io.baseio.BaseDataClient` instances
+    held in the Model including :class:`ExcelRange` objects.
+
+    See Also:
+
+        :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+        :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+        :attr:`~modelx.core.model.Model.dataclients`
+
+    .. versionadded:: 0.9.0
+
     """
     def __init__(self, path, range_, sheet=None, keyids=None, loadpath=None):
-
+        """
+        Args:
+            path: Path to the Excel file for saving data. If a relative
+                path is given, it is relative to the model folder.
+            keyids(optional): sequence of strings to specify
+                rows and columns to be interpreted as keys.
+                E.g. ``["r0", "c1"]`` means keys are pairs of values
+                taken from the 1st row and the second column in the ``range_``.
+            loadpath(optional): Absolute path to the Excel file to be read in.
+                Defaults to ``path``.
+        """
         self.path = pathlib.Path(path)
         if loadpath:
             self.loadpath = pathlib.Path(loadpath)
         else:
             self.loadpath = self.path
 
-        self.manager = None
+        self._manager = None
         self._data = None
         self.range = range_
         self.sheet = sheet
@@ -262,8 +290,8 @@ class ExcelRange(BaseDataClient, Mapping):
         else:
             loadpath = self.loadpath
 
-        self.manager = manager
-        self._data = self.manager.get_or_create_data(
+        self._manager = manager
+        self._data = self._manager.get_or_create_data(
             self.path, model, cls=ExcelWorkbook, loadpath=loadpath)
         self._load_cells(self.keyids)
 
@@ -272,7 +300,7 @@ class ExcelRange(BaseDataClient, Mapping):
 
     def __getstate__(self):
         return {
-            "manager": self.manager,
+            "manager": self._manager,
             "_data": self._data,
             "path": self.path,
             "range": self.range,
@@ -281,14 +309,14 @@ class ExcelRange(BaseDataClient, Mapping):
         }
 
     def __setstate__(self, state):
-        self.manager = state["manager"]
+        self._manager = state["manager"]
         self._data = state["_data"]
         self.path = state["path"]
         self.range = state["range"]
         self.sheet = state["sheet"]
         self.keyids = state["keyids"]
-        if self.manager.system.serializing:
-            self.manager.unpickle_client(self)
+        if self._manager.system.serializing:
+            self._manager.unpickle_client(self)
 
     def _on_delete(self, manager, **kwargs):
         self._data.remove_client(self)

@@ -319,24 +319,47 @@ class EditableSpaceContainer(BaseSpaceContainer):
         """Creates a Reference to an Excel range
 
         Reads an Excel range from an Excel file,
-        creates an ExcelRange object and assigns it to a Reference
+        creates an
+        :class:`~modelx.io.excelio.ExcelRange` object
+        and assigns it to a Reference
         named ``name``.
 
-        The object returned by this method is an ExcelRange object.
+        The object returned by this method is an
+        :class:`~modelx.io.excelio.ExcelRange` object.
         It is a mapping object, and has the same methods and operations
         as other mapping objects, such as :obj:`dict`.
         The user can read and write values to an Excel file through the
         object by the same operators and methods as :obj:`dict`.
+
+        :class:`~modelx.io.excelio.ExcelRange` objects are
+        associated to the Model of the bound References.
+
+        Bindings between :class:`~modelx.io.excelio.ExcelRange` objects
+        and References are kept track of in the belonging Model,
+        an :class:`~modelx.io.excelio.ExcelRange` object is
+        deleted when all the References bound to the object is deleted.
+
+        :class:`~modelx.io.excelio.ExcelRange`
+        objects cannot have Excel ranges overlapping with others.
+
+        An :class:`~modelx.io.excelio.ExcelRange` object is
+        deleted when all the References bound to the object is deleted.
 
         The Excel range is read from a workbook specified by
         ``loadpath`` and saved to ``path``.
         If no ``loadpath`` is given, ``path`` is used also
         for reading.
 
-        The ``path`` is a path-like object, and can be either or a
-        relative or absolute. If relative path is given, the output
-        file is saved in the model path, and
-        ``path`` is interpreted as a path relative to the model path.
+        The ``path`` is a path-like object, and can be either a
+        relative or absolute path. If a relative path is given, the output
+        file becomes an **internal data file**, and when this Model
+        is saved by :func:`~modelx.write_model` or :func:`~modelx.zip_model`,
+        the file is saved in the model folder or the zipped file
+        output by the functions,
+        and ``path`` is interpreted as a path relative to the model path.
+        If an absolute path is given, the output file becomes
+        an **external data file** and the file is saved outside the
+        model folder or zip file.
 
         The ``range_`` parameter takes a string
         that indicates an Excel range, such as "A1:D5", or
@@ -361,32 +384,60 @@ class EditableSpaceContainer(BaseSpaceContainer):
             +-----+-----+-----+
             |     | AA  | BB  |
             +-----+-----+-----+
-            |  0  | 10  | 11  |
+            |  0  | 11  | 21  |
             +-----+-----+-----+
-            |  1  | 20  | 21  |
+            |  1  | 12  | 22  |
             +-----+-----+-----+
-            |  2  | 30  | 31  |
+            |  2  | 13  | 23  |
             +-----+-----+-----+
 
-            The next code creates a Reference named ``x`` in a Space ``space``::
+            The next code creates a Reference
+            named ``x`` in a Space ``space``::
 
-                >>> space.new_excel_range("x", "files/Book1.xlsx", "A1:D4",
+                >>> xlr = space.new_excel_range("x", "files/Book1.xlsx", "A1:D4",
                         sheet="Sheet1", keys=["r0", "c0"], loadpath="Book1.xlsx")
 
             The values in the range are accessible
-            through the ``[]`` operator. "r0" in the ``keys`` parameter
+            through the ``[]`` operator. "r0" in the ``keyids`` parameter
             denotes the first row, and "c0" denotes the first column.
             So keys to be passed in the ``[]`` operator are
             taken from the row and the column, for example::
 
+                >>> xlr["BB", 1]
+                22
+
                 >>> space.x["BB", 1]
-                21
+                22
+
+                >>> dict(xlr)
+                {('AA', 1): 11,
+                 ('AA', 2): 12,
+                 ('AA', 3): 13,
+                 ('BB', 1): 21,
+                 ('BB', 2): 22,
+                 ('BB', 3): 23}
+
+            Multiple :class:`~modelx.io.excelio.ExcelRange`
+            objects cannot be created on overlapping ranges.
+            When ``keyids`` is omitted, 0-indexed integer keys are assigned::
+
+                >>> xlr2 = space.new_excel_range("y", "files/Book1.xlsx", "B2:D4",
+                        sheet="Sheet1", loadpath="Book1.xlsx")
+                ValueError: cannot add client
+
+                >>> del space.x
+
+                >>> xlr2 = space.new_excel_range("y", "files/Book1.xlsx", "B2:D4",
+                        sheet="Sheet1", loadpath="Book1.xlsx")
+
+                >>> dict(xlr2)
+                {(0, 0): 11, (0, 1): 21, (1, 0): 12, (1, 1): 22, (2, 0): 13, (2, 1): 23}
 
         Note:
             This method reads and writes values from
             Excel files, not formulas.
-            From cells with formulas in the ``loadpath`` file, last-saved
-            values stored in the file.
+            From formulas cells in the ``loadpath`` file, last-saved
+            values stored in the file are read in.
 
         Args:
             name: A name of a Reference or a Cells object with no arguments.
@@ -401,6 +452,11 @@ class EditableSpaceContainer(BaseSpaceContainer):
                 the fist row and the first column are to interpreted as keys
                 in that order.
             loadpath(optional): The path of the input Excel file.
+
+        See Also:
+
+            :class:`~modelx.io.excelio.ExcelRange`
+            :attr:`~modelx.core.model.Model.dataclients`
 
         .. versionadded:: 0.9.0
 

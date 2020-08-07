@@ -323,3 +323,25 @@ def test_range_conflict_error(tmp_path, parent, is_relative, erroneous):
         xlr = s.new_excel_range(**kwargs)
         assert set(xlr.values()) == set(expected.values())
         del s.table1
+
+
+def test_dataclients(tmp_path):
+
+    m = mx.new_model()
+    s = m.new_space()
+
+    kwargs = testargs[0].copy()
+    expected = kwargs.pop("expected")
+
+    kwargs["path"] = "files/testexcel.xlsx"
+    kwargs["sheet"] = "TestTables"
+    kwargs["loadpath"] = XL_TESTDATA
+
+    xlr = s.new_excel_range(**kwargs)
+
+    assert m.dataclients
+    m.x = s.table1
+    del s.table1
+    assert m.dataclients
+    del m.x
+    assert not m.dataclients

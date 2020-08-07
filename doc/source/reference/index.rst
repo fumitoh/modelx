@@ -12,7 +12,7 @@ Reference Guide
    space/index
    cells
    view
-   element
+   other_types
 
 
 .. rubric:: Miscellaneous

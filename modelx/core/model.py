@@ -141,6 +141,8 @@ class Model(EditableSpaceContainer):
     def save(self, filepath, datapath=None):
         """Back up the model to a file.
 
+        .. deprecated:: 0.9.0 Use :meth:`backup` instead.
+
         Alias for :meth:`backup`. See :meth:`backup` for details.
         """
         self._impl.system.backup_model(self, filepath, datapath)
@@ -157,10 +159,12 @@ class Model(EditableSpaceContainer):
         for example, due to package upgrade.
         Saving the model by :meth:`write` method is more robust.
 
+        .. versionchanged:: 0.9.0 ``datapath`` parameter is added.
         .. versionadded:: 0.7.0
 
         Args:
             filepath(str): file path
+            datapath(optional): Path to a folder to store internal files.
 
         See Also:
             :meth:`write`
@@ -227,6 +231,26 @@ class Model(EditableSpaceContainer):
 
     @property
     def dataclients(self):
+        """List of :class:`~modelx.io.baseio.BaseDataClient` objects
+
+        Returns a list of objects of BaseDataClient sub-classes
+        that are associated to this Model.
+
+        :class:`~modelx.io.excelio.ExcelRange`
+        is a sub class of :class:`~modelx.io.baseio.BaseDataClient`, and
+        :class:`~modelx.io.excelio.ExcelRange`
+        objects created by
+        :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+        or
+        :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+        methods of this Model
+        are included in the returned list.
+
+        See Also:
+
+            :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+            :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+        """
         return list(self._impl.datarefmgr.clients)
 
     @property

@@ -22,6 +22,7 @@ Model properties
   ~Model.properties
   ~Model.spaces
   ~Model.refs
+  ~Model.dataclients
   ~Model.tracegraph
 
 Model operations
