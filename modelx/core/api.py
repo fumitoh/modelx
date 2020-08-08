@@ -536,6 +536,7 @@ def zip_model(model, model_path, backup=True, log_input=False,
             See `zipfile.ZipFile`_ explanation on the Python Standard
             Library site for available integer identifiers for
             each compression method.
+            For Python 3.6, this parameter is ignored.
 
         version(int, optional): Format version to write model.
             Defaults to the most recent version.

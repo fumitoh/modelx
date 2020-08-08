@@ -229,6 +229,7 @@ class Model(EditableSpaceContainer):
                 See `zipfile.ZipFile`_ explanation on the Python Standard
                 Library site for available integer identifiers for
                 each compression method.
+                For Python 3.6, this parameter is ignored.
 
         .. _zipfile.ZipFile:
            https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile
