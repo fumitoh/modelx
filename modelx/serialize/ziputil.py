@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import pathlib
 import zipfile
 import tempfile
@@ -32,13 +33,25 @@ def make_parent_dir(path: pathlib.Path):
         path.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _compress_kwargs(compression, compresslevel):
+
+    kwargs = dict(
+        compression=compression,
+        compresslevel=compresslevel)
+
+    if sys.version_info[:2] <= (3, 6):
+        kwargs.pop("compresslevel")
+
+    return kwargs
+
+
 def make_root(root: pathlib.Path, is_zip: bool,
               compression=None,
               compresslevel=None):
     if is_zip:
+
         with zipfile.ZipFile(root, "w",
-                             compression=compression,
-                             compresslevel=compresslevel):
+                             **_compress_kwargs(compression, compresslevel)):
             pass
     else:
         root.mkdir(parents=True, exist_ok=True)
@@ -144,18 +157,16 @@ def write_str(string: str, path: pathlib.Path,
     """Write string into a file under a directory or in a zip file."""
 
     write_file(lambda f: f.write(string), path, mode="t",
-            encoding=encoding, newline=newline,
-            compression=compression,
-            compresslevel=compresslevel
-        )
+                encoding=encoding, newline=newline,
+                **_compress_kwargs(compression, compresslevel))
 
 
 def write_str_utf8(string: str, path: pathlib.Path, newline=None,
                    compression=None,
                    compresslevel=None):
+
     write_str(string, path, encoding="utf-8", newline=newline,
-              compression=compression,
-              compresslevel=compresslevel
+              **_compress_kwargs(compression, compresslevel)
               )
 
 
@@ -173,8 +184,7 @@ def pandas_to_pickle(obj, path: pathlib.Path,
             with zipfile.ZipFile(
                     root,
                     mode="a",
-                    compression=compression,
-                    compresslevel=compresslevel
+                    **_compress_kwargs(compression, compresslevel)
                     ) as f:
                 if not _archive_exists(archive, f):
                     if is_valid_archive_path(archive, f):
@@ -219,8 +229,7 @@ def write_file(callback, path: pathlib.Path, mode,
         with get_io(mode) as buff:
             with zipfile.ZipFile(
                     root, mode="a",
-                    compression=compression,
-                    compresslevel=compresslevel
+                    **_compress_kwargs(compression, compresslevel)
             ) as f:
                 if not _archive_exists(archive, f):
                     if is_valid_archive_path(archive, f):
@@ -240,8 +249,7 @@ def write_file_utf8(callback, path: pathlib.Path, mode, newline=None,
                     compression=None,
                     compresslevel=None):
     return write_file(callback, path, mode, encoding="utf-8", newline=newline,
-                      compression=compression,
-                      compresslevel=compresslevel)
+                      **_compress_kwargs(compression, compresslevel))
 
 
 def copy_file(src: pathlib.Path, dst: pathlib.Path,
@@ -258,8 +266,7 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path,
             with zip_src.open(arc_src, mode="r") as f_src:
                 with zipfile.ZipFile(
                         root_dst, mode="a",
-                        compression=compression,
-                        compresslevel=compresslevel
+                        **_compress_kwargs(compression, compresslevel)
                         ) as zip_dst:
                     if not _archive_exists(arc_dst, zip_dst):
                         if is_valid_archive_path(arc_dst, zip_dst):
@@ -283,8 +290,7 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path,
 
         arc_dst = get_archive_path(dst, root_dst)
         with zipfile.ZipFile(root_dst, mode="a",
-                             compression=compression,
-                             compresslevel=compresslevel
+                             **_compress_kwargs(compression, compresslevel)
                              ) as zip_dst:
             if not _archive_exists(arc_dst, zip_dst):
                 if is_valid_archive_path(arc_dst, zip_dst):
@@ -314,8 +320,7 @@ def copy_dir_to_zip(src: pathlib.Path, dest: pathlib.Path,
             rel = srcfile.relative_to(src)
             destfile = dest.joinpath(rel)
             copy_file(srcfile, destfile,
-                      compression=compression,
-                      compresslevel=compresslevel)
+                      **_compress_kwargs(compression, compresslevel))
 
 
 def read_str(path: pathlib.Path, encoding=None, newline=None):
