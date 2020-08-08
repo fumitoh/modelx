@@ -28,6 +28,7 @@ import sys as _sys
 import ast as _ast
 import warnings
 from types import FunctionType as _FunctionType
+import zipfile
 
 from modelx.core import mxsys as _system
 from modelx.core.cells import CellsMaker as _CellsMaker
@@ -502,11 +503,16 @@ def write_model(model, model_path, backup=True, log_input=False, version=None):
         backup=backup, log_input=log_input, version=version)
 
 
-def zip_model(model, model_path, backup=True, log_input=False, version=None):
+def zip_model(model, model_path, backup=True, log_input=False,
+              compression=zipfile.ZIP_DEFLATED, compresslevel=None,
+              version=None):
     """Archive model to a zip file
 
     Write ``model`` to a single zip file. The contents are the
     same as the directory tree output by the :func:`write_model` function.
+
+    .. versionchanged:: 0.9.0
+        ``compression`` and ``compresslevel`` parameters are added.
 
     .. versionadded:: 0.8.0
 
@@ -518,15 +524,37 @@ def zip_model(model, model_path, backup=True, log_input=False, version=None):
         log_input(bool, optional): If ``True``, input values in Cells are
             output to *_input_log.txt* under ``model_path``. Defaults
             to ``False``.
+        compression(optional): Identifier of the ZIP compression method
+            to use. This method uses `zipfile.ZipFile`_ class internally
+            and ``compression`` and ``compresslevel`` arguments are
+            passed to `zipfile.ZipFile`_ constructor.
+            See `zipfile.ZipFile`_ manual page for available identifiers.
+            Defaults to `zipfile.ZIP_DEFLATED`_.
+        compresslevel(optional):
+            Integer identifier to indicate the compression level to use.
+            If not specified, the default compression level is used.
+            See `zipfile.ZipFile`_ explanation on the Python Standard
+            Library site for available integer identifiers for
+            each compression method.
+
         version(int, optional): Format version to write model.
             Defaults to the most recent version.
+            This parameter should be left unspecified in normal cases.
+
+    .. _zipfile.ZipFile:
+       https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile
+
+    .. _zipfile.ZIP_DEFLATED:
+       https://docs.python.org/3/library/zipfile.html#zipfile.ZIP_DEFLATED
 
     See Also:
         :func:`write_model`
     """
     return _serialize.write_model(
         _system, model, model_path, is_zip=True,
-        backup=backup, log_input=log_input, version=version)
+        backup=backup, log_input=log_input,
+        compression=compression, compresslevel=compresslevel,
+        version=version)
 
 
 def read_model(model_path, name=None):

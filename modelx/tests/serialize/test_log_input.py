@@ -1,6 +1,7 @@
 import modelx as mx
 import pytest
 import itertools
+import zipfile
 from modelx.serialize import ziputil
 
 sample_log = """\

@@ -2,6 +2,7 @@ import pathlib
 import importlib
 import shutil
 import json
+import zipfile
 from . import ziputil
 
 
@@ -89,7 +90,10 @@ def _get_model_serializer(model_path):
 
 
 def write_model(system, model, model_path,
-                is_zip, backup=True, log_input=False, version=None):
+                is_zip, backup=True, log_input=False,
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=None,
+                version=None):
 
     version = version or HIGHEST_VERSION
     max_backups = DEFAULT_MAX_BACKUPS if backup else 0
@@ -97,12 +101,16 @@ def write_model(system, model, model_path,
     root = pathlib.Path(model_path)
     _increment_backups(model, root, max_backups)
 
-    ziputil.make_root(root, is_zip)
+    ziputil.make_root(root, is_zip, compression, compresslevel)
     ziputil.write_str(json.dumps({"serializer_version": version}),
-                      root / "_system.json")
+                      root / "_system.json",
+                      compression=compression,
+                      compresslevel=compresslevel)
 
     serializer = _get_serializer(version)
-    serializer.ModelWriter(system, model, root, log_input=log_input
+    serializer.ModelWriter(system, model, root, log_input=log_input,
+                           compression=compression,
+                           compresslevel=compresslevel
                            ).write_model()
 
     return model

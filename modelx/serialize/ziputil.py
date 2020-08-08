@@ -32,9 +32,13 @@ def make_parent_dir(path: pathlib.Path):
         path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def make_root(root: pathlib.Path, is_zip: bool):
+def make_root(root: pathlib.Path, is_zip: bool,
+              compression=None,
+              compresslevel=None):
     if is_zip:
-        with zipfile.ZipFile(root, "w"):
+        with zipfile.ZipFile(root, "w",
+                             compression=compression,
+                             compresslevel=compresslevel):
             pass
     else:
         root.mkdir(parents=True, exist_ok=True)
@@ -134,18 +138,30 @@ def is_valid_archive_path(archive, file: zipfile.ZipFile):
 
 
 def write_str(string: str, path: pathlib.Path,
-                 encoding=None, newline=None):
+              encoding=None, newline=None,
+              compression=None,
+              compresslevel=None):
     """Write string into a file under a directory or in a zip file."""
 
     write_file(lambda f: f.write(string), path, mode="t",
-                 encoding=encoding, newline=newline)
+            encoding=encoding, newline=newline,
+            compression=compression,
+            compresslevel=compresslevel
+        )
 
 
-def write_str_utf8(string: str, path: pathlib.Path, newline=None):
-    write_str(string, path, encoding="utf-8", newline=newline)
+def write_str_utf8(string: str, path: pathlib.Path, newline=None,
+                   compression=None,
+                   compresslevel=None):
+    write_str(string, path, encoding="utf-8", newline=newline,
+              compression=compression,
+              compresslevel=compresslevel
+              )
 
 
-def pandas_to_pickle(obj, path: pathlib.Path):
+def pandas_to_pickle(obj, path: pathlib.Path,
+                     compression=None,
+                     compresslevel=None):
 
     root = find_zip_parent(path)
 
@@ -154,7 +170,12 @@ def pandas_to_pickle(obj, path: pathlib.Path):
             filepath = str(pathlib.Path(dirname).joinpath("temp"))
             obj.to_pickle(filepath)
             archive = get_archive_path(path, root)
-            with zipfile.ZipFile(root, mode="a") as f:
+            with zipfile.ZipFile(
+                    root,
+                    mode="a",
+                    compression=compression,
+                    compresslevel=compresslevel
+                    ) as f:
                 if not _archive_exists(archive, f):
                     if is_valid_archive_path(archive, f):
                         f.write(filepath, archive)
@@ -167,7 +188,9 @@ def pandas_to_pickle(obj, path: pathlib.Path):
 
 
 def write_file(callback, path: pathlib.Path, mode,
-                 encoding=None, newline=None):
+               encoding=None, newline=None,
+               compression=None,
+               compresslevel=None):
 
     if mode == "b":
         def encode(b): return b
@@ -194,7 +217,11 @@ def write_file(callback, path: pathlib.Path, mode,
     if root:
         archive = get_archive_path(path, root)
         with get_io(mode) as buff:
-            with zipfile.ZipFile(root, mode="a") as f:
+            with zipfile.ZipFile(
+                    root, mode="a",
+                    compression=compression,
+                    compresslevel=compresslevel
+            ) as f:
                 if not _archive_exists(archive, f):
                     if is_valid_archive_path(archive, f):
                         callback(buff)
@@ -209,11 +236,16 @@ def write_file(callback, path: pathlib.Path, mode,
             callback(f)
 
 
-def write_file_utf8(callback, path: pathlib.Path, mode, newline=None):
-    return write_file(callback, path, mode, encoding="utf-8", newline=newline)
+def write_file_utf8(callback, path: pathlib.Path, mode, newline=None,
+                    compression=None,
+                    compresslevel=None):
+    return write_file(callback, path, mode, encoding="utf-8", newline=newline,
+                      compression=compression,
+                      compresslevel=compresslevel)
 
 
-def copy_file(src: pathlib.Path, dst: pathlib.Path):
+def copy_file(src: pathlib.Path, dst: pathlib.Path,
+              compression=None, compresslevel=None):
 
     root_src = find_zip_parent(src)
     root_dst = find_zip_parent(dst)
@@ -224,7 +256,11 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path):
         arc_dst = get_archive_path(dst, root_dst)
         with zipfile.ZipFile(root_src, mode="r") as zip_src:
             with zip_src.open(arc_src, mode="r") as f_src:
-                with zipfile.ZipFile(root_dst, mode="a") as zip_dst:
+                with zipfile.ZipFile(
+                        root_dst, mode="a",
+                        compression=compression,
+                        compresslevel=compresslevel
+                        ) as zip_dst:
                     if not _archive_exists(arc_dst, zip_dst):
                         if is_valid_archive_path(arc_dst, zip_dst):
                             zip_dst.writestr(arc_dst, f_src.read())
@@ -246,7 +282,10 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path):
     elif not root_src and root_dst:
 
         arc_dst = get_archive_path(dst, root_dst)
-        with zipfile.ZipFile(root_dst, mode="a") as zip_dst:
+        with zipfile.ZipFile(root_dst, mode="a",
+                             compression=compression,
+                             compresslevel=compresslevel
+                             ) as zip_dst:
             if not _archive_exists(arc_dst, zip_dst):
                 if is_valid_archive_path(arc_dst, zip_dst):
                     zip_dst.write(src, arc_dst)
@@ -260,7 +299,8 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path):
         raise RuntimeError("must not happen")
 
 
-def copy_dir_to_zip(src: pathlib.Path, dest: pathlib.Path):
+def copy_dir_to_zip(src: pathlib.Path, dest: pathlib.Path,
+                    compression, compresslevel):
     """Copy directory tree into a zip file
 
     Arg:
@@ -273,7 +313,9 @@ def copy_dir_to_zip(src: pathlib.Path, dest: pathlib.Path):
             srcfile = pathlib.Path(os.path.join(d, f))
             rel = srcfile.relative_to(src)
             destfile = dest.joinpath(rel)
-            copy_file(srcfile, destfile)
+            copy_file(srcfile, destfile,
+                      compression=compression,
+                      compresslevel=compresslevel)
 
 
 def read_str(path: pathlib.Path, encoding=None, newline=None):

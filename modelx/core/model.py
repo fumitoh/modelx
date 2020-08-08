@@ -14,8 +14,7 @@
 
 import builtins
 import itertools
-import pickle
-import copy
+import zipfile
 
 import networkx as nx
 
@@ -24,12 +23,10 @@ from modelx.core.base import (
     Interface,
     Impl,
     get_interfaces,
-    ImplDict,
     ReferenceManager,
     ImplChainMap,
     BaseView,
-    Derivable,
-    NullImpl
+    Derivable
 )
 from modelx.core.reference import ReferenceImpl
 from modelx.core.cells import CellsImpl, UserCellsImpl
@@ -191,25 +188,59 @@ class Model(EditableSpaceContainer):
 
         Args:
             model_path(str): Folder(directory) path where the model is saved.
+            backup(bool, optional): Whether to backup an existing file with
+                the same name if it already exists. Defaults to ``True``.
+            log_input(bool, optional): If ``True``, input values in Cells are
+                output to *_input_log.txt* under ``model_path``. Defaults
+                to ``False``.
         """
         from modelx.serialize import write_model
         write_model(self._impl.system, self, model_path, is_zip=False,
                     backup=backup, log_input=log_input)
 
-    def zip(self, model_path, backup=True, log_input=False):
+    def zip(self, model_path, backup=True, log_input=False,
+            compression=zipfile.ZIP_DEFLATED, compresslevel=None):
         """Archive model to a zip file.
 
         This method performs the :py:func:`~modelx.zip_model`
         on self. See :py:func:`~modelx.zip_model` section for the details.
 
+        .. versionchanged:: 0.9.0
+            ``compression`` and ``compresslevel`` parameters are added.
+
         .. versionadded:: 0.8.0
 
         Args:
             model_path(str): Folder(directory) path where the model is saved.
+            backup(bool, optional): Whether to backup an existing file with
+                the same name if it already exists. Defaults to ``True``.
+            log_input(bool, optional): If ``True``, input values in Cells are
+                output to *_input_log.txt* under ``model_path``. Defaults
+                to ``False``.
+            compression(optional): Identifier of the ZIP compression method
+                to use. This method uses `zipfile.ZipFile`_ class internally
+                and ``compression`` and ``compresslevel`` arguments are
+                passed to `zipfile.ZipFile`_ constructor.
+                See `zipfile.ZipFile`_ manual page for available identifiers.
+                Defaults to `zipfile.ZIP_DEFLATED`_.
+            compresslevel(optional):
+                Integer identifier to indicate the compression level to use.
+                If not specified, the default compression level is used.
+                See `zipfile.ZipFile`_ explanation on the Python Standard
+                Library site for available integer identifiers for
+                each compression method.
+
+        .. _zipfile.ZipFile:
+           https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile
+
+        .. _zipfile.ZIP_DEFLATED:
+           https://docs.python.org/3/library/zipfile.html#zipfile.ZIP_DEFLATED
+
         """
         from modelx.serialize import write_model
         write_model(self._impl.system, self, model_path, is_zip=True,
-                    backup=backup, log_input=log_input)
+                    backup=backup, log_input=log_input,
+                    compression=compression, compresslevel=compresslevel)
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes

@@ -85,7 +85,7 @@ class ModelUnpickler(pickle.Unpickler):
                 if self.reader.temproot:
                     dst = self.reader.temproot.joinpath(path)
                     if not dst.exists():
-                        ziputil.copy_file(src, dst)
+                        ziputil.copy_file(src, dst, None, None)
                     loadpath = dst
                 else:
                     loadpath = src
@@ -324,7 +324,9 @@ class ModelWriter:
     space_encoder = None
 
     def __init__(self, system, model: Model, path: pathlib.Path,
-                 log_input: bool):
+                 log_input: bool,
+                 compression,
+                 compresslevel):
 
         self.system = system
         self.model = model
@@ -334,6 +336,8 @@ class ModelWriter:
         self.method_encoders = []
         self.log_input = log_input
         self.input_log = []
+        self.compression = compression
+        self.compresslevel = compresslevel
 
     def write_model(self):
 
@@ -351,14 +355,18 @@ class ModelWriter:
                 with tempfile.TemporaryDirectory() as tempdir:
                     temproot = pathlib.Path(tempdir)
                     self.model._impl.datarefmgr.save_data(root=temproot)
-                    ziputil.copy_dir_to_zip(temproot, self.root)
+                    ziputil.copy_dir_to_zip(temproot, self.root,
+                                            compression=self.compression,
+                                            compresslevel=self.compresslevel)
             else:
                 self.model._impl.datarefmgr.save_data(root=self.root)
 
             if self.log_input:
                 ziputil.write_str_utf8(
                     "\n".join(self.input_log),
-                    self.root / "_input_log.txt"
+                    self.root / "_input_log.txt",
+                    compression=self.compression,
+                    compresslevel=self.compresslevel
                 )
 
         finally:
@@ -367,7 +375,9 @@ class ModelWriter:
 
     def _write_recursive(self, encoder):
 
-        ziputil.write_str_utf8(encoder.encode(), encoder.srcpath)
+        ziputil.write_str_utf8(encoder.encode(), encoder.srcpath,
+                               compression=self.compression,
+                               compresslevel=self.compresslevel)
 
         for space in encoder.target.spaces.values():
 
@@ -388,7 +398,10 @@ class ModelWriter:
             file = self.root / "_data/data.pickle"
             ziputil.write_file_utf8(
                 lambda f: ModelPickler(f).dump(self.pickledata),
-                file, mode="b")
+                file, mode="b",
+                compression=self.compression,
+                compresslevel=self.compresslevel
+            )
 
 
 class BaseEncoder:
@@ -440,7 +453,7 @@ class ModelEncoder(BaseEncoder):
         for space in model.spaces.values():
             if MethodCallEncoder.from_method(space):
                 enc = MethodCallSelector.select(space)(
-                    self,
+                    self.writer,
                     space,
                     parent=self.model,
                     srcpath=self.srcpath,
@@ -507,7 +520,7 @@ class SpaceEncoder(BaseEncoder):
             encoder = MethodCallSelector.select(space)
             if encoder:
                 enc = encoder(
-                    self,
+                    self.writer,
                     space,
                     parent=self.space,
                     srcpath=srcpath,
@@ -522,7 +535,7 @@ class SpaceEncoder(BaseEncoder):
             encoder = MethodCallSelector.select(cells)
             if encoder:
                 enc = encoder(
-                    self,
+                    self.writer,
                     cells,
                     parent=self.space,
                     srcpath=srcpath,
@@ -626,7 +639,9 @@ class SpaceEncoder(BaseEncoder):
                 for s in self.space._named_itemspaces.values():
                     self._pickle_dynamic_space(f, s)
 
-            ziputil.write_file_utf8(callback, datafile, "t")
+            ziputil.write_file_utf8(callback, datafile, "t",
+                                    compression=self.writer.compression,
+                                    compresslevel=self.writer.compresslevel)
 
     def _pickle_dynamic_space(self, file, space):
 
@@ -740,7 +755,9 @@ class CellsEncoder(BaseEncoder):
                 for keyid, valid in cellsdata:
                     f.write("(%s, %s)\n" % (keyid, valid))
 
-            ziputil.write_file_utf8(write_dataid, self.datapath, "t")
+            ziputil.write_file_utf8(write_dataid, self.datapath, "t",
+                                    compression=self.writer.compression,
+                                    compresslevel=self.writer.compresslevel)
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -760,7 +777,9 @@ class MethodCallEncoder(BaseEncoder):
 
     def instruct(self):
         func = type(self).write_method
-        return Instruction(func, args=(self.target, self.srcpath.parent))
+        return Instruction(func, args=(self.target, self.srcpath.parent),
+                           kwargs={"compression": self.writer.compression,
+                                   "compresslevel": self.writer.compresslevel})
 
     @property
     def callid(self):
@@ -777,12 +796,14 @@ class MethodCallEncoder(BaseEncoder):
         return src and "method" in src and src["method"]
 
 
-def copy_file(obj, path_: pathlib.Path):
+def copy_file(obj, path_: pathlib.Path, compression, compresslevel):
     src = obj._impl.source
     srcpath = pathlib.Path(src["args"][0])
     ziputil.copy_file(
         srcpath,
-        path_.joinpath(srcpath.name)
+        path_.joinpath(srcpath.name),
+        compression=compression,
+        compresslevel=compresslevel
     )
 
 
@@ -814,12 +835,16 @@ class FromFileEncoder(MethodCallEncoder):
             return False
 
 
-def write_pandas(obj, path_: pathlib.Path, filename=None):
+def write_pandas(obj, path_: pathlib.Path, filename=None,
+                 compression=zipfile.ZIP_DEFLATED,
+                 compresslevel=None):
     src = obj._impl.source
     data = src["args"][0]
     if not filename:
         filename = obj.name + ".pandas"
-    ziputil.pandas_to_pickle(data, path_.joinpath(filename))
+    ziputil.pandas_to_pickle(data, path_.joinpath(filename),
+                             compression=compression,
+                             compresslevel=compresslevel)
 
 
 class FromPandasEncoder(MethodCallEncoder):
@@ -849,7 +874,9 @@ class FromPandasEncoder(MethodCallEncoder):
     def instruct(self):
         func = type(self).write_method
         return Instruction(func, args=(
-            self.target, self.datapath, self.callid))
+            self.target, self.datapath, self.callid),
+                           kwargs={"compression": self.writer.compression,
+                                   "compresslevel": self.writer.compresslevel})
 
     @classmethod
     def condition(cls, target):

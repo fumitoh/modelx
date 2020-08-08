@@ -1,4 +1,5 @@
 import itertools
+import zipfile
 import pytest
 from modelx import (
     write_model,
@@ -64,7 +65,12 @@ def test_read_write_model(testmodel, tmp_path, name, version, as_method,
     if as_method:
         getattr(testmodel, write_method)(path_)
     else:
-        getattr(mx, write_method + "_model")(testmodel, path_, version=version)
+        if as_method == "zip":
+            kwargs = dict(compression=zipfile.ZIP_STORED, version=version)
+        else:
+            kwargs = {}
+        getattr(mx, write_method + "_model")(
+            testmodel, path_, **kwargs)
     m = read_model(path_, name=name)
 
     assert m.name == (name if name else "TestModel")
@@ -155,6 +161,33 @@ def test_reference_identity(pickletest, tmp_path, name, write_method):
     # Cells input data
     assert dict(m.SpaceA.foo) == {0: 0, 1: m}
     assert dict(m.SpaceA.lambdacells) == {0: "123", m.SpaceA: 3}
+
+
+@pytest.fixture(params=range(2))
+def combined_testmodel_fixture(testmodel, pickletest, request):
+    return [testmodel, pickletest][request.param]
+
+
+@pytest.mark.parametrize("meth_or_func, compression",
+                         itertools.product(["meth", "func"],
+                                           [zipfile.ZIP_DEFLATED,
+                                            zipfile.ZIP_STORED]))
+def test_zip_compression(
+        combined_testmodel_fixture, tmp_path, meth_or_func, compression):
+
+    model = combined_testmodel_fixture
+
+    if meth_or_func == "meth":
+        model.zip(tmp_path / "model.zip",
+                       compression=compression)
+    else:
+        mx.zip_model(model, tmp_path / "model.zip",
+                     compression=compression)
+
+    archive = zipfile.ZipFile(tmp_path / "model.zip")
+
+    for info in archive.infolist():
+        assert info.compress_type == compression
 
 
 @pytest.mark.parametrize("write_method", ["write_model", "zip_model"])

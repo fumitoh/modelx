@@ -2,6 +2,7 @@
 import modelx as mx
 from modelx.tests.testdata import XL_TESTDATA
 import itertools
+import zipfile
 import pytest
 
 # Test patterns
@@ -345,3 +346,36 @@ def test_dataclients(tmp_path):
     assert m.dataclients
     del m.x
     assert not m.dataclients
+
+
+@pytest.mark.parametrize("meth_or_func, compression",
+                         itertools.product(["meth", "func"],
+                                           [zipfile.ZIP_DEFLATED,
+                                            zipfile.ZIP_STORED]))
+def test_zip_compression(tmp_path, meth_or_func, compression):
+
+    m = mx.new_model()
+    s = m.new_space()
+
+    kwargs = testargs[0].copy()
+    expected = kwargs.pop("expected")
+
+    kwargs["path"] = "files/testexcel.xlsx"
+    kwargs["sheet"] = "TestTables"
+    kwargs["loadpath"] = XL_TESTDATA
+
+    xlr = s.new_excel_range(**kwargs)
+
+    assert xlr == expected
+
+    if meth_or_func == "meth":
+        m.zip(tmp_path / "model.zip",
+              compression=compression)
+    else:
+        mx.zip_model(m, tmp_path / "model.zip",
+                     compression=compression)
+
+    archive = zipfile.ZipFile(tmp_path / "model.zip")
+
+    for info in archive.infolist():
+        assert info.compress_type == compression
