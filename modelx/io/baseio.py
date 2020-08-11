@@ -173,7 +173,7 @@ class DataClientReferenceManager:
             refs.remove(ref)
             if not refs:
                 del self._client_to_refs[client]
-            client._data.remove_client(client)
+                client._data.remove_client(client)
         else:
             raise ValueError("client must be BaseDataClient")
 
