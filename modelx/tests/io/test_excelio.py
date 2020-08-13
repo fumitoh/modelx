@@ -379,3 +379,27 @@ def test_zip_compression(tmp_path, meth_or_func, compression):
 
     for info in archive.infolist():
         assert info.compress_type == compression
+
+
+@pytest.mark.parametrize("save_meth", ["write", "zip"])
+def test_consecutive_writes(tmp_path, save_meth):
+
+    m = mx.new_model()
+    s = m.new_space("SpaceA")
+
+    kwargs = testargs[0].copy()
+    expected = kwargs.pop("expected")
+
+    kwargs["path"] = "files/testexcel.xlsx"
+    kwargs["sheet"] = "TestTables"
+    kwargs["loadpath"] = XL_TESTDATA
+
+    s.new_excel_range(**kwargs)
+
+    getattr(m, save_meth)(tmp_path / "model")
+    getattr(m, save_meth)(tmp_path / "model")
+
+    m.close()
+    m2 = mx.read_model(tmp_path / "model")
+    assert m2.SpaceA.table1 == expected
+    m2.close()

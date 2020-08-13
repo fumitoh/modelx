@@ -205,16 +205,16 @@ class ExcelWorkbook(BaseSharedData):
     def __init__(self, path, loadpath):
         super().__init__(path)
         self.book = opxl.load_workbook(loadpath, data_only=True)
-        self.is_updated = True
+        self.is_updated = True  # Not Used
 
     def save(self, root):
         if not self.path.is_absolute():
             path = root.joinpath(self.path)
         else:
             path = self.path
+
         path.parent.mkdir(parents=True, exist_ok=True)
-        if self.is_updated:
-            self.book.save(path)
+        self.book.save(path)
         self.is_updated = False
         self.after_save_file()
 

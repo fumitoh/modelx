@@ -178,8 +178,11 @@ class DataClientReferenceManager:
             raise ValueError("client must be BaseDataClient")
 
     def save_data(self, root):
+        saved = set()
         for client in self._client_to_refs:
-            client._data.save(root)
+            if not client._data in saved:
+                client._data.save(root)
+                saved.add(client._data)
 
     def del_all(self):
         for client, refs in self._client_to_refs.copy().items():
