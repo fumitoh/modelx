@@ -13,12 +13,9 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-import dis
-from types import FunctionType
 from collections import ChainMap, OrderedDict
 from collections.abc import Sequence, Mapping
 from inspect import BoundArguments
-from modelx.core.formula import create_closure
 from modelx.core.node import get_node
 from  modelx.core.chainmap import CustomChainMap
 import modelx.core.system
@@ -109,23 +106,35 @@ def add_stateattrs(cls):
     return cls
 
 
-def _add_stateattrs(cls):
+def _get_stateattrs(cls):
+    """Returns attributes to be pickled
+
+    Collect class.__stateattrs from all base classes
+    If __stateattrs is not defined in any of the base class,
+    __slots (which is only defined in mix-in classes) is collected in stead.
+    """
     stateattrs = []
     for c in cls.__mro__:
         attrs = "_" + c.__name__ + "__stateattrs"
         slots = "_" + c.__name__ + "__slots"
         if hasattr(c, attrs):
             stateattrs.extend(getattr(c, attrs))
-        elif hasattr(c, slots):     # Mix-in class
+        elif hasattr(c, slots):     # Mix-in class without __stateattrs
             stateattrs.extend(getattr(c, slots))
+        elif hasattr(c, "__slots__") and c.__slots__:
+            raise RuntimeError("__stateattrs not found in %s" % c.__name__)
 
     assert len(stateattrs) == len(set(stateattrs))
-    cls.stateattrs = stateattrs
-    return cls
+
+    return tuple(stateattrs)
 
 
 def add_statemethod(cls):
+    """Decorator to add state method
 
+    Only cls.stateattrs returned by _get_stateattrs are pickled.
+    When unpickling, ``__setstate`` in base classes are called.
+    """
     def __getstate__(self):
         return {key: getattr(self, key) for key in self.stateattrs}
 
@@ -137,7 +146,7 @@ def add_statemethod(cls):
             if hasattr(cls, name):
                 getattr(cls, name)(self, state)
 
-    cls = _add_stateattrs(cls)
+    cls.stateattrs = _get_stateattrs(cls)
     cls.__getstate__ = __getstate__
     cls.__setstate__ = __setstate__
 
@@ -635,6 +644,7 @@ class LazyEval:
     """
     __slots__ = ()
     __slots = ("needs_update", "observers", "observing")
+    __stateattrs = ("observers", "observing")
 
     def __init__(self, observers):
         self.needs_update = False  # must be read only
@@ -686,6 +696,8 @@ class LazyEval:
         for observer in self.observers:
             observer.debug_print_observers(indent_level + 1)
 
+    def __setstate(self, state):
+        self.needs_update = True
 
 class LazyEvalDict(LazyEval, dict):
 
@@ -797,7 +809,6 @@ class InterfaceMixin:
     def __setstate(self, state):
         self._interfaces = dict()
         self._set_interfaces(self.map_class)
-        self.needs_update = True
 
 
 bases = InterfaceMixin, OrderMixin, LazyEvalDict
@@ -1039,57 +1050,3 @@ class SelectedView(BaseView):
     __repr__ = _map_repr
 
 
-class BoundFunction(LazyEval):
-    """Hold function with updated namespace"""
-
-    def __init__(self, owner, base=None):
-        """Create altered function from owner's formula.
-
-        owner is a UserSpaceImpl or CellsImpl, which has formula, and
-        namespace_impl as its members.
-        """
-        LazyEval.__init__(self, [])
-        self.owner = owner
-
-        # Must not update owner's namespace to avoid circular updates.
-        self.observe(owner._namespace)
-        self.altfunc = None
-        if base is None:
-            self.global_names = None
-        else:
-            self.global_names = base.global_names
-        self.set_update()
-
-    def _init_names(self):
-        insts = list(dis.get_instructions(self.owner.formula.func.__code__))
-
-        names = []
-        for inst in insts:
-            if inst.opname == "LOAD_GLOBAL" and inst.argval not in names:
-                names.append(inst.argval)
-
-        return tuple(names)
-
-    def _update_data(self):
-        """Update altfunc"""
-        if self.global_names is None:
-            self.global_names = self._init_names()
-
-        func = self.owner.formula.func
-        codeobj = func.__code__
-        name = func.__name__  # self.cells.name   # func.__name__
-
-        closure = func.__closure__  # None normally.
-        if closure is not None:  # pytest fails without this.
-            closure = create_closure(self.owner.interface)
-
-        self.altfunc = FunctionType(
-            codeobj, self.owner.namespace.interfaces, name=name, closure=closure
-        )
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        state["altfunc"] = None
-        state["global_names"] = None
-        state["needs_update"] = True  # Reconstruct altfunc after unpickling
-        return state

@@ -20,6 +20,8 @@ from inspect import signature, getsource, getsourcefile, findsource
 from textwrap import dedent
 import tokenize
 import io
+import dis
+from modelx.core.base import LazyEval, get_mixinslots, add_statemethod
 
 import asttokens
 
@@ -501,3 +503,61 @@ class NullFormula(Formula):
 
 
 NULL_FORMULA = NullFormula("lambda: None")
+
+
+@add_statemethod
+class BoundFunction(LazyEval):
+    """Hold function with updated namespace"""
+
+    __slots__ = ("owner", "global_names", "altfunc") + get_mixinslots(LazyEval)
+    __stateattrs = ("owner",)
+
+    def __init__(self, owner, base=None):
+        """Create altered function from owner's formula.
+
+        owner is a UserSpaceImpl or CellsImpl, which has formula, and
+        namespace_impl as its members.
+        """
+        LazyEval.__init__(self, [])
+        self.owner = owner
+
+        # Must not update owner's namespace to avoid circular updates.
+        self.observe(owner._namespace)
+        self.altfunc = None
+        if base is None:
+            self.global_names = None
+        else:
+            self.global_names = base.global_names
+        self.set_update()
+
+    def _init_names(self):
+        insts = list(dis.get_instructions(self.owner.formula.func.__code__))
+
+        names = []
+        for inst in insts:
+            if inst.opname == "LOAD_GLOBAL" and inst.argval not in names:
+                names.append(inst.argval)
+
+        return tuple(names)
+
+    def _update_data(self):
+        """Update altfunc"""
+        if self.global_names is None:
+            self.global_names = self._init_names()
+
+        func = self.owner.formula.func
+        codeobj = func.__code__
+        name = func.__name__  # self.cells.name   # func.__name__
+
+        closure = func.__closure__  # None normally.
+        if closure is not None:  # pytest fails without this.
+            closure = create_closure(self.owner.interface)
+
+        self.altfunc = FunctionType(
+            codeobj, self.owner.namespace.interfaces, name=name, closure=closure
+        )
+
+    def __setstate(self, state):
+        self.global_names = None
+        self.altfunc = None
+

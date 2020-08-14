@@ -37,9 +37,9 @@ from modelx.core.base import (
     ImplChainMap,
     RefChainMap,
     BaseView,
-    SelectedView,
-    BoundFunction,
+    SelectedView
 )
+from modelx.core.formula import BoundFunction
 from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.node import (
     node_get_args,

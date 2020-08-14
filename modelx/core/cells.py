@@ -17,10 +17,11 @@ from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import (
-    add_stateattrs, Impl, Derivable, Interface, BoundFunction)
+    add_stateattrs, Impl, Derivable, Interface)
 from modelx.core.node import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node)
-from modelx.core.formula import Formula, NullFormula, NULL_FORMULA
+from modelx.core.formula import (
+    Formula, NullFormula, NULL_FORMULA, BoundFunction)
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 from modelx.core.node import ElementFactory, ElementFactoryImpl
