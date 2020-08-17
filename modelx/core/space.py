@@ -1680,7 +1680,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     __cls_stateattrs = [
         "_dynbase",
-        "_parentargs"
+        "_allargs"
     ]
 
     def __init__(
@@ -1714,13 +1714,13 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         return RefDict(self)
 
     def _init_refs(self, arguments=None):
-        self._parentargs = self._init_parentargs()
+        self._allargs = self._init_allargs()
 
         return ImplChainMap(
             self,
             RefView,
             [
-                *self._parentargs.maps,     # underlying parent's _parentargs
+                *self._allargs.maps,     # underlying parent's _allargs
                 self._self_refs,
                 self._local_refs,
                 self._dynbase._self_refs,
@@ -1728,16 +1728,16 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             ],
         )
 
-    def _init_parentargs(self):
+    def _init_allargs(self):
         if isinstance(self.parent, UserSpaceImpl):
-            parentargs = []
-        elif isinstance(self.parent, ItemSpaceImpl):
-            parentargs = [self.parent._arguments,
-                          *self.parent._parentargs.maps]
+            allargs = [self._arguments]
+        elif isinstance(self, ItemSpaceImpl):
+            allargs = [self._arguments,
+                          *self.parent._allargs.maps]
         else:
-            parentargs = [*self.parent._parentargs.maps]
+            allargs = [*self.parent._allargs.maps]
 
-        return ImplChainMap(self, None, parentargs)
+        return ImplChainMap(self, None, allargs)
 
     def destruct(self):
         BaseSpaceImpl.destruct(self)
@@ -1748,7 +1748,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         return self._arguments.fresh
 
     @property
-    def parentargs(self):
+    def allargs(self):
         return self._arguments.fresh
 
     def is_dynamic(self):
@@ -1822,7 +1822,6 @@ class ItemSpaceImpl(DynamicSpaceImpl):
     def _init_refs(self, arguments=None):
         self._arguments = RefDict(self, data=arguments)
         refs = DynamicSpaceImpl._init_refs(self)
-        refs.maps.insert(0, self._arguments)
         refs.observe(self._arguments)
         return refs
 
