@@ -1720,7 +1720,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             self,
             RefView,
             [
-                self._parentargs,
+                *self._parentargs.maps,     # underlying parent's _parentargs
                 self._self_refs,
                 self._local_refs,
                 self._dynbase._self_refs,
@@ -1732,9 +1732,10 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         if isinstance(self.parent, UserSpaceImpl):
             parentargs = []
         elif isinstance(self.parent, ItemSpaceImpl):
-            parentargs = [self.parent._arguments, self.parent._parentargs]
+            parentargs = [self.parent._arguments,
+                          *self.parent._parentargs.maps]
         else:
-            parentargs = [self.parent._parentargs]
+            parentargs = [*self.parent._parentargs.maps]
 
         return ImplChainMap(self, None, parentargs)
 
