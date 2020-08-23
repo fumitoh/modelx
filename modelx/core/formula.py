@@ -557,7 +557,74 @@ class BoundFunction(LazyEval):
             codeobj, self.owner.namespace.interfaces, name=name, closure=closure
         )
 
+    def on_add_item(self, namespace, name, value):
+        self.global_names = self._init_names()
+
+    def on_change_item(self, namespace, name, value):
+        self.global_names = self._init_names()
+
+    def on_delete_item(self, namespace, name):
+        self.global_names = self._init_names()
+
     def __setstate(self, state):
         self.global_names = None
         self.altfunc = None
 
+
+class BoundFormula:     # Not Used
+    """Hold function with updated namespace"""
+
+    __slots__ = ("owner", "_altfunc", "_referred_names",
+                 "need_update_names", "need_update_altfunc")
+
+    def __init__(self, owner):
+        self.owner = owner
+        self._altfunc = None
+        self._referred_names = None
+        self.need_update_names = True
+        self.need_update_altfunc = True
+
+    @property
+    def referred_names(self):
+        if self.need_update_names:
+            self._referred_names = self._get_referred_names()
+            self.need_update_names = False
+        return self._referred_names
+
+    @property
+    def altfunc(self):
+        if self.need_update_altfunc:
+            self._altfunc = self._update_altfunc()
+            self.need_update_altfunc = False
+        return self._altfunc
+
+    def _get_referred_names(self):
+        insts = list(dis.get_instructions(self.owner.formula.func.__code__))
+
+        names = []
+        for inst in insts:
+            if inst.opname == "LOAD_GLOBAL" and inst.argval not in names:
+                names.append(inst.argval)
+
+        return set(names)
+
+    def _update_altfunc(self):
+        """Update altfunc"""
+
+        func = self.owner.formula.func
+        codeobj = func.__code__
+        name = func.__name__  # self.cells.name   # func.__name__
+
+        closure = func.__closure__  # None normally.
+        if closure is not None:  # pytest fails without this.
+            closure = create_closure(self.owner.interface)
+
+        self._altfunc = FunctionType(
+            codeobj, self.owner.namespace.interfaces, name=name, closure=closure
+        )
+
+    def __getstate__(self):
+        return {"owner": self.owner}
+
+    def __setstate__(self, state):
+        self.__init__(state["owner"])

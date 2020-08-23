@@ -20,6 +20,7 @@ import warnings
 from collections import ChainMap, deque
 from collections.abc import Sequence
 from types import FunctionType, ModuleType, MappingProxyType
+from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
 
 from modelx.core.base import (
     # ObjectArgs,
@@ -96,37 +97,16 @@ class RefDict(ImplDict):
         ImplDict.set_item(self, name,
                           self.wrap_impl(self.owner, name, value), skip_self)
 
+    def del_item(self, name, skip_self=False):
+        # TODO: Better way to get TraceManager
+        self.owner.model.clear_attr_referrers(self.fresh[name])
+        ImplDict.del_item(self, name, skip_self=skip_self)
+
     def wrap_impl(self, parent, name, value):
         if isinstance(value, Impl):
             return value
         else:
             return ReferenceImpl(parent, name, value, container=self)
-
-
-@add_statemethod
-class SharedRefDict(RefDict):
-
-    __stateattrs = ("scopes", "manager")
-    __slots__ = __stateattrs + get_mixinslots(RefDict)
-
-    def __init__(self, parent, manager=None, data=None, observers=None):
-        self.scopes = [parent]
-        if manager is None:
-            self.manager = parent.model
-        else:
-            self.manager = manager
-        RefDict.__init__(self, parent, data=data, observers=observers)
-
-    def set_item(self, name, value, skip_self=False):
-        for sc in self.scopes:
-            sc.clear_referrers(name)
-        RefDict.set_item(self, name, value, skip_self)
-
-    def del_item(self, name, skip_self=False):
-        self.manager.clear_attr_referrers(self.fresh[name])
-        for sc in self.scopes:
-            sc.clear_referrers(name)
-        RefDict.del_item(self, name, skip_self=skip_self)
 
 
 def _to_frame_inner(cellsiter, args):
@@ -837,7 +817,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         self._impl.doc = value
 
 
-class ItemSpaceParent(ElementFactoryImpl):
+class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer):
 
     __cls_stateattrs = [
         "_named_itemspaces",
@@ -860,7 +840,18 @@ class ItemSpaceParent(ElementFactoryImpl):
             self.set_formula(formula)
 
     # ----------------------------------------------------------------------
+    # BaseNamespaceReferrer Implementation
+
+    def on_namespace_change(self, is_all, names):
+        if is_all:
+            self.del_all_itemspaces()
+        elif self.formula and self.altfunc.global_names:
+            if any(n for n in names if n in self.altfunc.global_names):
+                self.del_all_itemspaces()
+
+    # ----------------------------------------------------------------------
     # Dynamic Space Operation
+
     @property
     def named_itemspaces(self):
         return self._named_itemspaces.fresh
@@ -882,8 +873,6 @@ class ItemSpaceParent(ElementFactoryImpl):
                     self.formula = ParamFunc(formula, name="_formula")
                 self.altfunc = BoundFunction(self)
                 self.altfunc.set_update()
-                if isinstance(self, ReferenceManager):
-                    self.update_referrer(self)
             else:
                 self.del_formula()
                 self.set_formula(formula)
@@ -994,6 +983,7 @@ class ItemSpaceParent(ElementFactoryImpl):
 
 @add_stateattrs
 class BaseSpaceImpl(
+    NamespaceServer,
     ItemSpaceParent,
     ElementFactoryImpl,
     BaseSpaceContainerImpl,
@@ -1015,8 +1005,7 @@ class BaseSpaceImpl(
             "_cells",
             "_local_refs",
             "_self_refs",
-            "_refs",
-            "_namespace"
+            "_refs"
     ]
 
     def __init__(
@@ -1045,9 +1034,14 @@ class BaseSpaceImpl(
         self._named_spaces = SpaceDict(self)
         self._local_refs = {"_self": self, "_space": self}
         self._refs = self._init_refs(arguments)
-        self._namespace = ImplChainMap(
-            self, None, [self._cells, self._refs, self._named_spaces]
+
+        NamespaceServer.__init__(
+            self,
+            ImplChainMap(
+                self, None, [self._cells, self._refs, self._named_spaces])
         )
+        BaseNamespaceReferrer.__init__(self, server=self)
+
         self.lazy_evals = self._namespace
         ItemSpaceParent.__init__(self, formula)
         self._all_spaces = ImplChainMap(
@@ -1216,15 +1210,20 @@ class BaseSpaceImpl(
         return _to_frame_inner(self.cells, args)
 
 
-class DynamicBase(ReferenceManager):
+class DynamicBase(BaseNamespaceReferrer):  # (ReferenceManager):
 
     __cls_stateattrs = [
      "_dynamic_subs"
     ]
 
     def __init__(self):
-        ReferenceManager.__init__(self)
+        BaseNamespaceReferrer.__init__(self, self)
         self._dynamic_subs = []
+
+    def on_namespace_change(self, is_all, names):
+        ItemSpaceParent.on_namespace_change(self, is_all, names)
+        for dyns in self._dynamic_subs:
+            dyns.notify_referrers(is_all, names)
 
     def _clear_dynsub_referrers(self, name):
         for dyns in self._dynamic_subs:
@@ -1242,8 +1241,6 @@ class DynamicBase(ReferenceManager):
             getattr(dyns, method)(*args, **kwargs)
 
     def clear_referrers(self, name):
-
-        ReferenceManager.clear_referrers(self, name)
 
         if name in self._names_to_impls:
             impls = self._names_to_impls[name]
@@ -1286,7 +1283,6 @@ class UserSpaceImpl(
         source=None,
         doc=None
     ):
-        DynamicBase.__init__(self)
         BaseSpaceImpl.__init__(
             self,
             parent=parent,
@@ -1296,6 +1292,7 @@ class UserSpaceImpl(
             refs=refs,
             doc=doc
         )
+        DynamicBase.__init__(self)
         EditableSpaceContainerImpl.__init__(self)
         Derivable.__init__(self, is_derived)
 
@@ -1307,7 +1304,7 @@ class UserSpaceImpl(
             self.source = source
 
     def _init_self_refs(self):
-        return SharedRefDict(self)
+        return RefDict(self)
 
     def _init_refs(self, arguments=None):
         return RefChainMap(
@@ -1732,8 +1729,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         if isinstance(self.parent, UserSpaceImpl):
             allargs = [self._arguments]
         elif isinstance(self, ItemSpaceImpl):
-            allargs = [self._arguments,
-                          *self.parent._allargs.maps]
+            allargs = [self._arguments, *self.parent._allargs.maps]
         else:
             allargs = [*self.parent._allargs.maps]
 

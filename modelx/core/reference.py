@@ -72,7 +72,8 @@ class ReferenceImpl(Derivable, Impl):
         "container"
     ]
 
-    def __init__(self, parent, name, value, container, is_derived=False):
+    def __init__(self, parent, name, value, container, is_derived=False,
+                 set_item=True):
         Impl.__init__(
             self,
             system=parent.system,
@@ -85,7 +86,8 @@ class ReferenceImpl(Derivable, Impl):
             self.model.datarefmgr.add_reference(self, value)
 
         self.container = container
-        container.set_item(name, self)
+        if set_item:
+            container.set_item(name, self)
 
     def change_value(self, value, is_derived):
         if not is_derived:
@@ -95,9 +97,7 @@ class ReferenceImpl(Derivable, Impl):
         if isinstance(value, BaseDataClient):
             self.model.datarefmgr.add_reference(self, value)
         self.interface = value
-        self.container.set_update()
-        for sc in self.container.scopes:
-            sc.clear_referrers(self.name)
+        self.container.change_item(self.name, self)
 
     def on_delete(self):
         if isinstance(self.interface, BaseDataClient):
@@ -143,8 +143,6 @@ class ReferenceImpl(Derivable, Impl):
             self.model.clear_obj(self)
             self.interface = bases[0].interface
             self.container.set_update()
-            for sc in self.container.scopes:
-                sc.clear_referrers(self.name)
 
 
 ReferenceImpl.picklers.append(_ModulePickler)

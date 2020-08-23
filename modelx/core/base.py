@@ -699,6 +699,7 @@ class LazyEval:
     def __setstate(self, state):
         self.needs_update = True
 
+
 class LazyEvalDict(LazyEval, dict):
 
     __stateattrs = ("_repr",)
@@ -718,6 +719,9 @@ class LazyEvalDict(LazyEval, dict):
     def _update_data(self):
         pass
 
+    def _update_item(self, name):
+        raise NotImplementedError
+
     def set_item(self, name, value, skip_self=False):
         dict.__setitem__(self, name, value)
         self.set_update(skip_self)
@@ -725,6 +729,40 @@ class LazyEvalDict(LazyEval, dict):
     def del_item(self, name, skip_self=False):
         dict.__delitem__(self, name)
         self.set_update(skip_self)
+
+    def add_item(self, name, value):
+        """Adding new item"""
+        self.on_add_item(None, name, value)
+
+    def on_add_item(self, sender, name, value):
+        dict.__setitem__(self, name, value)
+        if not self.needs_update:
+            self._update_item(name)
+            for observer in self.observers:
+                if not observer.needs_update:
+                    observer.on_add_item(self, name, value)
+
+    def change_item(self, name, value):
+        self.on_change_item(None, name, value)
+
+    def on_change_item(self, sender, name, value):
+        dict.__setitem__(self, name, value)
+        if not self.needs_update:
+            self._update_item(name)
+            for observer in self.observers:
+                if not observer.needs_update:
+                    observer.on_change_item(self, name, value)
+
+    def delete_item(self, name):
+        self.on_delete_item(None, name)
+
+    def on_delete_item(self, sender, name):
+        dict.__delitem__(self, name)
+        if not self.needs_update:
+            self._update_item(name)
+            for observer in self.observers:
+                if not observer.needs_update:
+                    observer.on_delete_item(self, name)
 
 
 @add_statemethod
@@ -753,6 +791,35 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
         for map_ in self.maps:
             if isinstance(map_, LazyEval):
                 map_.fresh
+
+    def on_add_item(self, sender, name, value):
+        if not self.needs_update:
+            self._update_item(name)
+            map_ = next((m for m in self.maps if name in m), None)
+            if map_ is sender:
+                for observer in self.observers:
+                    if not observer.needs_update:
+                        observer.on_add_item(self, name, value)
+
+    def on_change_item(self, sender, name, value):
+        if not self.needs_update:
+            self._update_item(name)
+            map_ = next((m for m in self.maps if name in m), None)
+            if map_ is sender:
+                for observer in self.observers:
+                    if not observer.needs_update:
+                        observer.on_change_item(self, name, value)
+
+    def on_delete_item(self, sender, name):
+        if not self.needs_update:
+            self._update_item(name)
+            map_ = next((m for m in self.maps if name in m), None)
+            for observer in self.observers:
+                if not observer.needs_update:
+                    if map_:
+                        observer.on_change_item(self, name, map_[name])
+                    else:
+                        observer.on_delete_item(self, name)
 
     def __setitem__(self, name, value):
         raise NotImplementedError
@@ -805,6 +872,12 @@ class InterfaceMixin:
     def _update_interfaces(self):
         self._interfaces.clear()
         self._interfaces.update(get_interfaces(self))
+
+    def _update_item(self, name):
+        if name in self:
+            self._interfaces[name] = get_interfaces(self[name])
+        else:
+            del self._interfaces[name]
 
     def __setstate(self, state):
         self._interfaces = dict()

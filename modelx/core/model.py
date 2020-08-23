@@ -40,7 +40,7 @@ from modelx.core.space import (
     UserSpaceImpl,
     SpaceDict,
     SpaceView,
-    SharedRefDict
+    RefDict
 )
 from modelx.core.util import is_valid_name, AutoNamer
 from modelx.io.baseio import DataClientReferenceManager
@@ -323,7 +323,7 @@ class TraceManager:
         removed = self.tracegraph.clear_obj(obj)
         self.refgraph.remove_nodes_from(removed)
         for node in removed:
-            del node[OBJ].data[node[KEY]]
+            node[OBJ].on_clear_value(node[KEY])
 
     def clear_attr_referrers(self, ref):
         removed = self.refgraph.remove_with_descs(ref)
@@ -366,7 +366,7 @@ class ModelImpl(
 
         self.spacemgr = SpaceManager(self)
         self.currentspace = None
-        self._global_refs = SharedRefDict(self)
+        self._global_refs = RefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
         self._named_spaces = SpaceDict(self)
         self._dynamic_bases = SpaceDict(self)
@@ -481,13 +481,15 @@ class ModelImpl(
             self.currentspace = None
 
     def del_ref(self, name):
-        self.global_refs[name].on_delete()
-        self.global_refs.del_item(name)
+        ref = self.global_refs[name]
+        self.model.clear_attr_referrers(ref)
+        ref.on_delete()
+        self.global_refs.delete_item(name)
 
     def change_ref(self, name, value):
         ref = self.global_refs[name]
-        ref.change_value(value, False)
         self.model.clear_attr_referrers(ref)
+        ref.change_value(value, False)
 
     def get_attr(self, name):
         if name in self.spaces:
@@ -505,7 +507,9 @@ class ModelImpl(
         elif name in self.global_refs:
             self.change_ref(name, value)
         else:
-            ReferenceImpl(self, name, value, container=self._global_refs)
+            ref = ReferenceImpl(self, name, value, container=self._global_refs,
+                          set_item=False)
+            self._global_refs.add_item(name, ref)
 
     def del_attr(self, name):
 
@@ -1143,7 +1147,11 @@ class SpaceManager:
         for pnode in newsubg_inherit.get_parent_nodes(node):
             newsubg_inherit.nodes[pnode]["mode"] = "defined"
 
-        newsubg = newsubg_inherit.get_derived_graph(on_edge=self._derive_hook)
+        start = [
+            (tail, node) for tail in newsubg_inherit.ordered_preds(node)]
+
+        newsubg = newsubg_inherit.get_derived_graph(
+            on_edge=self._derive_hook, start=start)
 
         if not nx.is_directed_acyclic_graph(newsubg):
             raise ValueError("cyclic inheritance")

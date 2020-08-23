@@ -25,6 +25,7 @@ from modelx.core.formula import (
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 from modelx.core.node import ElementFactory, ElementFactoryImpl
+from modelx.core.namespace import BaseNamespaceReferrer
 
 
 class CellsMaker:
@@ -365,8 +366,14 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
         return not self._impl.is_derived
 
 
+class CellsNamespaceReferrer(BaseNamespaceReferrer):
+
+    def on_namespace_change(self, is_all, names):
+        self.clear_all_values(clear_input=False)
+
+
 @add_stateattrs
-class CellsImpl(Derivable, ElementFactoryImpl, Impl):
+class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl, Impl):
     """Cells implementation"""
 
     interface_cls = Cells
@@ -424,6 +431,7 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
         self.data.update(data)
         self.input_keys = set(data.keys())
 
+        CellsNamespaceReferrer.__init__(self, space)
         self._namespace = self.parent._namespace
         if base:
             self.altfunc = BoundFunction(self, base.altfunc.fresh)
@@ -474,7 +482,6 @@ class CellsImpl(Derivable, ElementFactoryImpl, Impl):
             self.model.clear_obj(self)
             self.formula = bases[0].formula
             self.altfunc.set_update()
-            self.parent.update_referrer(self)
 
     @property
     def namespace(self):
@@ -642,7 +649,6 @@ class UserCellsImpl(CellsImpl):
             base=base,
             source=source, is_derived=is_derived
         )
-        self.parent.update_referrer(self)
 
     # ----------------------------------------------------------------------
     # Formula operations
@@ -676,7 +682,6 @@ class UserCellsImpl(CellsImpl):
             cls = Formula
         self.formula = cls(func, name=self.name)
         self.altfunc = BoundFunction(self)
-        self.parent.update_referrer(self)
         self.model.spacemgr.update_subs(self.parent)
 
 
