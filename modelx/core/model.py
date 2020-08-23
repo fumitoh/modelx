@@ -315,21 +315,21 @@ class TraceManager:
         removed = self.tracegraph.remove_with_descs(node)
         self.refgraph.remove_nodes_from(removed)
         for node in removed:
-            node[OBJ].on_clear_value(node[KEY])
+            node[OBJ].on_clear_trace(node[KEY])
 
     def clear_obj(self, obj):
         """Clear values and nodes of `obj` and their dependants."""
         removed = self.tracegraph.clear_obj(obj)
         self.refgraph.remove_nodes_from(removed)
         for node in removed:
-            node[OBJ].on_clear_value(node[KEY])
+            node[OBJ].on_clear_trace(node[KEY])
 
     def clear_attr_referrers(self, ref):
         removed = self.refgraph.remove_with_descs(ref)
         for node in removed:
             descs = self.tracegraph.remove_with_descs(node)
             for desc in descs:
-                desc[OBJ].on_clear_value(desc[KEY])
+                desc[OBJ].on_clear_trace(desc[KEY])
 
 
 @add_stateattrs

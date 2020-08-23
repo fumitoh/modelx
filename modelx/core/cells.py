@@ -582,7 +582,7 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl, Impl):
     # ----------------------------------------------------------------------
     # Clear value
 
-    def on_clear_value(self, key):
+    def on_clear_trace(self, key):
         del self.data[key]
         if key in self.input_keys:
             self.input_keys.remove(key)

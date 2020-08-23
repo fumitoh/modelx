@@ -388,9 +388,8 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
         """Delete a child :class:`ItemSpace` object"""
 
         key = tuplize_key(self, key)
-        if key in self._impl.param_spaces:
-            name = self._impl.param_spaces[key].name
-            self._impl.del_itemspace(name)
+        if key in list(self._impl.param_spaces):
+            self._impl.clear_itemspace_at(key)
         else:
             raise KeyError(key)
 
@@ -398,9 +397,8 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
         """Delete a child :class:`ItemSpace` object"""
 
         key = get_node(self, args, kwargs)[KEY]
-        if key in self._impl.param_spaces:
-            name = self._impl.param_spaces[key].name
-            self._impl.del_itemspace(name)
+        if key in list(self._impl.param_spaces):
+            self._impl.clear_itemspace_at(key)
         else:
             raise KeyError(key)
 
@@ -924,21 +922,23 @@ class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer):
         space.is_derived = False
         return space
 
-    def del_itemspace(self, name):
-        if name in self.named_itemspaces:
-            space = self.named_itemspaces[name]
-            space.destruct()
-            self.named_itemspaces.del_item(name)
-            key = next(
-                k for k, v in self.param_spaces.items() if v is space)
-            del self.param_spaces[key]
-
     def del_all_itemspaces(self):
-        for name in list(self.named_itemspaces.keys()):
-            self.del_itemspace(name)
+        for key in list(self.param_spaces):
+            self.clear_itemspace_at(key)
 
-    def on_clear_value(self, key):
-        self.del_itemspace(self.param_spaces[key].name)
+    def clear_itemspace_at(self, key):
+        if self.has_node(key):
+            self.model.clear_with_descs(key_to_node(self, key))
+
+    def on_clear_trace(self, key):
+        self._del_itemspace(key)
+
+    def _del_itemspace(self, key):
+        if key in list(self.param_spaces):
+            space = self.param_spaces[key]
+            space.destruct()
+            self.named_itemspaces.del_item(space.name)
+            del self.param_spaces[key]
 
     def get_itemspace(self, args, kwargs=None):
         """Create a dynamic root space
