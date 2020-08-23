@@ -17,13 +17,12 @@ import importlib
 import pathlib
 import uuid
 import warnings
-from collections import ChainMap, deque
+from collections import ChainMap
 from collections.abc import Sequence
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
 
 from modelx.core.base import (
-    # ObjectArgs,
     add_stateattrs,
     add_statemethod,
     get_impls,
@@ -784,9 +783,6 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
     # ----------------------------------------------------------------------
     # Formula
 
-    # TODO: Factor out formula related methods and properties
-    #  common between Cells and Spaces
-
     @BaseSpace.formula.setter
     def formula(self, formula):
         self._impl.set_formula(formula)
@@ -1142,7 +1138,6 @@ class BaseSpaceImpl(
     # ----------------------------------------------------------------------
     # Reference operation
 
-
     def _new_member(self, attr, name, is_derived=False):
 
         if attr == "cells":
@@ -1295,7 +1290,6 @@ class UserSpaceImpl(
             RefView,
             [self._self_refs, self._local_refs, self.model._global_refs]
         )
-
 
     # ----------------------------------------------------------------------
     # Cells creation
@@ -1613,9 +1607,6 @@ class UserSpaceImpl(
                 if selfdict[name].is_derived:
                     attrs[attr](name)
 
-        # TODO: Update dynamic subs
-        # self._dynamic_subs.clear()
-
     def on_del_cells(self, name):
         cells = self.cells[name]
         self.model.clear_obj(cells)
@@ -1626,8 +1617,6 @@ class UserSpaceImpl(
         ref = self.self_refs[name]
         ref.change_value(value, is_derived)
         self.model.clear_attr_referrers(ref)
-        # self_ref is shared with dynamic subs, so no need to update theirs.
-        # self.call_subs_method("_change_ref", (name, value))
 
     def on_create_ref(self, name, value, is_derived):
         return ReferenceImpl(self, name, value,
