@@ -942,48 +942,6 @@ class RefChainMap(ImplChainMap):
                 m.scopes.append(owner)
 
 
-class ReferenceManager:
-
-    __cls_stateattrs = [
-     "_names_to_impls",
-     "_impls_to_names"
-    ]
-
-    def __init__(self):
-        self._names_to_impls = {}
-        self._impls_to_names = {}
-
-    def update_referrer(self, referrer):
-        names = referrer.altfunc.fresh.global_names
-        if referrer in self._impls_to_names:
-            oldnames = self._impls_to_names[referrer]
-            for n in oldnames:
-                self._names_to_impls[n].remove(referrer)
-
-        self._impls_to_names[referrer] = names
-        for n in names:
-            if n in self._names_to_impls:
-                self._names_to_impls[n].add(referrer)
-            else:
-                self._names_to_impls[n] = {referrer}
-
-    def remove_referrer(self, referrer):
-        names = referrer.altfunc.fresh.global_names
-        for n in names:
-            self._names_to_impls[n].remove(referrer)
-        del self._impls_to_names[referrer]
-
-    def clear_referrers(self, name):
-        if name not in self._names_to_impls:
-            return
-        else:
-            impls = self._names_to_impls[name]
-
-        for cells in impls:
-            if cells is not self:
-                cells.clear_all_values(clear_input=False)
-
-
 # The code below is modified from UserDict in Python's standard library.
 #
 # The original code was taken from the following URL:

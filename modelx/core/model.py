@@ -23,7 +23,6 @@ from modelx.core.base import (
     Interface,
     Impl,
     get_interfaces,
-    ReferenceManager,
     ImplChainMap,
     BaseView,
     Derivable
@@ -335,7 +334,6 @@ class TraceManager:
 
 @add_stateattrs
 class ModelImpl(
-    ReferenceManager,
     TraceManager,
     EditableSpaceContainerImpl,
     Impl):
@@ -361,7 +359,6 @@ class ModelImpl(
 
         Impl.__init__(self, system=system, parent=None, name=name)
         EditableSpaceContainerImpl.__init__(self)
-        ReferenceManager.__init__(self)
         TraceManager.__init__(self)
 
         self.spacemgr = SpaceManager(self)

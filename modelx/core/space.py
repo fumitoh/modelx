@@ -30,7 +30,6 @@ from modelx.core.base import (
     get_interfaces,
     get_mixinslots,
     Interface,
-    ReferenceManager,
     Impl,
     NullImpl,
     Derivable,
@@ -1210,7 +1209,7 @@ class BaseSpaceImpl(
         return _to_frame_inner(self.cells, args)
 
 
-class DynamicBase(BaseNamespaceReferrer):  # (ReferenceManager):
+class DynamicBase(BaseNamespaceReferrer):
 
     __cls_stateattrs = [
      "_dynamic_subs"
@@ -1234,22 +1233,6 @@ class DynamicBase(BaseNamespaceReferrer):  # (ReferenceManager):
                         dyns.cells[cells.name].clear_all_values(
                             clear_input=False
                         )
-
-    def call_subs_method(self, method, args=(), kwargs=None):   # Not Used
-        kwargs = kwargs if kwargs is not None else {}
-        for dyns in self._dynamic_subs:
-            getattr(dyns, method)(*args, **kwargs)
-
-    def clear_referrers(self, name):
-
-        if name in self._names_to_impls:
-            impls = self._names_to_impls[name]
-            if self in impls:
-                self.del_all_itemspaces()
-                for dynsub in self._dynamic_subs:
-                    dynsub.del_all_itemspaces()
-
-            self._clear_dynsub_referrers(name)
 
 
 @add_stateattrs
