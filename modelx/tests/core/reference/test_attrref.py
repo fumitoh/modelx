@@ -4,7 +4,11 @@ import pytest
 
 
 def test_change_attrref():
-
+    """
+        m---s---bar<-m.bar
+        |
+        +--bar[a]---x
+    """
     m = mx.new_model()
     s = m.new_space()
 

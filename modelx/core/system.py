@@ -534,7 +534,7 @@ class System:
                 m = self.currentmodel
             else:
                 m = self.new_model()    # self.new_model sets current_model
-            m.currentspace = m.spacemgr.new_space(m)
+            m.currentspace = m.updater.new_space(m)
             return m.currentspace
 
     def backup_model(self, model, filepath, datapath):

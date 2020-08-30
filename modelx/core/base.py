@@ -349,11 +349,15 @@ class Derivable:
     def bases(self):
         return self.model.spacemgr.get_deriv_bases(self)
 
+    @property
+    def defined_bases(self):
+        return self.model.spacemgr.get_deriv_bases(self, defined_only=True)
+
     @staticmethod
     def _get_members(other):
         raise NotImplementedError
 
-    def inherit(self, bases):
+    def inherit(self, updater, bases):
         raise NotImplementedError
 
 

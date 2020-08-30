@@ -477,7 +477,7 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl, Impl):
         else:
             raise ValueError("%s not a scalar" % self.name)
 
-    def inherit(self, bases):
+    def inherit(self, updater, bases):
 
             self.model.clear_obj(self)
             self.formula = bases[0].formula

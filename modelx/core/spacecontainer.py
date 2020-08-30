@@ -97,7 +97,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         Returns:
             The new child space.
         """
-        space = self._impl.model.currentspace = self._impl.spacemgr.new_space(
+        space = self._impl.model.currentspace = self._impl.model.updater.new_space(
             self._impl,
             name=name, bases=get_impls(bases), formula=formula, refs=refs
         )
@@ -543,7 +543,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         if "doc" not in params:
             params["doc"] = module.__doc__
 
-        space = self.spacemgr.new_space(self, **params)
+        space = self.model.updater.new_space(self, **params)
         space.new_cells_from_module(module)
 
         if recursive and hasattr(module, "_spaces"):
@@ -613,7 +613,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                 "call_id": call_id or str(uuid.uuid4()),
             }
         }
-        space = self.spacemgr.new_space(
+        space = self.model.updater.new_space(
             self, name=name, formula=param_func, source=source)
 
         for cellsdata in cellstable.items():
@@ -701,5 +701,5 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         return result
 
-    def set_attr(self, name, value):
+    def set_attr(self, name, value, refmode):
         raise NotImplementedError

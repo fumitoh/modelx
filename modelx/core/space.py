@@ -101,10 +101,42 @@ class RefDict(ImplDict):
         ImplDict.del_item(self, name, skip_self=skip_self)
 
     def wrap_impl(self, parent, name, value):
-        if isinstance(value, Impl):
+
+        if isinstance(value, ReferenceImpl):
             return value
+        elif isinstance(value, Impl):
+            raise RuntimeError("must not happen")
         else:
             return ReferenceImpl(parent, name, value, container=self)
+
+
+class DynBaseRefDict(RefDict):
+
+    def wrap_impl(self, parent, name, value):
+
+        if isinstance(value, ReferenceImpl):
+
+            if value.is_relative:
+
+                impl = value.interface._impl.namedid
+                root = self.owner.rootspace._dynbase.namedid
+                rootlen = len(root)
+
+                if root == impl:
+                    return self.owner.rootspace
+                elif root == impl[:rootlen]:
+                    return self.owner.rootspace.get_impl_from_name(
+                        impl[rootlen+1:]) # +1 to remove preceding dot
+                else:
+                    raise ValueError(
+                        "'%s' referred by '%s' is out of '%s'" %
+                        (impl, value.namedid, root)
+                    )
+
+            else:
+                return value
+        else:
+            raise RuntimeError("must not happen")
 
 
 def _to_frame_inner(cellsiter, args):
@@ -488,16 +520,17 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
             defined_only(:obj:`bool`, optional): If ``True``, only defined
                 Spaces are copied. Defaults to ``False``.
         """
-        return self._impl.spacemgr.copy_space(
+        return self._impl.model.updater.copy_space(
             parent._impl, self._impl, name, defined_only).interface
 
     def add_bases(self, *bases):
         """Add base spaces."""
-        return self._impl.spacemgr.add_bases(self._impl, get_impls(bases))
+        return self._impl.model.updater.add_bases(self._impl, get_impls(bases))
 
     def remove_bases(self, *bases):
         """Remove base spaces."""
-        return self._impl.spacemgr.remove_bases(self._impl, get_impls(bases))
+        return self._impl.model.updater.remove_bases(
+            self._impl, get_impls(bases))
 
     def import_funcs(self, module):
         """Create a cells from a module."""
@@ -754,6 +787,25 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
     # ----------------------------------------------------------------------
     # Getting and setting attributes
 
+    def abs(self, **kwargs):
+
+        for name, value in kwargs.items():
+            self.set_ref(name, value, reference_method="absolute")
+
+    def rel(self, **kwargs):
+
+        for name, value in kwargs.items():
+            self.set_ref(name, value, reference_method="relative")
+
+    def set_ref(self, name, value, reference_method):
+
+        if hasattr(type(self), name):
+            raise AttributeError("cannot set '%s'" % name)
+        elif name in self.properties:
+            raise AttributeError("cannot set '%s'" % name)
+        else:
+            self._impl.set_attr(name, value, refmode=reference_method)
+
     def __setattr__(self, name, value):
         if hasattr(type(self), name):
             attr = getattr(type(self), name)
@@ -767,7 +819,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         elif name in self.properties:
             object.__setattr__(self, name, value)
         else:
-            self._impl.set_attr(name, value)
+            self._impl.set_attr(name, value, refmode="auto")
 
     def __delattr__(self, name):
         if hasattr(type(self), name):
@@ -1049,7 +1101,8 @@ class BaseSpaceImpl(
 
         if refs is not None:
             for key, value in refs.items():
-                ReferenceImpl(self, key, value, container=self._self_refs)
+                ReferenceImpl(self, key, value, container=self._self_refs,
+                              refmode="auto")
 
     def _init_self_refs(self):
         raise NotImplementedError
@@ -1156,11 +1209,26 @@ class BaseSpaceImpl(
     def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the space."""
 
-        parts = name.split(".")
+        return self.get_impl_from_namelist(name.split("."))
+
+        # parts = name.split(".")
+        # child = parts.pop(0)
+        #
+        # if parts:
+        #     return self.all_spaces[child].get_impl_from_name(".".join(parts))
+        # else:
+        #     if child in self.namespace:
+        #         return self._namespace[child]
+        #     elif child in self.named_itemspaces:
+        #         return self._named_itemspaces[child]
+
+    def get_impl_from_namelist(self, parts: list):
+        # parts list is changed in this method
+
         child = parts.pop(0)
 
         if parts:
-            return self.all_spaces[child].get_impl_from_name(".".join(parts))
+            return self.all_spaces[child].get_impl_from_namelist(parts)
         else:
             if child in self.namespace:
                 return self._namespace[child]
@@ -1435,7 +1503,7 @@ class UserSpaceImpl(
     # ----------------------------------------------------------------------
     # Attribute access
 
-    def set_attr(self, name, value):
+    def set_attr(self, name, value, refmode=False):
         """Implementation of attribute setting
 
         ``space.name = value`` by user script
@@ -1449,7 +1517,7 @@ class UserSpaceImpl(
                 if name in self.self_refs:
                     self.spacemgr.change_ref(self, name, value)
                 elif self.refs[name].parent is self.model:
-                    self.spacemgr.new_ref(self, name, value)
+                    self.spacemgr.new_ref(self, name, value, refmode)
                 else:
                     raise RuntimeError("must not happen")
 
@@ -1461,7 +1529,7 @@ class UserSpaceImpl(
             else:
                 raise ValueError
         else:
-            self.spacemgr.new_ref(self, name, value)
+            self.spacemgr.new_ref(self, name, value, refmode)
 
     def del_attr(self, name):
         """Implementation of attribute deletion
@@ -1498,7 +1566,7 @@ class UserSpaceImpl(
                     "%s has derived spaces" % repr(space.interface)
                 )
             else:
-                self.spacemgr.del_defined_space(self, name)
+                self.model.updater.del_defined_space(space)
 
         elif name in self.named_itemspaces:
             space = self.named_itemspaces[name]
@@ -1575,7 +1643,7 @@ class UserSpaceImpl(
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
 
-    def inherit(self, bases):
+    def inherit(self, updater, bases):
 
         if bases and self.is_derived:
             self.set_formula(bases[0].formula)
@@ -1595,13 +1663,28 @@ class UserSpaceImpl(
 
             for name in missing | shared:
 
+                bs = [bm[name] for bm in basedict.maps
+                      if name in bm and bm[name].is_defined]
+
                 if name in missing:
-                    selfdict[name] = self._new_member(
-                        attr, name, is_derived=True)
+
+                    if attr == "cells":
+                        selfdict[name] = UserCellsImpl(
+                            space=self, name=name, formula=None,
+                            is_derived=True)
+
+                    elif attr == "self_refs":
+                        selfdict[name] = ReferenceImpl(
+                            self, name, None,
+                            container=self._self_refs,
+                            is_derived=True,
+                            refmode=bs[0].refmode
+                        )
+                    else:
+                        raise RuntimeError("must not happen")
 
                 if selfdict[name].is_derived:
-                    bs = [bm[name] for bm in basedict.maps if name in bm]
-                    selfdict[name].inherit(bs)
+                    selfdict[name].inherit(updater, bs)
 
             for name in diffs:
                 if selfdict[name].is_derived:
@@ -1617,11 +1700,13 @@ class UserSpaceImpl(
         ref = self.self_refs[name]
         ref.change_value(value, is_derived)
         self.model.clear_attr_referrers(ref)
+        return ref
 
-    def on_create_ref(self, name, value, is_derived):
+    def on_create_ref(self, name, value, is_derived, refmode):
         return ReferenceImpl(self, name, value,
                       container=self._self_refs,
-                      is_derived=is_derived)
+                      is_derived=is_derived,
+                      refmode=refmode)
 
     def on_del_ref(self, name):
         self.self_refs[name].on_delete()
@@ -1649,7 +1734,10 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     __cls_stateattrs = [
         "_dynbase",
-        "_allargs"
+        "_allargs",
+        "rootspace",
+        "_base_refs",
+        "_dynbase_refs"
     ]
 
     def __init__(
@@ -1663,6 +1751,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     ):
         self._dynbase = base
         base._dynamic_subs.append(self)
+        self._init_root(parent)
         BaseSpaceImpl.__init__(
             self,
             parent,
@@ -1675,6 +1764,9 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         )
         self._init_cells()
 
+    def _init_root(self, parent):
+        self.rootspace = parent.rootspace
+
     def _init_cells(self):
         for base in self._dynbase.cells.values():
             DynamicCellsImpl(space=self, base=base)
@@ -1684,6 +1776,12 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     def _init_refs(self, arguments=None):
         self._allargs = self._init_allargs()
+        self._dynbase_refs = DynBaseRefDict(self)
+        self._dynbase_refs.observe(self._dynbase.self_refs)
+        # _dynbase_refs are populated from self._dynbase.self_refs
+        # later by _init_dynbaserefs called last
+        # from ItemSpaceParent.__init__, because
+        # dynamic spaces and leafs are not yet constructed here.
 
         return ImplChainMap(
             self,
@@ -1692,10 +1790,20 @@ class DynamicSpaceImpl(BaseSpaceImpl):
                 *self._allargs.maps,     # underlying parent's _allargs
                 self._self_refs,
                 self._local_refs,
-                self._dynbase._self_refs,
+                self._dynbase_refs,
                 self.model._global_refs
             ],
         )
+
+    def _init_dynbaserefs(self):
+        # Populate _dynbase_refs creating relative reference within
+        # the dynamic space tree.
+        # Called from ItemSpaceParent.__init__ at last.
+        for name, ref in self._dynbase.self_refs.items():
+            self._dynbase_refs.set_item(name, ref)
+
+        for space in self.named_spaces.values():
+            space._init_dynbaserefs()
 
     def _init_allargs(self):
         if isinstance(self.parent, UserSpaceImpl):
@@ -1781,6 +1889,10 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         )
         self._bind_args(self.arguments)
         self._init_child_spaces(self)
+        self._init_dynbaserefs()
+
+    def _init_root(self, parent):
+        self.rootspace = self
 
     def _init_child_spaces(self, space):
         for name, base in space._dynbase.named_spaces.items():

@@ -69,11 +69,13 @@ class ReferenceImpl(Derivable, Impl):
     picklers = []    # List of _BasePickler sub classes
 
     __cls_stateattrs = [
-        "container"
+        "container",
+        "refmode",
+        "is_relative"
     ]
 
     def __init__(self, parent, name, value, container, is_derived=False,
-                 set_item=True):
+                 refmode=None, set_item=True):
         Impl.__init__(
             self,
             system=parent.system,
@@ -88,6 +90,9 @@ class ReferenceImpl(Derivable, Impl):
         self.container = container
         if set_item:
             container.set_item(name, self)
+
+        self.refmode = refmode
+        self.is_relative = False
 
     def change_value(self, value, is_derived):
         if not is_derived:
@@ -138,11 +143,35 @@ class ReferenceImpl(Derivable, Impl):
     def _get_members(other):
         return other.self_refs
 
-    def inherit(self, bases):
+    def inherit(self, updater, bases):
 
-            self.model.clear_obj(self)
+        self.model.clear_obj(self)
+        if isinstance(bases[0].interface, Interface):
+
+            if self.refmode == "absolute":
+                self.interface = bases[0].interface
+                self.is_relative = False
+            else:
+                is_relative, interface = updater.get_relative_interface(
+                    self.parent,
+                    bases[0])
+                if self.refmode == "auto":
+                    self.is_relative = is_relative
+                    self.interface = interface
+                elif self.refmode == "relative":
+                    if is_relative:
+                        self.is_relative = is_relative
+                        self.interface = interface
+                    else:
+                        raise ValueError(
+                            "Relative reference %s out of scope" %
+                            self.get_fullname()
+                        )
+                else:
+                    raise ValueError("must not happen")
+        else:
             self.interface = bases[0].interface
-            self.container.set_update()
+        self.container.set_update()
 
 
 ReferenceImpl.picklers.append(_ModulePickler)
