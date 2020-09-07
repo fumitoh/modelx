@@ -787,24 +787,24 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
     # ----------------------------------------------------------------------
     # Getting and setting attributes
 
-    def abs(self, **kwargs):
+    def absref(self, **kwargs):
 
         for name, value in kwargs.items():
-            self.set_ref(name, value, reference_method="absolute")
+            self.set_ref(name, value, refmode="absolute")
 
-    def rel(self, **kwargs):
+    def relref(self, **kwargs):
 
         for name, value in kwargs.items():
-            self.set_ref(name, value, reference_method="relative")
+            self.set_ref(name, value, refmode="relative")
 
-    def set_ref(self, name, value, reference_method):
+    def set_ref(self, name, value, refmode):
 
         if hasattr(type(self), name):
             raise AttributeError("cannot set '%s'" % name)
         elif name in self.properties:
             raise AttributeError("cannot set '%s'" % name)
         else:
-            self._impl.set_attr(name, value, refmode=reference_method)
+            self._impl.set_attr(name, value, refmode=refmode)
 
     def __setattr__(self, name, value):
         if hasattr(type(self), name):
@@ -1208,19 +1208,7 @@ class BaseSpaceImpl(
 
     def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the space."""
-
         return self.get_impl_from_namelist(name.split("."))
-
-        # parts = name.split(".")
-        # child = parts.pop(0)
-        #
-        # if parts:
-        #     return self.all_spaces[child].get_impl_from_name(".".join(parts))
-        # else:
-        #     if child in self.namespace:
-        #         return self._namespace[child]
-        #     elif child in self.named_itemspaces:
-        #         return self._named_itemspaces[child]
 
     def get_impl_from_namelist(self, parts: list):
         # parts list is changed in this method
@@ -1296,6 +1284,12 @@ class DynamicBase(BaseNamespaceReferrer):
                         dyns.cells[cells.name].clear_all_values(
                             clear_input=False
                         )
+
+    def change_dynsub_refs(self, name):
+
+        for dynsub in self._dynamic_subs:
+            baseref = self.self_refs[name]
+            dynsub._dynbase_refs.set_item(name, baseref)
 
 
 @add_stateattrs
@@ -1515,7 +1509,7 @@ class UserSpaceImpl(
         if name in self.namespace:
             if name in self.refs:
                 if name in self.self_refs:
-                    self.spacemgr.change_ref(self, name, value)
+                    self.spacemgr.change_ref(self, name, value, refmode)
                 elif self.refs[name].parent is self.model:
                     self.spacemgr.new_ref(self, name, value, refmode)
                 else:
@@ -1696,10 +1690,12 @@ class UserSpaceImpl(
         self.cells.del_item(name)
         NullImpl(cells)
 
-    def on_change_ref(self, name, value, is_derived):
+    def on_change_ref(self, name, value, is_derived, refmode,
+                      is_relative):
         ref = self.self_refs[name]
-        ref.change_value(value, is_derived)
+        ref.change_value(value, is_derived, refmode, is_relative)
         self.model.clear_attr_referrers(ref)
+        self.change_dynsub_refs(name)
         return ref
 
     def on_create_ref(self, name, value, is_derived, refmode):

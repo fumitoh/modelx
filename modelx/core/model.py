@@ -490,7 +490,8 @@ class ModelImpl(
     def change_ref(self, name, value):
         ref = self.global_refs[name]
         self.model.clear_attr_referrers(ref)
-        ref.change_value(value, False)
+        ref.change_value(value, False, refmode="absolute",
+                         is_relative=False)
 
     def get_attr(self, name):
         if name in self.spaces:
@@ -1195,12 +1196,13 @@ class SpaceManager(SharedSpaceOperations):
                                    refmode=refmode)
             ref.is_relative = is_relative
 
-    def change_ref(self, space, name, value):
+    def change_ref(self, space, name, value, refmode):
         """Assigns a new value to an existing name."""
 
         self._set_defined(space.namedid)
         space.set_defined()
-        space.on_change_ref(name, value, is_derived=False)
+        space.on_change_ref(name, value, is_derived=False, refmode=refmode,
+                            is_relative=False)
 
         for subspace in self._get_subs(space):
             is_relative = False
@@ -1210,11 +1212,13 @@ class SpaceManager(SharedSpaceOperations):
             elif subref.defined_bases[0] is not space.self_refs[name]:
                 break
             if isinstance(value, Interface):
-                if (subref.refmode == "auto"
-                        or subref.refmode == "relative"):
+                if (refmode == "auto"
+                        or refmode == "relative"):
                     is_relative, value = self.get_relative_interface(
                         subspace, space.self_refs[name])
-            ref = subspace.on_change_ref(name, value, is_derived=True)
+            ref = subspace.on_change_ref(name, value,
+                                         is_derived=True, refmode=refmode,
+                                         is_relative=is_relative)
             ref.is_relative = is_relative
 
 

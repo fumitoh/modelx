@@ -94,7 +94,7 @@ class ReferenceImpl(Derivable, Impl):
         self.refmode = refmode
         self.is_relative = False
 
-    def change_value(self, value, is_derived):
+    def change_value(self, value, is_derived, refmode, is_relative):
         if not is_derived:
             self.set_defined()
         if isinstance(self.interface, BaseDataClient):
@@ -102,6 +102,8 @@ class ReferenceImpl(Derivable, Impl):
         if isinstance(value, BaseDataClient):
             self.model.datarefmgr.add_reference(self, value)
         self.interface = value
+        self.refmode = refmode
+        self.is_relative = is_relative
         self.container.change_item(self.name, self)
 
     def on_delete(self):
