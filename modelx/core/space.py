@@ -114,9 +114,13 @@ class DynBaseRefDict(RefDict):
 
     def wrap_impl(self, parent, name, value):
 
-        if isinstance(value, ReferenceImpl):
+        assert isinstance(value, ReferenceImpl)
 
-            if value.is_relative:
+        if isinstance(value.interface, Interface):
+
+            if value.is_relative:   # value.is_relative is set to True
+                                    # When value.is_defined and
+                                    # value.refmode == "relative"
 
                 impl = value.interface._impl.namedid
                 root = self.owner.rootspace._dynbase.namedid
@@ -128,15 +132,24 @@ class DynBaseRefDict(RefDict):
                     return self.owner.rootspace.get_impl_from_name(
                         impl[rootlen+1:]) # +1 to remove preceding dot
                 else:
-                    raise ValueError(
-                        "'%s' referred by '%s' is out of '%s'" %
-                        (impl, value.namedid, root)
-                    )
+                    if value.refmode == "auto":
+                        if value.is_defined:
+                            return value
+                        else:
+                            return value.direct_bases[0]
 
-            else:
+                    elif value.refmode == "relative":
+                        raise ValueError(
+                            "'%s' referred as '%s' is out of '%s'" %
+                            (impl, value.namedid, root)
+                        )
+                    else:
+                        raise RuntimeError("must not happen")
+
+            else:   # absolute
                 return value
         else:
-            raise RuntimeError("must not happen")
+            return value
 
 
 def _to_frame_inner(cellsiter, args):

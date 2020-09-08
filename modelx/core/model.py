@@ -1170,6 +1170,24 @@ class SpaceManager(SharedSpaceOperations):
         return self.new_cells(space, name=name, formula=source.formula,
                        data=data, is_derived=False, overwrite=False)
 
+    def _check_subs_relrefs(self, space, name, value, refmode):
+
+        # Check if relative ref is possible when refmode is 'relative'
+        if isinstance(value, Interface) and refmode == "relative":
+            basevalue = value._impl.namedid
+            for subspace in self._get_subs(space):
+                if name in subspace.self_refs:
+                    break
+                else:
+                    subvalue = self._graph.get_relative(
+                        subspace.namedid, space.namedid,
+                        basevalue)
+                    if not subvalue:
+                        raise ValueError(
+                            "Cannot create relative reference for '%s' in '%s'"
+                            % (basevalue, subspace.namedid)
+                        )
+
     def new_ref(self, space, name, value, refmode):
 
         other = self._find_name_in_subs(space, name)
@@ -1179,6 +1197,7 @@ class SpaceManager(SharedSpaceOperations):
             elif other not in self.model.global_refs.values():
                 raise ValueError("Cannot create reference '%s'" % name)
 
+        self._check_subs_relrefs(space, name, value, refmode)
         self._set_defined(space.namedid)
         space.set_defined()
         space.on_create_ref(name, value, is_derived=False,
@@ -1199,6 +1218,7 @@ class SpaceManager(SharedSpaceOperations):
     def change_ref(self, space, name, value, refmode):
         """Assigns a new value to an existing name."""
 
+        self._check_subs_relrefs(space, name, value, refmode)
         self._set_defined(space.namedid)
         space.set_defined()
         space.on_change_ref(name, value, is_derived=False, refmode=refmode,

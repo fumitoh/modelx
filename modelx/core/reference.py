@@ -92,7 +92,10 @@ class ReferenceImpl(Derivable, Impl):
             container.set_item(name, self)
 
         self.refmode = refmode
-        self.is_relative = False
+        if refmode == "absolute":
+            self.is_relative = False
+        else:   # 'auto' or 'relative'
+            self.is_relative = True
 
     def change_value(self, value, is_derived, refmode, is_relative):
         if not is_derived:
