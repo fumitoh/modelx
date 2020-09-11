@@ -154,3 +154,19 @@ def test_derived_relref3():
 
     assert GSub.Ref is GGChild.Ref
     assert SubChild.GChild.GGChild.Ref is SubChild.GChild
+
+
+def test_inherit_mutual_reference():
+    """
+        A---B---foo <- C
+          +-C---bar <- B
+    """
+    m = mx.new_model()
+    A = m.new_space('A')
+    B = A.new_space('B')
+    C = A.new_space('C')
+
+    B.foo = C
+    C.bar = B
+
+    D = m.new_space('D', bases=A)

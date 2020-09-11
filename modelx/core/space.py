@@ -1235,6 +1235,8 @@ class BaseSpaceImpl(
                 return self._namespace[child]
             elif child in self.named_itemspaces:
                 return self._named_itemspaces[child]
+            else:
+                raise RuntimeError("name '%s' not found" % child)
 
     # ----------------------------------------------------------------------
     # repr methods
@@ -1650,7 +1652,7 @@ class UserSpaceImpl(
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
 
-    def inherit(self, updater, bases):
+    def inherit(self, updater, bases, attr):
 
         if bases and self.is_derived:
             self.set_formula(bases[0].formula)
@@ -1660,42 +1662,41 @@ class UserSpaceImpl(
             "self_refs": self.on_del_ref
         }
 
-        for attr in attrs:
-            selfdict = getattr(self, attr)
-            basedict = ChainMap(*[getattr(b, attr) for b in bases])
+        selfdict = getattr(self, attr)
+        basedict = ChainMap(*[getattr(b, attr) for b in bases])
 
-            missing = set(basedict) - set(selfdict)
-            shared = set(selfdict) & set(basedict)
-            diffs = set(selfdict) - set(basedict)
+        missing = set(basedict) - set(selfdict)
+        shared = set(selfdict) & set(basedict)
+        diffs = set(selfdict) - set(basedict)
 
-            for name in missing | shared:
+        for name in missing | shared:
 
-                bs = [bm[name] for bm in basedict.maps
-                      if name in bm and bm[name].is_defined]
+            bs = [bm[name] for bm in basedict.maps
+                  if name in bm and bm[name].is_defined]
 
-                if name in missing:
+            if name in missing:
 
-                    if attr == "cells":
-                        selfdict[name] = UserCellsImpl(
-                            space=self, name=name, formula=None,
-                            is_derived=True)
+                if attr == "cells":
+                    selfdict[name] = UserCellsImpl(
+                        space=self, name=name, formula=None,
+                        is_derived=True)
 
-                    elif attr == "self_refs":
-                        selfdict[name] = ReferenceImpl(
-                            self, name, None,
-                            container=self._self_refs,
-                            is_derived=True,
-                            refmode=bs[0].refmode
-                        )
-                    else:
-                        raise RuntimeError("must not happen")
+                elif attr == "self_refs":
+                    selfdict[name] = ReferenceImpl(
+                        self, name, None,
+                        container=self._self_refs,
+                        is_derived=True,
+                        refmode=bs[0].refmode
+                    )
+                else:
+                    raise RuntimeError("must not happen")
 
-                if selfdict[name].is_derived:
-                    selfdict[name].inherit(updater, bs)
+            if selfdict[name].is_derived:
+                selfdict[name].inherit(updater, bs)
 
-            for name in diffs:
-                if selfdict[name].is_derived:
-                    attrs[attr](name)
+        for name in diffs:
+            if selfdict[name].is_derived:
+                attrs[attr](name)
 
     def on_del_cells(self, name):
         cells = self.cells[name]
