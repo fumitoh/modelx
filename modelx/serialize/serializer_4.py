@@ -683,18 +683,17 @@ class RefViewEncoder(BaseEncoder):
         super().__init__(writer, target, parent, name, srcpath,
                          datapath=srcpath.parent / "_data")
 
-        # TODO: Refactor
-        is_model = parent._impl.is_model()
+        is_model = isinstance(parent, Model)
 
         self.encoders = []
         for key, val in self.target.items():
             if key[0] != "_":
-                # TODO: Refactor
-                if (is_model or not parent._impl.refs[key].is_derived):
+                ref = parent._get_object(key, as_proxy=True)
+                if (is_model or not ref.is_derived):
                     datafile = self.datapath / key
                     self.encoders.append(self.selector_class.select(val)(
                         writer,
-                        val, parent=parent, name=key, srcpath=srcpath,
+                        ref, parent=parent, name=key, srcpath=srcpath,
                         datapath=datafile))
 
     def encode(self):
@@ -904,20 +903,26 @@ class MethodCallSelector(BaseSelector):
 class InterfaceRefEncoder(BaseEncoder):
 
     @classmethod
-    def condition(cls, target):
-        return isinstance(target, Interface)
+    def condition(cls, value):
+        return isinstance(value, Interface)
 
     def encode(self):
         tupleid = TupleID(abs_to_rel_tuple(
-            self.target._tupleid,
+            self.target.value._tupleid,
             self.parent._tupleid
         ))
-        return "(\"Interface\", %s)" % tupleid.serialize()
+        if tuple(int(i) for i in mx.__version__.split(".")[:3]) < (0, 10):
+            return "(\"Interface\", %s)" % tupleid.serialize()
+        else:
+            return "(\"Interface\", %s, \"%s\")" % (
+                tupleid.serialize(),
+                self.target.refmode
+            )
 
     def pickle_value(self):
 
         tupleid = TupleID(abs_to_rel_tuple(
-            self.target._tupleid,
+            self.target.value._tupleid,
             self.parent._tupleid
         ))
         tupleid.pickle_args(self.writer.pickledata)
@@ -930,37 +935,37 @@ class LiteralEncoder(BaseEncoder):
     literal_types = [bool, int, float, str]
 
     @classmethod
-    def condition(cls, target):
-        return any(type(target) is t for t in cls.literal_types)
+    def condition(cls, value):
+        return any(type(value) is t for t in cls.literal_types)
 
     def encode(self):
-        return json.dumps(self.target, ensure_ascii=False)
+        return json.dumps(self.target.value, ensure_ascii=False)
 
 
 class ModuleEncoder(BaseEncoder):
 
     @classmethod
-    def condition(cls, target):
-        return isinstance(target, types.ModuleType)
+    def condition(cls, value):
+        return isinstance(value, types.ModuleType)
 
     def encode(self):
-        return "(\"Module\", \"%s\")" % self.target.__name__
+        return "(\"Module\", \"%s\")" % self.target.value.__name__
 
 
 class PickleEncoder(BaseEncoder):
 
     @classmethod
-    def condition(cls, target):
+    def condition(cls, value):
         return True  # default encoder
 
     def pickle_value(self):
-        value = self.target
+        value = self.target.value
         key = id(value)
         if key not in self.writer.pickledata:
             self.writer.pickledata[key] = value
 
     def encode(self):
-        return "(\"Pickle\", %s)" % id(self.target)
+        return "(\"Pickle\", %s)" % id(self.target.value)
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -1052,7 +1057,7 @@ class ModelReader:
         self.instructions.execute_selected_methods(["add_bases"])
         self.read_pickledata()
         self.instructions.execute_selected_methods(["load_pickledata"])
-        self.instructions.execute_selected_methods(["__setattr__"])
+        self.instructions.execute_selected_methods(["__setattr__", "set_ref"])
         self.instructions.execute_selected_methods(
             ["_set_dynamic_inputs"])
 
@@ -1417,12 +1422,24 @@ class RefAssignParser(BaseAssignParser):
             value = decoder.decode()
             arghook = None
 
-        return Instruction.from_method(
-            obj=self.obj,
-            method="__setattr__",
-            args=(name, value),
-            arghook=arghook
-        )
+        if (isinstance(self.obj, Model)
+                or not isinstance(decoder, TupleDecoder)
+                or decoder.size() < 3):
+            return Instruction.from_method(
+                obj=self.obj,
+                method="__setattr__",
+                args=(name, value),
+                arghook=arghook
+            )
+        else:
+            refmode = decoder.elm(2)
+            return Instruction.from_method(
+                obj=self.obj,
+                method="set_ref",
+                args=(name, value),
+                arghook=arghook,
+                kwargs={'refmode': refmode}
+            )
 
 
 class CellsInputDataMixin(BaseNodeParser):
@@ -1576,6 +1593,9 @@ class TupleDecoder(ValueDecoder):
 
     def elm(self, index, decoder=ast.literal_eval):
         return decoder(self.atok.get_text(self.node.elts[index]))
+
+    def size(self):
+        return len(self.node.elts)
 
     @classmethod
     def condition(cls, node):
