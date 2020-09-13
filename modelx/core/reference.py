@@ -189,8 +189,8 @@ class ReferenceProxy:
     def __init__(self, impl):
         self._impl = impl
 
-    def __getattr__(self, item):
-        item = getattr(Interface, item)
+    def __getattr__(self, name):
+        item = getattr(Interface, name)
         if isinstance(item, property):
             return item.fget(self)
         elif isinstance(item, FunctionType):
@@ -199,6 +199,14 @@ class ReferenceProxy:
     @property
     def value(self):
         return self._impl.interface
+
+    @property
+    def refmode(self):
+        return self._impl.refmode
+
+    @property
+    def is_derived(self):
+        return self._impl.is_derived
 
     @property
     def _baseattrs(self):

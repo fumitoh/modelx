@@ -27,7 +27,7 @@ from modelx.core.base import (
     BaseView,
     Derivable
 )
-from modelx.core.reference import ReferenceImpl
+from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.cells import CellsImpl, UserCellsImpl
 from modelx.core.node import OBJ, KEY, get_node, node_has_key
 from modelx.core.spacecontainer import (
@@ -297,6 +297,15 @@ class Model(EditableSpaceContainer):
     def _get_from_name(self, name):
         """Get object by named id"""
         return self._impl.get_impl_from_name(name).interface
+
+    def _get_object(self, name, as_proxy=False):
+        parts = name.split(".")
+        attr = parts.pop(0)
+
+        if as_proxy and attr in self.refs:
+            return ReferenceProxy(self._impl.global_refs[attr])
+        else:
+            return super()._get_object(name, as_proxy)
 
 
 class TraceManager:
