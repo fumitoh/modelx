@@ -48,6 +48,7 @@ Release Notes - modelx
 .. toctree::
    :maxdepth: 2
 
+   releases/relnotes_v0_10_0
    releases/relnotes_v0_9_0
    releases/relnotes_v0_8_0
    releases/relnotes_v0_7_0

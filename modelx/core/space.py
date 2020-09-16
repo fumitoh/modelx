@@ -801,17 +801,98 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
     # Getting and setting attributes
 
     def absref(self, **kwargs):
+        """Set absolute References
 
+        Set References in the *absolute* reference mode by passing a pair
+        of the References' names and values as keyword arguments.
+
+        Setting a Reference by this method is equivalent to
+        calling :meth:`set_ref` by passing "absolute" to ``refmode``.
+
+        Example:
+            ``A`` and ``B`` are UserSpaces and ``foo`` is a Cells in ``B``.
+            The code blow assigns the Cells to References with
+            the same names as the Cells in Space ``A``::
+
+                >>> A.absref(foo=B.foo)
+
+                >>> A.foo
+                <Cells foo(x) in Model1.B>
+
+            By passing multiple keyword assignments, multiple References
+            can be assigned.
+            Below ``bar`` and ``baz`` are Cells in ``B``::
+
+                >>> A.absref(bar=B.bar, baz=B.baz)
+
+                >>> A.bar
+                <Cells bar(x) in Model1.B>
+
+                >>> A.baz
+                <Cells baz(x) in Model1.B>
+
+        See Also:
+            :meth:`set_ref`
+            :meth:`relref`
+
+        """
         for name, value in kwargs.items():
             self.set_ref(name, value, refmode="absolute")
 
     def relref(self, **kwargs):
+        """Set relative References
 
+        Set References in the *relative* reference mode by passing a pair
+        of the References' names and values as keyword arguments.
+
+        Setting a Reference by this method is equivalent to
+        calling :meth:`set_ref` by passing "relative" to ``refmode``.
+
+        Example:
+            ``A`` and ``B`` are UserSpaces and ``foo`` is a Cells in ``B``.
+            The code blow assigns the Cells to References with
+            the same names as the Cells in Space ``A``::
+
+                >>> A.absref(foo=B.foo)
+
+                >>> A.foo
+                <Cells foo(x) in Model1.B>
+
+            By passing multiple keyword assignments, multiple References
+            can be assigned.
+            Below ``bar`` and ``baz`` are Cells in ``B``::
+
+                >>> A.absref(bar=B.bar, baz=B.baz)
+
+                >>> A.bar
+                <Cells bar(x) in Model1.B>
+
+                >>> A.baz
+                <Cells baz(x) in Model1.B>
+
+        See Also:
+            :meth:`set_ref`
+            :meth:`absref`
+
+        """
         for name, value in kwargs.items():
             self.set_ref(name, value, refmode="relative")
 
     def set_ref(self, name, value, refmode):
+        """Set a Reference
 
+        Set a Reference that assigns ``value`` to ``name`` in this Space.
+
+        Args:
+            name: Reference name
+            value: Reference value
+            refmode: "auto", "absolute" or "relative" to indicate
+                reference mode
+
+        See Also:
+            :meth:`relref`
+            :meth:`absref`
+        """
         if hasattr(type(self), name):
             raise AttributeError("cannot set '%s'" % name)
         elif name in self.properties:

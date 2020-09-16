@@ -80,6 +80,17 @@ Child Cells operations
   ~UserSpace.new_cells_from_pandas
   ~UserSpace.import_funcs
 
+Reference operations
+--------------------
+
+.. autosummary::
+  :toctree: generated/
+  :template: mxbase.rst
+
+  ~UserSpace.set_ref
+  ~UserSpace.absref
+  ~UserSpace.relref
+
 
 ItemSpace operations
 ---------------------

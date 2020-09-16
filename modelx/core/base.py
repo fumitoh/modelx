@@ -432,6 +432,10 @@ class Interface:
             raise ValueError("Invalid direct constructor call.")
 
     def _get_object(self, name, as_proxy=False):
+        """Get an object from its dotted name
+
+        Used also for retrieving Leaf's attributes by spyder-modelx
+        """
         parts = name.split(".")
 
         try:
