@@ -15,8 +15,8 @@ References now have *reference mode*, an attribute to control how
 the values of their derived References are determined when the values
 are core modelx objects, such as Spaces or Cells.
 The *reference mode* attribute can be set to either "absolute", "relative" or
-"auto". To specify a reference mode when setting a Reference, following
-methods are introduced.
+"auto". Following methods are introduced to set References
+by explicitly specifying their *reference modes*.
 
 .. py:currentmodule:: modelx.core.space
 
