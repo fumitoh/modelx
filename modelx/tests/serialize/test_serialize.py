@@ -206,3 +206,23 @@ def test_nested_space(tmp_path, write_method):
     m2 = read_model(tmp_path / "model")
 
     testutil.compare_model(m, m2)
+
+
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_nested_derived(tmp_path, write_method):
+    """
+        m---A---B
+            |
+            C---B*
+    """
+    m = mx.new_model()
+    A = m.new_space('A')
+    B = A.new_space('B')
+    C = m.new_space('C', bases=A)
+
+    assert C.B._is_derived()
+
+    getattr(mx, write_method)(m, tmp_path / "model")
+    m2 = read_model(tmp_path / "model")
+
+    testutil.compare_model(m, m2)

@@ -35,6 +35,8 @@ def compare_space(src, trg, compare_subspace=True):
     if src.formula:
         assert src.formula.source == trg.formula.source
 
+    assert src._is_derived() == trg._is_derived()
+
     compare_views(src.cells, trg.cells, compare_each=compare_cells)
     compare_views(src.refs, trg.refs, compare_each=compare_ref)
     if compare_subspace:

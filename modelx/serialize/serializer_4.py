@@ -381,7 +381,8 @@ class ModelWriter:
 
         for space in encoder.target.spaces.values():
 
-            if not MethodCallEncoder.from_method(space):
+            if (space._is_defined()
+                    and not MethodCallEncoder.from_method(space)):
                 srcpath = (encoder.srcpath.parent / space.name / "__init__.py")
 
                 e = self.space_encoder(
@@ -596,6 +597,8 @@ class SpaceEncoder(BaseEncoder):
             if name[0] == "_":
                 pass
             elif MethodCallEncoder.from_method(space):
+                pass
+            elif space._is_derived():
                 pass
             else:
                 spaces.append(name)
