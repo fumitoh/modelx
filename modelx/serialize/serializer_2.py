@@ -436,7 +436,7 @@ class SpaceEncoder(BaseEncoder):
 
         self.cells_encoders = []
         for cells in self.space.cells.values():
-            if cells._is_defined:
+            if cells._is_defined():
                 if not MethodCallEncoder.from_method(cells):
                     self.cells_encoders.append(
                         CellsEncoder(

@@ -182,5 +182,5 @@ def test_space_new_cells_override(testspaces):
     assert cells._is_derived
     cells.set_formula(fibo_new)
 
-    assert cells._is_defined
+    assert cells._is_defined()
     assert cells(2) == 3

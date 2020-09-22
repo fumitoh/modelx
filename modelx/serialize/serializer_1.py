@@ -272,7 +272,7 @@ class ModelWriter:
             self._write_allow_none(space, f)
 
             for cells in space.cells.values():
-                if cells._is_defined:
+                if cells._is_defined():
                     if self._has_method(cells):
                         self._write_method(
                             cells,
