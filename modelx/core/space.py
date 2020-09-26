@@ -207,7 +207,7 @@ class CellsView(SelectedView):
 
     def __delitem__(self, name):
         cells = self._data[name]._impl
-        cells.parent.del_cells(name)
+        cells.parent.spacemgr.del_cells(cells.parent, name)
 
     def to_frame(self, *args):
         """Convert the cells in the view into a DataFrame object.
@@ -1625,7 +1625,7 @@ class UserSpaceImpl(
         """
         if name in self.namespace:
             if name in self.cells:
-                self.del_cells(name)
+                self.spacemgr.del_cells(self, name)
             elif name in self.spaces:
                 self.model.updater.del_defined_space(self.spaces[name])
             elif name in self.refs:
@@ -1639,23 +1639,6 @@ class UserSpaceImpl(
         return False
 
     # --- Member deletion -------------------------------------
-
-    def del_cells(self, name):
-        """Implementation of cells deletion
-
-        ``del space.name`` where name is a cells, or
-        ``del space.cells['name']``
-        """
-        if name in self.cells:
-            self.spacemgr.del_cells(self, name)
-
-        elif name in self.named_itemspaces:
-            cells = self.named_itemspaces.pop(name)
-            self.named_itemspaces.set_update()
-            set_null_impl(cells)
-
-        else:
-            raise KeyError("Cells '%s' does not exist" % name)
 
     def del_ref(self, name):
 
