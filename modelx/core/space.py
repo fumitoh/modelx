@@ -1216,13 +1216,6 @@ class BaseSpaceImpl(
 
         return self.namespace.interfaces[name]
 
-    def destruct(self):
-        for space in list(self.named_spaces.values()):
-            space.destruct()
-            self.named_spaces.del_item(space.name)
-        self.clear_all_cells()
-        self.del_all_itemspaces()
-
     @property
     def spacemgr(self):
         return self.model.spacemgr
@@ -1861,7 +1854,11 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         return ImplChainMap(self, None, allargs)
 
     def destruct(self):
-        BaseSpaceImpl.destruct(self)
+        for space in list(self.named_spaces.values()):
+            space.destruct()
+            self.named_spaces.del_item(space.name)
+        self.clear_all_cells()
+        self.del_all_itemspaces()
         self._dynbase._dynamic_subs.remove(self)
 
     @property
