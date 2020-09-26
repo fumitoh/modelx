@@ -30,7 +30,7 @@ from modelx.core.base import (
     get_mixinslots,
     Interface,
     Impl,
-    NullImpl,
+    set_null_impl,
     Derivable,
     ImplDict,
     ImplChainMap,
@@ -251,8 +251,8 @@ class SpaceView(BaseView):
 
     def __delitem__(self, name):
         space = self._data[name]._impl
-        space.parent.del_space(name)
-
+        # space.parent.del_space(name)
+        space.model.updater.del_defined_space(space)
 
 class RefView(SelectedView):
 
@@ -1232,10 +1232,6 @@ class BaseSpaceImpl(
         return self._cells.fresh
 
     @property
-    def named_spaces(self):
-        return self._named_spaces.fresh
-
-    @property
     def refs(self):
         return self._refs.fresh
 
@@ -1631,7 +1627,7 @@ class UserSpaceImpl(
             if name in self.cells:
                 self.del_cells(name)
             elif name in self.spaces:
-                self.del_space(name)
+                self.model.updater.del_defined_space(self.spaces[name])
             elif name in self.refs:
                 self.del_ref(name)
             else:
@@ -1643,31 +1639,6 @@ class UserSpaceImpl(
         return False
 
     # --- Member deletion -------------------------------------
-
-    def del_space(self, name):
-        """Delete a space."""
-        if name not in self.spaces:
-            raise ValueError("Space '%s' does not exist" % name)
-
-        if name in self.named_spaces:
-            space = self.named_spaces[name]
-            if space.is_derived:
-                raise ValueError(
-                    "%s has derived spaces" % repr(space.interface)
-                )
-            else:
-                self.model.updater.del_defined_space(space)
-
-        elif name in self.named_itemspaces:
-            space = self.named_itemspaces[name]
-            self.named_itemspaces.del_item(name)
-
-        else:
-            raise ValueError("Derived cells cannot be deleted")
-
-        # TODO: Destroy space
-        if space is self.model.currentspace:
-            self.model.currentspace = None
 
     def del_cells(self, name):
         """Implementation of cells deletion
@@ -1681,7 +1652,7 @@ class UserSpaceImpl(
         elif name in self.named_itemspaces:
             cells = self.named_itemspaces.pop(name)
             self.named_itemspaces.set_update()
-            NullImpl(cells)
+            set_null_impl(cells)
 
         else:
             raise KeyError("Cells '%s' does not exist" % name)
@@ -1783,7 +1754,7 @@ class UserSpaceImpl(
         cells = self.cells[name]
         self.model.clear_obj(cells)
         self.cells.del_item(name)
-        NullImpl(cells)
+        set_null_impl(cells)
 
     def on_change_ref(self, name, value, is_derived, refmode,
                       is_relative):

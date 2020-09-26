@@ -484,12 +484,6 @@ class ModelImpl(
     def updater(self):
         return SpaceUpdater(self.spacemgr)
 
-    def del_space(self, name):
-        space = self.spaces[name]
-        self.updater.del_defined_space(space)
-        if space is self.currentspace:
-            self.currentspace = None
-
     def del_ref(self, name):
         ref = self.global_refs[name]
         self.model.clear_attr_referrers(ref)
@@ -524,8 +518,8 @@ class ModelImpl(
 
     def del_attr(self, name):
 
-        if name in self.spaces:
-            self.del_space(name)
+        if name in self.named_spaces:
+            self.updater.del_defined_space(self.named_spaces[name])
         elif name in self.global_refs:
             self.del_ref(name)
         else:
@@ -1217,7 +1211,7 @@ class SpaceManager(SharedSpaceOperations):
             is_relative = False
             if name in subspace.self_refs:
                 break
-            if isinstance(value, Interface):
+            if isinstance(value, Interface) and value._is_valid():
                 if refmode == "auto" or refmode == "relative":
                     is_relative, value = self.get_relative_interface(
                         subspace, space.self_refs[name])
@@ -1241,7 +1235,7 @@ class SpaceManager(SharedSpaceOperations):
                 break
             elif subref.defined_bases[0] is not space.self_refs[name]:
                 break
-            if isinstance(value, Interface):
+            if isinstance(value, Interface) and value._is_valid():
                 if (refmode == "auto"
                         or refmode == "relative"):
                     is_relative, value = self.get_relative_interface(
@@ -1592,6 +1586,11 @@ class SpaceUpdater(SharedSpaceOperations):
 
     def del_defined_space(self, space):
 
+        if space.is_derived:
+            raise ValueError(
+                "%s has derived spaces" % repr(space.interface)
+            )
+
         node = space.namedid
 
         if node not in self.manager._inheritance:
@@ -1620,6 +1619,9 @@ class SpaceUpdater(SharedSpaceOperations):
 
         self._instructions.execute()
         self._update_manager()
+
+        if space is self.model.currentspace:
+            self.model.currentspace = None
 
     def copy_space(
             self,

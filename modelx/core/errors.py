@@ -44,3 +44,6 @@ class NoneReturnedError(Exception):
     attribute is set to False.
     """
 
+
+class DeletedObjectError(Exception):
+    """Error raised when a deleted object is accessed."""

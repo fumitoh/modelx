@@ -17,8 +17,9 @@ from collections import ChainMap, OrderedDict
 from collections.abc import Sequence, Mapping
 from inspect import BoundArguments
 from modelx.core.node import get_node
-from  modelx.core.chainmap import CustomChainMap
+from modelx.core.chainmap import CustomChainMap
 import modelx.core.system
+from modelx.core.errors import DeletedObjectError
 
 # To add new method apply_defaults to BoundArguments.
 if sys.version_info < (3, 5, 0):
@@ -185,7 +186,11 @@ def get_mixinslots(*mixins):
     return tuple(slots)
 
 
-class Impl:
+class BaseImpl:
+    __slots__ = ()
+
+
+class Impl(BaseImpl):
     """The ultimate base class of *Impl classes.
 
     The rationales for splitting implementation from its interface are twofold,
@@ -361,33 +366,22 @@ class Derivable:
         raise NotImplementedError
 
 
-class NullImpl(Impl):
+class NullImpl(BaseImpl):
     """Singleton to represent deleted objects.
 
     Call ``impl.del_self`` if it exists,
     and detach ``impl`` from its interface.
     The interface points to this NllImpl singleton.
     """
-
-    the_instance = None
-
-    def __new__(cls, impl):
-
-        if cls.the_instance is None:
-            cls.the_instance = object.__new__(cls)
-
-        if hasattr(impl, "del_self"):
-            impl.del_self()
-
-        impl.interface._impl = cls.the_instance
-
-        return cls.the_instance
-
-    def __init__(self, impl):
-        pass
-
     def __getattr__(self, item):
-        raise RuntimeError("Deleted object")
+        raise DeletedObjectError("the object has been deleted")
+
+
+null_impl = NullImpl()
+
+
+def set_null_impl(impl):
+    impl.interface._impl = null_impl
 
 
 def _get_object(name):
@@ -637,6 +631,9 @@ class Interface:
     @property
     def _namedid(self):
         return self._impl.namedid
+
+    def _is_valid(self):
+        return not isinstance(self._impl, NullImpl)
 
 
 

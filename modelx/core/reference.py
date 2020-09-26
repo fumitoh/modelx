@@ -18,7 +18,8 @@ import importlib
 from types import ModuleType, FunctionType
 import functools
 
-from modelx.core.base import add_stateattrs, Derivable, Impl, Interface
+from modelx.core.base import (
+    add_stateattrs, Derivable, Impl, Interface)
 from modelx.io.excelio import BaseDataClient
 
 
@@ -148,10 +149,14 @@ class ReferenceImpl(Derivable, Impl):
     def _get_members(other):
         return other.self_refs
 
+    def has_interface(self):
+        return (isinstance(self.interface, Interface)
+                and self.interface._is_valid())
+
     def inherit(self, updater, bases):
 
         self.model.clear_obj(self)
-        if isinstance(bases[0].interface, Interface):
+        if bases[0].has_interface():
 
             if self.refmode == "absolute":
                 self.interface = bases[0].interface
