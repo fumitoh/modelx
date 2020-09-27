@@ -39,6 +39,14 @@ def test_del_defined_base():
 
 
 def test_del_base_in_model():
+    """
+        m---Base---BaseChild---BaseChildCells
+          |  |
+          |  +--BaseCells
+          |
+          +-Sub(Base)
+
+    """
     m, base = mx.new_model(), mx.new_space("Base")
     child = base.new_space("BaseChild")
     cells = base.new_cells("BaseCells")

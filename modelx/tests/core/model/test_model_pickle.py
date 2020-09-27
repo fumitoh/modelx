@@ -3,6 +3,8 @@ import pytest
 import builtins
 import io
 
+import modelx as mx
+from modelx.testing import testutil
 from modelx.core.api import *
 from modelx.core import mxsys
 from modelx.core.system import SystemPickler, SystemUnpickler
@@ -129,3 +131,29 @@ def test_pickle_module(tmp_path):
     assert m.TestModule.np is numpy
     assert m.__builtins__ is builtins
     assert m.TestModule.__builtins__ is builtins
+
+
+def test_null_object(tmp_path):
+    """
+        m---A---B
+            +---b <- B
+            |
+            C(A)
+    """
+    m = mx.new_model()
+    A = m.new_space('A')
+    B = A.new_space('B')
+    A.b = B
+    C = m.new_space('C', bases=A)
+
+    del A.B
+    assert not A.b._is_valid()
+    assert not C.b._is_valid()
+
+    m.backup(tmp_path / "model")
+    m2 = mx.restore_model(tmp_path / "model")
+
+    assert not m2.A.b._is_valid()
+    assert not m2.C.b._is_valid()
+
+    testutil.compare_model(m, m2)

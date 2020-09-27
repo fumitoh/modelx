@@ -1078,7 +1078,7 @@ class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer):
     def _del_itemspace(self, key):
         if key in list(self.param_spaces):
             space = self.param_spaces[key]
-            space.destruct()
+            space.on_delete()
             self.named_itemspaces.del_item(space.name)
             del self.param_spaces[key]
 
@@ -1343,6 +1343,12 @@ class BaseSpaceImpl(
 
     def to_frame(self, args):
         return _to_frame_inner(self.cells, args)
+
+    def on_delete(self):
+        for cells in self.cells.values():
+            cells.clear_all_values(clear_input=True)
+            cells.on_delete()
+        super().on_delete()
 
 
 class DynamicBase(BaseNamespaceReferrer):
@@ -1730,7 +1736,7 @@ class UserSpaceImpl(
         cells = self.cells[name]
         self.model.clear_obj(cells)
         self.cells.del_item(name)
-        set_null_impl(cells)
+        cells.on_delete()
 
     def on_change_ref(self, name, value, is_derived, refmode,
                       is_relative):
@@ -1853,13 +1859,13 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
         return ImplChainMap(self, None, allargs)
 
-    def destruct(self):
+    def on_delete(self):
         for space in list(self.named_spaces.values()):
-            space.destruct()
+            space.on_delete()
             self.named_spaces.del_item(space.name)
-        self.clear_all_cells()
         self.del_all_itemspaces()
         self._dynbase._dynamic_subs.remove(self)
+        super().on_delete()
 
     @property
     def arguments(self):

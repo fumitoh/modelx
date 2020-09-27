@@ -16,9 +16,7 @@ import sys
 from collections import ChainMap, OrderedDict
 from collections.abc import Sequence, Mapping
 from inspect import BoundArguments
-from modelx.core.node import get_node
 from modelx.core.chainmap import CustomChainMap
-import modelx.core.system
 from modelx.core.errors import DeletedObjectError
 
 # To add new method apply_defaults to BoundArguments.
@@ -293,7 +291,7 @@ class Impl(BaseImpl):
         return self.has_ascendant(other) or self.has_descendant(other)
 
     def on_delete(self):
-        raise NotImplementedError
+        set_null_impl(self)
 
     # ----------------------------------------------------------------------
     # repr methods
@@ -381,26 +379,7 @@ null_impl = NullImpl()
 
 
 def set_null_impl(impl):
-    impl.interface._impl = null_impl
-
-
-def _get_object(name):
-
-    parts = name.split(".")
-    if not parts[0]:
-        parts[0] = modelx.core.system.mxsys.serializing.model.name
-        name = ".".join(parts)
-
-    return modelx.core.system.mxsys.get_object(name)
-
-
-def _get_object_from_tupleid(tupleid):
-
-    if not tupleid[0]:
-        model = modelx.core.system.mxsys.serializing.model.name
-        tupleid = (model,) + tupleid[1:]
-
-    return modelx.core.system.mxsys.get_object_from_tupleid(tupleid)
+    object.__setattr__(impl.interface, "_impl", null_impl)
 
 
 class Interface:
@@ -492,6 +471,10 @@ class Interface:
 
     def __repr__(self):
         type_ = self.__class__.__name__
+
+        if not self._is_valid():
+            return "<%s null object>" % type_
+
         if self.parent:
             return "<%s %s in %s>" % (
                 type_, self._impl.repr_self(), self._impl.repr_parent()
@@ -509,7 +492,7 @@ class Interface:
         object.__setattr__(self, "_impl", state)
 
     def __reduce__(self):
-        if self._impl.system.serializing:
+        if self._is_valid() and self._impl.system.serializing:
 
             if self._impl.system.serializing.version == 2:
                 return self._reduce_serialize_2()
@@ -532,7 +515,7 @@ class Interface:
         else:
             name = self.fullname
 
-        return _get_object, (name,)
+        return self._impl.system._get_object_reduce, (name,)
 
     def _reduce_serialize_3(self):
 
@@ -543,7 +526,7 @@ class Interface:
         else:
             tupleid = self._tupleid
 
-        return _get_object_from_tupleid, (tupleid,)
+        return self._impl.system._get_object_from_tupleid_reduce, (tupleid,)
 
     _reduce_serialize_4 = _reduce_serialize_3
 

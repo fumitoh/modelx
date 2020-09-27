@@ -23,6 +23,7 @@ import pathlib
 from collections import deque
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.node import get_node_repr
+from modelx.core.base import NullImpl, null_impl
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError, FormulaError
@@ -364,6 +365,8 @@ class SystemPickler(pickle.Pickler):
         elif isinstance(obj, BaseSharedData):
             obj.save(self.datapath)
             return "BaseSharedData", None
+        elif isinstance(obj, NullImpl):
+            return "NullImpl", None
         else:
             return None
 
@@ -382,6 +385,8 @@ class SystemUnpickler(pickle.Unpickler):
             return self.system.iomanager
         elif pid[0] == "BaseSharedData":
             return None
+        elif pid[0] == "NullImpl":
+            return null_impl
         else:
             raise pickle.UnpicklingError("unsupported persistent object")
 
@@ -601,6 +606,23 @@ class System:
                 raise ValueError
 
         return obj
+
+    def _get_object_reduce(self, name):
+
+        parts = name.split(".")
+        if not parts[0]:
+            parts[0] = self.serializing.model.name
+            name = ".".join(parts)
+
+        return self.get_object(name)
+
+    def _get_object_from_tupleid_reduce(self, tupleid):
+
+        if not tupleid[0]:
+            model = self.serializing.model.name
+            tupleid = (model,) + tupleid[1:]
+
+        return self.get_object_from_tupleid(tupleid)
 
     # ----------------------------------------------------------------------
     # Call stack tracing

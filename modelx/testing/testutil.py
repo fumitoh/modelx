@@ -1,5 +1,5 @@
 import modelx
-from modelx.core.base import Interface
+from modelx.core.base import Interface, null_impl
 
 
 def compare_model(src, trg):
@@ -46,7 +46,11 @@ def compare_space(src, trg, compare_subspace=True):
 def compare_ref(src, trg):
 
     if isinstance(src, Interface):
-        assert src.fullname.split(".")[1:] == trg.fullname.split(".")[1:]
+        if src._is_valid():
+            assert src.fullname.split(".")[1:] == trg.fullname.split(".")[1:]
+        else:
+            assert type(src) == type(trg)
+            assert src._impl is trg._impl is null_impl
     else:
         assert src == trg
 

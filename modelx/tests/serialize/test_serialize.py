@@ -226,3 +226,30 @@ def test_nested_derived(tmp_path, write_method):
     m2 = read_model(tmp_path / "model")
 
     testutil.compare_model(m, m2)
+
+
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_null_object(tmp_path, write_method):
+    """
+        m---A---B
+            +---b <- B
+            |
+            C(A)
+    """
+    m = mx.new_model()
+    A = m.new_space('A')
+    B = A.new_space('B')
+    A.b = B
+    C = m.new_space('C', bases=A)
+
+    del A.B
+    assert not A.b._is_valid()
+    assert not C.b._is_valid()
+
+    getattr(mx, write_method)(m, tmp_path / "model")
+    m2 = read_model(tmp_path / "model")
+
+    assert not m2.A.b._is_valid()
+    assert not m2.C.b._is_valid()
+
+    testutil.compare_model(m, m2)

@@ -707,3 +707,8 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
     def set_attr(self, name, value, refmode):
         raise NotImplementedError
+
+    def on_del_space(self, name):
+        space = self.named_spaces[name]
+        self.named_spaces.del_item(name)
+        space.on_delete()

@@ -23,7 +23,7 @@ import zipfile
 import modelx as mx
 from modelx.core.system import mxsys
 from modelx.core.model import Model
-from modelx.core.base import Interface
+from modelx.core.base import Interface, NullImpl, null_impl
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
 from modelx.io.baseio import BaseSharedData, IOManager
@@ -62,6 +62,11 @@ class ModelPickler(pickle.Pickler):
             return "BaseSharedData", obj.path, obj.__class__
         elif isinstance(obj, IOManager):
             return "IOManager", None
+        elif isinstance(obj, NullImpl):
+            return "NullImpl", None
+        elif obj is mxsys:
+            # Needed by Interface._reduce_serialize
+            return "System", None
         else:
             return None
 
@@ -97,6 +102,13 @@ class ModelUnpickler(pickle.Unpickler):
 
         elif pid[0] == "IOManager":
             return self.manager
+
+        elif pid[0] == "NullImpl":
+            return null_impl
+
+        elif pid[0] == "System":
+            return mxsys
+
         else:
             raise pickle.UnpicklingError("unsupported persistent object")
 
@@ -907,7 +919,7 @@ class InterfaceRefEncoder(BaseEncoder):
 
     @classmethod
     def condition(cls, value):
-        return isinstance(value, Interface)
+        return isinstance(value, Interface) and value._is_valid()
 
     def encode(self):
         tupleid = TupleID(abs_to_rel_tuple(

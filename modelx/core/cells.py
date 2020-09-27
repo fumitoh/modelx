@@ -330,7 +330,6 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
     # ----------------------------------------------------------------------
     # Dependency
 
-
     def is_input(self, *args, **kwargs):
         """``True`` if this is input.
 

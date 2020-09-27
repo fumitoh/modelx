@@ -1348,12 +1348,12 @@ class SpaceUpdater(SharedSpaceOperations):
 
         if parent_node in self.manager._graph:
             parent = self.manager._graph.to_space(parent_node)
-            method = parent.named_spaces.del_item
         elif parent_node:
             parent = graph.to_space(parent_node)
-            method = parent.named_spaces.del_item
         else:
-            method = self.model.spaces.del_item
+            parent = self.model
+
+        method = parent.on_del_space
 
         self._instructions.append(
             Instruction(method, (name,))
