@@ -33,32 +33,32 @@ def test_repr_model(repr_test):
 
 
 def test_repr_space(repr_test):
-    assert repr(repr_test.ReprSpace) == "<UserSpace ReprSpace in ReprModel>"
+    assert repr(repr_test.ReprSpace) == "<UserSpace ReprModel.ReprSpace>"
 
 
 def test_repr_suspace(repr_test):
     assert (
         repr(repr_test.ReprSpace.ReprChild)
-        == "<UserSpace ReprChild in ReprModel.ReprSpace>"
+        == "<UserSpace ReprModel.ReprSpace.ReprChild>"
     )
 
 
 def test_repr_cells(repr_test):
     cells = repr_test.ReprSpace.Foo
-    assert repr(cells) == "<Cells Foo(x, y) in ReprModel.ReprSpace>"
+    assert repr(cells) == "<Cells ReprModel.ReprSpace.Foo(x, y)>"
 
 
 def test_repr_cells_in_child(repr_test):
     cells = repr_test.ReprSpace.ReprChild.Bar
-    repr_ = "<Cells Bar(x, y) in ReprModel.ReprSpace.ReprChild>"
+    repr_ = "<Cells ReprModel.ReprSpace.ReprChild.Bar(x, y)>"
     assert repr(cells) == repr_
 
 
 def test_repr_dynspace(repr_test):
     space = repr_test.DynSpace(1, 2)
-    assert repr(space) == "<ItemSpace DynSpace[1, 2] in ReprModel>"
+    assert repr(space) == "<ItemSpace ReprModel.DynSpace[1, 2]>"
 
 
 def test_repr_cells_in_dynspace(repr_test):
     cells = repr_test.DynSpace(1, 2).Foo
-    assert repr(cells) == "<Cells Foo(x, y) in ReprModel.DynSpace[1, 2]>"
+    assert repr(cells) == "<Cells ReprModel.DynSpace[1, 2].Foo(x, y)>"

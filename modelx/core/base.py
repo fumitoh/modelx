@@ -311,7 +311,7 @@ class Impl(BaseImpl):
 
     def get_repr(self, fullname=False, add_params=True):
 
-        if fullname:
+        if fullname and not self.is_model():
             return self.repr_parent() + "." + self.repr_self(add_params)
         else:
             return self.repr_self(add_params)
@@ -475,12 +475,17 @@ class Interface:
         if not self._is_valid():
             return "<%s null object>" % type_
 
-        if self.parent:
-            return "<%s %s in %s>" % (
-                type_, self._impl.repr_self(), self._impl.repr_parent()
-            )
         else:
-            return "<%s %s>" % (type_, self._impl.repr_self())
+            return "<%s %s>" % (type_,
+                                self._impl.get_repr(
+                                    fullname=True, add_params=True))
+
+        # if self.parent:
+        #     return "<%s %s in %s>" % (
+        #         type_, self._impl.repr_self(), self._impl.repr_parent()
+        #     )
+        # else:
+        #     return "<%s %s>" % (type_, self._impl.repr_self())
 
     def __getnewargs__(self):
         return (self._impl,)
