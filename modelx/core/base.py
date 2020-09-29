@@ -480,13 +480,6 @@ class Interface:
                                 self._impl.get_repr(
                                     fullname=True, add_params=True))
 
-        # if self.parent:
-        #     return "<%s %s in %s>" % (
-        #         type_, self._impl.repr_self(), self._impl.repr_parent()
-        #     )
-        # else:
-        #     return "<%s %s>" % (type_, self._impl.repr_self())
-
     def __getnewargs__(self):
         return (self._impl,)
 
