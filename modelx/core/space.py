@@ -116,7 +116,7 @@ class DynBaseRefDict(RefDict):
 
         assert isinstance(value, ReferenceImpl)
 
-        if isinstance(value.interface, Interface):
+        if isinstance(value.interface, Interface) and value.interface._is_valid():
 
             if value.is_relative:   # value.is_relative is set to True
                                     # When value.is_defined and
