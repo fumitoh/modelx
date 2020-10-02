@@ -73,3 +73,19 @@ def test_dynref_error(dynautoref_model):
     m = dynautoref_model
     with pytest.raises(ValueError):
         m.A.B.C.set_ref('bar', m.A, refmode="relative")
+
+
+def test_change_dynbase_ref():
+
+    m = mx.new_model()
+    A = m.new_space('A')
+    A.parameters = ('i',)
+
+    @mx.defcells
+    def foo(x):
+        return x
+
+    A.absref(bar=foo)
+    A.bar = foo
+
+    assert A[1].bar.parent is A[1]

@@ -1225,8 +1225,11 @@ class SpaceManager(SharedSpaceOperations):
         self._check_subs_relrefs(space, name, value, refmode)
         self._set_defined(space.namedid)
         space.set_defined()
+
+        is_relative = False if refmode == "absolute" else True
+
         space.on_change_ref(name, value, is_derived=False, refmode=refmode,
-                            is_relative=False)
+                            is_relative=is_relative)
 
         for subspace in self._get_subs(space):
             is_relative = False
