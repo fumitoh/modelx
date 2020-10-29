@@ -59,7 +59,7 @@ class ModelPickler(pickle.Pickler):
     def persistent_id(self, obj):
 
         if isinstance(obj, BaseSharedData):
-            return "BaseSharedData", obj.path, obj.__class__
+            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__
         elif isinstance(obj, IOManager):
             return "IOManager", None
         elif isinstance(obj, NullImpl):
@@ -84,6 +84,7 @@ class ModelUnpickler(pickle.Unpickler):
         if pid[0] == "BaseSharedData":
 
             _, path, cls = pid
+            path = pathlib.Path(path)
 
             if not path.is_absolute():
                 src = self.reader.path.joinpath(path)
