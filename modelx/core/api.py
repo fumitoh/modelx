@@ -412,10 +412,11 @@ def clear_stacktrace():
     return _system.clear_stacktrace()
 
 
-def get_stacktrace():
+def get_stacktrace(summarize=False):
     """Get stack trace.
 
-    Get the call stack trace. The stack trace is a list
+    If ``summarize`` is set to ``False`` (default),
+    returns the call stack trace. The stack trace is a list
     of tuples each of which represents one of two types of operations,
     push("ENTER") or pop("EXIT") to/from the call stack.
     The table blow shows data sored in the tuple elements.
@@ -432,6 +433,20 @@ def get_stacktrace():
 
     .. _epoch: https://docs.python.org/3/library/time.html#epoch
 
+    If ``summarize`` is set to ``True``, returns a summary of the trace.
+    The summary is a :obj:`dict`, whose keys are the representation
+    strings of the called Cells, and whose values are dicts
+    containing the following statistics of the Cells.
+
+    ================== ======================================================
+    Key                Value
+    ================== ======================================================
+    "calls"            Number of calls to the Cells
+    "duration"         Total time in seconds elapsed in the Cells
+    "first_entry_at"   Time (from the epoch_) of the first entry to the Cells
+    "last_exit_at"     Time (from the epoch_) of the last exit from the Cells
+    ================== ======================================================
+
     The call stack trace must be activated by :func:`start_stacktrace`
     to get the trace, otherwise a runtime error is raised,
 
@@ -443,9 +458,10 @@ def get_stacktrace():
         :func:`stop_stacktrace`
         :func:`clear_stacktrace`
 
+    .. versionchanged:: 0.11.0 `summarize` parameter is added.
     .. versionadded:: 0.0.25
     """
-    return _system.get_stacktrace()
+    return _system.get_stacktrace(summarize)
 
 
 def write_model(model, model_path, backup=True, log_input=False, version=None):

@@ -661,9 +661,13 @@ class System:
 
         return True
 
-    def get_stacktrace(self):
+    def get_stacktrace(self, summarize):
         if self._is_stacktrace_active():
-            return list(self.callstack.tracestack)
+            trace = list(self.callstack.tracestack)
+            if not summarize:
+                return trace
+            else:
+                return self._get_stacktrace_summary(trace)
         else:
             raise RuntimeError("call stack trace not active")
 
@@ -676,6 +680,52 @@ class System:
     def _check_sanity(self):
         self.iomanager._check_sanity()
 
+    def _get_stacktrace_summary(self, stacktrace):
+        """
+        To get result as DataFrame:
+            pd.DataFrame.from_dict(result, orient='index')
+        """
+        maxlen = self.callstack.tracestack.maxlen
+
+        if maxlen and maxlen <= len(stacktrace):
+            raise RuntimeError("stacktrace truncated beyond max length")
+
+        TYPE, LEVEL, TIME, REPR, ARGS = range(5)
+
+        result = {}
+        stack = []
+        t_last = 0
+
+        for trace in stacktrace:
+
+            if stack:
+                stack[-1][-1] += trace[TIME] - t_last
+
+            if trace[TYPE] == 'ENTER':
+                stack.append(list(trace) + [0])
+
+            elif trace[TYPE] == 'EXIT':
+                last = stack.pop()
+
+                if last[REPR] in result:
+                    stat = result[last[REPR]]
+                    stat['calls'] += 1
+                    stat['duration'] += last[-1]
+                    stat['last_exit_at'] = trace[TIME]
+
+                else:
+                    result[last[REPR]] = {
+                        'calls': 1,
+                        'duration': last[-1],
+                        'first_entry_at': last[TIME],
+                        'last_exit_at': trace[TIME]
+                    }
+            else:
+                raise RuntimeError('must not happen')
+
+            t_last = trace[TIME]
+
+        return result
 
 mxsys = System()
 
