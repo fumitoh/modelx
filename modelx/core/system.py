@@ -704,22 +704,22 @@ class System:
             if trace[TYPE] == 'ENTER':
                 stack.append(list(trace) + [0])
 
+                if trace[REPR] not in result:
+                    result[trace[REPR]] = {
+                        'calls': 0,
+                        'duration': 0,
+                        'first_entry_at': trace[TIME],
+                        'last_exit_at': None
+                    }
+
             elif trace[TYPE] == 'EXIT':
                 last = stack.pop()
 
-                if last[REPR] in result:
-                    stat = result[last[REPR]]
-                    stat['calls'] += 1
-                    stat['duration'] += last[-1]
-                    stat['last_exit_at'] = trace[TIME]
+                stat = result[last[REPR]]
+                stat['calls'] += 1
+                stat['duration'] += last[-1]
+                stat['last_exit_at'] = trace[TIME]
 
-                else:
-                    result[last[REPR]] = {
-                        'calls': 1,
-                        'duration': last[-1],
-                        'first_entry_at': last[TIME],
-                        'last_exit_at': trace[TIME]
-                    }
             else:
                 raise RuntimeError('must not happen')
 
