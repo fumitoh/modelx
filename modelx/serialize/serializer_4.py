@@ -17,18 +17,17 @@ import ast
 import enum
 from collections import namedtuple
 import tokenize
-import pickle
 import tempfile
 import zipfile
 import modelx as mx
 from modelx.core.system import mxsys
 from modelx.core.model import Model
-from modelx.core.base import Interface, NullImpl, null_impl
+from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
-from modelx.io.baseio import BaseSharedData, IOManager
 import asttokens
 from . import ziputil
+from .custom_pickle import ModelUnpickler, ModelPickler
 
 
 Section = namedtuple("Section", ["id", "symbol"])
@@ -52,66 +51,6 @@ FROM_PANDAS_METHODS = [
 ]
 
 CONSTRUCTOR_METHODS = FROM_FILE_METHODS + FROM_PANDAS_METHODS
-
-
-class ModelPickler(pickle.Pickler):
-
-    def persistent_id(self, obj):
-
-        if isinstance(obj, BaseSharedData):
-            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__
-        elif isinstance(obj, IOManager):
-            return "IOManager", None
-        elif isinstance(obj, NullImpl):
-            return "NullImpl", None
-        elif obj is mxsys:
-            # Needed by Interface._reduce_serialize
-            return "System", None
-        else:
-            return None
-
-
-class ModelUnpickler(pickle.Unpickler):
-
-    def __init__(self, file, reader):
-        super().__init__(file)
-        self.reader = reader
-        self.manager = reader.system.iomanager
-        self.model = reader.model
-
-    def persistent_load(self, pid):
-
-        if pid[0] == "BaseSharedData":
-
-            _, path, cls = pid
-            path = pathlib.Path(path)
-
-            if not path.is_absolute():
-                src = self.reader.path.joinpath(path)
-                if self.reader.temproot:
-                    dst = self.reader.temproot.joinpath(path)
-                    if not dst.exists():
-                        ziputil.copy_file(src, dst, None, None)
-                    loadpath = dst
-                else:
-                    loadpath = src
-            else:
-                loadpath = path
-
-            return self.manager.get_or_create_data(
-                path, model=self.model, cls=cls, loadpath=loadpath)
-
-        elif pid[0] == "IOManager":
-            return self.manager
-
-        elif pid[0] == "NullImpl":
-            return null_impl
-
-        elif pid[0] == "System":
-            return mxsys
-
-        else:
-            raise pickle.UnpicklingError("unsupported persistent object")
 
 
 class TupleID(tuple):
@@ -1148,9 +1087,20 @@ class ModelReader:
             unpickler = ModelUnpickler(file, self)
             return unpickler.load()
 
+        def compat_load(file):
+            from .pandas_compat import CompatUnpickler
+            return CompatUnpickler(file, self).load()
+
         file = self.path / "_data/data.pickle"
         if ziputil.exists(file):
-            self.pickledata = ziputil.read_file_utf8(custom_load, file, "b")
+            excs_to_catch = (
+                AttributeError, ImportError, ModuleNotFoundError, TypeError)
+            try:
+                self.pickledata = ziputil.read_file_utf8(
+                    custom_load, file, "b")
+            except excs_to_catch:
+                self.pickledata = ziputil.read_file_utf8(
+                    compat_load, file, "b")
 
 
 class BaseNodeParser:
