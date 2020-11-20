@@ -17,7 +17,9 @@ have a report which shows how much time each formula took during an execution.
 when the option is set to ``True``, :func:`~modelx.get_stacktrace`
 returns a :obj:`dict` whose keys are the representation
 strings of the called Cells, and whose values are dicts
-containing the following statistics of the Cells::
+containing the statistics of the Cells.
+The sample code below creates a Model with two Cells,
+and runs the Model activating stack trace::
 
     import time
     import pandas as pd
