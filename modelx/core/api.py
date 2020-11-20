@@ -448,10 +448,60 @@ def get_stacktrace(summarize=False):
     ================== ======================================================
 
     The call stack trace must be activated by :func:`start_stacktrace`
-    to get the trace, otherwise a runtime error is raised,
+    before using :func:`get_stacktrace`, otherwise a runtime error is raised.
+    When setting ``summarize`` to ``True``,
+    make sure that :func:`start_stacktrace`
+    was called with its parameter ``maxlen`` being set to ``None``,
+    otherwise :func:`get_stacktrace` may raise an Error because of
+    incomplete trace records.
 
     Returns:
-        A list of tuples each of which is a record of stack history.
+        A list of tuples each of which is a record of stack history,
+        or a dict containing the summary information.
+
+    Example:
+        The sample code below creates and executes a sample model,
+        and stores a trace summary of the execution
+        as Pandas DataFrame::
+
+            import time
+            import pandas as pd
+            import modelx as mx
+
+            m = mx.new_model()
+
+            m.time = time
+
+            @mx.defcells
+            def foo(x):
+                time.sleep(0.1)     # Waits 0.1 second
+                return foo(x-1) + 1 if x > 0 else bar()
+
+            @mx.defcells
+            def bar():
+                time.sleep(0.2)     # Waits 0.2 second
+                return 0
+
+            mx.start_stacktrace(maxlen=None)
+
+            foo(5)
+
+            df = pd.DataFrame.from_dict(
+                mx.get_stacktrace(summarize=True), orient="index")
+
+            mx.stop_stacktrace()
+
+        The DataFrame shows how many times each formula was called,
+        how much time each formula took, time at which
+        the execution enters into each formula for the first time,
+        and time at which the execution leaves each formula for the last.
+
+        ====================== ======== ======================= ======================= =====================
+        Cells                     calls               duration     first_entry_at         last_exit_at
+        ====================== ======== ======================= ======================= =====================
+        Model1.Space1.foo(x)         6   0.6097867488861084       1605873067.2099519      1605873068.0203028
+        Model1.Space1.bar()          1   0.20056414604187012      1605873067.8197386      1605873068.0203028
+        ====================== ======== ======================= ======================= =====================
 
     See Also:
         :func:`start_stacktrace`
