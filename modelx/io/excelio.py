@@ -302,7 +302,7 @@ class ExcelRange(BaseDataClient, Mapping):
         return {
             "manager": self._manager,
             "_data": self._data,
-            "path": self.path,
+            "path": pathlib.PurePath(self.path),
             "range": self.range,
             "sheet": self.sheet,
             "keyids": self.keyids
@@ -311,7 +311,7 @@ class ExcelRange(BaseDataClient, Mapping):
     def __setstate__(self, state):
         self._manager = state["manager"]
         self._data = state["_data"]
-        self.path = state["path"]
+        self.path = pathlib.Path(state["path"])
         self.range = state["range"]
         self.sheet = state["sheet"]
         self.keyids = state["keyids"]

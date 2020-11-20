@@ -280,9 +280,9 @@ def MortTableID():
 
 AsmpLookup = ("Interface", ("...", "Input", "AsmpLookup"), "auto")
 
-AssumptionTables = ("Pickle", 2233389980872)
+AssumptionTables = ("Pickle", 2310405213128)
 
-MortalityTables = ("Pickle", 2235289201608)
+MortalityTables = ("Pickle", 2310405297480)
 
 gen = ("Interface", ("..", "Policy", "Gen"), "auto")
 
@@ -292,6 +292,6 @@ prod = ("Interface", ("..", "Policy", "Product"), "auto")
 
 sex = ("Interface", ("..", "Policy", "Sex"), "auto")
 
-PolicyData = ("Pickle", 2233386886344)
+PolicyData = ("Pickle", 2310405372040)
 
 TableLastAge = ("Interface", ("...", "Input", "TableLastAge"), "auto")

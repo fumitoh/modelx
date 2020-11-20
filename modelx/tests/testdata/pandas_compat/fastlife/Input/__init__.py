@@ -89,18 +89,18 @@ def TableLastAge():
 # ---------------------------------------------------------------------------
 # References
 
-PolicyData = ("Pickle", 2233386886344)
+PolicyData = ("Pickle", 2310405372040)
 
-MortalityTables = ("Pickle", 2235289201608)
+MortalityTables = ("Pickle", 2310405297480)
 
-AssumptionTables = ("Pickle", 2233389980872)
+AssumptionTables = ("Pickle", 2310405213128)
 
-Scenarios = ("Pickle", 2233390044744)
+Scenarios = ("Pickle", 2310406037576)
 
-DiscountRate = ("Pickle", 2233395762888)
+DiscountRate = ("Pickle", 2310411300616)
 
-PremWaiverCost = ("Pickle", 2233396001416)
+PremWaiverCost = ("Pickle", 2310411307208)
 
-Assumption = ("Pickle", 2233396402568)
+Assumption = ("Pickle", 2310411951624)
 
-ProductSpec = ("Pickle", 2233396403336)
+ProductSpec = ("Pickle", 2310411969480)

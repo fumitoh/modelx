@@ -409,7 +409,7 @@ def LoadMaintPrem2():
 
 LifeTable = ("Interface", ("...", "LifeTable"), "auto")
 
-PolicyData = ("Pickle", 2233386886344)
+PolicyData = ("Pickle", 2310405372040)
 
 SpecLookup = ("Interface", ("...", "Input", "SpecLookup"), "auto")
 
