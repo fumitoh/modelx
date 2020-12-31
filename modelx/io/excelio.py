@@ -207,16 +207,8 @@ class ExcelWorkbook(BaseSharedData):
         self.book = opxl.load_workbook(loadpath, data_only=True)
         self.is_updated = True  # Not Used
 
-    def save(self, root):
-        if not self.path.is_absolute():
-            path = root.joinpath(self.path)
-        else:
-            path = self.path
-
-        path.parent.mkdir(parents=True, exist_ok=True)
+    def _on_save(self, path):
         self.book.save(path)
-        self.is_updated = False
-        self.after_save_file()
 
 
 class _RangeType:
@@ -282,7 +274,7 @@ class ExcelRange(BaseDataClient, Mapping):
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None
 
-    def _on_register(self, manager, model, **kwargs):
+    def _on_register(self, model, **kwargs):
 
         if "datapath" in kwargs:
             datapath = pathlib.Path(kwargs["datapath"])
@@ -290,9 +282,10 @@ class ExcelRange(BaseDataClient, Mapping):
         else:
             loadpath = self.loadpath
 
-        self._manager = manager
         self._data = self._manager.get_or_create_data(
             self.path, model, cls=ExcelWorkbook, loadpath=loadpath)
+
+    def _on_load_data(self):
         self._load_cells(self.keyids)
 
     def _on_unpickle(self):

@@ -691,16 +691,17 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         from modelx.io.excelio import ExcelRange
 
-        result = ExcelRange(
-            path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath)
-
-        self.system.iomanager.register_client(
-            result, model=self.model.interface)
+        result = self.system.iomanager.new_client(path, ExcelRange,
+                                         model=self.model.interface,
+                                         range_=range_,
+                                         sheet=sheet,
+                                         keyids=keyids,
+                                         loadpath=loadpath)
 
         try:
             self.set_attr(name, result)
         except (ValueError, KeyError, AttributeError):
-            result._data.remove_client(result)
+            self.system.iomanager.del_client(result)
             raise KeyError("cannot assign '%s'" % name)
 
         return result

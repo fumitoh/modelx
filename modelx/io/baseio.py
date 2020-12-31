@@ -41,6 +41,17 @@ class BaseSharedData:
         self.manager = None
 
     def save(self, root):
+        if not self.path.is_absolute():
+            path = root.joinpath(self.path)
+        else:
+            path = self.path
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._on_save(path)
+        self.is_updated = False
+        self.after_save_file()
+
+    def _on_save(self, path):
         raise NotImplementedError
 
     def can_add_client(self, client):
@@ -74,6 +85,14 @@ class BaseSharedData:
 
 
 class IOManager:
+    """A class to manage shared data files
+
+    * Create new client
+        - Create a new client
+        - Register a new client
+            - Create a SharedData if not exit
+            - Register the client to the data
+    """
 
     def __init__(self, system):
         self.data = {}
@@ -92,8 +111,8 @@ class IOManager:
         else:
             return path, model
 
-    def new_data(self, path, model, cls, **kwargs):
-        data = cls(path, **kwargs)
+    def new_data(self, path, model, cls, loadpath, **kwargs):
+        data = cls(path, loadpath=loadpath, **kwargs)
         self._register_data(data, model)
         return data
 
@@ -102,12 +121,12 @@ class IOManager:
             self.data[self._get_dataid(data.path, model)] = data
             data.manager = self
 
-    def get_or_create_data(self, path, model, cls, **kwargs):
+    def get_or_create_data(self, path, model, cls, loadpath, **kwargs):
         data = self.get_data(path, model)
         if data:
             return data
         else:
-            return self.new_data(path, model, cls, **kwargs)
+            return self.new_data(path, model, cls, loadpath, **kwargs)
 
     def remove_data(self, data):
 
@@ -118,13 +137,24 @@ class IOManager:
         if key:
             del self.data[key]
 
+    def new_client(self, path, cls, model, **kwargs):
+        client = cls(path, **kwargs)
+        self.register_client(client, model)
+        return client
+
     def register_client(self, client, model, **kwargs):
-        client._on_register(self, model=model, **kwargs)
+        client._manager = self
+        client._on_register(model=model, **kwargs)
+        client._on_load_data()
         client._data.add_client(client)
+
+    def del_client(self, client):
+        client._data.remove_client(client)
 
     def unpickle_client(self, client):
         client._on_unpickle()
         client._data.add_client(client)
+
 
 
 class BaseDataClient:
@@ -136,10 +166,16 @@ class BaseDataClient:
 
     """
 
-    def _on_register(self, manager, model, **kwargs):
+    def _on_register(self, model, **kwargs):
         raise NotImplementedError
 
     def _on_delete(self, manager, **kwargs):
+        raise NotImplementedError
+
+    def _on_load_data(self):
+        raise NotImplementedError
+
+    def _on_unpickle(self):
         raise NotImplementedError
 
     def _after_save_file(self):
@@ -173,7 +209,7 @@ class DataClientReferenceManager:
             refs.remove(ref)
             if not refs:
                 del self._client_to_refs[client]
-                client._data.remove_client(client)
+                client._manager.del_client(client)
         else:
             raise ValueError("client must be BaseDataClient")
 
