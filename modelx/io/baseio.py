@@ -35,10 +35,11 @@ def is_in_root(path: pathlib.Path):
 
 class BaseSharedData:
 
-    def __init__(self, path: pathlib.Path):
+    def __init__(self, path: pathlib.Path, load_from):
         self.path = path
         self.clients = {}
         self.manager = None
+        self.load_from = load_from
 
     def save(self, root):
         if not self.path.is_absolute():
@@ -111,22 +112,19 @@ class IOManager:
         else:
             return path, model
 
-    def new_data(self, path, model, cls, loadpath, **kwargs):
-        data = cls(path, loadpath=loadpath, **kwargs)
-        self._register_data(data, model)
-        return data
-
-    def _register_data(self, data: BaseSharedData, model):
+    def new_data(self, path, model, cls, load_from, **kwargs):
+        data = cls(path, load_from, **kwargs)
         if not self.get_data(data.path, model):
             self.data[self._get_dataid(data.path, model)] = data
             data.manager = self
+        return data
 
-    def get_or_create_data(self, path, model, cls, loadpath, **kwargs):
+    def get_or_create_data(self, path, model, cls, load_from, **kwargs):
         data = self.get_data(path, model)
         if data:
             return data
         else:
-            return self.new_data(path, model, cls, loadpath, **kwargs)
+            return self.new_data(path, model, cls, load_from, **kwargs)
 
     def remove_data(self, data):
 
@@ -137,16 +135,16 @@ class IOManager:
         if key:
             del self.data[key]
 
-    def new_client(self, path, cls, model, **kwargs):
-        client = cls(path, **kwargs)
-        self.register_client(client, model)
-        return client
+    def new_client(
+            self, path, cls, model, client_args, **data_args):
 
-    def register_client(self, client, model, **kwargs):
+        client = cls(path, **client_args)
         client._manager = self
-        client._on_register(model=model, **kwargs)
-        client._on_load_data()
+        client._data = self.get_or_create_data(
+            client.path, model, cls=cls.data_class, **data_args)
+        client._on_load_value()
         client._data.add_client(client)
+        return client
 
     def del_client(self, client):
         client._data.remove_client(client)
@@ -166,13 +164,7 @@ class BaseDataClient:
 
     """
 
-    def _on_register(self, model, **kwargs):
-        raise NotImplementedError
-
-    def _on_delete(self, manager, **kwargs):
-        raise NotImplementedError
-
-    def _on_load_data(self):
+    def _on_load_value(self):
         raise NotImplementedError
 
     def _on_unpickle(self):

@@ -203,7 +203,7 @@ def _redirect_merged(cells):
 class ExcelWorkbook(BaseSharedData):
 
     def __init__(self, path, loadpath):
-        super().__init__(path)
+        super().__init__(path, load_from=loadpath)
         self.book = opxl.load_workbook(loadpath, data_only=True)
         self.is_updated = True  # Not Used
 
@@ -250,7 +250,9 @@ class ExcelRange(BaseDataClient, Mapping):
     .. versionadded:: 0.9.0
 
     """
-    def __init__(self, path, range_, sheet=None, keyids=None, loadpath=None):
+    data_class = ExcelWorkbook
+
+    def __init__(self, path, range_, sheet=None, keyids=None):
         """
         Args:
             path: Path to the Excel file for saving data. If a relative
@@ -263,29 +265,13 @@ class ExcelRange(BaseDataClient, Mapping):
                 Defaults to ``path``.
         """
         self.path = pathlib.Path(path)
-        if loadpath:
-            self.loadpath = pathlib.Path(loadpath)
-        else:
-            self.loadpath = self.path
-
         self._manager = None
         self._data = None
         self.range = range_
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None
 
-    def _on_register(self, model, **kwargs):
-
-        if "datapath" in kwargs:
-            datapath = pathlib.Path(kwargs["datapath"])
-            loadpath = datapath / self.path
-        else:
-            loadpath = self.loadpath
-
-        self._data = self._manager.get_or_create_data(
-            self.path, model, cls=ExcelWorkbook, loadpath=loadpath)
-
-    def _on_load_data(self):
+    def _on_load_value(self):
         self._load_cells(self.keyids)
 
     def _on_unpickle(self):
@@ -323,9 +309,6 @@ class ExcelRange(BaseDataClient, Mapping):
             self._datasize = state["_datasize"]
             self._key_to_index = state["_key_to_index"]
             self._keysize = state["_keysize"]
-
-    def _on_delete(self, manager, **kwargs):
-        self._data.remove_client(self)
 
     def _load_cells(self, keys):
         self._cells = _get_range(

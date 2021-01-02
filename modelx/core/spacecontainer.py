@@ -691,12 +691,14 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         from modelx.io.excelio import ExcelRange
 
+        cargs = {"range_": range_,
+                 "sheet": sheet,
+                 "keyids": keyids}
+
         result = self.system.iomanager.new_client(path, ExcelRange,
                                          model=self.model.interface,
-                                         range_=range_,
-                                         sheet=sheet,
-                                         keyids=keyids,
-                                         loadpath=loadpath)
+                                         client_args=cargs,
+                                         load_from=loadpath)
 
         try:
             self.set_attr(name, result)

@@ -51,7 +51,7 @@ class ModelUnpickler(pickle.Unpickler):
                 loadpath = path
 
             return self.manager.get_or_create_data(
-                path, model=self.model, cls=cls, loadpath=loadpath)
+                path, model=self.model, cls=cls, load_from=loadpath)
 
         elif pid[0] == "IOManager":
             return self.manager
