@@ -292,7 +292,7 @@ class ExcelRange(BaseDataClient, Mapping):
         self._load_cells(self.keyids)
 
     def __getstate__(self):
-        return {
+        state = {
             "manager": self._manager,
             "_data": self._data,
             "path": pathlib.PurePath(self.path),
@@ -300,6 +300,14 @@ class ExcelRange(BaseDataClient, Mapping):
             "sheet": self.sheet,
             "keyids": self.keyids
         }
+        if not self._manager.system.serializing:
+            state.update({
+                "_cells": self._cells,
+                "_datasize": self._datasize,
+                "_key_to_index": self._key_to_index,
+                "_keysize": self._keysize
+            })
+        return state
 
     def __setstate__(self, state):
         self._manager = state["manager"]
@@ -310,6 +318,11 @@ class ExcelRange(BaseDataClient, Mapping):
         self.keyids = state["keyids"]
         if self._manager.system.serializing:
             self._manager.unpickle_client(self)
+        else:
+            self._cells = state["_cells"]
+            self._datasize = state["_datasize"]
+            self._key_to_index = state["_key_to_index"]
+            self._keysize = state["_keysize"]
 
     def _on_delete(self, manager, **kwargs):
         self._data.remove_client(self)

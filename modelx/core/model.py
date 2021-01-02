@@ -464,11 +464,6 @@ class ModelImpl(
     def restore_state(self, datapath=None):
         """Called after unpickling to restore some attributes manually."""
         BaseSpaceContainerImpl.restore_state(self)
-
-        for client in self.datarefmgr.clients:
-            self.system.iomanager.register_client(
-                client, model=self.interface, datapath=datapath)
-
         mapping = {}
         for node in self.tracegraph:
             if isinstance(node, tuple):

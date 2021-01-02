@@ -362,9 +362,6 @@ class SystemPickler(pickle.Pickler):
             return "System", None
         elif isinstance(obj, IOManager):
             return "IOManager", None
-        elif isinstance(obj, BaseSharedData):
-            obj.save(self.datapath)
-            return "BaseSharedData", None
         elif isinstance(obj, NullImpl):
             return "NullImpl", None
         else:
@@ -383,8 +380,6 @@ class SystemUnpickler(pickle.Unpickler):
             return self.system
         elif pid[0] == "IOManager":
             return self.system.iomanager
-        elif pid[0] == "BaseSharedData":
-            return None
         elif pid[0] == "NullImpl":
             return null_impl
         else:
