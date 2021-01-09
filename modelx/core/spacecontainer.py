@@ -465,6 +465,24 @@ class EditableSpaceContainer(BaseSpaceContainer):
             path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath
         )
 
+    def new_pandas(self, name, path, data, filetype):
+        """Creates a Reference to a Pandas DataFrame or Series
+
+        Creates in this Space/Model a Reference that holds PandasIO object
+
+        Args:
+            name(:obj:`str`): Name of the Reference
+            path: A path to a file to save the Pandas object. If a relative
+                path is given, it is relative to the model folder.
+            format: String to indicate file format. ("excel" or "csv")
+
+
+        .. versionadded:: 0.12.0
+
+        """
+        return self._impl.new_pandas(
+            name, path, data, filetype)
+
 
 @add_stateattrs
 class BaseSpaceContainerImpl:
@@ -699,6 +717,28 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                                          model=self.model.interface,
                                          client_args=cargs,
                                          load_from=loadpath)
+
+        try:
+            self.set_attr(name, result)
+        except (ValueError, KeyError, AttributeError):
+            self.system.iomanager.del_client(result)
+            raise KeyError("cannot assign '%s'" % name)
+
+        return result
+
+    def new_pandas(self, name, path, data, filetype):
+
+        from modelx.io.pandasio import PandasData
+
+        cargs= {"filetype": filetype,
+                "data": data}
+
+        result = self.system.iomanager.new_client(
+            path,
+            PandasData,
+            model=self.model.interface,
+            client_args=cargs
+        )
 
         try:
             self.set_attr(name, result)

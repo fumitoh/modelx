@@ -119,7 +119,7 @@ class IOManager:
             data.manager = self
         return data
 
-    def get_or_create_data(self, path, model, cls, load_from, **kwargs):
+    def get_or_create_data(self, path, model, cls, load_from=None, **kwargs):
         data = self.get_data(path, model)
         if data:
             return data
@@ -142,8 +142,14 @@ class IOManager:
         client._manager = self
         client._data = self.get_or_create_data(
             client.path, model, cls=cls.data_class, **data_args)
-        client._on_load_value()
-        client._data.add_client(client)
+        try:
+            client._on_load_value()
+            client._data.add_client(client)
+        except:
+            if not client._data.clients:
+                del self.data[self._get_dataid(client._data.path, model)]
+            raise
+
         return client
 
     def del_client(self, client):
