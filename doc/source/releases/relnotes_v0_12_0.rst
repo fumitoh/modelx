@@ -18,7 +18,6 @@ can now be written to and read from Excel or CSV text files.
 
 New methods, :meth:`Model.new_pandas<core.model.Model.new_pandas>` and
 :meth:`UserSpace.new_pandas<core.space.UserSpace.new_pandas>` are introduced.
-
 By calling either method, the user can create a
 :class:`~io.pandasio.PandasData` object that associates
 a DataFrame/Series with a file path and file type ("excel" or "csv"),
