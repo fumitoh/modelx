@@ -57,12 +57,13 @@ Child Space operations
   ~UserSpace.cur_space
   ~UserSpace.import_module
   ~UserSpace.new_space
+  ~UserSpace.new_excel_range
+  ~UserSpace.new_pandas
   ~UserSpace.new_space_from_csv
   ~UserSpace.new_space_from_excel
   ~UserSpace.new_space_from_module
   ~UserSpace.new_space_from_pandas
   ~UserSpace.reload
-  ~UserSpace.new_excel_range
 
 
 Child Cells operations

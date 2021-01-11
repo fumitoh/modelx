@@ -264,23 +264,36 @@ class Model(EditableSpaceContainer):
     def dataclients(self):
         """List of :class:`~modelx.io.baseio.BaseDataClient` objects
 
-        Returns a list of objects of BaseDataClient sub-classes
-        that are associated to this Model.
+        Returns a list of all objects of BaseDataClient subclasses
+        defined in this Model.
+
+        :class:`~modelx.io.excelio.ExcelRange` and
+        :class:`~modelx.io.pandasio.PandasData`
+        are subclasses of :class:`~modelx.io.baseio.BaseDataClient`.
 
         :class:`~modelx.io.excelio.ExcelRange`
-        is a sub class of :class:`~modelx.io.baseio.BaseDataClient`, and
-        :class:`~modelx.io.excelio.ExcelRange`
-        objects created by
+        objects are created either by
         :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
         or
         :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
-        methods of this Model
-        are included in the returned list.
+        method.
+        :class:`~modelx.io.pandasio.PandasData` objects are
+        created either by
+        :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
+        or
+        :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
+        method.
 
         See Also:
-
+            :class:`~modelx.io.excelio.ExcelRange`
+            :class:`~modelx.io.pandasio.PandasData`
             :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
             :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+            :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
+            :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
+
+        .. versionadded:: 0.9.0
+
         """
         return list(self._impl.datarefmgr.clients)
 

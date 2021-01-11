@@ -16,3 +16,12 @@ ExcelRange
 
 .. autoclass:: ExcelRange
 
+
+PandasData
+----------
+
+.. currentmodule:: modelx.io.pandasio
+
+.. autoclass:: PandasData
+
+.. autoproperty:: PandasData.value

@@ -4,6 +4,16 @@ Updates
 
 .. Latest Updates Begin
 
+.. raw:: html
+
+    <p><small><strong>Note:</strong>
+    Visit <a href="https://modelx.io/allposts" target="_blank">modelx blog</a>
+    for more updates.</small></p>
+
+* *11 Jan 2021:*
+  modelx v0.12.0 is released.see
+  :doc:`releases/relnotes_v0_12_0` release notes for details.
+
 * *21 Nov 2020:*
   modelx v0.11.0 is released.see
   :doc:`releases/relnotes_v0_11_0` release notes for details.

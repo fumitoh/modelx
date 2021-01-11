@@ -466,18 +466,94 @@ class EditableSpaceContainer(BaseSpaceContainer):
         )
 
     def new_pandas(self, name, path, data, filetype):
-        """Creates a Reference to a Pandas DataFrame or Series
+        """Creates a PandasData object and assigns it to a Reference
 
-        Creates in this Space/Model a Reference that holds PandasIO object
+        Creates a :class:`~modelx.io.pandasio.PandasData` object that
+        wraps a DataFrame or Series passed as ``data``,
+        and assigns the :class:`~modelx.io.pandasio.PandasData` object
+        to a Reference named ``name`` in this Space/Model.
+
+        When the model is saved, the DataFrame or Series is
+        written to a file whose path is given by the ``path`` parameter,
+        and whose format is specified by the ``filetype`` parameter.
+        If ``path`` is relative, it is interpreted relative to the model
+        folder. The ``filetype`` can take either "excel" or "csv".
+
+        If "excel" is given, the pandas object is written to an Excel file.
+        The file name in ``path`` must have either ".xlsx", ".xlsm" or ".xls"
+        extention.
+        This method internally uses `pandas.read_excel`_ function and
+        `to_excel`_ method for reading from and writing to Excel files,
+        so appropriate Excel engines for reading and writing Excel files
+        must be installed, depending on the types of Excel files.
+        See `pandas' document`_ for the required packeges for Excel engines.
+
+        .. _pandas.read_excel: https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
+
+        .. _to_excel: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_excel.html
+
+        .. _pandas' document: https://pandas.pydata.org/docs/user_guide/io.html#excel-files
+
+        Example:
+
+            The script below creates a sample DataFrame ``df``::
+
+                >>> index = pd.date_range("20210101", periods=3)
+
+                >>> df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=list("XYZ"))
+
+                >>> df
+                                   X         Y         Z
+                2021-01-01  0.184497  0.140037 -1.599499
+                2021-01-02 -1.029170  0.588080  0.081129
+                2021-01-03  0.028450 -0.490102  0.025208
+
+            The code below creates a PandasData object containing
+            the DataFrame created above,
+            and assigns it to a Reference named ``x`` in ``space``::
+
+                >>> space.new_pandas("x", "Space1/df.xlsx", data=df, filetype="excel")
+
+                >>> space.x
+                <modelx.io.pandasio.PandasData at 0x15efa565548>
+
+            To get the DataFrame,
+            call the :class:`~modelx.io.pandasio.PandasData` object
+            or access its :attr:`~modelx.io.pandasio.PandasData.value` property::
+
+                >>> space.x()     # or space.value
+                                   X         Y         Z
+                2021-01-01  0.184497  0.140037 -1.599499
+                2021-01-02 -1.029170  0.588080  0.081129
+                2021-01-03  0.028450 -0.490102  0.025208
+
+            When the model is saved, the DataFrame is written to an Excel file
+            named `df.xlsx` placed under the `Space1` folder in `model`.
+
+                >>> model.write("model")    # `model` is the parent of `space`
+
+            When the model is read back by :func:`modelx.read_model` function,
+            the DataFrame is read from the file::
+
+                >>> model2 = mx.read_model("model", name="Model2")
+
+                >>> model2.Space1.x()
+                                   X         Y         Z
+                2021-01-01  0.184497  0.140037 -1.599499
+                2021-01-02 -1.029170  0.588080  0.081129
+                2021-01-03  0.028450 -0.490102  0.025208
 
         Args:
             name(:obj:`str`): Name of the Reference
             path: A path to a file to save the Pandas object. If a relative
                 path is given, it is relative to the model folder.
-            format: String to indicate file format. ("excel" or "csv")
-
+            data: pandas DataFrame or Series
+            filetype: String to indicate file format. ("excel" or "csv")
 
         .. versionadded:: 0.12.0
+
+        See Also:
+            :class:`~modelx.io.pandasio.PandasData`
 
         """
         return self._impl.new_pandas(
