@@ -27,4 +27,3 @@ try:
     from modelx.core.api import __getattr__, __dir__
 except ImportError:
     pass
-from modelx.qtgui.api import *
