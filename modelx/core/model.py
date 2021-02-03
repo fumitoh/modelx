@@ -1136,8 +1136,11 @@ class SharedSpaceOperations:
 class SpaceManager(SharedSpaceOperations):
 
     def del_cells(self, space, name):
+        cells = space.cells[name]
+        if cells.is_derived:
+            raise ValueError("cannot delete derived")
         space.on_del_cells(name)
-        self.update_subs(space)
+        self.update_subs(space, skip_self=False)
 
     def del_ref(self, space, name):
         space.on_del_ref(name)
