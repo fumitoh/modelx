@@ -201,6 +201,7 @@ class Impl(BaseImpl):
         "system",
         "interface",
         "parent",
+        "spacemgr",
         "name",
         "model",
         "allow_none",
@@ -350,11 +351,11 @@ class Derivable:
 
     @property
     def bases(self):
-        return self.model.spacemgr.get_deriv_bases(self)
+        return self.spacemgr.get_deriv_bases(self)
 
     @property
     def defined_bases(self):
-        return self.model.spacemgr.get_deriv_bases(self, defined_only=True)
+        return self.spacemgr.get_deriv_bases(self, defined_only=True)
 
     @staticmethod
     def _get_members(other):

@@ -83,6 +83,7 @@ class ReferenceImpl(Derivable, Impl):
             parent=parent,
             name=name,
             interface=value)
+        self.spacemgr = parent.spacemgr
         Derivable.__init__(self, is_derived)
 
         if isinstance(value, BaseDataClient):

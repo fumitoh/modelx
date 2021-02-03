@@ -207,7 +207,7 @@ class CellsView(SelectedView):
 
     def __delitem__(self, name):
         cells = self._data[name]._impl
-        cells.parent.spacemgr.del_cells(cells.parent, name)
+        cells.spacemgr.del_cells(cells.parent, name)
 
     def to_frame(self, *args):
         """Convert the cells in the view into a DataFrame object.
@@ -1166,6 +1166,7 @@ class BaseSpaceImpl(
             name=name,
             doc=doc
         )
+        self.spacemgr = parent.spacemgr
 
         # ------------------------------------------------------------------
         # Construct member containers
@@ -1215,10 +1216,6 @@ class BaseSpaceImpl(
                 )
 
         return self.namespace.interfaces[name]
-
-    @property
-    def spacemgr(self):
-        return self.model.spacemgr
 
     @property
     def cells(self):

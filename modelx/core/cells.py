@@ -63,7 +63,7 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
                 of the copied cells
             name(:obj:`str`, optional): New name to replace the original name
         """
-        return self._impl.parent.spacemgr.copy_cells(
+        return self._impl.spacemgr.copy_cells(
             parent._impl, self._impl, name).interface
 
     def __contains__(self, key):
@@ -407,6 +407,7 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl, Impl):
             parent=space,
             name=name
         )
+        self.spacemgr = space.spacemgr
         Derivable.__init__(self, is_derived)
         self.source = source
         space._cells.set_item(name, self)
@@ -679,7 +680,7 @@ class UserCellsImpl(CellsImpl):
             cls = Formula
         self.formula = cls(func, name=self.name)
         self.altfunc = BoundFunction(self)
-        self.model.spacemgr.update_subs(self.parent)
+        self.spacemgr.update_subs(self.parent)
 
 
 class DynamicCellsImpl(CellsImpl):

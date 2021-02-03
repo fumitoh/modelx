@@ -367,7 +367,6 @@ class ModelImpl(
             "_dynamic_bases",
             "_dynamic_bases_inverse",
             "_dynamic_base_namer",
-            "spacemgr",
             "currentspace",
             "datarefmgr"
     ]
@@ -1173,7 +1172,7 @@ class SpaceManager(SharedSpaceOperations):
         """``space`` can be of another Model"""
 
         if space.model is not self.model:
-            return space.model.spacemgr.copy_cells(space, source, name)
+            return space.spacemgr.copy_cells(space, source, name)
 
         if name is None:
             name = source.name
