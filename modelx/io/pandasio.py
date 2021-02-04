@@ -65,12 +65,10 @@ class PandasData(BaseDataClient):
     data_class = PandasIO
 
     def __init__(self, path, data, filetype):
-
-        self.path = pathlib.Path(path)
-        self._manager = None
-        self._data = None
+        BaseDataClient.__init__(self, path)
         self.filetype = filetype.lower()
         self._value = data
+        self.name = data.name if isinstance(data, pd.Series) else None
 
         self._read_args = {}
         if self.filetype == "excel" or self.filetype == "csv":
@@ -78,13 +76,47 @@ class PandasData(BaseDataClient):
                 self._read_args["header"] = list(range(data.columns.nlevels))
             if data.index.nlevels > 1:
                 self._read_args["index_col"] = list(range(data.index.nlevels))
+            else:
+                self._read_args["index_col"] = 0
+            if isinstance(data, pd.Series):
+                self._read_args["squeeze"] = True
+            if self.filetype == "excel":
+                if (len(self.path.suffix[1:]) > 3
+                        and self.path.suffix[1:4] == "xls"):
+                    self._read_args["engine"] = "openpyxl"
         else:
             raise ValueError("Pandas IO type not supported")
 
     def _on_load_value(self):
         pass
 
-    def _on_unpickle(self):
+    def _on_pickle(self, state):
+        state.update({
+            "filetype": self.filetype,
+            "value": self._value,
+            "read_args": self._read_args,
+            "name": self.name
+        })
+        return state
+
+    def _on_unpickle(self, state):
+        self.filetype = state["filetype"]
+        self._value = state["value"]
+        self._read_args = state["read_args"]
+        self.name = state["name"]
+
+    def _on_serialize(self, state):
+        state.update({
+            "filetype": self.filetype,
+            "read_args": self._read_args,
+            "name": self.name
+        })
+        return state
+
+    def _on_unserialize(self, state):
+        self.filetype = state["filetype"]
+        self._read_args = state["read_args"]
+        self.name = state["name"]
         self._read_pandas()
 
     def _can_add_other(self, other):
@@ -99,6 +131,9 @@ class PandasData(BaseDataClient):
                 self._data.load_from, **self._read_args)
         else:
             raise ValueError
+
+        if isinstance(self._value, pd.Series):
+            self._value.name = self.name
 
     def _write_pandas(self, path):
         if self.filetype == "excel":

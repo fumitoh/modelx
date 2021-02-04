@@ -264,9 +264,7 @@ class ExcelRange(BaseDataClient, Mapping):
             loadpath(optional): Absolute path to the Excel file to be read in.
                 Defaults to ``path``.
         """
-        self.path = pathlib.Path(path)
-        self._manager = None
-        self._data = None
+        BaseDataClient.__init__(self, path)
         self.range = range_
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None
@@ -274,41 +272,40 @@ class ExcelRange(BaseDataClient, Mapping):
     def _on_load_value(self):
         self._load_cells(self.keyids)
 
-    def _on_unpickle(self):
-        self._load_cells(self.keyids)
-
-    def __getstate__(self):
-        state = {
-            "manager": self._manager,
-            "_data": self._data,
-            "path": pathlib.PurePath(self.path),
+    def _on_pickle(self, state):
+        state.update({
             "range": self.range,
             "sheet": self.sheet,
-            "keyids": self.keyids
-        }
-        if not self._manager.system.serializing:
-            state.update({
-                "_cells": self._cells,
-                "_datasize": self._datasize,
-                "_key_to_index": self._key_to_index,
-                "_keysize": self._keysize
-            })
+            "keyids": self.keyids,
+            "_cells": self._cells,
+            "_datasize": self._datasize,
+            "_key_to_index": self._key_to_index,
+            "_keysize": self._keysize
+        })
         return state
 
-    def __setstate__(self, state):
-        self._manager = state["manager"]
-        self._data = state["_data"]
-        self.path = pathlib.Path(state["path"])
+    def _on_unpickle(self, state):
         self.range = state["range"]
         self.sheet = state["sheet"]
         self.keyids = state["keyids"]
-        if self._manager.system.serializing:
-            self._manager.unpickle_client(self)
-        else:
-            self._cells = state["_cells"]
-            self._datasize = state["_datasize"]
-            self._key_to_index = state["_key_to_index"]
-            self._keysize = state["_keysize"]
+        self._cells = state["_cells"]
+        self._datasize = state["_datasize"]
+        self._key_to_index = state["_key_to_index"]
+        self._keysize = state["_keysize"]
+
+    def _on_serialize(self, state):
+        state.update({
+            "range": self.range,
+            "sheet": self.sheet,
+            "keyids": self.keyids
+        })
+        return state
+
+    def _on_unserialize(self, state):
+        self.range = state["range"]
+        self.sheet = state["sheet"]
+        self.keyids = state["keyids"]
+        self._load_cells(self.keyids)
 
     def _load_cells(self, keys):
         self._cells = _get_range(

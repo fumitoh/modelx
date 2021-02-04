@@ -66,3 +66,40 @@ def test_new_pandas(tmp_path, pdobj, meth, is_relative, save_meth, filetype):
         pd.testing.assert_series_equal(getattr(p2, "pdref").value, pdobj)
 
     m2.close()
+
+
+@pytest.mark.parametrize("pdobj, range_",
+                         zip([S_IDX1, S_IDX2, DF_COL2_IDX2],
+                             ["B2:B9", "C2:C9", "C4:J9"]))
+def test_new_pandas_change_excel(tmp_path, pdobj, range_):
+
+    p = mx.new_space("SpaceA")
+
+    path = "files/testpandas.xlsx"
+    p.new_pandas(name="pdref", path=path, data=pdobj, filetype="excel")
+
+    p.model.write(tmp_path / "model")
+    p.model.close()
+
+    import openpyxl as pyxl
+
+    wb = pyxl.load_workbook(tmp_path / "model" / path)
+    ws = wb.worksheets[0]
+
+    for row in ws[range_]:
+        for cel in row:
+            cel.value += 1
+
+    wb.save(tmp_path / "model" / path)
+
+    m2 = mx.read_model(tmp_path / "model")
+    p2 = m2.spaces["SpaceA"]
+
+    if isinstance(pdobj, pd.DataFrame):
+        pd.testing.assert_frame_equal(p2.pdref(), pdobj + 1)
+        pd.testing.assert_frame_equal(p2.pdref.value, pdobj + 1)
+    elif isinstance(pdobj, pd.Series):
+        pd.testing.assert_series_equal(p2.pdref(), pdobj + 1)
+        pd.testing.assert_series_equal(p2.pdref.value, pdobj + 1)
+
+    m2.close()

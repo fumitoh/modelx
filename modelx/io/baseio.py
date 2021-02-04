@@ -155,11 +155,6 @@ class IOManager:
     def del_client(self, client):
         client._data.remove_client(client)
 
-    def unpickle_client(self, client):
-        client._on_unpickle()
-        client._data.add_client(client)
-
-
 
 class BaseDataClient:
     """Abstract base class for accessing data stored in files
@@ -170,10 +165,24 @@ class BaseDataClient:
 
     """
 
+    def __init__(self, path):
+        self.path = pathlib.Path(path)
+        self._manager = None
+        self._data = None
+
     def _on_load_value(self):
         raise NotImplementedError
 
-    def _on_unpickle(self):
+    def _on_pickle(self, state):
+        raise NotImplementedError
+
+    def _on_unpickle(self, state):
+        raise NotImplementedError
+
+    def _on_serialize(self, state):
+        raise NotImplementedError
+
+    def _on_unserialize(self, state):
         raise NotImplementedError
 
     def _after_save_file(self):
@@ -184,6 +193,27 @@ class BaseDataClient:
 
     def __hash__(self):
         return hash(id(self))
+
+    def __getstate__(self):
+        state = {
+            "manager": self._manager,
+            "_data": self._data,
+            "path": pathlib.PurePath(self.path),
+        }
+        if self._manager.system.serializing:
+            return self._on_serialize(state)
+        else:
+            return self._on_pickle(state)
+
+    def __setstate__(self, state):
+        self._manager = state["manager"]
+        self._data = state["_data"]
+        self.path = pathlib.Path(state["path"])
+        if self._manager.system.serializing:
+            self._on_unserialize(state)
+            self._data.add_client(self)
+        else:
+            self._on_unpickle(state)
 
 
 class DataClientReferenceManager:
