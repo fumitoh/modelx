@@ -19,3 +19,12 @@ def test_dyn_change_ref():
     assert s[1].a == 3
     assert s[1].Child[2].b == 4
 
+
+def test_dyn_add_base_ref_after():
+    # https://github.com/fumitoh/modelx/issues/37
+
+    m = mx.new_model()
+    s = m.new_space("SpaceA", formula=lambda t: None)
+    a1 = m.SpaceA(1)
+    m.SpaceA.x = 1
+    assert a1 is m.SpaceA(1)

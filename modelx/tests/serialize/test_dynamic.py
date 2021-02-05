@@ -100,6 +100,12 @@ def test_dyntotal(dyntotal, tmp_path, write_method):
 
 @pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
 def test_assign_dynamic_space_to_ref(tmp_path, write_method):
+    """
+        m-+-s1-s3-b<-s2(0)
+          |
+          +-s2(t)-a
+
+    """
     # https://github.com/fumitoh/modelx/issues/25
 
     m, s1 = mx.new_model(), mx.new_space("s1")
@@ -115,3 +121,29 @@ def test_assign_dynamic_space_to_ref(tmp_path, write_method):
     m2 = mx.read_model(path_)
     assert m2.s2.a == 1
     assert m2.s2(0).a == 1
+
+
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_assign_dynamic_space_to_ref2(tmp_path, write_method):
+    """
+       m-+-a-d-c<-c()
+         |
+         +-b
+         |
+         +-c()-x<-b
+    """
+    # https://github.com/fumitoh/modelx/issues/37
+
+    m = mx.new_model()
+    m.new_space('a')
+
+    def t_arg():
+        pass
+
+    m.new_space('b')
+    m.new_space('c', formula=t_arg, refs={'x': m.b})
+    m.a.new_space('d',refs={'c':m.c()})
+    path_ = tmp_path / "model"
+    getattr(mx, write_method)(m, path_)
+    m2 = mx.read_model(path_)
+    assert m2.a.d.c is m2.c()

@@ -1744,10 +1744,13 @@ class UserSpaceImpl(
         return ref
 
     def on_create_ref(self, name, value, is_derived, refmode):
-        return ReferenceImpl(self, name, value,
-                      container=self._self_refs,
-                      is_derived=is_derived,
-                      refmode=refmode)
+        ref = ReferenceImpl(self, name, value,
+                            container=self._self_refs,
+                            is_derived=is_derived,
+                            refmode=refmode,
+                            set_item=False)
+        self._self_refs.add_item(name, ref)
+        return ref
 
     def on_del_ref(self, name):
         self.self_refs[name].on_delete()
@@ -1823,6 +1826,10 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         # later by _init_dynbaserefs called last
         # from ItemSpaceParent.__init__, because
         # dynamic spaces and leafs are not yet constructed here.
+
+        # Make _dynbase_refs updated
+        # _dynbase_refs.needs_update must always False
+        self._dynbase_refs.fresh
 
         return ImplChainMap(
             self,
