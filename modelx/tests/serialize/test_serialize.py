@@ -253,3 +253,13 @@ def test_null_object(tmp_path, write_method):
     assert not m2.C.b._is_valid()
 
     testutil.compare_model(m, m2)
+
+
+@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
+def test_false_value(tmp_path, write_method):
+    # https://github.com/fumitoh/modelx/issues/39
+    m = mx.new_model()
+    s = mx.new_space()
+    s.a = False
+    getattr(mx, write_method)(m, tmp_path / "model")
+    m2 = mx.read_model(tmp_path / "model")

@@ -894,7 +894,10 @@ class LiteralEncoder(BaseEncoder):
         return any(type(value) is t for t in cls.literal_types)
 
     def encode(self):
-        return json.dumps(self.target.value, ensure_ascii=False)
+        if isinstance(self.target.value, bool):
+            return str(self.target.value)
+        else:
+            return json.dumps(self.target.value, ensure_ascii=False)
 
 
 class ModuleEncoder(BaseEncoder):
