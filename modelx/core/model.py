@@ -498,6 +498,8 @@ class ModelImpl(
         self.global_refs.delete_item(name)
 
     def change_ref(self, name, value):
+        """Not Used"""
+        assert False
         ref = self.global_refs[name]
         self.model.clear_attr_referrers(ref)
         ref.change_value(value, False, refmode="absolute",
@@ -517,11 +519,12 @@ class ModelImpl(
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
         elif name in self.global_refs:
-            self.change_ref(name, value)
-        else:
-            ref = ReferenceImpl(self, name, value, container=self._global_refs,
-                          set_item=False)
-            self._global_refs.add_item(name, ref)
+            self.del_ref(name)
+
+        ref = ReferenceImpl.get_class(value)(
+            self, name, value, container=self._global_refs,
+            set_item=False)
+        self._global_refs.add_item(name, ref)
 
     def del_attr(self, name):
 

@@ -107,7 +107,7 @@ class RefDict(ImplDict):
         elif isinstance(value, Impl):
             raise RuntimeError("must not happen")
         else:
-            return ReferenceImpl(parent, name, value, container=self)
+            return ReferenceImpl.get_class(value)(parent, name, value, container=self)
 
 
 class DynBaseRefDict(RefDict):
@@ -1196,7 +1196,7 @@ class BaseSpaceImpl(
 
         if refs is not None:
             for key, value in refs.items():
-                ReferenceImpl(self, key, value, container=self._self_refs,
+                ReferenceImpl.get_class(value)(self, key, value, container=self._self_refs,
                               refmode="auto")
 
     def _init_self_refs(self):
@@ -1277,7 +1277,7 @@ class BaseSpaceImpl(
             return UserCellsImpl(
                 space=self, name=name, formula=None, is_derived=is_derived)
         elif attr == "self_refs":
-            return ReferenceImpl(self, name, None,
+            return ReferenceImpl.get_class(value)(self, name, None,
                                  container=self._self_refs,
                                  is_derived=is_derived)
         else:
@@ -1713,7 +1713,7 @@ class UserSpaceImpl(
                         is_derived=True)
 
                 elif attr == "self_refs":
-                    selfdict[name] = ReferenceImpl(
+                    selfdict[name] = ReferenceImpl.get_class(None)(
                         self, name, None,
                         container=self._self_refs,
                         is_derived=True,
@@ -1738,13 +1738,14 @@ class UserSpaceImpl(
     def on_change_ref(self, name, value, is_derived, refmode,
                       is_relative):
         ref = self.self_refs[name]
-        ref.change_value(value, is_derived, refmode, is_relative)
+        self.on_del_ref(name)
+        self.on_create_ref(name, value, is_derived, refmode)
         self.model.clear_attr_referrers(ref)
         self.change_dynsub_refs(name)
         return ref
 
     def on_create_ref(self, name, value, is_derived, refmode):
-        ref = ReferenceImpl(self, name, value,
+        ref = ReferenceImpl.get_class(value)(self, name, value,
                             container=self._self_refs,
                             is_derived=is_derived,
                             refmode=refmode,

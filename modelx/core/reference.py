@@ -75,6 +75,14 @@ class ReferenceImpl(Derivable, Impl):
         "is_relative"
     ]
 
+    @classmethod
+    def get_class(cls, value):
+
+        if isinstance(value, BaseDataClient):
+            return DataClientReferenceImpl
+        else:
+            return cls
+
     def __init__(self, parent, name, value, container, is_derived=False,
                  refmode=None, set_item=True):
         Impl.__init__(
@@ -86,9 +94,6 @@ class ReferenceImpl(Derivable, Impl):
         self.spacemgr = parent.spacemgr
         Derivable.__init__(self, is_derived)
 
-        if isinstance(value, BaseDataClient):
-            self.model.datarefmgr.add_reference(self, value)
-
         self.container = container
         if set_item:
             container.set_item(name, self)
@@ -99,21 +104,13 @@ class ReferenceImpl(Derivable, Impl):
         else:   # 'auto' or 'relative'
             self.is_relative = True
 
-    def change_value(self, value, is_derived, refmode, is_relative):
-        if not is_derived:
-            self.set_defined()
-        if isinstance(self.interface, BaseDataClient):
-            self.model.datarefmgr.del_reference(self, self.interface)
-        if isinstance(value, BaseDataClient):
-            self.model.datarefmgr.add_reference(self, value)
-        self.interface = value
-        self.refmode = refmode
-        self.is_relative = is_relative
-        self.container.change_item(self.name, self)
+        self.on_init(value)
+
+    def on_init(self, value):
+        pass
 
     def on_delete(self):
-        if isinstance(self.interface, BaseDataClient):
-            self.model.datarefmgr.del_reference(self, self.interface)
+        pass
 
     def __getstate__(self):
         state = {
@@ -186,6 +183,15 @@ class ReferenceImpl(Derivable, Impl):
 
 
 ReferenceImpl.picklers.append(_ModulePickler)
+
+
+class DataClientReferenceImpl(ReferenceImpl):
+
+    def on_init(self, value):
+        self.model.datarefmgr.add_reference(self, value)
+
+    def on_delete(self):
+        self.model.datarefmgr.del_reference(self, self.interface)
 
 
 class ReferenceProxy:
