@@ -3,3 +3,10 @@ def modfibo(n):
         return n
     else:
         return modfibo(n - 1) + modfibo(n - 2)
+
+
+def modbar(n):
+    return baz * n
+
+
+baz = 2

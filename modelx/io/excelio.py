@@ -264,7 +264,7 @@ class ExcelRange(BaseDataClient, Mapping):
             loadpath(optional): Absolute path to the Excel file to be read in.
                 Defaults to ``path``.
         """
-        BaseDataClient.__init__(self, path)
+        BaseDataClient.__init__(self, path, is_hidden=False)
         self.range = range_
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None

@@ -25,6 +25,7 @@ from modelx.core.model import Model
 from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
+from modelx.io.baseio import BaseDataClient
 import asttokens
 from . import ziputil
 from .custom_pickle import ModelUnpickler, ModelPickler
@@ -900,6 +901,52 @@ class LiteralEncoder(BaseEncoder):
             return json.dumps(self.target.value, ensure_ascii=False)
 
 
+class DataClientEncoder(BaseEncoder):
+
+    @classmethod
+    def condition(cls, value):
+
+        if not isinstance(value, Interface):    # Avoid null object
+
+            if isinstance(value, BaseDataClient):
+                return True
+            elif hasattr(value, "_mx_dataclient") and isinstance(
+                    value._mx_dataclient, BaseDataClient):
+                return True
+
+        return False
+
+    def encode(self):
+        return "(\"DataClient\", %s)" % self._get_key()
+
+    def _is_hidden(self):
+        if isinstance(self.target.value, BaseDataClient):
+            return False
+        elif hasattr(self.target.value, "_mx_dataclient"):
+            return True
+        else:
+            raise RuntimeError("must not happen")
+
+    def _get_key(self):
+        if self._is_hidden():
+            return  id(self.target.value._mx_dataclient)
+        else:
+            return id(self.target.value)
+
+    def pickle_value(self):
+        key = self._get_key()
+        if self._is_hidden():
+            value = self.target.value._mx_dataclient
+        else:
+            value = self.target.value
+
+        if key not in self.writer.pickledata:
+            self.writer.pickledata[key] = value
+
+    def instruct(self):
+        return Instruction(self.pickle_value)
+
+
 class ModuleEncoder(BaseEncoder):
 
     @classmethod
@@ -934,6 +981,7 @@ class EncoderSelector(BaseSelector):
     classes = [
         InterfaceRefEncoder,
         LiteralEncoder,
+        DataClientEncoder,
         ModuleEncoder,
         PickleEncoder
     ]
@@ -1589,6 +1637,16 @@ class InterfaceDecoder(TupleDecoder):
         return mxsys.get_object_from_tupleid(decoded)
 
 
+class DataClientDecoder(TupleDecoder):
+    DECTYPE = "DataClient"
+
+    def decode(self):
+        return self.elm(1)
+
+    def restore(self):
+        return self.reader.pickledata[self.decode()]
+
+
 class ModuleDecoder(TupleDecoder):
     DECTYPE = "Module"
 
@@ -1619,6 +1677,7 @@ class LiteralDecoder(ValueDecoder):
 class DecoderSelector(BaseSelector):
     classes = [
         InterfaceDecoder,
+        DataClientDecoder,
         ModuleDecoder,
         PickleDecoder,
         LiteralDecoder

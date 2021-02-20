@@ -559,6 +559,9 @@ class EditableSpaceContainer(BaseSpaceContainer):
         return self._impl.new_pandas(
             name, path, data, filetype)
 
+    def new_module(self, name, path, module):
+        return self._impl.new_module(name, path, module)
+
 
 @add_stateattrs
 class BaseSpaceContainerImpl:
@@ -823,6 +826,23 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             raise KeyError("cannot assign '%s'" % name)
 
         return result
+
+    def new_module(self, name, path, module):
+
+        from modelx.io.moduleio import ModuleDataClient
+
+        client = self.system.iomanager.new_client(
+            path,
+            ModuleDataClient,
+            model=self.model.interface,
+            client_args={"module": module}
+        )
+
+        try:
+            self.set_attr(name, client.value)
+        except (ValueError, KeyError, AttributeError):
+            self.system.iomanager.del_client(client)
+            raise KeyError("cannot assign '%s'" % name)
 
     def set_attr(self, name, value, refmode):
         raise NotImplementedError

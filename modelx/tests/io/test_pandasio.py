@@ -44,12 +44,10 @@ def test_new_pandas(tmp_path, pdobj, meth, is_relative, save_meth, filetype):
                  data=pdobj, filetype=filetype)
 
     if save_meth == "backup":
-        datapath = tmp_path / "data"
-        datapath.mkdir()
-        getattr(p.model, save_meth)(tmp_path / "model", datapath=datapath)
+        getattr(p.model, save_meth)(tmp_path / "model")
 
         p.model.close()
-        m2 = mx.restore_model(tmp_path / "model", datapath=datapath)
+        m2 = mx.restore_model(tmp_path / "model")
 
     else:
         getattr(p.model, save_meth)(tmp_path / "model")

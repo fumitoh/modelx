@@ -116,3 +116,17 @@ def test_with_lifelib(testpaths, project):
 
     _PROJECTS[project](m, m2)
     _PROJECTS[project](m, m3)
+
+
+def test_back_compat_fastlife(tmp_path):
+
+    import lifelib
+
+    projpath = tmp_path / "fastlife"
+    lifelib.create("fastlife", projpath)
+
+    m = mx.read_model(projpath / "model")
+
+    assert sum(m.Projection.PV_NetCashflow(0)) == 288922348.168899
+
+

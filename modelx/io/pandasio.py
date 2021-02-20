@@ -65,7 +65,7 @@ class PandasData(BaseDataClient):
     data_class = PandasIO
 
     def __init__(self, path, data, filetype):
-        BaseDataClient.__init__(self, path)
+        BaseDataClient.__init__(self, path, is_hidden=False)
         self.filetype = filetype.lower()
         self._value = data
         self.name = data.name if isinstance(data, pd.Series) else None

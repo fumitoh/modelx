@@ -165,10 +165,11 @@ class BaseDataClient:
 
     """
 
-    def __init__(self, path):
+    def __init__(self, path, is_hidden):
         self.path = pathlib.Path(path)
         self._manager = None
         self._data = None
+        self._is_hidden = is_hidden
 
     def _on_load_value(self):
         raise NotImplementedError
@@ -199,6 +200,7 @@ class BaseDataClient:
             "manager": self._manager,
             "_data": self._data,
             "path": pathlib.PurePath(self.path),
+            "is_hidden": self._is_hidden
         }
         if self._manager.system.serializing:
             return self._on_serialize(state)
@@ -209,6 +211,11 @@ class BaseDataClient:
         self._manager = state["manager"]
         self._data = state["_data"]
         self.path = pathlib.Path(state["path"])
+        if "is_hidden" in state:
+            self._is_hidden = state["is_hidden"]
+        else:
+            # For backward compatibility with v0.12
+            self._is_hidden = False
         if self._manager.system.serializing:
             self._on_unserialize(state)
             self._data.add_client(self)

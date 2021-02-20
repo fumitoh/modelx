@@ -77,9 +77,11 @@ class ReferenceImpl(Derivable, Impl):
 
     @classmethod
     def get_class(cls, value):
-
         if isinstance(value, BaseDataClient):
             return DataClientReferenceImpl
+        elif isinstance(value, ModuleType
+                        ) and hasattr(value, "_mx_dataclient"):
+            return UserModuleReferenceImpl
         else:
             return cls
 
@@ -192,6 +194,17 @@ class DataClientReferenceImpl(ReferenceImpl):
 
     def on_delete(self):
         self.model.datarefmgr.del_reference(self, self.interface)
+
+
+class UserModuleReferenceImpl(ReferenceImpl):
+
+    def on_init(self, value):
+        self.model.datarefmgr.add_reference(self,
+                                            value._mx_dataclient)
+
+    def on_delete(self):
+        self.model.datarefmgr.del_reference(self,
+                                            self.interface._mx_dataclient)
 
 
 class ReferenceProxy:
