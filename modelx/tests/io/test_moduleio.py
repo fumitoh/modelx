@@ -1,19 +1,23 @@
+import pathlib
 import itertools
 import modelx as mx
 from modelx.tests.testdata.testpkg import testmod
 import pytest
 
+testmodpath = pathlib.Path(testmod.__file__)
+
 params = list(itertools.product(
     ["new_model", "new_space"],
-    ["write", "zip", "backup"]
+    ["write", "zip", "backup"],
+    [testmod, testmodpath, str(testmodpath)]
 ))
 
 
-@pytest.mark.parametrize("meth, save_meth", params)
-def test_new_module(tmp_path, meth, save_meth):
+@pytest.mark.parametrize("meth, save_meth, module", params)
+def test_new_module(tmp_path, meth, save_meth, module):
 
     p = getattr(mx, meth)(name="Parent")
-    p.new_module(name="Foo", path="Parent/Foo", module=testmod)
+    p.new_module(name="Foo", path="Parent/Foo", module=module)
     p.Bar = p.Foo
 
     assert p.Foo.modbar(2) == 4

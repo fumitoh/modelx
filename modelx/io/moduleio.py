@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import inspect
 import tempfile
 import pathlib
@@ -43,8 +44,14 @@ class ModuleDataClient(BaseDataClient):
 
     def __init__(self, path, module):
         BaseDataClient.__init__(self, path, is_hidden=True)
-        self._value = module
-        module._mx_dataclient = self
+        if isinstance(module, ModuleType):
+            self._value = module
+        elif isinstance(module, str) or isinstance(module, os.PathLike):
+            self._value = self._load_module(str(module))
+        else:
+            raise ValueError("module must be a module or the path to a module")
+
+        self.value._mx_dataclient = self
 
     def _on_load_value(self):
         pass

@@ -64,6 +64,22 @@ class _ModulePickler(_BasePickler):
         return importlib.import_module(self.value)
 
 
+class _HiddenDataClientPickler(_BasePickler):
+
+    __slots__ = ()
+
+    @classmethod
+    def condition(cls, value):
+        assert hasattr(value, "_mx_dataclient")
+        return True
+
+    def convert(self, value):
+        return value._mx_dataclient
+
+    def restore(self):
+        return self.value.value
+
+
 @add_stateattrs
 class ReferenceImpl(Derivable, Impl):
 
@@ -122,9 +138,10 @@ class ReferenceImpl(Derivable, Impl):
         }
         value = state["interface"]
 
-        for pickler in ReferenceImpl.picklers:
+        for pickler in self.picklers:
             if pickler.condition(value):
                 state["interface"] = pickler(value)
+                break
 
         return state
 
@@ -197,6 +214,8 @@ class DataClientReferenceImpl(ReferenceImpl):
 
 
 class UserModuleReferenceImpl(ReferenceImpl):
+
+    picklers = [_HiddenDataClientPickler]
 
     def on_init(self, value):
         self.model.datarefmgr.add_reference(self,
