@@ -465,7 +465,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath
         )
 
-    def new_pandas(self, name, path, data, filetype, expose_pandas=True):
+    def new_pandas(self, name, path, data, filetype, expose_data=True):
         """Creates a PandasData object and assigns it to a Reference
 
         Creates a :class:`~modelx.io.pandasio.PandasData` object that
@@ -557,7 +557,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
         """
         return self._impl.new_pandas(
-            name, path, data, filetype, expose_pandas)
+            name, path, data, filetype, expose_data)
 
     def new_module(self, name, path, module):
         return self._impl.new_module(name, path, module)
@@ -805,13 +805,13 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         return result
 
-    def new_pandas(self, name, path, data, filetype, expose_pandas):
+    def new_pandas(self, name, path, data, filetype, expose_data):
 
         from modelx.io.pandasio import PandasData
 
         cargs= {"filetype": filetype,
                 "data": data,
-                "is_hidden": expose_pandas}
+                "is_hidden": expose_data}
 
         client = self.system.iomanager.new_client(
             path,
@@ -819,7 +819,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             model=self.model.interface,
             client_args=cargs
         )
-        ref = client.value if expose_pandas else client
+        ref = client.value if expose_data else client
 
         try:
             self.set_attr(name, ref)

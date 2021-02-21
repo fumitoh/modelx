@@ -33,10 +33,10 @@ params = [[p1, *p2, p3, p4, p5] for p1, p2, p3, p4, p5 in
 
 
 @pytest.mark.parametrize(
-    "pdobj, meth, is_relative, save_meth, filetype, expose_pandas",
+    "pdobj, meth, is_relative, save_meth, filetype, expose_data",
     params)
 def test_new_pandas(
-        tmp_path, pdobj, meth, is_relative, save_meth, filetype, expose_pandas):
+        tmp_path, pdobj, meth, is_relative, save_meth, filetype, expose_data):
 
     p = getattr(mx, meth)()
     parent_name = p.name
@@ -46,7 +46,7 @@ def test_new_pandas(
 
     p.new_pandas(name="pdref", path=path,
                  data=pdobj, filetype=filetype,
-                 expose_pandas=expose_pandas)
+                 expose_data=expose_data)
 
     if save_meth == "backup":
         getattr(p.model, save_meth)(tmp_path / "model")
@@ -61,7 +61,7 @@ def test_new_pandas(
 
     p2 = m2 if meth == "new_model" else m2.spaces[parent_name]
 
-    if expose_pandas:
+    if expose_data:
         if isinstance(pdobj, pd.DataFrame):
             pd.testing.assert_frame_equal(getattr(p2, "pdref"), pdobj)
         elif isinstance(pdobj, pd.Series):
@@ -82,14 +82,14 @@ params2 = [[*p1, p2] for p1, p2 in itertools.product(
     (False, True)
 )]
 
-@pytest.mark.parametrize("pdobj, range_, expose_pandas", params2)
-def test_new_pandas_change_excel(tmp_path, pdobj, range_, expose_pandas):
+@pytest.mark.parametrize("pdobj, range_, expose_data", params2)
+def test_new_pandas_change_excel(tmp_path, pdobj, range_, expose_data):
 
     p = mx.new_model().new_space("SpaceA")
 
     path = "files/testpandas.xlsx"
     p.new_pandas(name="pdref", path=path, data=pdobj, filetype="excel",
-                 expose_pandas=expose_pandas)
+                 expose_data=expose_data)
 
     p.model.write(tmp_path / "model")
     p.model.close()
@@ -108,7 +108,7 @@ def test_new_pandas_change_excel(tmp_path, pdobj, range_, expose_pandas):
     m2 = mx.read_model(tmp_path / "model")
     p2 = m2.spaces["SpaceA"]
 
-    if expose_pandas:
+    if expose_data:
         if isinstance(pdobj, pd.DataFrame):
             pd.testing.assert_frame_equal(p2.pdref, pdobj + 1)
         elif isinstance(pdobj, pd.Series):
