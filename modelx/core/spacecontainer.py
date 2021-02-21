@@ -466,14 +466,23 @@ class EditableSpaceContainer(BaseSpaceContainer):
         )
 
     def new_pandas(self, name, path, data, filetype, expose_data=True):
-        """Creates a PandasData object and assigns it to a Reference
+        """Assigns a pandas object to a Reference associating a
+        new :class:`~modelx.io.pandasio.PandasData` object
 
-        Creates a :class:`~modelx.io.pandasio.PandasData` object that
-        wraps a DataFrame or Series passed as ``data``,
-        and assigns the :class:`~modelx.io.pandasio.PandasData` object
-        to a Reference named ``name`` in this Space/Model.
+        pandas `DataFrame`_ and `Series`_ objects can be assigned to
+        References by the normal assignment operation,
+        such as ``space.x = df``, but the pandas `DataFrame`_/`Series`_
+        assigned this way are saved in a binary file together with
+        other Reference objects. This method allows a `DataFrame`_/`Series`_
+        object passed as ``data`` to be saved
+        in a separate file.
 
-        When the model is saved, the DataFrame or Series is
+        This method creates a :class:`~modelx.io.pandasio.PandasData` object
+        that wraps a `DataFrame`_ or `Series`_ passed as ``data``,
+        and assigns ``data`` or the :class:`~modelx.io.pandasio.PandasData`
+        object to a Reference named ``name`` in this Space/Model.
+
+        When the model is saved, the `DataFrame`_ or `Series`_ is
         written to a file whose path is given by the ``path`` parameter,
         and whose format is specified by the ``filetype`` parameter.
         If ``path`` is relative, it is interpreted relative to the model
@@ -488,11 +497,22 @@ class EditableSpaceContainer(BaseSpaceContainer):
         must be installed, depending on the types of Excel files.
         See `pandas' document`_ for the required packeges for Excel engines.
 
+        By default, ``data`` is assigned to ``name``, and the associated
+        :class:`~modelx.io.pandasio.PandasData` object is assighed to
+        ``data._mx_dataclient``. If ``False`` is passed  to ``expose_data``,
+        the :class:`~modelx.io.pandasio.PandasData` object is assigned
+        to ``name``. To get ``data``, call the
+        :class:`~modelx.io.pandasio.PandasData` or get its ``value`` attribute.
+
         .. _pandas.read_excel: https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
 
         .. _to_excel: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_excel.html
 
         .. _pandas' document: https://pandas.pydata.org/docs/user_guide/io.html#excel-files
+
+        .. _DataFrame: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html
+
+        .. _Series: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html
 
         Example:
 
@@ -508,18 +528,28 @@ class EditableSpaceContainer(BaseSpaceContainer):
                 2021-01-02 -1.029170  0.588080  0.081129
                 2021-01-03  0.028450 -0.490102  0.025208
 
-            The code below creates a PandasData object containing
+            The code below creates a
+            :class:`~modelx.io.pandasio.PandasData` object containing
             the DataFrame created above,
             and assigns it to a Reference named ``x`` in ``space``::
 
                 >>> space.new_pandas("x", "Space1/df.xlsx", data=df, filetype="excel")
 
                 >>> space.x
-                <modelx.io.pandasio.PandasData at 0x15efa565548>
+                                   X         Y         Z
+                2021-01-01  0.184497  0.140037 -1.599499
+                2021-01-02 -1.029170  0.588080  0.081129
+                2021-01-03  0.028450 -0.490102  0.025208
 
+            If ``False`` is passed to ``expose_data``,
+            the :class:`~modelx.io.pandasio.PandasData` object instead of
+            ``data`` itself is assigned to ``x``
             To get the DataFrame,
             call the :class:`~modelx.io.pandasio.PandasData` object
             or access its :attr:`~modelx.io.pandasio.PandasData.value` property::
+
+                >>> space.x
+                <modelx.io.pandasio.PandasData at 0x15efa565548>
 
                 >>> space.x()     # or space.value
                                    X         Y         Z
@@ -537,7 +567,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
                 >>> model2 = mx.read_model("model", name="Model2")
 
-                >>> model2.Space1.x()
+                >>> model2.Space1.x
                                    X         Y         Z
                 2021-01-01  0.184497  0.140037 -1.599499
                 2021-01-02 -1.029170  0.588080  0.081129
@@ -549,6 +579,15 @@ class EditableSpaceContainer(BaseSpaceContainer):
                 path is given, it is relative to the model folder.
             data: pandas DataFrame or Series
             filetype: String to indicate file format. ("excel" or "csv")
+            expose_data(:obj:`bool`, optional): If ``True``, assigns
+                ``data`` to ``name``, otherwise assigns the
+                :class:`~modelx.io.pandasio.PandasData` object
+                associted with ``data`` to ``name``. ``True`` by default.
+
+        .. versionchanged:: 0.13.0
+            Add the ``expose_data`` parameter. By default,
+            ``data`` is assigned instead of
+            its :class:`~modelx.io.pandasio.PandasData` object
 
         .. versionadded:: 0.12.0
 
