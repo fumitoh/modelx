@@ -35,7 +35,7 @@ def test_new_module(tmp_path, meth, save_meth, module):
 
     p2 = m2 if meth == "new_model" else m2.spaces["Parent"]
 
-    assert p.Foo.modbar(2) == 4
-    assert p.Bar is p.Foo
+    assert p2.Foo.modbar(2) == 4
+    assert p2.Bar is p2.Foo
 
     m2.close()

@@ -92,6 +92,4 @@ class ModuleDataClient(BaseDataClient):
         """Module held in the object"""
         return self._value
 
-class UserModule(ModuleType):
-    pass
 
