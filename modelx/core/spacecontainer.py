@@ -465,7 +465,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath
         )
 
-    def new_pandas(self, name, path, data, filetype):
+    def new_pandas(self, name, path, data, filetype, expose_pandas=True):
         """Creates a PandasData object and assigns it to a Reference
 
         Creates a :class:`~modelx.io.pandasio.PandasData` object that
@@ -557,7 +557,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
         """
         return self._impl.new_pandas(
-            name, path, data, filetype)
+            name, path, data, filetype, expose_pandas)
 
     def new_module(self, name, path, module):
         return self._impl.new_module(name, path, module)
@@ -805,27 +805,29 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
         return result
 
-    def new_pandas(self, name, path, data, filetype):
+    def new_pandas(self, name, path, data, filetype, expose_pandas):
 
         from modelx.io.pandasio import PandasData
 
         cargs= {"filetype": filetype,
-                "data": data}
+                "data": data,
+                "is_hidden": expose_pandas}
 
-        result = self.system.iomanager.new_client(
+        client = self.system.iomanager.new_client(
             path,
             PandasData,
             model=self.model.interface,
             client_args=cargs
         )
+        ref = client.value if expose_pandas else client
 
         try:
-            self.set_attr(name, result)
+            self.set_attr(name, ref)
         except (ValueError, KeyError, AttributeError):
-            self.system.iomanager.del_client(result)
+            self.system.iomanager.del_client(client)
             raise KeyError("cannot assign '%s'" % name)
 
-        return result
+        return ref
 
     def new_module(self, name, path, module):
 
@@ -843,6 +845,8 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         except (ValueError, KeyError, AttributeError):
             self.system.iomanager.del_client(client)
             raise KeyError("cannot assign '%s'" % name)
+
+        return client.value
 
     def set_attr(self, name, value, refmode):
         raise NotImplementedError

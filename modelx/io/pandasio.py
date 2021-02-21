@@ -64,8 +64,8 @@ class PandasData(BaseDataClient):
 
     data_class = PandasIO
 
-    def __init__(self, path, data, filetype):
-        BaseDataClient.__init__(self, path, is_hidden=False)
+    def __init__(self, path, data, filetype, is_hidden):
+        BaseDataClient.__init__(self, path, is_hidden=is_hidden)
         self.filetype = filetype.lower()
         self._value = data
         self.name = data.name if isinstance(data, pd.Series) else None
@@ -86,6 +86,9 @@ class PandasData(BaseDataClient):
                     self._read_args["engine"] = "openpyxl"
         else:
             raise ValueError("Pandas IO type not supported")
+
+        if is_hidden:
+            self._value._mx_dataclient = self
 
     def _on_load_value(self):
         pass
@@ -134,6 +137,9 @@ class PandasData(BaseDataClient):
 
         if isinstance(self._value, pd.Series):
             self._value.name = self.name
+
+        if self._is_hidden:
+            self._value._mx_dataclient = self
 
     def _write_pandas(self, path):
         if self.filetype == "excel":

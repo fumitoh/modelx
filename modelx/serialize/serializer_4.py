@@ -1644,7 +1644,11 @@ class DataClientDecoder(TupleDecoder):
         return self.elm(1)
 
     def restore(self):
-        return self.reader.pickledata[self.decode()]
+        client = self.reader.pickledata[self.decode()]
+        if client._is_hidden:
+            return client.value
+        else:
+            return client
 
 
 class ModuleDecoder(TupleDecoder):

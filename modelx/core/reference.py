@@ -70,8 +70,7 @@ class _HiddenDataClientPickler(_BasePickler):
 
     @classmethod
     def condition(cls, value):
-        assert hasattr(value, "_mx_dataclient")
-        return True
+        return hasattr(value, "_mx_dataclient")
 
     def convert(self, value):
         return value._mx_dataclient
@@ -95,9 +94,9 @@ class ReferenceImpl(Derivable, Impl):
     def get_class(cls, value):
         if isinstance(value, BaseDataClient):
             return DataClientReferenceImpl
-        elif isinstance(value, ModuleType
-                        ) and hasattr(value, "_mx_dataclient"):
-            return UserModuleReferenceImpl
+        elif not isinstance(    # Avoid null object
+                value, Interface) and hasattr(value, "_mx_dataclient"):
+            return DataClientReferenceImpl
         else:
             return cls
 
@@ -206,24 +205,25 @@ ReferenceImpl.picklers.append(_ModulePickler)
 
 class DataClientReferenceImpl(ReferenceImpl):
 
-    def on_init(self, value):
-        self.model.datarefmgr.add_reference(self, value)
-
-    def on_delete(self):
-        self.model.datarefmgr.del_reference(self, self.interface)
-
-
-class UserModuleReferenceImpl(ReferenceImpl):
-
     picklers = [_HiddenDataClientPickler]
 
     def on_init(self, value):
-        self.model.datarefmgr.add_reference(self,
-                                            value._mx_dataclient)
+
+        if isinstance(value, BaseDataClient):
+            client = value
+        else:
+            client = value._mx_dataclient
+
+        self.model.datarefmgr.add_reference(self, client)
 
     def on_delete(self):
-        self.model.datarefmgr.del_reference(self,
-                                            self.interface._mx_dataclient)
+
+        if isinstance(self.interface, BaseDataClient):
+            client = self.interface
+        else:
+            client = self.interface._mx_dataclient
+
+        self.model.datarefmgr.del_reference(self, client)
 
 
 class ReferenceProxy:

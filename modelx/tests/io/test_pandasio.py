@@ -21,18 +21,22 @@ S_IDX1.index.name = "Idx"
 S_IDX2 = pd.Series(np.random.randn(8), index=cols)
 DF_COL2_IDX2 = pd.DataFrame(np.random.randn(6, 8), index=idx, columns=cols)
 
-params = [[p1, *p2, p3, p4] for p1, p2, p3, p4 in
+params = [[p1, *p2, p3, p4, p5] for p1, p2, p3, p4, p5 in
           itertools.product(
               [S_IDX1, S_IDX2, DF_COL2_IDX2],
               [("new_model", True), ("new_space", False)],
               ("write", "zip", "backup"),
-              ("excel", "csv")
+              ("excel", "csv"),
+              (False, True)
             )
           ]
 
 
-@pytest.mark.parametrize("pdobj, meth, is_relative, save_meth, filetype", params)
-def test_new_pandas(tmp_path, pdobj, meth, is_relative, save_meth, filetype):
+@pytest.mark.parametrize(
+    "pdobj, meth, is_relative, save_meth, filetype, expose_pandas",
+    params)
+def test_new_pandas(
+        tmp_path, pdobj, meth, is_relative, save_meth, filetype, expose_pandas):
 
     p = getattr(mx, meth)()
     parent_name = p.name
@@ -41,7 +45,8 @@ def test_new_pandas(tmp_path, pdobj, meth, is_relative, save_meth, filetype):
             tmp_path / "testpandas.xlsx")
 
     p.new_pandas(name="pdref", path=path,
-                 data=pdobj, filetype=filetype)
+                 data=pdobj, filetype=filetype,
+                 expose_pandas=expose_pandas)
 
     if save_meth == "backup":
         getattr(p.model, save_meth)(tmp_path / "model")
@@ -56,25 +61,35 @@ def test_new_pandas(tmp_path, pdobj, meth, is_relative, save_meth, filetype):
 
     p2 = m2 if meth == "new_model" else m2.spaces[parent_name]
 
-    if isinstance(pdobj, pd.DataFrame):
-        pd.testing.assert_frame_equal(getattr(p2, "pdref")(), pdobj)
-        pd.testing.assert_frame_equal(getattr(p2, "pdref").value, pdobj)
-    elif isinstance(pdobj, pd.Series):
-        pd.testing.assert_series_equal(getattr(p2, "pdref")(), pdobj)
-        pd.testing.assert_series_equal(getattr(p2, "pdref").value, pdobj)
+    if expose_pandas:
+        if isinstance(pdobj, pd.DataFrame):
+            pd.testing.assert_frame_equal(getattr(p2, "pdref"), pdobj)
+        elif isinstance(pdobj, pd.Series):
+            pd.testing.assert_series_equal(getattr(p2, "pdref"), pdobj)
+    else:
+        if isinstance(pdobj, pd.DataFrame):
+            pd.testing.assert_frame_equal(getattr(p2, "pdref")(), pdobj)
+            pd.testing.assert_frame_equal(getattr(p2, "pdref").value, pdobj)
+        elif isinstance(pdobj, pd.Series):
+            pd.testing.assert_series_equal(getattr(p2, "pdref")(), pdobj)
+            pd.testing.assert_series_equal(getattr(p2, "pdref").value, pdobj)
 
     m2.close()
 
 
-@pytest.mark.parametrize("pdobj, range_",
-                         zip([S_IDX1, S_IDX2, DF_COL2_IDX2],
-                             ["B2:B9", "C2:C9", "C4:J9"]))
-def test_new_pandas_change_excel(tmp_path, pdobj, range_):
+params2 = [[*p1, p2] for p1, p2 in itertools.product(
+    zip([S_IDX1, S_IDX2, DF_COL2_IDX2], ["B2:B9", "C2:C9", "C4:J9"]),
+    (False, True)
+)]
 
-    p = mx.new_space("SpaceA")
+@pytest.mark.parametrize("pdobj, range_, expose_pandas", params2)
+def test_new_pandas_change_excel(tmp_path, pdobj, range_, expose_pandas):
+
+    p = mx.new_model().new_space("SpaceA")
 
     path = "files/testpandas.xlsx"
-    p.new_pandas(name="pdref", path=path, data=pdobj, filetype="excel")
+    p.new_pandas(name="pdref", path=path, data=pdobj, filetype="excel",
+                 expose_pandas=expose_pandas)
 
     p.model.write(tmp_path / "model")
     p.model.close()
@@ -93,11 +108,17 @@ def test_new_pandas_change_excel(tmp_path, pdobj, range_):
     m2 = mx.read_model(tmp_path / "model")
     p2 = m2.spaces["SpaceA"]
 
-    if isinstance(pdobj, pd.DataFrame):
-        pd.testing.assert_frame_equal(p2.pdref(), pdobj + 1)
-        pd.testing.assert_frame_equal(p2.pdref.value, pdobj + 1)
-    elif isinstance(pdobj, pd.Series):
-        pd.testing.assert_series_equal(p2.pdref(), pdobj + 1)
-        pd.testing.assert_series_equal(p2.pdref.value, pdobj + 1)
+    if expose_pandas:
+        if isinstance(pdobj, pd.DataFrame):
+            pd.testing.assert_frame_equal(p2.pdref, pdobj + 1)
+        elif isinstance(pdobj, pd.Series):
+            pd.testing.assert_series_equal(p2.pdref, pdobj + 1)
+    else:
+        if isinstance(pdobj, pd.DataFrame):
+            pd.testing.assert_frame_equal(p2.pdref(), pdobj + 1)
+            pd.testing.assert_frame_equal(p2.pdref.value, pdobj + 1)
+        elif isinstance(pdobj, pd.Series):
+            pd.testing.assert_series_equal(p2.pdref(), pdobj + 1)
+            pd.testing.assert_series_equal(p2.pdref.value, pdobj + 1)
 
     m2.close()
