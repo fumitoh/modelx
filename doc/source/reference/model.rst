@@ -58,11 +58,21 @@ Child Space operations
   :template: mxbase.rst
 
   ~Model.cur_space
-  ~Model.import_module
   ~Model.new_space
-  ~Model.new_pandas
-  ~Model.new_excel_range
+  ~Model.import_module
   ~Model.new_space_from_csv
   ~Model.new_space_from_excel
   ~Model.new_space_from_module
   ~Model.new_space_from_pandas
+
+
+Reference operations
+--------------------
+
+.. autosummary::
+  :toctree: generated/
+  :template: mxbase.rst
+
+  ~Model.new_excel_range
+  ~Model.new_pandas
+  ~Model.new_module

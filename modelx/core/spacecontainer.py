@@ -498,7 +498,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         See `pandas' document`_ for the required packeges for Excel engines.
 
         By default, ``data`` is assigned to ``name``, and the associated
-        :class:`~modelx.io.pandasio.PandasData` object is assighed to
+        :class:`~modelx.io.pandasio.PandasData` object is assigned to
         ``data._mx_dataclient``. If ``False`` is passed  to ``expose_data``,
         the :class:`~modelx.io.pandasio.PandasData` object is assigned
         to ``name``. To get ``data``, call the
@@ -528,14 +528,34 @@ class EditableSpaceContainer(BaseSpaceContainer):
                 2021-01-02 -1.029170  0.588080  0.081129
                 2021-01-03  0.028450 -0.490102  0.025208
 
-            The code below creates a
-            :class:`~modelx.io.pandasio.PandasData` object containing
-            the DataFrame created above,
-            and assigns it to a Reference named ``x`` in ``space``::
+            The code below assigns the DataFrame created above
+            to a Reference named ``x`` in ``space``, and at the same time
+            creates a :class:`~modelx.io.pandasio.PandasData` object and
+            assigns it to the ``_mx_dataclient`` attribute of the DataFrame::
 
                 >>> space.new_pandas("x", "Space1/df.xlsx", data=df, filetype="excel")
 
                 >>> space.x
+                                   X         Y         Z
+                2021-01-01  0.184497  0.140037 -1.599499
+                2021-01-02 -1.029170  0.588080  0.081129
+                2021-01-03  0.028450 -0.490102  0.025208
+
+                >>> space.x._mx_dataclient
+                <modelx.io.pandasio.PandasData at 0x15ebc562356>
+
+
+            When the model is saved, the DataFrame is written to an Excel file
+            named `df.xlsx` placed under the `Space1` folder in `model`.
+
+                >>> model.write("model")    # `model` is the parent of `space`
+
+            When the model is read back by :func:`modelx.read_model` function,
+            the DataFrame is read from the file::
+
+                >>> model2 = mx.read_model("model", name="Model2")
+
+                >>> model2.Space1.x
                                    X         Y         Z
                 2021-01-01  0.184497  0.140037 -1.599499
                 2021-01-02 -1.029170  0.588080  0.081129
@@ -552,22 +572,6 @@ class EditableSpaceContainer(BaseSpaceContainer):
                 <modelx.io.pandasio.PandasData at 0x15efa565548>
 
                 >>> space.x()     # or space.value
-                                   X         Y         Z
-                2021-01-01  0.184497  0.140037 -1.599499
-                2021-01-02 -1.029170  0.588080  0.081129
-                2021-01-03  0.028450 -0.490102  0.025208
-
-            When the model is saved, the DataFrame is written to an Excel file
-            named `df.xlsx` placed under the `Space1` folder in `model`.
-
-                >>> model.write("model")    # `model` is the parent of `space`
-
-            When the model is read back by :func:`modelx.read_model` function,
-            the DataFrame is read from the file::
-
-                >>> model2 = mx.read_model("model", name="Model2")
-
-                >>> model2.Space1.x
                                    X         Y         Z
                 2021-01-01  0.184497  0.140037 -1.599499
                 2021-01-02 -1.029170  0.588080  0.081129
@@ -599,6 +603,80 @@ class EditableSpaceContainer(BaseSpaceContainer):
             name, path, data, filetype, expose_data)
 
     def new_module(self, name, path, module):
+        """Assigns a user module to a Reference associating a
+        new :class:`~modelx.io.moduleio.ModuleData` object
+
+        This module assigns a module ``module`` to a Reference ``name``.
+        ``module`` can either be a path to the module file or
+        a module object. In case a module is passed,
+        the source code of the module needs to be retrievable.
+        The source code of the module is then saved as the file
+        specified by ``path`` when the model is saved.
+        A new :class:`~modelx.io.moduleio.ModuleData` object is created
+        and inserted to the module as ``_mx_dataclient`` attribute.
+        The module associted by this method is not registered in
+        ``sys.modules``, unless it has been registered beforehand.
+        When the containing model is read back, the module's name
+        is set to ``<unnamed module>``.
+
+        This method should not be used for
+        modules in the Python standard library or third party
+        packages registered in ``sys.modules``,
+        such as `math`_, `numpy`_ and `pandas`_. For such module,
+        the normal assignment operation should be used, e.g.
+        ``space.np = np``.
+
+        .. _math: https://docs.python.org/3/library/math.html
+        .. _numpy: https://numpy.org/
+        .. _pandas: https://pandas.pydata.org/
+
+        Example:
+
+            Suppose the following code is saved in "sample.py" in the
+            current directory.
+
+            .. code-block:: python
+
+                def triple(x)
+                    return 3 * x
+
+            The code below creates a Reference named "foo" in ``space``::
+
+                >>> space.new_module("foo", "modules/sample.py", "sample.py")
+
+            The module becomes accessible as ``foo`` in ``space``::
+
+                >>> space.foo
+                <module 'sample' from 'C:\\path\\to\\samplemodule.py'>
+
+                >>> @mx.defcells(space)
+                ... def bar(y):
+                        return foo.triple(y)
+
+                >>> space.foo.bar(3)
+                9
+
+            Let ``model`` be the ultimate parent model of ``space``. The next
+            code creates a directory named "model" under the current directory,
+            and within the "model" directory, the module is saved
+            as "sample.py" in the "modules" sub-directory of the "model" dir,
+            as specified by the ``path`` paramter to this method.
+
+                >>> model.write("model")
+
+        Args:
+            name(:obj:`str`): Name of the Reference
+            path: A path to a file to save the module. If a relative
+                path is given, it is relative to the model folder.
+            module: A path to a module file as a string or path-like object,
+                or a module object.
+
+        .. versionadded:: 0.13.0
+
+        See Also:
+            :class:`~modelx.io.moduleio.ModuleData`
+
+        """
         return self._impl.new_module(name, path, module)
 
 

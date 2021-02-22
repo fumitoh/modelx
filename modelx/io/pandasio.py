@@ -29,16 +29,17 @@ class PandasIO(BaseSharedData):
 
 
 class PandasData(BaseDataClient):
-    """Class to associate pandas DataFrame/Series with a file
+    """A subclass of :class:`~modelx.io.baseio.BaseDataClient` that
+    associates a `pandas`_ `DataFrame`_ or `Series`_ with a file
 
-    A PandasData object holds a pandas DataFrame or Series object,
+    A :class:`PandasData` holds a pandas `DataFrame`_ or `Series`_ object,
     and associates it with a file for writing and reading the object.
 
-    PandasData objects can be created only by
+    A :class:`PandasData` can be created only by
     :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>` or
     :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`.
 
-    The DataFrame or Series held in :class:`PandasData` objects
+    The `DataFrame`_ or `Series`_ held in :class:`PandasData` objects
     are accessible through
     :attr:`~PandasData.value` property or a call ``()`` method.
 
@@ -59,7 +60,16 @@ class PandasData(BaseDataClient):
         filetype(:obj:`str`): "excel" or "csv".
 
     .. _pathlib.Path:
-       https://docs.python.org/3/library/pathlib.html#pathlib.Path
+        https://docs.python.org/3/library/pathlib.html#pathlib.Path
+
+    .. _pandas: https://pandas.pydata.org
+
+    .. _DataFrame:
+        https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html
+
+    .. _Series:
+        https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html
+
     """
 
     data_class = PandasIO

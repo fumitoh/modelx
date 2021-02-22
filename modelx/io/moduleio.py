@@ -37,8 +37,25 @@ class ModuleIO(BaseSharedData):
             write_str_utf8(inspect.getsource(c.value), path=path)
 
 
-
 class ModuleData(BaseDataClient):
+    """A subclass of :class:`~modelx.io.baseio.BaseDataClient` that
+    associates a user module with its source file in the model
+
+    A :class:`ModuleData` is created either by
+    :meth:`UserSpace.new_module<modelx.core.space.UserSpace.new_module>` or
+    :meth:`Model.new_module<modelx.core.model.Model.new_module>` when
+    a user module is assigned to a Reference. The :class:`ModuleData`
+    is assigned to the ``_mx_dataclient`` attribute of the module.
+
+    .. versionadded:: 0.13.0
+
+    See Also:
+
+        :meth:`UserSpace.new_module<modelx.core.space.UserSpace.new_module>`
+        :meth:`Model.new_module<modelx.core.model.Model.new_module>`
+        :attr:`~modelx.core.model.Model.dataclients`
+
+    """
 
     data_class = ModuleIO
 

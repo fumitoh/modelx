@@ -25,3 +25,13 @@ PandasData
 .. autoclass:: PandasData
 
 .. autoproperty:: PandasData.value
+
+
+ModuleData
+----------
+
+.. currentmodule:: modelx.io.moduleio
+
+.. autoclass:: ModuleData
+
+.. autoproperty:: ModuleData.value
