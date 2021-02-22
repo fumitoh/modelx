@@ -870,11 +870,11 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
     def new_module(self, name, path, module):
 
-        from modelx.io.moduleio import ModuleDataClient
+        from modelx.io.moduleio import ModuleData
 
         client = self.system.iomanager.new_client(
             path,
-            ModuleDataClient,
+            ModuleData,
             model=self.model.interface,
             client_args={"module": module}
         )

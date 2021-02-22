@@ -38,7 +38,7 @@ class ModuleIO(BaseSharedData):
 
 
 
-class ModuleDataClient(BaseDataClient):
+class ModuleData(BaseDataClient):
 
     data_class = ModuleIO
 
