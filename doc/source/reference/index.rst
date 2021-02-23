@@ -15,12 +15,9 @@ Reference Guide
    other_types
 
 
-.. rubric:: Miscellaneous
-
 .. toctree::
+   :hidden:
+   :caption: Miscellaneous
    :maxdepth: 1
 
-   techguide
-   model_structure
-   importing_data
-   saving_models
+   drafts/index
