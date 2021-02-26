@@ -20,7 +20,7 @@ import functools
 
 from modelx.core.base import (
     add_stateattrs, Derivable, Impl, Interface)
-from modelx.io.excelio import BaseDataClient
+from modelx.io.baseio import BaseDataClient
 
 
 # For backward compatibility with -v0.0.23
