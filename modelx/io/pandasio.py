@@ -155,7 +155,7 @@ class PandasData(BaseDataClient):
         if self.filetype == "excel":
             self._value.to_excel(path)
         elif self.filetype == "csv":
-            self._value.to_csv(path)
+            self._value.to_csv(path, header=True)
         else:
             raise ValueError
 
