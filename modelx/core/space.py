@@ -1061,7 +1061,6 @@ class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer):
             refs=refs,
             arguments=arguments,
         )
-        space.is_derived = False
         return space
 
     def del_all_itemspaces(self):
@@ -1814,7 +1813,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     def _init_cells(self):
         for base in self._dynbase.cells.values():
-            DynamicCellsImpl(space=self, base=base)
+            DynamicCellsImpl(space=self, base=base, is_derived=True)
 
     def _init_self_refs(self):
         return RefDict(self)
@@ -1889,6 +1888,10 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             return [self._dynbase]
         else:
             return []
+
+    @property
+    def is_derived(self):
+        return True
 
 
 class ItemSpace(DynamicSpace):
