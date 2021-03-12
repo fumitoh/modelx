@@ -173,6 +173,20 @@ class Element:
 
         return result
 
+    def _get_attrdict(self, extattrs=None, recursive=True):
+
+        result = {
+            "type": type(self).__name__,
+            "obj": self.obj._get_attrdict(extattrs, recursive),
+            "args": self.args,
+            "value": self.value if self.has_value else None,
+            "predslen": len(self.preds),
+            "succslen": len(self.succs),
+            "repr_parent": self.obj._impl.repr_parent(),
+            "repr": self.obj._get_repr(),
+        }
+        return result
+
     def __repr__(self):
 
         name = self.obj._get_repr(fullname=True, add_params=False)

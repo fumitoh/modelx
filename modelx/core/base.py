@@ -591,10 +591,38 @@ class Interface:
                 attr = getattr(self, name)
                 if hasattr(attr, "_to_attrdict"):
                     result[name] = attr._to_attrdict(attrs)
+                elif callable(attr):
+                    result[name] = attr()
                 else:
                     result[name] = attr
 
         return result
+
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        """Get attributes in a dict"""
+
+        return {
+            "type": type(self).__name__,
+            "id": id(self._impl),
+            "name": self.name,
+            "fullname": self.fullname,
+            "repr": self._get_repr(),
+            "namedid": self._namedid
+        }
+
+    def _get_attrdict_extra(self, attrdict, extattrs=None, recursive=True):
+
+        for name in extattrs:
+            if name not in attrdict and hasattr(self, name):
+                attr = getattr(self, name)
+                if hasattr(attr, "_get_attrdict"):
+                    attrdict[name] = attr._get_attrdict(extattrs, recursive)
+                elif callable(attr):
+                    attrdict[name] = attr()
+                else:
+                    attrdict[name] = attr
+
 
     def _get_repr(self, fullname=False, add_params=True):
         return self._impl.get_repr(fullname, add_params)
@@ -1009,6 +1037,16 @@ class BaseView(Mapping):
             }
         except:
             raise RuntimeError("%s literadict raised an error" % self)
+
+        return result
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        """Get extra attributes"""
+        result = {"type": type(self).__name__}
+        result["items"] = {
+            name: item._get_attrdict(extattrs, recursive)
+            for name, item in self.items()
+        }
 
         return result
 

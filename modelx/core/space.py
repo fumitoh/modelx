@@ -254,6 +254,24 @@ class SpaceView(BaseView):
         # space.parent.del_space(name)
         space.model.updater.del_defined_space(space)
 
+
+class NamedItemSpaceView(SpaceView):
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        """For spyder-modelx to populate SpaceView for named_itemspace"""
+
+        result = {"type": type(self).__name__}
+        try:
+            result["items"] = {
+                name: item._baseattrs
+                for name, item in self.items()
+            }
+        except:
+            raise RuntimeError("%s literadict raised an error" % self)
+
+        return result
+
+
 class RefView(SelectedView):
 
     @property
@@ -268,6 +286,18 @@ class RefView(SelectedView):
 
         return result
 
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+
+        result = {"type": type(self).__name__}
+        result["items"] = items = {}
+
+        for name, item in self.items():
+            if name[0] != "_":
+                items[name] = ReferenceProxy(
+                    self.impl[name])._get_attrdict(extattrs, recursive)
+
+        return result
 
 class BaseSpace(BaseSpaceContainer, ElementFactory):
 
@@ -400,7 +430,10 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
     @property
     def parameters(self):
         """A tuple of parameter strings."""
-        return tuple(self._impl.formula.parameters)
+        if self._impl.formula is not None:
+            return tuple(self._impl.formula.parameters)
+        else:
+            return None
 
     @property
     def refs(self):
@@ -490,6 +523,31 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
             result["params"] = ", ".join(self.parameters)
         else:
             result["params"] = ""
+
+        return result
+
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        """Get extra attributes"""
+        result = super(BaseSpace, self)._get_attrdict(extattrs, recursive)
+
+        for name in  [
+            "named_spaces",
+            "_named_itemspaces",
+            "cells",
+            "refs"
+        ]:
+            attr = getattr(self, name)
+            if recursive:
+                result[name] = attr._get_attrdict(extattrs, recursive)
+            else:
+                result[name] = tuple(attr)
+
+        result["bases"] = [base._namedid for base in self.bases]
+        result["parameters"] = self.parameters
+
+        if extattrs:
+            self._get_attrdict_extra(result, extattrs, recursive)
 
         return result
 

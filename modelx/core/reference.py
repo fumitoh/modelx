@@ -258,3 +258,9 @@ class ReferenceProxy:
         result["type"] = "Reference"
         result["value_type"] = type(self.value).__name__
         return result
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        result = Interface._get_attrdict(self, extattrs, recursive)
+        result["type"] = "Reference"
+        result["value_type"] = type(self.value).__name__
+        return result

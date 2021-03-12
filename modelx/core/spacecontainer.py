@@ -75,6 +75,17 @@ class BaseSpaceContainer(Interface):
         return result
 
 
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        """Get extra attributes"""
+
+        result = super()._get_attrdict(extattrs, recursive)
+        if recursive:
+            result["spaces"] = self.spaces._get_attrdict(extattrs, recursive)
+        else:
+            result["spaces"] = tuple(self.spaces.keys())
+        return result
+
+
 class EditableSpaceContainer(BaseSpaceContainer):
 
     __slots__ = ()

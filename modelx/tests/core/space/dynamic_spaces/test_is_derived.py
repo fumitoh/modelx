@@ -8,7 +8,7 @@ def test_is_derived():
     c.new_cells('foo')
 
     s.formula = lambda i: None
-    
+
     space1 = s[1]
 
     assert space1._is_derived()

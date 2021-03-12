@@ -356,6 +356,16 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
         result["params"] = ", ".join(self.parameters)
         return result
 
+    def _get_attrdict(self, extattrs=None, recursive=True):
+
+        result = super()._get_attrdict(extattrs, recursive)
+        result["parameters"] = self.parameters
+
+        if extattrs:
+            self._get_attrdict_extra(result, extattrs, recursive)
+
+        return result
+
     def _is_derived(self):
         return self._impl.is_derived
 
