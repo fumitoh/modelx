@@ -28,12 +28,16 @@ def dynmodel():
     return m
 
 
-@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
-def test_dynmodel(dynmodel, tmp_path, write_method):
+@pytest.mark.parametrize("write_method, rename",
+                         zip(["write_model", "zip_model"], [False, True]))
+def test_dynmodel(dynmodel, tmp_path, write_method, rename):
 
     path_ = tmp_path / "testdir"
     getattr(mx, write_method)(dynmodel, path_)
-    m = mx.read_model(path_)
+    if rename:
+        m = mx.read_model(path_, name="renamed")
+    else:
+        m = mx.read_model(path_)
 
     assert m.SpaceA[0] is m.SpaceB.RefSpaceA
     assert m.SpaceA[1].foo[2] == 3
@@ -85,12 +89,16 @@ def dyntotal():
     return m
 
 
-@pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
-def test_dyntotal(dyntotal, tmp_path, write_method):
+@pytest.mark.parametrize("write_method, rename",
+                         zip(["write_model", "zip_model"], [False, True]))
+def test_dyntotal(dyntotal, tmp_path, write_method, rename):
 
     path_ = tmp_path / "testdir"
     getattr(mx, write_method)(dyntotal, path_)
-    m = mx.read_model(path_)
+    if rename:
+        m = mx.read_model(path_, name="renamed")
+    else:
+        m = mx.read_model(path_)
 
     assert m.s(-1).a(2) == 2 * 10
     assert m.s(0).a(2) == 2
