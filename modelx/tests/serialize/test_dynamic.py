@@ -31,6 +31,9 @@ def dynmodel():
 @pytest.mark.parametrize("write_method, rename",
                          zip(["write_model", "zip_model"], [False, True]))
 def test_dynmodel(dynmodel, tmp_path, write_method, rename):
+    """Test dynamic inputs"""
+
+    # Added rename for https://github.com/fumitoh/modelx/issues/42
 
     path_ = tmp_path / "testdir"
     getattr(mx, write_method)(dynmodel, path_)
@@ -95,6 +98,7 @@ def test_dyntotal(dyntotal, tmp_path, write_method, rename):
 
     path_ = tmp_path / "testdir"
     getattr(mx, write_method)(dyntotal, path_)
+    dyntotal.close()
     if rename:
         m = mx.read_model(path_, name="renamed")
     else:
@@ -104,6 +108,7 @@ def test_dyntotal(dyntotal, tmp_path, write_method, rename):
     assert m.s(0).a(2) == 2
     assert m.s(-1).b(2, 3) == 2 * 3 * 10
     assert m.s(0).b(2, 3) == 2 * 3
+    m.close()
 
 
 @pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
@@ -126,9 +131,11 @@ def test_assign_dynamic_space_to_ref(tmp_path, write_method):
     s3.b = m.s2(0)
     path_ = tmp_path / "assign_dynamic_space_to_ref"
     getattr(mx, write_method)(m, path_)
+    m.close()
     m2 = mx.read_model(path_)
     assert m2.s2.a == 1
     assert m2.s2(0).a == 1
+    m2.close()
 
 
 @pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
@@ -153,5 +160,7 @@ def test_assign_dynamic_space_to_ref2(tmp_path, write_method):
     m.a.new_space('d',refs={'c':m.c()})
     path_ = tmp_path / "model"
     getattr(mx, write_method)(m, path_)
+    m.close()
     m2 = mx.read_model(path_)
     assert m2.a.d.c is m2.c()
+    m2.close()

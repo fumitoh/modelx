@@ -593,13 +593,13 @@ class SpaceEncoder(BaseEncoder):
 
             def callback(f):
                 for s in self.space._named_itemspaces.values():
-                    self._pickle_dynamic_space(f, s)
+                    self._pickle_dynamic_space(f, s, self.space)
 
             ziputil.write_file_utf8(callback, datafile, "t",
                                     compression=self.writer.compression,
                                     compresslevel=self.writer.compresslevel)
 
-    def _pickle_dynamic_space(self, file, space):
+    def _pickle_dynamic_space(self, file, space, static_parent):
 
         for cells in space.cells.values():
             for key in cells._impl.input_keys:
@@ -611,7 +611,8 @@ class SpaceEncoder(BaseEncoder):
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
 
-                tupleid = TupleID(cells._tupleid)
+                tupleid = TupleID(abs_to_rel_tuple(
+                    cells._tupleid, static_parent._tupleid))
                 tupleid.pickle_args(self.writer.pickledata)
                 file.write(
                     "(%s, %s, %s)\n" % (tupleid.serialize(), keyid, valid)
@@ -622,10 +623,10 @@ class SpaceEncoder(BaseEncoder):
                         output_input(cells, key))
 
         for subspace in space.named_spaces.values():
-            self._pickle_dynamic_space(file, subspace)
+            self._pickle_dynamic_space(file, subspace, static_parent)
 
         for subspace in space._named_itemspaces.values():
-            self._pickle_dynamic_space(file, subspace)
+            self._pickle_dynamic_space(file, subspace, static_parent)
 
 
 ModelWriter.space_encoder = SpaceEncoder
@@ -1081,13 +1082,13 @@ class ModelReader:
             space = target.new_space(name=name)
             self.parse_source(path_ / name / "__init__.py", space)
             nextdir = path_ / name
-            self._parse_dynamic_inputs(nextdir)
+            self._parse_dynamic_inputs(nextdir, space)
             if ziputil.exists(nextdir) and ziputil.is_dir(nextdir):
                 self.parse_dir(nextdir, target=space, spaces=self.result)
 
         return target
 
-    def _parse_dynamic_inputs(self, path_):
+    def _parse_dynamic_inputs(self, path_, static_parent):
 
         file = path_ / "_data/_dynamic_inputs"
         if ziputil.exists(file):
@@ -1103,13 +1104,15 @@ class ModelReader:
                 args = ast.literal_eval(line)
                 inst = Instruction(
                     self._set_dynamic_inputs,
-                    args
+                    args + (static_parent,)
                 )
                 instructuions.append(inst)
             self.instructions.extend(instructuions)
 
-    def _set_dynamic_inputs(self, tupleid, keyid, valid):
+    def _set_dynamic_inputs(self, tupleid, keyid, valid, static_parent):
         tupleid = TupleID.unpickle_args(tupleid, self.pickledata)
+        if tupleid[0][0] == ".":    # Backward compatibility (-0.13.0)
+            tupleid = rel_to_abs_tuple(tupleid, static_parent._tupleid)
         cells = mxsys.get_object_from_tupleid(tupleid)
         key = self.pickledata[keyid]
         value = self.pickledata[valid]
