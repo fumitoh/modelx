@@ -263,4 +263,11 @@ class ReferenceProxy:
         result = Interface._get_attrdict(self, extattrs, recursive)
         result["type"] = "Reference"
         result["value_type"] = type(self.value).__name__
+        if extattrs:
+            Interface._get_attrdict_extra(self, result, extattrs, recursive)
+
         return result
+
+    @property
+    def _evalrepr(self):
+        return Interface._evalrepr.fget(self)
