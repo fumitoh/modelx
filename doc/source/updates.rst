@@ -10,6 +10,10 @@ Updates
     Visit <a href="https://modelx.io/allposts" target="_blank">modelx blog</a>
     for more updates.</small></p>
 
+* *28 March 2021:*
+  modelx v0.13.1 is released.see
+  :doc:`releases/relnotes_v0_13_1` release notes for details.
+
 * *23 Feb 2021:*
   modelx v0.13.0 is released.see
   :doc:`releases/relnotes_v0_13_0` release notes for details.
@@ -21,6 +25,8 @@ Updates
 * *11 Jan 2021:*
   modelx v0.12.0 is released.see
   :doc:`releases/relnotes_v0_12_0` release notes for details.
+
+.. Latest Updates End
 
 * *21 Nov 2020:*
   modelx v0.11.0 is released.see
@@ -63,7 +69,6 @@ Updates
 * *5 May 2020:*
   :doc:`tutorial/index` and :doc:`installation` pages are updated.
 
-.. Latest Updates End
 
 * *29 April 2020:*
   modelx v0.6.1 is released. See :ref:`release-v0.6.1` release
@@ -204,7 +209,7 @@ Updates
   modelx v0.0.10 is released.
 
 * *20 April 2018:*
-  The :doc:`reference/techguide` section is added.
+  The :doc:`reference/drafts/techguide` section is added.
 
 
 -------
