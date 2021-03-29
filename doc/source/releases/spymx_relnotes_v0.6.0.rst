@@ -12,6 +12,23 @@ This release introduce following enhancements and new features.
 
     spyder-modelx v0.6.0 requires modelx v0.13.1 or newer.
 
+The safest way to update your existing installation is to
+update modelx and spyder-modelx manually:
+
+.. code-block::
+
+    $ pip install --upgrade modelx
+
+    $ pip install --upgrade --no-deps spyder-modelx
+
+
+.. warning::
+
+   Anaconda users should not forget ``--no-deps`` option when
+   installing or upgrading spyder-modelx
+   using *pip*. Otherwise, *pip* may overwrite packages that spyder-modelx
+   depends on.
+
 
 * `Enhanced MxDataViewer`_
 * `Enhanced MxExplorer`_
