@@ -8,6 +8,10 @@ spyder-modelx v0.6.0 (29 March 2021)
 
 This release introduce following enhancements and new features.
 
+* `Enhanced MxDataViewer`_
+* `Enhanced MxExplorer`_
+* `Message bar in MxAnalyzer`_
+
 .. note::
 
     spyder-modelx v0.6.0 requires modelx v0.13.1 or newer.
@@ -30,10 +34,6 @@ update modelx and spyder-modelx manually:
    depends on.
 
 
-* `Enhanced MxDataViewer`_
-* `Enhanced MxExplorer`_
-* `Message bar in MxAnalyzer`_
-
 Enhancements
 =============
 
@@ -43,7 +43,7 @@ Enhanced MxDataViewer
 The former *MxDataView* is now renamed as *MxDataViewer*,
 and it can now show values of :obj:`list`, :obj:`set`, :obj:`tuple`,
 :obj:`dict`, `numpy`_ `array`_, in addition to
-`pandas`_ `DataFrame`_, `Series`_, and Index in a tabular format.
+`pandas`_ `DataFrame`_, `Series`_, and `Index`_ in a tabular format.
 It now also shows the values and types of scalar objects,
 such as :obj:`int` and :obj:`str`.
 
