@@ -75,6 +75,19 @@ either pane.
 
    MxExplorer with the new columns
 
+Writing a model to a zipfile and also reading a model from a
+zip file are supported from the context menu items.
+
+.. figure:: /images/relnotes/spymx_v0_6_0/ReadModelZipOption.png
+   :align: center
+
+   "Read Model" dialog box
+
+.. figure:: /images/relnotes/spymx_v0_6_0/WriteModelZipOption.png
+   :align: center
+
+   "Write Model" dialog box
+
 Message bar in MxAnalyzer
 ---------------------------
 
