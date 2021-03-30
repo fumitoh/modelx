@@ -20,7 +20,7 @@ except for Windows specific parts.
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents
 
    gettingstarted
