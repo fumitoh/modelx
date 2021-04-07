@@ -58,6 +58,8 @@ class TraceGraph(nx.DiGraph):
         Returns:
             set: The removed nodes.
         """
+        if not self.has_node(source):
+            return set()
         desc = nx.descendants(self, source)
         desc.add(source)
         self.remove_nodes_from(desc)

@@ -30,6 +30,36 @@ def test_change_attrref():
     assert foo(3) == qux(3) == "baz"
 
 
+# https://github.com/fumitoh/modelx/issues/43
+def test_change_attrref2():
+
+    model = mx.new_model()
+    inputs = model.new_space("Inputs")
+
+    inputs.a = 2
+    inputs.b = 3
+
+    calc = model.new_space("Pythagoras")
+
+    @mx.defcells
+    def pythagoras():
+        return (Inputs.a ** 2 + Add.add2() ** 2) ** .5
+
+    calc2 = model.new_space("Add")
+
+    @mx.defcells
+    def add2():
+        return Inputs.a + Inputs.b
+
+    calc.Inputs = inputs
+    calc.Add = calc2
+    calc2.Inputs = inputs
+
+    assert model.Pythagoras.pythagoras() == (2 ** 2 + (2+3) ** 2) ** .5
+    model.Inputs.a = 5
+    assert model.Pythagoras.pythagoras() == (5 ** 2 + (5+3) ** 2) ** .5
+
+
 def test_change_ref_on_reassinged_formula():
 
     m = mx.new_model()
