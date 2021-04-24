@@ -6,7 +6,7 @@
 spyder-modelx v0.6.0 (29 March 2021)
 ====================================
 
-This release introduce following enhancements and new features.
+This release introduces following enhancements and new features.
 
 * `Enhanced MxDataViewer`_
 * `Enhanced MxExplorer`_

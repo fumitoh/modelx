@@ -6,7 +6,7 @@
 spyder-modelx v0.5.0 (24 May 2020)
 ====================================
 
-This release introduce following enhancements and new features.
+This release introduces following enhancements and new features.
 
 Enhancements
 =============
