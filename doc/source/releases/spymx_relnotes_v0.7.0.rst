@@ -7,10 +7,13 @@ spyder-modelx v0.7.0 (24 April 2021)
 ====================================
 
 This release introduces significantly enhanced MxAnalyzer.
+The :doc:`/spyder` page is updated to reflect the recent enhancements.
 
-.. note::
+To use modelx and spyder-modelx out of the box without any installation,
+a custom WinPython is provided on
+`the Download page <https://lifelib.io/download.html>`_ on lifelib.io.
 
-    spyder-modelx v0.7.0 requires modelx v0.13.1 or newer.
+
 
 The safest way to update your existing installation is to
 update modelx and spyder-modelx manually:
@@ -28,6 +31,10 @@ update modelx and spyder-modelx manually:
    installing or upgrading spyder-modelx
    using *pip*. Otherwise, *pip* may overwrite packages that Spyder
    depends on.
+
+.. note::
+
+    spyder-modelx v0.7.0 requires modelx v0.13.1 or newer.
 
 
 .. contents:: Contents
