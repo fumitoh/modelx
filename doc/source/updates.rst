@@ -11,38 +11,38 @@ Updates
     for more updates.</small></p>
 
 * *24 April 2021:*
-  spyder-modelx v0.7.0 is released.see
+  spyder-modelx v0.7.0 is released. See
   :doc:`releases/spymx_relnotes_v0.7.0` release notes for details.
   The :doc:`spyder` page is updated.
 
 * *29 March 2021:*
-  spyder-modelx v0.6.0 is released.see
+  spyder-modelx v0.6.0 is released. See
   :doc:`releases/spymx_relnotes_v0.6.0` release notes for details.
 
 * *28 March 2021:*
-  modelx v0.13.1 is released.see
+  modelx v0.13.1 is released. See
   :doc:`releases/relnotes_v0_13_1` release notes for details.
 
 * *23 Feb 2021:*
-  modelx v0.13.0 is released.see
+  modelx v0.13.0 is released. See
   :doc:`releases/relnotes_v0_13_0` release notes for details.
 
 * *6 Feb 2021:*
-  modelx v0.12.1 is released.see
+  modelx v0.12.1 is released. See
   :doc:`releases/relnotes_v0_12_1` release notes for details.
 
 * *11 Jan 2021:*
-  modelx v0.12.0 is released.see
+  modelx v0.12.0 is released. See
   :doc:`releases/relnotes_v0_12_0` release notes for details.
 
 .. Latest Updates End
 
 * *21 Nov 2020:*
-  modelx v0.11.0 is released.see
+  modelx v0.11.0 is released. See
   :doc:`releases/relnotes_v0_11_0` release notes for details.
 
 * *17 Sep 2020:*
-  modelx v0.10.0 is released. see
+  modelx v0.10.0 is released. See
   :doc:`releases/relnotes_v0_10_0` release notes for details.
 
 * *9 Aug 2020:*

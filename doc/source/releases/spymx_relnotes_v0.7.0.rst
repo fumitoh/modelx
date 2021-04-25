@@ -92,7 +92,7 @@ The pop-up window shows values of :obj:`list`, :obj:`set`, :obj:`tuple`,
 Setting object from MxExplorer
 -------------------------------
 
-Prior to this release, the object to analyzer can only be
+Prior to this release, the object to analyze can only be
 set as an expression entered by the user
 which is to be evaluated in MxConsole.
 This release enables the user to set the object to analyze from MxExplorer.
