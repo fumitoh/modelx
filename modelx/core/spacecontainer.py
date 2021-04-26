@@ -112,7 +112,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             self._impl,
             name=name, bases=get_impls(bases), formula=formula, refs=refs
         )
-
+        self._impl.system.currentmodel = space.model
         return space.interface
 
     def import_module(self, module=None, recursive=False, **params):
@@ -142,6 +142,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         ) = self._impl.new_space_from_module(
             module, recursive=recursive, **params
         )
+        self._impl.system.currentmodel = space.model
         return get_interfaces(space)
 
     def new_space_from_module(self, module, recursive=False, **params):
@@ -165,6 +166,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         ) = self._impl.new_space_from_module(
             module, recursive=recursive, **params
         )
+        self._impl.system.currentmodel = space.model
         return get_interfaces(space)
 
     def new_space_from_excel(
@@ -242,7 +244,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             names_col,
             param_rows,
         )
-
+        self._impl.system.currentmodel = space.model
         return get_interfaces(space)
 
     def new_space_from_pandas(
@@ -279,9 +281,11 @@ class EditableSpaceContainer(BaseSpaceContainer):
         See Also:
             :meth:`new_cells_from_pandas`: Create Cells from DataFrame or Series.
         """
-        return get_interfaces(self._impl.new_space_from_pandas(
+        space = self._impl.new_space_from_pandas(
             obj, space, cells, param, space_params, cells_params
-        ))
+        )
+        self._impl.system.currentmodel = space.model
+        return space.interface
 
     def new_space_from_csv(
             self, filepath, space=None, cells=None, param=None,
@@ -321,9 +325,12 @@ class EditableSpaceContainer(BaseSpaceContainer):
         See Also:
             :meth:`new_cells_from_csv`: Create Cells from CSV.
         """
-        return self._impl.new_space_from_csv(
+        space = self._impl.new_space_from_csv(
             filepath, space, cells, param,
-            space_params, cells_params, args, kwargs).interface
+            space_params, cells_params, args, kwargs
+        )
+        self._impl.system.currentmodel = space.model
+        return space.interface
 
     def new_excel_range(self, name,
             path, range_, sheet=None, keyids=None, loadpath=None):
