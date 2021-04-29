@@ -90,6 +90,21 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
     __slots__ = ()
 
+    def __setattr__(self, name, value):
+        if hasattr(type(self), name):
+            attr = getattr(type(self), name)
+            if isinstance(attr, property):
+                if hasattr(attr, 'fset'):
+                    attr.fset(self, value)
+                else:
+                    raise AttributeError("%s is read-only" % name)
+            else:
+                raise AttributeError("%s is not a property" % name)
+        elif name in self.properties:
+            object.__setattr__(self, name, value)
+        else:
+            self._impl.set_attr(name, value, refmode="auto")
+
     def new_space(self, name=None, bases=None, formula=None, refs=None):
         """Create a child space.
 

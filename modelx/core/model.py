@@ -250,12 +250,6 @@ class Model(EditableSpaceContainer):
     def __getattr__(self, name):
         return self._impl.get_attr(name)
 
-    def __setattr__(self, name, value):
-        if name in self.properties:
-            object.__setattr__(self, name, value)
-        else:
-            self._impl.set_attr(name, value, refmode=None)
-
     def __delattr__(self, name):
         self._impl.del_attr(name)
 

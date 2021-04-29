@@ -27,12 +27,12 @@ def testmodel():
     """
     m, s = mx.new_model("TestModel"), mx.new_space(name='TestSpace')
 
-    # m.doc = textwrap.dedent("""\
-    # This is a model docstring
-    #
-    # 3rd line
-    # 4th line
-    # """)
+    m.doc = textwrap.dedent("""\
+    This is a model docstring
+
+    3rd line
+    4th line
+    """)
 
     s.doc = textwrap.dedent("""\
     This is a space docstring

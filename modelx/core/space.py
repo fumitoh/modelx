@@ -958,20 +958,6 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         else:
             self._impl.set_attr(name, value, refmode=refmode)
 
-    def __setattr__(self, name, value):
-        if hasattr(type(self), name):
-            attr = getattr(type(self), name)
-            if isinstance(attr, property):
-                if hasattr(attr, 'fset'):
-                    attr.fset(self, value)
-                else:
-                    raise AttributeError("%s is read-only" % name)
-            else:
-                raise AttributeError("%s is not a property" % name)
-        elif name in self.properties:
-            object.__setattr__(self, name, value)
-        else:
-            self._impl.set_attr(name, value, refmode="auto")
 
     def __delattr__(self, name):
         if hasattr(type(self), name):
@@ -1306,10 +1292,6 @@ class BaseSpaceImpl(
     def _get_members(other):
         return other.named_spaces
 
-    @Impl.doc.setter
-    def doc(self, value):
-        self._doc = value
-
     def is_base(self, other):
         return self in other.bases
 
@@ -1497,6 +1479,10 @@ class UserSpaceImpl(
             RefView,
             [self._self_refs, self._local_refs, self.model._global_refs]
         )
+
+    @Impl.doc.setter
+    def doc(self, value):
+        self._doc = value
 
     # ----------------------------------------------------------------------
     # Cells creation
