@@ -21,7 +21,8 @@ from modelx.core.base import (
 from modelx.core.node import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node)
 from modelx.core.formula import (
-    Formula, NullFormula, NULL_FORMULA, BoundFunction)
+    Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring
+)
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 from modelx.core.node import ElementFactory, ElementFactoryImpl
@@ -372,6 +373,14 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
     def _is_defined(self):
         return not self._impl.is_derived
 
+    @Interface.doc.setter
+    def doc(self, doc):
+        self._impl.set_doc(doc, insert_indents=False)
+
+    def set_doc(self, doc, insert_indents=False):
+        """Set doc property"""
+        self._impl.set_doc(doc, insert_indents=insert_indents)
+
 
 class CellsNamespaceReferrer(BaseNamespaceReferrer):
 
@@ -691,6 +700,13 @@ class UserCellsImpl(CellsImpl):
         self.formula = cls(func, name=self.name)
         self.altfunc = BoundFunction(self)
         self.spacemgr.update_subs(self.parent)
+
+    def set_doc(self, doc, insert_indents=False):
+
+        oldsrc = self.formula.source
+        funcdef = replace_docstring(oldsrc, doc, insert_indents=insert_indents)
+        self.set_formula(funcdef)
+
 
 
 class DynamicCellsImpl(CellsImpl):

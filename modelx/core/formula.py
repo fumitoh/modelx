@@ -17,7 +17,7 @@ import ast
 import warnings
 from types import FunctionType
 from inspect import signature, getsource, getsourcefile, findsource
-from textwrap import dedent
+from textwrap import dedent, indent
 import tokenize
 import io
 import dis
@@ -295,6 +295,61 @@ def replace_funcname(source: str, name: str):
     )
 
     return "\n".join(lines) + "\n"
+
+
+def replace_docstring(source: str, docstr: str, insert_indents=False):
+    """Replace docstring"""
+    # lines = source.splitlines()
+    atok = asttokens.ASTTokens(source, parse=True)
+
+    found = False
+    for node in ast.walk(atok.tree):
+        if isinstance(node, ast.FunctionDef):
+            found = True
+            break
+
+    if not found:
+        raise RuntimeError("FunctionDef not found")
+
+    first_stmt = node.body[0]
+    docstr = '"""' + docstr + '"""'
+    prev_token = atok.tokens[first_stmt.first_token.index - 1]
+
+    if prev_token.type == token.INDENT:     # compound statements
+
+        # Insert indents
+        lines = docstr.splitlines()
+        for i, l in enumerate(tuple(lines)):
+            if i == 0 or insert_indents:
+                lines[i] = indent(l, prev_token.string)
+
+        docstr = "\n".join(lines)
+
+        if isinstance(first_stmt, ast.Expr) and isinstance(
+                first_stmt.value, ast.Str):     # Has docstring
+
+            src_front = source[:prev_token.startpos]
+            src_back = source[first_stmt.first_token.endpos:]
+            return src_front + docstr + src_back
+
+        else:   # No docstring
+            src_front = source[:prev_token.startpos]
+            src_back = source[prev_token.startpos:]
+            return src_front + docstr + "\n" + src_back
+
+    else:    # single line
+
+        if isinstance(first_stmt, ast.Expr) and isinstance(
+                first_stmt.value, ast.Str):     # Has docstring
+
+            src_front = source[:first_stmt.first_token.startpos]
+            src_back = source[first_stmt.first_token.endpos:]
+
+        else:   # No docstring
+            src_front = source[:first_stmt.first_token.startpos]
+            src_back = source[first_stmt.first_token.startpos:]
+
+        return src_front + docstr + src_back
 
 
 def has_lambda(src):
