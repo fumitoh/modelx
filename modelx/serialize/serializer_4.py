@@ -17,6 +17,7 @@ import ast
 import enum
 from collections import namedtuple
 import tokenize
+import token
 import tempfile
 import zipfile
 import modelx as mx
@@ -150,11 +151,16 @@ class Instruction(BaseInstruction):
         self.arghook = arghook
         self.kwargs = kwargs if kwargs else {}
         self.parser = parser
+        self.retval = None
 
     @classmethod
     def from_method(cls, obj, method, args=(), arghook=None, kwargs=None,
                     parser=None):
-        func = getattr(obj, method)
+
+        if isinstance(obj, BaseInstruction):
+            func = OtherInstFunctor(obj, method)
+        else:
+            func = getattr(obj, method)
         return cls(func, args=args, arghook=arghook, kwargs=kwargs,
                    parser=parser)
 
@@ -164,7 +170,8 @@ class Instruction(BaseInstruction):
         else:
             args, kwargs = self.args, self.kwargs
 
-        return self.func(*args, **kwargs)
+        self.retval = self.func(*args, **kwargs)
+        return self.retval
 
     @property
     def funcname(self):
@@ -174,12 +181,28 @@ class Instruction(BaseInstruction):
         return "<Instruction: %s>" % self.funcname
 
 
+class OtherInstFunctor:
+
+    def __init__(self, inst, method):
+        self.inst = inst
+        self.method = method
+
+    def __call__(self, *args, **kwargs):
+        meth = getattr(self.inst.retval, self.method)
+        return meth(*args, **kwargs)
+
+    @property
+    def __name__(self):
+        return self.method
+
+
 class CompoundInstruction(BaseInstruction):
 
     def __init__(self, instructions=None):
 
         self.instructions = []
         self.extend(instructions)
+        self.retval = None
 
     def __len__(self):  # Used by __eq__
         return len(self.instructions)
@@ -196,10 +219,9 @@ class CompoundInstruction(BaseInstruction):
                     self.instructions.append(inst)
 
     def execute(self):
-        result = None
         for inst in self.instructions:
-            result = inst.execute()
-        return result
+            self.retval = inst.execute()
+        return self.retval
 
     def execute_selected(self, cond, pop_executed=True):
 
@@ -1054,7 +1076,9 @@ class ModelReader:
             "doc",
             "set_formula",
             "set_property",
-            "new_cells"])
+            "new_cells",
+            "set_doc"
+        ])
 
         if self.instructions.find_instruction(
                 lambda inst: isinstance(inst.parser, MethodCallParser)
@@ -1192,11 +1216,14 @@ class DocstringParser(BaseNodeParser):
         return False
 
     def get_instruction(self):
-        return Instruction.from_method(
-            obj=type(self.obj).doc,
-            method="fset",
-            args=(self.obj, self.node.value.s)
-        )
+        if self.section == "DEFAULT":
+            return Instruction.from_method(
+                obj=type(self.obj).doc,
+                method="fset",
+                args=(self.obj, self.node.value.s)
+            )
+        else:   # Cells.doc for lambda is processed by LambdaAssignParser
+            return None
 
 
 class ImportFromParser(BaseNodeParser):
@@ -1514,10 +1541,30 @@ class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
             method="new_cells",
             kwargs=kwargs
         )
-        return CompoundInstruction([
-            inst,
-            Instruction(self.load_pickledata)
-        ])
+
+        # find doc
+        next_idx = self.node.last_token.index + 1
+        while (self.atok.tokens[next_idx].type == token.NEWLINE or
+               self.atok.tokens[next_idx].type == token.INDENT):
+            next_idx += 1
+
+        if self.atok.tokens[next_idx].type == token.STRING:
+            doc = ast.literal_eval(self.atok.tokens[next_idx].string)
+            inst_doc = Instruction.from_method(
+                obj=inst,
+                method="set_doc",
+                kwargs={'doc': doc}
+            )
+            return CompoundInstruction([
+                inst,
+                inst_doc,
+                Instruction(self.load_pickledata)
+            ])
+        else:
+            return CompoundInstruction([
+                inst,
+                Instruction(self.load_pickledata)
+            ])
 
 
 class FunctionDefParser(BaseNodeParser):

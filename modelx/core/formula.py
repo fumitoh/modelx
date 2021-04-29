@@ -404,7 +404,8 @@ def extract_lambda_from_func(func: FunctionType):
 
 class Formula:
 
-    __slots__ = ("func", "signature", "source", "module", "srcnames")
+    __slots__ = (
+        "func", "signature", "source", "module", "srcnames", "_is_lambda")
 
     def __init__(self, func, name=None, module=None):
 
@@ -459,6 +460,8 @@ class Formula:
 
     def _init_from_funcdef(self, src: str, name: str):
 
+        self._is_lambda = False
+
         module_node = ast.parse(dedent(src))
         funcname = name or module_node.body[0].name
         src = remove_decorator(dedent(src))
@@ -474,6 +477,8 @@ class Formula:
         self.source = src
 
     def _init_from_lambda(self, src: str, name: str):
+
+        self._is_lambda = True
 
         namespace = {}
         # Assign the lambda to a temporary name to extract its object.

@@ -1,5 +1,6 @@
 import itertools
 import zipfile
+import textwrap
 import pytest
 from modelx import (
     write_model,
@@ -26,10 +27,27 @@ def testmodel():
     """
     m, s = mx.new_model("TestModel"), mx.new_space(name='TestSpace')
 
+    # m.doc = textwrap.dedent("""\
+    # This is a model docstring
+    #
+    # 3rd line
+    # 4th line
+    # """)
+
+    s.doc = textwrap.dedent("""\
+    This is a space docstring
+    
+    3rd line
+    4th line
+    """)
+
     @mx.defcells
     def foo(x):
         # Comment
         return x # Comment
+
+    bar = s.new_cells(name='bar', formula=lambda x: x)
+    bar.doc = "doc of lambda"
 
     s.formula = lambda a: None
 

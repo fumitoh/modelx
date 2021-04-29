@@ -506,7 +506,7 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl, Impl):
 
     @property
     def doc(self):
-        if self._doc is None:
+        if not self.formula._is_lambda:
             return self.formula.func.__doc__
         else:
             return self._doc
@@ -704,9 +704,16 @@ class UserCellsImpl(CellsImpl):
     def set_doc(self, doc, insert_indents=False):
 
         oldsrc = self.formula.source
-        funcdef = replace_docstring(oldsrc, doc, insert_indents=insert_indents)
-        self.set_formula(funcdef)
 
+        if not self.formula._is_lambda:
+            funcdef = replace_docstring(
+                oldsrc, doc, insert_indents=insert_indents
+            )
+        else:
+            self._doc = doc
+            funcdef = oldsrc
+
+        self.set_formula(funcdef)
 
 
 class DynamicCellsImpl(CellsImpl):
