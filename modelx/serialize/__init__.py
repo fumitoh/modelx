@@ -3,6 +3,7 @@ import importlib
 import shutil
 import json
 import zipfile
+import modelx
 from . import ziputil
 
 
@@ -73,7 +74,7 @@ def _increment_backups(
             _rename_path(backup_path, next_backup, model)
 
 
-def _get_model_serializer(model_path):
+def _get_model_metadata(model_path):
 
     try:
         params = ziputil.read_file(
@@ -82,11 +83,11 @@ def _get_model_serializer(model_path):
             "t"
         )
     except FileNotFoundError:
-        return _get_serializer(1)
+        return None
     except KeyError:
-        return _get_serializer(1)
+        return None
 
-    return _get_serializer(params["serializer_version"])
+    return params
 
 
 def write_model(system, model, model_path,
@@ -102,7 +103,9 @@ def write_model(system, model, model_path,
     _increment_backups(model, root, max_backups)
 
     ziputil.make_root(root, is_zip, compression, compresslevel)
-    ziputil.write_str(json.dumps({"serializer_version": version}),
+    ziputil.write_str(json.dumps(
+        {"modelx_version": modelx.VERSION[:3],
+         "serializer_version": version}),
                       root / "_system.json",
                       compression=compression,
                       compresslevel=compresslevel)
@@ -117,7 +120,16 @@ def write_model(system, model, model_path,
 
 
 def read_model(system, model_path, name=None):
+
     kwargs = {"name": name} if name else {}
     path = pathlib.Path(model_path)
-    return _get_model_serializer(path).ModelReader(
-        system, path).read_model(**kwargs)
+    params = _get_model_metadata(path)
+
+    if params:
+        serializer = _get_serializer(params["serializer_version"])
+        if "modelx_version" in params:
+            kwargs["modelx_version"] = tuple(params["modelx_version"])
+    else:
+        serializer = _get_serializer(1)
+
+    return serializer.ModelReader(system, path).read_model(**kwargs)
