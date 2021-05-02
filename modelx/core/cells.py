@@ -378,7 +378,58 @@ class Cells(Interface, Mapping, Callable, ElementFactory):
         self._impl.set_doc(doc, insert_indents=False)
 
     def set_doc(self, doc, insert_indents=False):
-        """Set doc property"""
+        """Set the :attr:`~doc` property
+
+        By default, :meth:`set_doc` works the same
+        as :attr:`Cells.doc` property setter.
+
+        If ``doc`` is a multi-line string
+        and :obj:`True` is passed to the ``insert_indents`` parameter,
+        the second and subsequent lines of ``doc`` are auto-indented.
+
+        Example:
+            This example shows how the docstring of a Cells can
+            be set with or without indentation from an unindented string::
+
+                >>> @mx.defcells
+                ... def foo(x):
+                ...     return x
+
+                >>> doc = \"\"\"This is foo
+                ...
+                ... multiple line docstring
+                ... \"\"\"
+
+                >>> foo.set_doc(doc)    # Or foo.doc = doc
+
+                >>> foo.formula
+                def foo(x):
+                    \"\"\"This is foo
+
+                multiple line docstring
+                \"\"\"
+                    return x
+
+                >>> foo.set_doc(doc, insert_indents=True)
+
+                >>> foo.formula
+                def foo(x):
+                    \"\"\"This is foo
+
+                    multiple line docstring
+                    \"\"\"
+                    return x
+
+        Args:
+            doc (:obj:`str`): a documentation string
+            insert_indents (:obj:`bool`, optional): Whether to auto-indent
+                subsequent lines in ``doc``. Defaults to :obj:`False`
+
+        See Also:
+            :attr:`~doc`
+
+        .. versionadded:: 0.14.0
+        """
         self._impl.set_doc(doc, insert_indents=insert_indents)
 
 

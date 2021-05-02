@@ -10,6 +10,10 @@ Updates
     Visit <a href="https://modelx.io/allposts" target="_blank">modelx blog</a>
     for more updates.</small></p>
 
+* *2 May 2021:*
+  modelx v0.14.0 is released. See
+  :doc:`releases/relnotes_v0_14_0` release notes for details.
+
 * *24 April 2021:*
   spyder-modelx v0.7.0 is released. See
   :doc:`releases/spymx_relnotes_v0.7.0` release notes for details.

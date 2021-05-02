@@ -462,11 +462,45 @@ class Interface:
 
     @property
     def doc(self):
-        """Description string
+        """Documentation string
 
-        When models or spaces are imported from modules,
-        taken from modules docstring.
-        For cells, set to its formula's docstring.
+        :attr:`doc` is a property of :class:`~modelx.core.model.Model`,
+        Space and :class:`~modelx.core.cells.Cells`
+        for setting and getting a string to document the object.
+
+        When a Model is written to files by
+        :func:`~modelx.write_model` or
+        its variants, the docsting of the Model and
+        :class:`~modelx.core.space.UserSpace`
+        objects in the Model are written at the top of the *__init__.py*
+        files as if they are the docstrings of Python modules.
+
+        The :attr:`doc` property of a Cells is linked to the docstring
+        of its Formula if the Formula is not defined by a lambda function.
+        When the :attr:`doc`
+        property of a Cells is updated, then the docstring of the Cells'
+        Formula is also updated, and vice versa::
+
+            >>> foo.formula
+            def foo(x):
+                \"\"\"The docstring of foo\"\"\"
+                return x
+
+            >>> foo.doc
+            'The docstring of foo'
+
+            >>> foo.doc = "The doc propery of foo"
+
+            >>> foo.formula
+            def foo(x):
+                \"\"\"The doc propery of foo\"\"\"
+                return x
+
+
+        See Also:
+            :meth:`Cells.set_doc<modelx.core.cells.Cells.set_doc>`
+
+        .. versionchanged:: 0.14.0
         """
         return self._impl.doc
 

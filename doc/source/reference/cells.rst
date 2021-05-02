@@ -16,6 +16,7 @@ Basic properties
   ~Cells.name
   ~Cells.fullname
   ~Cells.doc
+  ~Cells.set_doc
   ~Cells.allow_none
   ~Cells.model
   ~Cells.parent
