@@ -941,11 +941,12 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         cargs = {"range_": range_,
                  "sheet": sheet,
                  "keyids": keyids}
+        dargs = {"load_from": loadpath}
 
         result = self.system.iomanager.new_client(path, ExcelRange,
                                          model=self.model.interface,
                                          client_args=cargs,
-                                         load_from=loadpath)
+                                         data_args=dargs)
 
         try:
             self.set_attr(name, result)
@@ -987,7 +988,8 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             path,
             ModuleData,
             model=self.model.interface,
-            client_args={"module": module}
+            client_args={"module": module},
+            data_args={"module": module}
         )
 
         try:

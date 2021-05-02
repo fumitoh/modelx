@@ -136,7 +136,12 @@ class IOManager:
             del self.data[key]
 
     def new_client(
-            self, path, cls, model, client_args, **data_args):
+            self, path, cls, model, client_args=None, data_args=None):
+
+        if client_args is None:
+            client_args = {}
+        if data_args is None:
+            data_args = {}
 
         client = cls(path, **client_args)
         client._manager = self
