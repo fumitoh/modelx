@@ -22,34 +22,33 @@ from importlib.machinery import SourceFileLoader
 from importlib.util import spec_from_loader, module_from_spec
 
 from .baseio import BaseDataClient, BaseSharedData
-from modelx.serialize.ziputil import write_str_utf8, read_str
+from modelx.serialize.ziputil import write_str_utf8
 
 
 class ModuleIO(BaseSharedData):
 
     def __init__(self, path, load_from, module=None):
-        """
-
-        Args:
-            load_from: Path-like object
-        """
         if isinstance(module, ModuleType):
             load_from = pathlib.Path(module.__file__)
+            self.source = inspect.getsource(module)
         elif isinstance(module, (str, os.PathLike)):
             load_from = pathlib.Path(module).resolve()
+            self.source = None  # Set on _load_module
+        else:
+            self.source = None  # Set on _load_module
 
         super().__init__(path, load_from=load_from)
         self.is_updated = True  # Not Used
 
     def _on_save(self, path):
-        src = read_str(self.load_from)
-        write_str_utf8(src, path=path)
+        write_str_utf8(self.source, path=path)
 
     def _load_module(self):
         loader = SourceFileLoader("<unnamed module>", path=str(self.load_from))
         spec = spec_from_loader(loader.name, loader)
         mod = importlib.util.module_from_spec(spec)
         loader.exec_module(mod)
+        self.source = inspect.getsource(mod)
         return mod
 
 
@@ -83,7 +82,6 @@ class ModuleData(BaseDataClient):
             self._value = None
 
     def _on_load_value(self):
-
         if self._value is None:
             self._value = self._data._load_module()
 
