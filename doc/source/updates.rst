@@ -10,6 +10,10 @@ Updates
     Visit <a href="https://modelx.io/allposts" target="_blank">modelx blog</a>
     for more updates.</small></p>
 
+* *4 May 2021:*
+  `GitHub Discussions <https://github.com/fumitoh/modelx/discussions>`_,
+  a communication forum is set up for modelx users.
+
 * *2 May 2021:*
   modelx v0.14.0 is released. See
   :doc:`releases/relnotes_v0_14_0` release notes for details.

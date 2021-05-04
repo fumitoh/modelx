@@ -26,12 +26,14 @@ of spreadsheet, but there's so much more to it!
 
 .. rubric:: modelx sites
 
-========================== ====================================
+========================== ===============================================
 Home page                  https://modelx.io
+Blog                       https://modelx.io/allposts
 Documentation site         https://docs.modelx.io
-Development site           https://github.com/fumitoh/modelx
+Development                https://github.com/fumitoh/modelx
+Discussion Forum           https://github.com/fumitoh/modelx/discussions
 modelx on PyPI             https://pypi.org/project/modelx/
-========================== ====================================
+========================== ===============================================
 
 Feature highlights
 ------------------
