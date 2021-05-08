@@ -1,5 +1,19 @@
 .. currentmodule:: modelx
 
+
+.. _release-mxplugin-v0.7.1:
+
+====================================
+spyder-modelx v0.7.1 (8 May 2021)
+====================================
+
+This version supports Spyder 5.0.0.
+
+This pulgins should work with Spyder versions from 3.2.4 through the newest,
+but tests are conducted with a limited number of Spyder versions.
+The tested versions of Spyder are posted on
+`the Discussion site <https://github.com/fumitoh/modelx/discussions/48>`_.
+
 .. _release-mxplugin-v0.7.0:
 
 ====================================

@@ -6,9 +6,13 @@ Updates
 
 .. raw:: html
 
-    <p><small><strong>Note:</strong>
-    Visit <a href="https://modelx.io/allposts" target="_blank">modelx blog</a>
-    for more updates.</small></p>
+    <p><strong>Note:</strong>
+    Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
+    for more frequent updates.</p>
+
+* *8 May 2021:*
+  spyder-modelx v0.7.1 is released.
+  See :ref:`release-mxplugin-v0.7.1` release notes for details.
 
 * *4 May 2021:*
   `GitHub Discussions <https://github.com/fumitoh/modelx/discussions>`_,
@@ -20,7 +24,7 @@ Updates
 
 * *24 April 2021:*
   spyder-modelx v0.7.0 is released. See
-  :doc:`releases/spymx_relnotes_v0.7.0` release notes for details.
+  :ref:`release-mxplugin-v0.7.0` release notes for details.
   The :doc:`spyder` page is updated.
 
 * *29 March 2021:*
