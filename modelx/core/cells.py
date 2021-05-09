@@ -19,9 +19,12 @@ from itertools import combinations
 from modelx.core.base import (
     add_stateattrs, Impl, Derivable, Interface)
 from modelx.core.node import (
-    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node)
+    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node,
+    ObjectElement
+)
 from modelx.core.formula import (
-    Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring
+    Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring,
+    HasFormula
 )
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
@@ -440,7 +443,8 @@ class CellsNamespaceReferrer(BaseNamespaceReferrer):
 
 
 @add_stateattrs
-class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl, Impl):
+class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl,
+                HasFormula, Impl):
     """Cells implementation"""
 
     interface_cls = Cells
@@ -666,6 +670,8 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl, Impl):
     def clear_value_at(self, key):
         if self.has_node(key):
             self.model.clear_with_descs(key_to_node(self, key))
+
+
 
     # ----------------------------------------------------------------------
     # Pandas I/O

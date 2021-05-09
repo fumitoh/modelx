@@ -108,7 +108,7 @@ def get_node_repr(node):
         return name + "(" + arglist + ")"
 
 
-class Element:
+class BaseElement:
     """A combination of a modelx object, its args and its value."""
 
     __slots__ = ("_impl",)
@@ -133,7 +133,6 @@ class Element:
         """Return a tuple of the cells' arguments."""
         return self._impl[KEY]
 
-    @property
     def has_value(self):
         """Return ``True`` if the cell has a value."""
         return self._impl[OBJ].has_node(self._impl[KEY])
@@ -141,7 +140,7 @@ class Element:
     @property
     def value(self):
         """Return the value of the cells."""
-        if self.has_value:
+        if self.has_value():
             return self._impl[OBJ].get_value_from_key(self._impl[KEY])
         else:
             raise ValueError("Value not found")
@@ -164,7 +163,7 @@ class Element:
             "type": type(self).__name__,
             "obj": self.obj._baseattrs,
             "args": self.args,
-            "value": self.value if self.has_value else None,
+            "value": self.value if self.has_value() else None,
             "predslen": len(self.preds),
             "succslen": len(self.succs),
             "repr_parent": self.obj._impl.repr_parent(),
@@ -179,13 +178,27 @@ class Element:
             "type": type(self).__name__,
             "obj": self.obj._get_attrdict(extattrs, recursive),
             "args": self.args,
-            "value": self.value if self.has_value else None,
+            "value": self.value if self.has_value() else None,
             "predslen": len(self.preds),
             "succslen": len(self.succs),
+            "precedentslen": len(self.precedents),
             "repr_parent": self.obj._impl.repr_parent(),
             "repr": self.obj._get_repr(),
         }
         return result
+
+    def __repr__(self):
+        raise NotImplementedError
+
+
+class Element(BaseElement):
+    """Elements of Cells and Spaces"""
+    __slots__ = ()
+
+    @property
+    def precedents(self):
+        return (self.preds + self._impl[OBJ].get_valuerefs()
+                + self._impl[OBJ].get_attrpreds(self.args, {}))
 
     def __repr__(self):
 
@@ -197,10 +210,77 @@ class Element:
             zip(params, self.args)
         )
 
-        if self.has_value:
+        if self.has_value():
             return name + "(" + arglist + ")" + "=" + repr(self.value)
         else:
             return name + "(" + arglist + ")"
+
+
+class ObjectElement(BaseElement):
+    __slots__ = ()
+
+    def __eq__(self, other):
+        return self._impl[OBJ] is other._impl[OBJ]
+
+    def __hash__(self):
+        return hash(self._impl[OBJ])
+
+    @property
+    def obj(self):
+        """Return the ReferenceProxy object"""
+        return self._impl[OBJ].interface
+
+    @property
+    def args(self):
+        """Return a tuple of the cells' arguments."""
+        return None
+
+    def has_value(self):
+        return False
+
+    @property
+    def value(self):
+        return None
+
+    @property
+    def preds(self):
+        """A list of nodes that this node refers to."""
+        return []
+
+    @property
+    def succs(self):
+        """A list of nodes that refer to this  node."""
+        return []
+
+    @property
+    def precedents(self):
+        return []
+
+    # @property
+    # def dependents(self):
+    #     pass
+
+    def __repr__(self):
+
+        name = self.obj._get_repr(fullname=True, add_params=False)
+
+        if not hasattr(self.obj, "formula"):    # for Reference
+            params = None
+        elif self.obj.formula is None:      # for Space
+            params = None
+        else:
+            params = ", ".join(self.obj.parameters)
+
+        if self.has_value():
+            if params is None:
+                return name + "=" + repr(self.value)
+            else:
+                return name + "(" + params + ")" + "=" + repr(self.value)
+        else:
+            if params is None:
+                return name
+            else:
+                return name + "(" + params + ")"
 
 
 class ElementFactory:
@@ -229,6 +309,11 @@ class ElementFactory:
         """
         return self._impl.successors(args, kwargs)
 
+    def precedents(self, *args, **kwargs):
+        return (self.preds(*args, **kwargs)
+            + self._impl.get_valuerefs()
+                + self._impl.get_attrpreds(args, kwargs))
+
 
 class ElementFactoryImpl:
 
@@ -247,8 +332,19 @@ class ElementFactoryImpl:
         succs = self.model.tracegraph.successors(node)
         return [Element(n) for n in succs]
 
+    def get_attrpreds(self, args, kwargs):
+        node = get_node(self, args, kwargs)
+        if node in self.model.refgraph:
+            preds = self.model.refgraph.predecessors(node)
+            return [ref.to_element() for ref in preds]
+        else:
+            return []
+
     def get_value_from_key(self, key):
         raise NotImplementedError
 
     def has_node(self, key):
         raise NotImplementedError
+
+    def to_element(self):
+        return ObjectElement(get_node(self, None, None))

@@ -294,6 +294,9 @@ class Impl(BaseImpl):
     def on_delete(self):
         set_null_impl(self)
 
+    def to_element(self):
+        raise NotImplementedError
+
     # ----------------------------------------------------------------------
     # repr methods
 
@@ -402,6 +405,10 @@ class Interface:
                 return self
             else:
                 return _impl.interface
+        elif isinstance(_impl, NullImpl):
+            self = object.__new__(cls)
+            object.__setattr__(self, "_impl", _impl)
+            return self
         else:
             raise ValueError("Invalid direct constructor call.")
 
@@ -679,6 +686,8 @@ class Interface:
     def _is_valid(self):
         return not isinstance(self._impl, NullImpl)
 
+
+null_interface = Interface(null_impl)
 
 
 class LazyEval:
@@ -960,13 +969,15 @@ bases = InterfaceMixin, OrderMixin, LazyEvalChainMap
 @add_statemethod
 class ImplChainMap(*bases):
 
-    __stateattrs = ("owner",)
+    __stateattrs = ("owner", "map_ids")
     __slots__ = __stateattrs + get_mixinslots(*bases)
 
     def __init__(
-        self, owner, ifclass, maps=None, observers=None, observe_maps=True
+        self, owner, ifclass, maps=None, observers=None, observe_maps=True,
+            map_ids=None
     ):
         self.owner = owner
+        self.map_ids = map_ids
         InterfaceMixin.__init__(self, ifclass)
         OrderMixin.__init__(self)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
@@ -988,6 +999,7 @@ class RefChainMap(ImplChainMap):
         )
         for m in maps:
             if hasattr(m, "scopes") and owner not in m.scopes:
+                raise RuntimeError("must not be used")
                 m.scopes.append(owner)
 
 

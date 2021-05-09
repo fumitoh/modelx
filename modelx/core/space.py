@@ -21,6 +21,7 @@ from collections import ChainMap
 from collections.abc import Sequence
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
+from modelx.core.node import ObjectElement, get_node
 
 from modelx.core.base import (
     add_stateattrs,
@@ -38,7 +39,7 @@ from modelx.core.base import (
     BaseView,
     SelectedView
 )
-from modelx.core.formula import BoundFunction
+from modelx.core.formula import BoundFunction, HasFormula
 from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.node import (
     node_get_args,
@@ -488,6 +489,23 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
 
     def __call__(self, *args, **kwargs):
         return self._impl.get_itemspace(args, kwargs).interface
+
+    # ----------------------------------------------------------------------
+    # Name referrer
+
+    def get_referents(self):
+
+        if self._impl.formula is None:
+            return None
+        else:
+            refs = self._impl.altfunc.get_referents()
+            result = refs.copy()
+
+            for key, data in refs.items():
+                if key != "builtins" and key != "missing":
+                    result[key] = {name: obj.to_element() for
+                                   name, obj in refs[key].items()}
+            return result
 
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
@@ -1000,7 +1018,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         self._impl.doc = value
 
 
-class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer):
+class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer, HasFormula):
 
     __cls_stateattrs = [
         "_named_itemspaces",
@@ -1223,7 +1241,9 @@ class BaseSpaceImpl(
         NamespaceServer.__init__(
             self,
             ImplChainMap(
-                self, None, [self._cells, self._refs, self._named_spaces])
+                self, None, [self._cells, self._refs, self._named_spaces],
+                map_ids=("cells", "refs", "spaces")
+            )
         )
         BaseNamespaceReferrer.__init__(self, server=self)
 

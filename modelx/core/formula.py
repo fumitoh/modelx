@@ -21,7 +21,8 @@ from textwrap import dedent, indent
 import tokenize
 import io
 import dis
-from modelx.core.base import LazyEval, get_mixinslots, add_statemethod
+from modelx.core.base import (
+    LazyEval, get_mixinslots, add_statemethod, null_impl, Interface)
 
 import asttokens
 
@@ -620,6 +621,34 @@ class BoundFunction(LazyEval):
             codeobj, self.owner.namespace.interfaces, name=name, closure=closure
         )
 
+    def get_referents(self):
+        ns = self.owner.namespace
+        names = (self._init_names()
+                 if self.global_names is None else self.global_names)
+
+        result = {}
+        for mid in ns.map_ids:
+            result[mid] = {}
+
+        result["missing"] = {}
+        result["builtins"] = {}
+
+        for n in names:
+            idx = ns.get_map_index_from_key(n)
+            if idx is None:
+                if '__builtins__' in ns:
+                    builtins = ns['__builtins__'].interface.__dict__
+                    if n in builtins:
+                        result["builtins"][n] = builtins[n]
+                    else:
+                        result["missing"][n] = None
+                else:
+                    result["missing"][n] = None
+            else:
+                result[ns.map_ids[idx]][n] = ns[n]
+
+        return result
+
     def on_add_item(self, namespace, name, value):
         self.global_names = self._init_names()
 
@@ -691,3 +720,31 @@ class BoundFormula:     # Not Used
 
     def __setstate__(self, state):
         self.__init__(state["owner"])
+
+
+class HasFormula:
+
+    __slots__ = ()
+
+    def get_referents(self):
+
+        if self.formula is None:
+            return None
+        else:
+            refs = self.altfunc.get_referents()
+            result = refs.copy()
+
+            for key, data in refs.items():
+                if key != "builtins" and key != "missing":
+                    result[key] = {name: obj.to_element() for
+                                   name, obj in refs[key].items()}
+            return result
+
+    def get_valuerefs(self):
+        refs = self.get_referents()
+        if refs and "refs" in refs:
+            return [v for v in refs["refs"].values()
+                    if v.has_value()
+                    and not isinstance(v.value, Interface)]
+        else:
+            return []

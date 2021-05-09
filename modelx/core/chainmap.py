@@ -132,3 +132,6 @@ class CustomChainMap(_collections_abc.MutableMapping):
 
     def get_map_from_key(self, key):
         return next((m for m in self.maps if key in m), None)
+
+    def get_map_index_from_key(self, key):
+        return next((i for i, m in enumerate(self.maps) if key in m), None)
