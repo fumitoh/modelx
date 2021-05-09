@@ -211,7 +211,10 @@ class Element(BaseElement):
         )
 
         if self.has_value():
-            return name + "(" + arglist + ")" + "=" + repr(self.value)
+            valrepr = repr(self.value)
+            if "\n" in valrepr:
+                valrepr = "\n" + valrepr
+            return name + "(" + arglist + ")" + "=" + valrepr
         else:
             return name + "(" + arglist + ")"
 
@@ -272,10 +275,13 @@ class ObjectElement(BaseElement):
             params = ", ".join(self.obj.parameters)
 
         if self.has_value():
+            valrepr = repr(self.value)
+            if "\n" in valrepr:
+                valrepr = "\n" + valrepr
             if params is None:
-                return name + "=" + repr(self.value)
+                return name + "=" + valrepr
             else:
-                return name + "(" + params + ")" + "=" + repr(self.value)
+                return name + "(" + params + ")" + "=" + valrepr
         else:
             if params is None:
                 return name
