@@ -16,15 +16,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [{py:"3.6", nx:"2.0"}, {py:"3.7", nx:"2.1"}, {py:"3.8", nx:"2.3"}, {py:"3.9", nx:"2.5"}]
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+    env:
+      NETWORKX_VERSION: ${{ matrix.python-version.nx }}
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python-version.py }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.python-version.py }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
