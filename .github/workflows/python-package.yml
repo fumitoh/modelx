@@ -18,8 +18,6 @@ jobs:
       matrix:
         python-version: [{py:"3.6", nx:"2.0"}, {py:"3.7", nx:"2.1"}, {py:"3.8", nx:"2.3"}, {py:"3.9", nx:"2.5"}]
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-    env:
-      NETWORKX_VERSION: ${{ matrix.python-version.nx }}
 
     steps:
     - uses: actions/checkout@v2
@@ -28,6 +26,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version.py }}
     - name: Install dependencies
+      env:
+        NETWORKX_VERSION: ${{ matrix.python-version.nx }}
       run: |
         python -m pip install --upgrade pip
         # python -m pip install flake8 pytest
