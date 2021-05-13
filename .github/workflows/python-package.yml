@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [{py:"3.6", nx:"2.0"}, {py:"3.7", nx:"2.1"}, {py:"3.8", nx:"2.3"}, {py:"3.9", nx:"2.5"}]
+        python-version: [{py: "3.6", nx: "2.0"}, {py: "3.7", nx: "2.1"}, {py: "3.8", nx: "2.3"}, {py: "3.9", nx: "2.5"}]
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
 
     steps:
