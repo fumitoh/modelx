@@ -69,6 +69,7 @@ ItemSpace operations
   ~DynamicSpace.node
   ~DynamicSpace.preds
   ~DynamicSpace.succs
+  ~DynamicSpace.precedents
 
 
 Exporting to Pandas objects

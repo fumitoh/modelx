@@ -21,7 +21,7 @@ from collections import ChainMap
 from collections.abc import Sequence
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
-from modelx.core.node import ObjectElement, get_node
+from modelx.core.node import ObjectNode, get_node
 
 from modelx.core.base import (
     add_stateattrs,
@@ -48,8 +48,8 @@ from modelx.core.node import (
     key_to_node,
     OBJ,
     KEY,
-    ElementFactory,
-    ElementFactoryImpl
+    ItemFactory,
+    ItemFactoryImpl
 )
 from modelx.core.spacecontainer import (
     BaseSpaceContainer,
@@ -300,7 +300,7 @@ class RefView(SelectedView):
 
         return result
 
-class BaseSpace(BaseSpaceContainer, ElementFactory):
+class BaseSpace(BaseSpaceContainer, ItemFactory):
 
     __slots__ = ()
 
@@ -503,7 +503,7 @@ class BaseSpace(BaseSpaceContainer, ElementFactory):
 
             for key, data in refs.items():
                 if key != "builtins" and key != "missing":
-                    result[key] = {name: obj.to_element() for
+                    result[key] = {name: obj.to_node() for
                                    name, obj in refs[key].items()}
             return result
 
@@ -1018,7 +1018,7 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         self._impl.doc = value
 
 
-class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer, HasFormula):
+class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
 
     __cls_stateattrs = [
         "_named_itemspaces",
@@ -1174,7 +1174,7 @@ class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer, HasFormula):
         return space
 
     # ----------------------------------------------------------------------
-    # ElementFactoryImpl override
+    # ItemFactoryImpl override
 
     def has_node(self, key):
         return key in self.param_spaces
@@ -1187,7 +1187,7 @@ class ItemSpaceParent(ElementFactoryImpl, BaseNamespaceReferrer, HasFormula):
 class BaseSpaceImpl(
     NamespaceServer,
     ItemSpaceParent,
-    ElementFactoryImpl,
+    ItemFactoryImpl,
     BaseSpaceContainerImpl,
     Impl
 ):

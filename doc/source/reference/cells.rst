@@ -63,7 +63,7 @@ Formula operations
 
 
 
-Element operations
+Node operations
 ------------------
 
 .. autosummary::
@@ -73,6 +73,7 @@ Element operations
   ~Cells.node
   ~Cells.preds
   ~Cells.succs
+  ~Cells.precedents
 
 
 Exporting to Pandas objects

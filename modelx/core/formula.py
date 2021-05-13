@@ -736,7 +736,7 @@ class HasFormula:
 
             for key, data in refs.items():
                 if key != "builtins" and key != "missing":
-                    result[key] = {name: obj.to_element() for
+                    result[key] = {name: obj.to_node() for
                                    name, obj in refs[key].items()}
             return result
 

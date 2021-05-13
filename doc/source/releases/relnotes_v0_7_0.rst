@@ -51,7 +51,7 @@ Backward Incompatible Changes
 =============================
 
 * :func:`~get_object` now returns :obj:`NameError` when the name is not found.
-* :class:`~core.node.ItemProxy` renamed to :class:`~core.node.Element`.
+* :class:`~core.node.ItemProxy` renamed to :class:`~core.node.ItemNode`.
 * Only tuples are interpreted as multiple indexes in subscription expression.
 
 

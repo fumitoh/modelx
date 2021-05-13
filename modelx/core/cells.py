@@ -20,7 +20,7 @@ from modelx.core.base import (
     add_stateattrs, Impl, Derivable, Interface)
 from modelx.core.node import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node,
-    ObjectElement
+    ObjectNode
 )
 from modelx.core.formula import (
     Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring,
@@ -28,7 +28,7 @@ from modelx.core.formula import (
 )
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
-from modelx.core.node import ElementFactory, ElementFactoryImpl
+from modelx.core.node import ItemFactory, ItemFactoryImpl
 from modelx.core.namespace import BaseNamespaceReferrer
 
 
@@ -44,7 +44,7 @@ class CellsMaker:
 ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
 
 
-class Cells(Interface, Mapping, Callable, ElementFactory):
+class Cells(Interface, Mapping, Callable, ItemFactory):
     """Data container with a formula to calculate its own values.
 
     Cells are created by :meth:`~modelx.core.space.UserSpace.new_cells`
@@ -443,7 +443,7 @@ class CellsNamespaceReferrer(BaseNamespaceReferrer):
 
 
 @add_stateattrs
-class CellsImpl(CellsNamespaceReferrer, Derivable, ElementFactoryImpl,
+class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
                 HasFormula, Impl):
     """Cells implementation"""
 

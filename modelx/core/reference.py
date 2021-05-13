@@ -21,7 +21,7 @@ import functools
 from modelx.core.base import (
     add_stateattrs, Derivable, Impl, Interface)
 from modelx.io.baseio import BaseDataClient
-from modelx.core.node import ObjectElement, get_node, OBJ
+from modelx.core.node import ObjectNode, get_node, OBJ
 
 
 # For backward compatibility with -v0.0.23
@@ -156,8 +156,8 @@ class ReferenceImpl(Derivable, Impl):
 
         self.__dict__.update(state)
 
-    def to_element(self):
-        return ReferenceElement(get_node(self, None, None))
+    def to_node(self):
+        return ReferenceNode(get_node(self, None, None))
 
     def repr_parent(self):
         if self.parent.repr_parent():
@@ -280,7 +280,7 @@ class ReferenceProxy:
         return Interface._evalrepr.fget(self)
 
 
-class ReferenceElement(ObjectElement):
+class ReferenceNode(ObjectNode):
 
     @property
     def obj(self):

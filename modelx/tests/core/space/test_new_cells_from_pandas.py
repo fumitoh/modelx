@@ -13,7 +13,7 @@ def make_sample1(name, param_names):
     return pd.Series(np.random.rand(3), index=index, name=name)
 
 
-# Element of param_sampleN list:
+# ItemNode of param_sampleN list:
 #   sample make function,
 #   name arg to pd.Series,
 #   name or names args to pd.Index or pd.MultiIndex

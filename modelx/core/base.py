@@ -294,7 +294,7 @@ class Impl(BaseImpl):
     def on_delete(self):
         set_null_impl(self)
 
-    def to_element(self):
+    def to_node(self):
         raise NotImplementedError
 
     # ----------------------------------------------------------------------

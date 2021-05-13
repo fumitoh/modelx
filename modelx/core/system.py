@@ -27,7 +27,7 @@ from modelx.core.base import NullImpl, null_impl
 from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError, FormulaError
-from modelx.core.node import OBJ, KEY, Element
+from modelx.core.node import OBJ, KEY, ItemNode
 from modelx.io.baseio import IOManager, BaseSharedData
 
 
@@ -285,7 +285,7 @@ class ErrorStack(deque):
             )
 
     def get_traceback(self):
-        return [(Element(frame[0]), frame[1]) for frame in self]
+        return [(ItemNode(frame[0]), frame[1]) for frame in self]
 
     def tracemessage(self, maxlen=6):
         """

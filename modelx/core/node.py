@@ -108,7 +108,7 @@ def get_node_repr(node):
         return name + "(" + arglist + ")"
 
 
-class BaseElement:
+class BaseNode:
     """A combination of a modelx object, its args and its value."""
 
     __slots__ = ("_impl",)
@@ -191,8 +191,8 @@ class BaseElement:
         raise NotImplementedError
 
 
-class Element(BaseElement):
-    """Elements of Cells and Spaces"""
+class ItemNode(BaseNode):
+    """ItemNodes of Cells and Spaces"""
     __slots__ = ()
 
     @property
@@ -219,7 +219,7 @@ class Element(BaseElement):
             return name + "(" + arglist + ")"
 
 
-class ObjectElement(BaseElement):
+class ObjectNode(BaseNode):
     __slots__ = ()
 
     def __eq__(self, other):
@@ -289,18 +289,18 @@ class ObjectElement(BaseElement):
                 return name + "(" + params + ")"
 
 
-class ElementFactory:
+class ItemFactory:
 
     __slots__ = ()
 
     def node(self, *args, **kwargs):
-        """Return a :class:`Element` object for the given arguments."""
-        return Element(get_node(self._impl, args, kwargs))
+        """Return a :class:`ItemNode` object for the given arguments."""
+        return ItemNode(get_node(self._impl, args, kwargs))
 
     def preds(self, *args, **kwargs):
         """Return a list of predecessors of a cell.
 
-        This method returns a list of Element objects, whose elements are
+        This method returns a list of ItemNode objects, whose elements are
         predecessors of (i.e. referenced in the formula
         of) the cell specified by the given arguments.
         """
@@ -309,7 +309,7 @@ class ElementFactory:
     def succs(self, *args, **kwargs):
         """Return a list of successors of a cell.
 
-        This method returns a list of Element objects, whose elements are
+        This method returns a list of ItemNode objects, whose elements are
         successors of (i.e. referencing in their formulas)
         the cell specified by the given arguments.
         """
@@ -321,7 +321,7 @@ class ElementFactory:
                 + self._impl.get_attrpreds(args, kwargs))
 
 
-class ElementFactoryImpl:
+class ItemFactoryImpl:
 
     __slots__ = ()
 
@@ -331,18 +331,18 @@ class ElementFactoryImpl:
     def predecessors(self, args, kwargs):
         node = get_node(self, args, kwargs)
         preds = self.model.tracegraph.predecessors(node)
-        return [Element(n) for n in preds]
+        return [ItemNode(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = get_node(self, args, kwargs)
         succs = self.model.tracegraph.successors(node)
-        return [Element(n) for n in succs]
+        return [ItemNode(n) for n in succs]
 
     def get_attrpreds(self, args, kwargs):
         node = get_node(self, args, kwargs)
         if node in self.model.refgraph:
             preds = self.model.refgraph.predecessors(node)
-            return [ref.to_element() for ref in preds]
+            return [ref.to_node() for ref in preds]
         else:
             return []
 
@@ -352,5 +352,5 @@ class ElementFactoryImpl:
     def has_node(self, key):
         raise NotImplementedError
 
-    def to_element(self):
-        return ObjectElement(get_node(self, None, None))
+    def to_node(self):
+        return ObjectNode(get_node(self, None, None))

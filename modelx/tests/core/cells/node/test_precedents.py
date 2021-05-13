@@ -1,5 +1,5 @@
 import modelx as mx
-from modelx.core.reference import ReferenceElement
+from modelx.core.reference import ReferenceNode
 import pytest
 
 @pytest.fixture(scope='module')
@@ -37,9 +37,9 @@ def test_precedents(precedstest):
     y = mx.get_object("Preceds.Space1.Child.y", as_proxy=True)
 
     assert preceds[0] == foo.node(3)
-    assert preceds[1] == ReferenceElement((x._impl,))
-    assert preceds[2] == ReferenceElement((z._impl,))
-    assert preceds[3] == ReferenceElement((y._impl,))
+    assert preceds[1] == ReferenceNode((x._impl,))
+    assert preceds[2] == ReferenceNode((z._impl,))
+    assert preceds[3] == ReferenceNode((y._impl,))
 
     assert repr(preceds[0]) == "Preceds.Space1.foo(t=3)=3"
     assert repr(preceds[1]) == "Preceds.Space1.x=1"

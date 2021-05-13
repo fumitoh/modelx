@@ -12,7 +12,9 @@ Reference Guide
    space/index
    cells
    view
-   other_types
+   dataclient
+   element
+
 
 
 .. toctree::

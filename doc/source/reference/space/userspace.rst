@@ -110,6 +110,7 @@ ItemSpace operations
   ~UserSpace.node
   ~UserSpace.preds
   ~UserSpace.succs
+  ~UserSpace.precedents
 
 Exporting to Pandas objects
 ---------------------------
