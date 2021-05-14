@@ -116,6 +116,10 @@ def test_with_lifelib(testpaths, project):
 
     _PROJECTS[project](m, m2)
     _PROJECTS[project](m, m3)
+    
+    m.close()
+    m2.close()
+    m3.close()
 
 
 def test_back_compat_fastlife(tmp_path):
