@@ -46,11 +46,11 @@ class Executor:
         self.thread = Executor.ExecThread(self)
         self.thread.daemon = True
         if sys.platform == "darwin":
-            self.thread.start()
+            last_size = threading.stack_size(0x3FFFFFF)
         else:
             last_size = threading.stack_size(0xFFFFFFF)
-            self.thread.start()
-            threading.stack_size(last_size)            
+        self.thread.start()
+        threading.stack_size(last_size)            
         self.initnode = None
 
     def eval_node(self, node):
