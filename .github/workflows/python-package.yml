@@ -35,7 +35,7 @@ jobs:
     - name: Increase Stack for MacOS
       run: |
           ulimit -s 65532
-      if: ${{ matrix.os == "macos*" }}
+      if: ${{ matrix.os == "macos"* }}
        
 #    - name: Lint with flake8
 #      run: |
