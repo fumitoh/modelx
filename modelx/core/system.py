@@ -45,7 +45,7 @@ class Executor:
         self.callstack = CallStack(self, maxdepth)
         self.thread = Executor.ExecThread(self)
         self.thread.daemon = True
-        if sys.platform != "darwin":
+        if sys.platform == "darwin":
             self.thread.start()
         else:
             last_size = threading.stack_size(0xFFFFFFF)
