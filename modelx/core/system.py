@@ -46,7 +46,8 @@ class Executor:
         self.thread = Executor.ExecThread(self)
         self.thread.daemon = True
         if sys.platform == "darwin":
-            last_size = threading.stack_size(0xFFFF)
+            # Max 65532b on Max
+            last_size = threading.stack_size(0xFFFC)
         else:
             last_size = threading.stack_size(0xFFFFFFF)
         self.thread.start()
