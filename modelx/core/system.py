@@ -31,24 +31,16 @@ from modelx.core.node import OBJ, KEY, ItemNode
 from modelx.io.baseio import IOManager, BaseSharedData
 
 
-class Executor:
+class NonThreadedExecutor:
 
     def __init__(self, system, maxdepth=None):
-
-        # Use thread to increase stack size and deepen callstack
-        # Ref: https://bugs.python.org/issue32570
 
         self.system = system
         self.refstack = deque()
         self.errorstack = None
         self.rolledback = deque()
         self.callstack = CallStack(self, maxdepth)
-        self.thread = Executor.ExecThread(self)
-        self.thread.daemon = True
-        last_size = threading.stack_size(0xFFFFFFF)
-        self.thread.start()
-        threading.stack_size(last_size)
-        self.initnode = None
+        self.is_executing = False
 
     def eval_node(self, node):
 
@@ -60,12 +52,82 @@ class Executor:
             if self.callstack:
                 cells.model.tracegraph.add_edge(node, self.callstack[-1])
         else:
-            if self.thread.signal_start.is_set():
+            if self.is_executing:
                 value = self._eval_formula(node)
             else:
                 value = self._start_exec(node)
 
         return value
+
+    def _eval_formula(self, node):
+
+        self.callstack.append(node)
+        cells, key = node[OBJ], node[KEY]
+
+        try:
+            value = cells.on_eval_formula(key)
+
+        except:
+            self.callstack.rollback()
+            raise
+        else:
+            self.callstack.pop()
+
+        return value
+
+    def _start_exec(self, node):
+
+        self.excinfo = None
+        self.errorstack = None
+        self.is_executing = True
+
+        try:
+            self.buffer = self._eval_formula(node)
+        except:
+            self.excinfo = sys.exc_info()
+        finally:
+            self.is_executing = False
+
+        assert not self.callstack
+        assert not self.callstack.counter
+        assert not self.refstack
+
+        if self.excinfo:
+
+            self.errorstack = ErrorStack(
+                self.excinfo[1],
+                self.rolledback
+            )
+            if self.system.formula_error:
+                errmsg = traceback.format_exception_only(
+                    self.excinfo[0],
+                    self.excinfo[1]
+                )
+                errmsg = "".join(errmsg)
+                errmsg += self.errorstack.tracemessage()
+                raise FormulaError(
+                    "Error raised during formula execution\n" + errmsg)
+            else:
+                raise self.excinfo[1]
+
+        else:
+            return self.buffer
+
+
+class ThreadedExecutor(NonThreadedExecutor):
+
+    def __init__(self, system, maxdepth=None):
+
+        # Use thread to increase stack size and deepen callstack
+        # Ref: https://bugs.python.org/issue32570
+
+        NonThreadedExecutor.__init__(self, system, maxdepth)
+        self.thread = ThreadedExecutor.ExecThread(self)
+        self.thread.daemon = True
+        last_size = threading.stack_size(0xFFFFFFF)
+        self.thread.start()
+        threading.stack_size(last_size)
+        self.initnode = None
 
     class ExecThread(threading.Thread):
 
@@ -85,6 +147,7 @@ class Executor:
                 except:
                     self.executor.excinfo = sys.exc_info()
 
+                self.executor.is_executing = False
                 self.signal_start.clear()
                 self.signal_stop.set()
 
@@ -93,6 +156,7 @@ class Executor:
         self.excinfo = None
         self.errorstack = None
         try:
+            self.is_executing = True
             self.thread.signal_start.set()
             self.thread.signal_stop.wait()
             self.thread.signal_stop.clear()
@@ -123,22 +187,6 @@ class Executor:
 
         finally:
             self.initnode = None
-
-    def _eval_formula(self, node):
-
-        self.callstack.append(node)
-        cells, key = node[OBJ], node[KEY]
-
-        try:
-            value = cells.on_eval_formula(key)
-
-        except:
-            self.callstack.rollback()
-            raise
-        else:
-            self.callstack.pop()
-
-        return value
 
 
 class CallStack(deque):
@@ -397,7 +445,10 @@ class System:
 
         self.configure_python()
         self.formula_error = True
-        self.executor = Executor(self, maxdepth)
+        if sys.platform == "win32":
+            self.executor = ThreadedExecutor(self, maxdepth)
+        else:
+            self.executor = NonThreadedExecutor(self, maxdepth)
         self.callstack = self.executor.callstack
         self.refstack = self.executor.refstack
         self._modelnamer = AutoNamer("Model")
