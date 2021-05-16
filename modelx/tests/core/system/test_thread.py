@@ -8,7 +8,7 @@ if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
     #maxdepth = 57000
     maxdepth = 30000
 elif sys.platform == "darwin":
-    maxdepth = 5000
+    maxdepth = 4000
 else:
     maxdepth = 65000
 
@@ -28,7 +28,7 @@ def test_max_recursion():
 
 
 def test_maxout_recursion():
-
+    
     m, s = mx.new_model(), mx.new_space()
 
     @mx.defcells
@@ -38,6 +38,6 @@ def test_maxout_recursion():
         else:
             return foo(x-1) + 1
 
-    with SuppressFormulaError():
+    with SuppressFormulaError(maxdepth):
         with pytest.raises(DeepReferenceError):
             foo(maxdepth+1)
