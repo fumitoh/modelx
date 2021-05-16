@@ -7,7 +7,7 @@ import pytest
 if sys.platform == "win32" and sys.version_info[:2] == (3, 8):
     maxdepth = 57000
 elif sys.platform == "darwin":
-    maxdepth = 18000
+    maxdepth = 15000
 else:
     maxdepth = 65000
 
