@@ -65,7 +65,7 @@ def test_pandas_to_pickle(tmp_path, pdobj):
 
 @pytest.mark.parametrize("mode, encoding, newline, compression, compresslevel",
                          [["b", None, None, zipfile.ZIP_DEFLATED, None],
-                          ["t", None, None, zipfile.ZIP_DEFLATED, 9],
+                          ["t", "utf-8", None, zipfile.ZIP_DEFLATED, 9],   # Error on encoding==None
                           ["t", "utf-8", "\n", zipfile.ZIP_STORED, None]])
 def test_write_file(
         tmp_path, mode, encoding, newline, compression, compresslevel):
