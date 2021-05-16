@@ -13,6 +13,8 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+if sys.platform == "linux":
+    import resource
 import time
 import os.path
 import warnings
@@ -440,6 +442,10 @@ class System:
         "sys.recursionlimit": sys.getrecursionlimit(),
         "showwarning": warnings.showwarning
     }
+    if sys.platform == "linux":
+        orig_settings["resource.RLIMIT_STACK"] = resource.getrlimit(
+            resource.RLIMIT_STACK
+        )
 
     def __init__(self, maxdepth=None, setup_shell=False):
 
@@ -513,12 +519,23 @@ class System:
 
         The error handler is configured later.
         """
+        if sys.platform == "linux":
+            resource.setrlimit(
+                resource.RLIMIT_STACK,
+                (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
         sys.setrecursionlimit(10**6)
         warnings.showwarning = custom_showwarning
 
     def restore_python(self):
         """Restore Python settings to the original states"""
         orig = self.orig_settings
+
+        if sys.platform == "linux":
+            resource.setrlimit(
+                resource.RLIMIT_STACK,
+                orig["resource.RLIMIT_STACK"]
+            )
+
         sys.setrecursionlimit(orig["sys.recursionlimit"])
 
         if "sys.tracebacklimit" in orig:
