@@ -4,10 +4,11 @@ from modelx.core.errors import DeepReferenceError
 from modelx.testing.testutil import SuppressFormulaError
 import pytest
 
-if sys.platform == "win32" and sys.version_info[:2] == (3, 8):
-    maxdepth = 57000
+if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
+    #maxdepth = 57000
+    maxdepth = 30000
 elif sys.platform == "darwin":
-    maxdepth = 10000
+    maxdepth = 5000
 else:
     maxdepth = 65000
 
