@@ -520,9 +520,11 @@ class System:
         The error handler is configured later.
         """
         if sys.platform == "linux":
-            resource.setrlimit(
-                resource.RLIMIT_STACK,
-                (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+            _, hard = resource.getrlimit(resource.RLIMIT_STACK)
+            if hard != resource.RLIM_INFINITY:
+                warnings.warn("Stack is not unlimited")
+            resource.setrlimit(resource.RLIMIT_STACK, (hard, hard))
+
         sys.setrecursionlimit(10**6)
         warnings.showwarning = custom_showwarning
 
