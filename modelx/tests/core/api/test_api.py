@@ -39,7 +39,9 @@ def savetestmodel(request, testmodel, tmpdir_factory):
 
 
 def test_get_models(testmodel):
-    assert mx.get_models() == {testmodel.name: testmodel}
+    assert testmodel.name in mx.get_models().keys()
+    assert testmodel in mx.get_models().values()
+    #assert mx.get_models() == {testmodel.name: testmodel}
 
 
 if sys.version_info >= (3, 7):

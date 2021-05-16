@@ -3,9 +3,21 @@ import modelx as mx
 from modelx.core.errors import DeepReferenceError
 from modelx.testing.testutil import SuppressFormulaError
 import pytest
+import psutil
 
-if sys.platform == "win32" and sys.version_info[:2] == (3, 8):
-    maxdepth = 57000
+if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
+    if psutil.virtual_memory().total < 8 * 1024**3:
+        maxdepth = 30000
+    else:
+        maxdepth = 57000
+elif sys.platform == "darwin":
+    # https://bugs.python.org/issue18075
+    # https://bugs.python.org/issue34602
+    # https://github.com/python/cpython/pull/14546
+    if sys.version_info[:2] == (3, 9):
+        maxdepth = 3500
+    else:
+        maxdepth = 4000
 else:
     maxdepth = 65000
 
@@ -25,7 +37,7 @@ def test_max_recursion():
 
 
 def test_maxout_recursion():
-
+    
     m, s = mx.new_model(), mx.new_space()
 
     @mx.defcells
@@ -35,6 +47,6 @@ def test_maxout_recursion():
         else:
             return foo(x-1) + 1
 
-    with SuppressFormulaError():
+    with SuppressFormulaError(maxdepth):
         with pytest.raises(DeepReferenceError):
             foo(maxdepth+1)
