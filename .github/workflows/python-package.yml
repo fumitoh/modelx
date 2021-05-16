@@ -32,11 +32,11 @@ jobs:
         python -m pip install --upgrade pip
         # python -m pip install flake8 pytest
         pip install -r requirements-travis.txt
-    - name: Increase Stack for MacOS
-      run: |
-          ulimit -s 65532
-      if: ${{ matrix.os == 'macos-latest' }}
-       
+#    - name: Increase Stack for MacOS
+#      run: |
+#          ulimit -s 65532
+#      if: ${{ matrix.os == 'macos-latest' }}
+
 #    - name: Lint with flake8
 #      run: |
 #        # stop the build if there are Python syntax errors or undefined names
