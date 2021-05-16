@@ -3,10 +3,13 @@ import modelx as mx
 from modelx.core.errors import DeepReferenceError
 from modelx.testing.testutil import SuppressFormulaError
 import pytest
+import psutil
 
 if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
-    #maxdepth = 57000
-    maxdepth = 30000
+    if psutil.virtual_memory().total < 8 * 1024**3:
+        maxdepth = 30000
+    else:
+        maxdepth = 57000
 elif sys.platform == "darwin":
     if sys.version_info[:2] == (3, 9):
         maxdepth = 3500
