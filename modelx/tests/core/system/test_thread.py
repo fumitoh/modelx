@@ -8,7 +8,10 @@ if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
     #maxdepth = 57000
     maxdepth = 30000
 elif sys.platform == "darwin":
-    maxdepth = 4000
+    if sys.version_info[:2] == (3, 9):
+        maxdepth = 3500
+    else:
+        maxdepth = 4000
 else:
     maxdepth = 65000
 
