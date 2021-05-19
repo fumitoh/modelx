@@ -59,4 +59,4 @@ spyder-modelx v0.0.6 (2 December 2018)
 
 spyder-modelx v0.0.5 (21 October 2018)
 ---------------------------------------
-- Add MxDataView widget. See :ref:`MxDataView` section for details.
+- Add MxDataView widget. See :ref:`MxDataViewer` section for details.

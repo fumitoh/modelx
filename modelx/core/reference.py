@@ -234,6 +234,36 @@ class DataClientReferenceImpl(ReferenceImpl):
 
 
 class ReferenceProxy:
+    """Proxy to interface to References
+
+    *Reference* objects are not exposed to the user,
+    thus ReferenceProxy objects are used to interface to References.
+    A proxy object to a Reference can be created and returned by
+    the :func:`~modelx.get_object` function, by passing
+    the full dotted name of the Reference to ``name``,
+    and :obj:`True` to ``as_proxy``::
+
+    >>> mx.get_object("Model1.Space1.foo", as_proxy=True)
+
+    Reference shares its ultimate base class with Model, Space and
+    Cells classes, and below are attributes common among those
+    classes.
+
+    Attributes:
+
+        name (str): The name of the Reference.
+
+        fullname (str): The dotted name of the object.
+
+        parent: The parent of the Reference.
+
+        model: The Model that the Reference belongs to.
+
+    .. seealso::
+
+        :func:`~modelx.get_object`, :class:`~ReferenceNode`
+
+    """
 
     __slots__ = ("_impl",)
 
@@ -249,14 +279,29 @@ class ReferenceProxy:
 
     @property
     def value(self):
+        """Returns referenced object"""
         return self._impl.interface
 
     @property
     def refmode(self):
+        """Returns reference mode
+
+        Returns a string representing the reference mode
+
+        Returns:
+            str: "auto", "absolute" or "relative"
+
+        .. seealso::
+
+            :meth:`~modelx.core.space.UserSpace.set_ref`,
+            :meth:`~modelx.core.space.UserSpace.absref`,
+            :meth:`~modelx.core.space.UserSpace.relref`
+
+        """
         return self._impl.refmode
 
     @property
-    def is_derived(self):
+    def is_derived(self):   # TODO: Rename this to _is_derived
         return self._impl.is_derived
 
     @property
@@ -288,6 +333,7 @@ class ReferenceNode(ObjectNode):
         return ReferenceProxy(self._impl[OBJ])
 
     def has_value(self):
+        """Always returns :obj:`True` as Reference has value"""
         return True
 
     @property

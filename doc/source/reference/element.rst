@@ -1,10 +1,25 @@
 Node types
 =============
 
-Node objects are used for dependency tracing.
-
-
 .. currentmodule:: modelx.core
+
+
+Node objects are used to represent calculation *nodes*
+in dependency tracing.
+The :class:`~node.BaseNode` class is the abstract base class
+for all Node classes. The :class:`~node.ItemNode` class
+is for representing *elements* of :class:`~cells.Cells` objects
+and Space objects such as :class:`~space.UserSpace`.
+An *element* of a :class:`~cells.Cells` object is identified
+by arguments to the :class:`~cells.Cells`.
+If the :class:`~cells.Cells` has a value for the arguments,
+whether it's calculted or input, the :meth:`~node.ItemNode.has_value`
+returns :obj:`True` and :attr:`~node.ItemNode.value` returns the value.
+Similarly to the :class:`~cells.Cells` element,
+an element of a Space is identified by arguments to the Space.
+Since a call to the Space returns an :class:`~space.ItemSpace`,
+the value of the Space's element is the :class:`~space.ItemSpace` object
+if it exists.
 
 .. seealso::
 
@@ -39,8 +54,6 @@ Attributes
   ~BaseNode.args
   ~BaseNode.has_value
   ~BaseNode.obj
-  ~BaseNode.preds
-  ~BaseNode.succs
   ~BaseNode.value
 
 
@@ -61,9 +74,9 @@ Attributes
   ~ItemNode.args
   ~ItemNode.has_value
   ~ItemNode.obj
+  ~ItemNode.value
   ~ItemNode.preds
   ~ItemNode.succs
-  ~ItemNode.value
   ~ItemNode.precedents
 
 
@@ -84,7 +97,4 @@ Attributes
   ~ReferenceNode.args
   ~ReferenceNode.has_value
   ~ReferenceNode.obj
-  ~ReferenceNode.preds
-  ~ReferenceNode.succs
   ~ReferenceNode.value
-  ~ReferenceNode.precedents

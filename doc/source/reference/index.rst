@@ -11,6 +11,7 @@ Reference Guide
    model
    space/index
    cells
+   reference
    view
    dataclient
    element
