@@ -1,3 +1,4 @@
 sphinxcontrib-blockdiag
 openpyxl
 pandas
+pydata_sphinx_theme
