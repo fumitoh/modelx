@@ -1,8 +1,8 @@
 
 
 
-Modeling Fibonacci Sequence
----------------------------
+Example 1: Fibonacci Sequence
+------------------------------
 
 Now that we have modelx ready for our exercise and we
 understand the basics of modelx objects, we are going to model
@@ -49,11 +49,11 @@ Find MxExplorer widget in your Spyder IDE.
 
    Blank MxExplorer
 
-Near the top right corner their is a combo box titled *Model*.
-This box is for selecting a model to show in the panes below.
+Near the top right corner there is a list box titled *Model*.
+This box is for selecting the model to show in the panes below.
 Since we don't have models yet, *Current Model - None* is displayed.
 
-The blank pane on the left hand side is for showing a tree of objects
+The blank pane on the left hand side is for showing the tree of the objects
 in the selected model.
 
 Right click on the blank space in

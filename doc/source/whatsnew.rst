@@ -25,8 +25,8 @@ What's New
    :depth: 1
    :local:
 
-Updates
-=======
+Latest Updates
+===============
 
 .. include:: updates.rst
    :start-after: Latest Updates Begin

@@ -1,8 +1,8 @@
-from modelx import *
+import modelx as mx
 
-model, space = new_model(), new_space()
+model, space = mx.new_model(), mx.new_space()
 
-@defcells
+@mx.defcells
 def fibo(n):
     if n == 0 or n == 1:
         return n

@@ -17,6 +17,9 @@ write Python scripts and import it, as you would normally do with
 any other Python package.
 Likewise, you can also use it interactively from an IPython consoles,
 or in Jupyter notebooks.
+By convention, It is recommended to import the module as ``mx``::
+
+    >>> import modelx as mx
 
 Another way to interface with modelx is through Spyder plugin for modelx
 on Spyder IDE. The plugin installs custom widgets and custom IPython consoles
@@ -104,6 +107,7 @@ and waits for your input.
 
    MxConsole
 
+.. _overview-of-core-modelx-objects:
 
 Overview of core modelx objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

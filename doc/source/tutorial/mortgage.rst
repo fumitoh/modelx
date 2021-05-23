@@ -1,5 +1,5 @@
-Modeling Mortgage Loan
-======================
+Example 2: Mortgage Loan
+========================
 
 For the second example, we are going to model a fixed-rate mortgage loan,
 one of the basic types of amortized mortgage loans.
