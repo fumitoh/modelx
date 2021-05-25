@@ -27,4 +27,5 @@ except for Windows specific parts.
    fibonacci
    mortgage
    basic_operations
+   eval_formulas
    api_tutorial

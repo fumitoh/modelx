@@ -281,12 +281,12 @@ class Model(EditableSpaceContainer):
         method.
 
         See Also:
-            :class:`~modelx.io.excelio.ExcelRange`
-            :class:`~modelx.io.pandasio.PandasData`
-            :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
-            :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
-            :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
-            :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
+            * :class:`~modelx.io.excelio.ExcelRange`
+            * :class:`~modelx.io.pandasio.PandasData`
+            * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+            * :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+            * :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
+            * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
 
         .. versionadded:: 0.9.0
 

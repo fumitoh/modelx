@@ -405,6 +405,7 @@ in squre brackets::
 
    >>> fibo[10]
    55
+
    >>> fibo(10)
    55
 
@@ -418,6 +419,7 @@ Series object. (You need to have Pandas installed, of course.)::
 
    >>> fibo[10]
    55
+
    >>> fibo.series
    n
    0      0
@@ -439,16 +441,13 @@ the recursive reference goes on until it stops and ``fibo[1]`` and ``fibo[0]``,
 values of ``fibo`` for argument ``0`` to ``10`` are
 calculated by just calling ``fibo[10]``.
 
-.. note::
-
-   It is important to understand in what namespace cells formulas
-   are executed. Unlike Python functions, the global namespace
-   of a cells formula has nothing to do with where in the source files
-   the formula is defined. The names in the formula are resolved
-   in the namespace associated with the cells' parent space.
-   In that namespace, available names are cells contained in the space,
-   spaces contained in the space (i.e. the subspaces of the space)
-   and "references" accessible in the space.
+Unlike Python functions, the global namespace
+of a cells formula has nothing to do with where in the source files
+the formula is defined. The names in the formula are resolved
+in the namespace associated with the cells' parent space.
+In that namespace, available names are cells contained in the space,
+spaces contained in the space (i.e. the subspaces of the space)
+and "references" accessible in the space.
 
 
 Clearing Values
@@ -458,6 +457,7 @@ To clear cells values, you can use ``clear()`` method. Below shows
 what happens when the value of ``fibo`` at n = 5 is cleared::
 
   >>> fibo.clear(5)
+
   >>> fibo.series
   n
   0    0
@@ -475,6 +475,7 @@ Dependent values are cleared all together with the specified value.
 To clear all values, simply call ``clear()`` witthout arguments::
 
   >>> fibo.clear()
+
   >>> fibo.series
   Series([], Name: fibo, dtype: float64)
 
@@ -489,6 +490,7 @@ specified value is assigned::
 
   >>> fibo[10]
   55
+
   >>> fibo.series
   n
   0      0
@@ -505,6 +507,7 @@ specified value is assigned::
   Name: fibo, dtype: int64
 
   >>> fibo[5] = 0
+
   >>> fibo.series
   n
   0    0
