@@ -30,7 +30,7 @@ def test_delitem(itemspacetest):
     assert not s.itemspaces
 
 
-def test_clear_all(itemspacetest):
+def test_clear_items(itemspacetest):
 
     paramlen, s = itemspacetest
 
@@ -38,7 +38,7 @@ def test_clear_all(itemspacetest):
 
     s1 = s(*((1,) * paramlen))
     s1foo = s1.foo
-    s.clear_all()
+    s.clear_items()
     assert not s.itemspaces
     assert not s1._is_valid()
     assert not s1foo._is_valid()

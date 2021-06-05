@@ -1,7 +1,46 @@
 import numpy as np
 import pandas as pd
+import modelx as mx
 
 import pytest
+
+@pytest.fixture
+def make_testmodel_for_clear():
+    """
+        model-Parent-----Child---Bar
+                |     +--Foo |
+              Parent[1]      +---Child[1]
+    """
+    m = mx.new_model()
+    p = m.new_space("Parent")
+    c = p.new_space("Child")
+
+    @mx.defcells(space=p)
+    def Foo(x):
+        return x
+
+    @mx.defcells(space=c)
+    def Bar(x):
+        return 2 * x
+
+    p.parameters = ('a',)
+    c.parameters = ('n',)
+
+    Foo(1)
+    Foo[2] = 10
+    Bar(1)
+    Bar[2] = 20
+    p[1].Foo(1)
+    p.Child[1].Bar(1)
+
+    assert len(m.Parent.itemspaces) == 1
+    assert len(m.Parent.Child.itemspaces) == 1
+    assert len(m.Parent.Foo) == 2
+    assert m.Parent.Foo.is_input(2)
+    assert m.Parent.Child.Bar.is_input(2)
+
+    return m
+
 
 def make_sample1(columns, idx_names):
     """Series with Index"""

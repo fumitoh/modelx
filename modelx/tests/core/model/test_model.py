@@ -24,6 +24,16 @@ def simplemodel():
     return model
 
 
+def test_clear_all(make_testmodel_for_clear):
+    m = make_testmodel_for_clear
+    m.clear_all()
+    space = m.Parent
+    assert not len(space.Foo)
+    assert not len(space.Child.Bar)
+    assert not len(space.itemspaces)
+    assert not len(space.Child.itemspaces)
+
+
 def test_parent(simplemodel):
     assert simplemodel.parent == None
 

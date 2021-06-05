@@ -136,6 +136,27 @@ class Model(EditableSpaceContainer):
         self._impl.system.rename_model(
             new_name=name, old_name=self.name, rename_old=rename_old)
 
+    def clear_all(self):
+        """Clears :class:`~modelx.core.cells.Cells` and :class:`~modelx.core.space.ItemSpace`.
+
+        Clears both the input values and the calculated values of
+        all the :class:`~modelx.core.cells.Cells` in the model and
+        delete all the :class:`~modelx.core.space.ItemSpace` objects
+        in the model.
+
+        .. seealso::
+
+            :meth:`UserSpace.clear_all<modelx.core.space.UserSpace.clear_all>`
+
+        .. versionadded:: 0.16.0
+        """
+        for space in self._impl.spaces.values():
+            space.clear_all_cells(
+                clear_input=True,
+                recursive=True,
+                del_items=True
+            )
+
     def save(self, filepath, datapath=None):
         """Back up the model to a file.
 

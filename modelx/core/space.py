@@ -300,6 +300,7 @@ class RefView(SelectedView):
 
         return result
 
+
 class BaseSpace(BaseSpaceContainer, ItemFactory):
 
     __slots__ = ()
@@ -481,8 +482,67 @@ class BaseSpace(BaseSpaceContainer, ItemFactory):
             raise KeyError(key)
 
     def clear_all(self):
-        """Delete all child :class:`ItemSpace` objects"""
+        """Clears :class:`~modelx.core.cells.Cells` and :class:`~modelx.core.space.ItemSpace`.
+
+        Clears both the input values and the calculated values of
+        all the recursive child :class:`~modelx.core.cells.Cells` in this space
+        and delete all the recursive child
+        :class:`~modelx.core.space.ItemSpace` objects in the space.
+
+        .. seealso::
+
+            * :meth:`Model.clear_all<modelx.core.model.Model.clear_all>`
+            * :meth:`clear_items`
+            * :meth:`clear_cells`
+
+        .. versionchanged:: 0.16.0 Changed to delete child ItemSpaces
+            recursively and to clear recursive child Cells.
+            :meth:`clear_items` works the same as this method before change.
+
+        """
+        self._impl.clear_all_cells(
+            clear_input=True, recursive=True, del_items=True
+        )
+
+    def clear_items(self):
+        """Deletes all the child :class:`ItemSpace` objects.
+
+        Deletes all the child :class:`ItemSpace` objects in this space.
+        This method does not delete :class:`ItemSpace` in child spaces
+        of this space.
+
+        .. seealso:: :meth:`clear_all`
+
+        .. versionadded:: 0.16.0
+        """
         self._impl.del_all_itemspaces()
+
+    def clear_cells(self, clear_input=False, recursive=True):
+        """Clears child :class:`~modelx.core.cells.Cells`.
+
+        By default, clears all the calculated values of all the recursive child
+        :class:`~modelx.core.cells.Cells`.
+        If ``clear_input`` is :obj:`True`, all the input values of the child
+        cells are also cleared in addition to the calculated values.
+        If ``recursive`` is :obj:`False`, only the cells that are the direct
+        children of this Space are cleared, and cells in the recursive child
+        spaces are not cleared.
+
+        Args:
+            clear_input(:obj:`bool`): If :obj:`True`, input values
+                of the Cells are also cleared. Defaults to :obj:`False`.
+
+            recursive(:obj:`bool`): If :obj:`True`, Cells in
+                the recursive child Spaces are also cleared.
+                If :obj:`False`, only the child Cells of this Space
+                are cleared.
+
+        .. seealso:: :meth:`clear_all`
+
+        .. versionadded:: 0.16.0
+        """
+        self._impl.clear_all_cells(
+            clear_input=clear_input, recursive=recursive)
 
     def __iter__(self):
         raise TypeError("'Space' is not iterable")
@@ -1323,9 +1383,19 @@ class BaseSpaceImpl(
     def is_dynamic(self):
         raise NotImplementedError
 
-    def clear_all_cells(self):
+    def clear_all_cells(
+            self, clear_input=False, recursive=False, del_items=False):
         for cells in self.cells.values():
-            cells.clear_all_values(clear_input=False)
+            cells.clear_all_values(clear_input=clear_input)
+        if del_items:
+            self.del_all_itemspaces()
+        if recursive:
+            for space in self.named_spaces.values():
+                space.clear_all_cells(
+                    clear_input=clear_input,
+                    recursive=recursive,
+                    del_items=del_items
+                )
 
     # ----------------------------------------------------------------------
     # Reference operation
