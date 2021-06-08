@@ -1247,7 +1247,6 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
 class BaseSpaceImpl(
     NamespaceServer,
     ItemSpaceParent,
-    ItemFactoryImpl,
     BaseSpaceContainerImpl,
     Impl
 ):
@@ -1396,21 +1395,6 @@ class BaseSpaceImpl(
                     recursive=recursive,
                     del_items=del_items
                 )
-
-    # ----------------------------------------------------------------------
-    # Reference operation
-
-    def _new_member(self, attr, name, is_derived=False):
-
-        if attr == "cells":
-            return UserCellsImpl(
-                space=self, name=name, formula=None, is_derived=is_derived)
-        elif attr == "self_refs":
-            return ReferenceImpl.get_class(value)(self, name, None,
-                                 container=self._self_refs,
-                                 is_derived=is_derived)
-        else:
-            raise RuntimeError("must not happen")
 
     # ----------------------------------------------------------------------
     # Component properties

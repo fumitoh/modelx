@@ -743,9 +743,6 @@ class UserCellsImpl(CellsImpl):
 
     def set_formula(self, func):
 
-        if self.parent.is_dynamic():
-            raise ValueError("cannot set formula in dynamic space")
-
         if self.is_derived:
             self.is_derived = False
 
