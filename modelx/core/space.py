@@ -1461,7 +1461,7 @@ class BaseSpaceImpl(
         super().on_delete()
 
 
-class DynamicBase(BaseNamespaceReferrer):
+class DynamicBase(BaseSpaceImpl):
 
     __cls_stateattrs = [
      "_dynamic_subs"
@@ -1496,7 +1496,6 @@ class DynamicBase(BaseNamespaceReferrer):
 @add_stateattrs
 class UserSpaceImpl(
     DynamicBase,
-    BaseSpaceImpl,
     EditableSpaceContainerImpl,
     Derivable
 ):
