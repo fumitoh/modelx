@@ -54,6 +54,10 @@ class NamespaceServer:
     def on_delete_item(self, sender, name):
         self.notify_referrers(is_all=False, names=[name])
 
+    @property
+    def namespace(self):
+        return self._namespace.fresh
+
 
 class BaseNamespaceReferrer:
     

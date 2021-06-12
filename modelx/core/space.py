@@ -1355,10 +1355,6 @@ class BaseSpaceImpl(
     def local_refs(self):
         return self._local_refs
 
-    @property
-    def namespace(self):
-        return self._namespace.fresh
-
     # --- Inheritance properties ---
 
     @property
