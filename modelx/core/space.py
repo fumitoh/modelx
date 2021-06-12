@@ -1476,16 +1476,6 @@ class DynamicBase(BaseSpaceImpl):
         for dyns in self._dynamic_subs:
             dyns.notify_referrers(is_all, names)
 
-    def _clear_dynsub_referrers(self, name):
-        for dyns in self._dynamic_subs:
-            refdict = dyns.refs.get_map_from_key(name)
-            if refdict is self._self_refs:
-                for cells in self._names_to_impls[name]:
-                    if isinstance(cells, UserCellsImpl):
-                        dyns.cells[cells.name].clear_all_values(
-                            clear_input=False
-                        )
-
     def change_dynsub_refs(self, name):
 
         for dynsub in self._dynamic_subs:
