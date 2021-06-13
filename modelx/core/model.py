@@ -1204,6 +1204,27 @@ class SpaceManager(SharedSpaceOperations):
         return self.new_cells(space, name=name, formula=source.formula,
                        data=data, is_derived=False, overwrite=False)
 
+    def rename_cells(self, cells, name):
+        """Renames the Cells name"""
+        if not is_valid_name(name):
+            raise ValueError("name '%s' is invalid" % name)
+
+        if not self._can_add(cells.parent, name, CellsImpl, overwrite=True):
+            raise ValueError("cannot create cells '%s'" % name)
+
+        if cells.bases:
+            raise ValueError("'%s' is a sub Cells of '%s'" % (
+                cells.get_repr(fullname=True, add_params=False),
+                cells.bases[0].get_repr(fullname=True, add_params=False)))
+
+        old_name = cells.name
+
+        for space in self._get_subs(cells.parent, skip_self=False):
+            for dynsub in space._dynamic_subs.copy():
+                root = dynsub.rootspace
+                root.parent.clear_itemspace_at(root.argvalues_if)
+            space.cells[old_name].on_rename(name)
+
     def _check_subs_relrefs(self, space, name, value, refmode):
 
         # Check if relative ref is possible when refmode is 'relative'

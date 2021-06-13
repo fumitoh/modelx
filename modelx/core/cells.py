@@ -55,6 +55,26 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     __slots__ = ()
 
+    def rename(self, name):
+        """Rename the Cells
+
+        Rename the Cells to ``name``.
+        The values of this Cells are cleared.
+        The derived Cells of this Cells, if any, are also cleared and renamed.
+        If the Cells is a base Cells of a dynamic Cells,
+        the root space of the dynamic Cells
+        (i.e. the inner most :class:`~modelx.core.space.ItemSpace`
+        containing the dynamic Cells) is deleted.
+
+        Args:
+            name(:obj:`str`): The new name for the Cells
+
+        .. versionadded:: 0.16.0
+        """
+        if isinstance(self._impl, DynamicCellsImpl):
+            raise ValueError("'%s' is dynamic" % self.name)
+        self._impl.spacemgr.rename_cells(self._impl, name)
+
     def copy(self, parent, name=None):
         """Make a copy of itself
 
@@ -671,8 +691,6 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
         if self.has_node(key):
             self.model.clear_with_descs(key_to_node(self, key))
 
-
-
     # ----------------------------------------------------------------------
     # Pandas I/O
 
@@ -768,6 +786,20 @@ class UserCellsImpl(CellsImpl):
             funcdef = oldsrc
 
         self.set_formula(funcdef)
+
+    def on_rename(self, name):
+        """Renames the Cells name
+
+        - Clears DynamicCells of self
+        - Updates the parent namespace
+        - Clears successors
+            - Clears DynamicCells of self
+        - Renames sub Cells (Repeats the above for the sub Cells)
+        """
+        self.model.clear_obj(self)
+        self.parent.cells.delete_item(self.name)
+        self.name = name
+        self.parent.cells.add_item(name, self)
 
 
 class DynamicCellsImpl(CellsImpl):
