@@ -129,10 +129,6 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         else:
             return iter(self._impl.data)
 
-    # def copy(self, space=None, name=None):
-    #     """Make a copy of itself and return it."""
-    #     return Cells(space=space, name=name, formula=self.formula)
-
     def __hash__(self):
         return hash(id(self))
 
@@ -313,11 +309,11 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     @formula.setter
     def formula(self, formula):
-        self._impl.set_formula(formula)
+        self._impl.spacemgr.change_cells_formula(self._impl, formula)
 
     @formula.deleter
     def formula(self):
-        self._impl.clear_formula()
+        self._impl.spacemgr.del_cells_formula(self._impl)
 
     @property
     def parameters(self):
@@ -328,13 +324,13 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         """Set formula from a function.
         Deprecated since version 0.0.5. Use formula property instead.
         """
-        self._impl.set_formula(func)
+        self._impl.spacemgr.change_cells_formula(self._impl, func)
 
     def clear_formula(self):
         """Clear the formula.
         Deprecated since version 0.0.5. Use formula property instead.
         """
-        self._impl.clear_formula()
+        self._impl.spacemgr.change_cells_formula(self._impl)
 
     @property
     def value(self):
@@ -751,28 +747,6 @@ class UserCellsImpl(CellsImpl):
         if oldsrc != newsrc:
             self.model.clear_obj(self)
 
-    def clear_formula(self):
-
-        if self.is_derived:
-            self.is_derived = False
-
-        self.set_formula(NULL_FORMULA)
-        self.parent.remove_referrer(self)
-
-    def set_formula(self, func):
-
-        if self.is_derived:
-            self.is_derived = False
-
-        self.model.clear_obj(self)
-        if isinstance(func, Formula):
-            cls = func.__class__
-        else:
-            cls = Formula
-        self.formula = cls(func, name=self.name)
-        self.altfunc = BoundFunction(self)
-        self.spacemgr.update_subs(self.parent)
-
     def set_doc(self, doc, insert_indents=False):
 
         oldsrc = self.formula.source
@@ -785,7 +759,7 @@ class UserCellsImpl(CellsImpl):
             self._doc = doc
             funcdef = oldsrc
 
-        self.set_formula(funcdef)
+        self.spacemgr.change_cells_formula(self, funcdef)
 
     def on_rename(self, name):
         """Renames the Cells name
@@ -800,6 +774,24 @@ class UserCellsImpl(CellsImpl):
         self.parent.cells.delete_item(self.name)
         self.name = name
         self.parent.cells.add_item(name, self)
+
+    def on_change_formula(self, func):
+
+        self.model.clear_obj(self)
+
+        if self.is_derived:
+            self.is_derived = False
+
+        if isinstance(func, NullFormula):
+            self.formula = NULL_FORMULA
+        else:
+            if isinstance(func, Formula):
+                cls = func.__class__
+            else:
+                cls = Formula
+            self.formula = cls(func, name=self.name)
+
+        self.altfunc = BoundFunction(self)
 
 
 class DynamicCellsImpl(CellsImpl):

@@ -1567,7 +1567,8 @@ class UserSpaceImpl(
                 # Choose only the functions defined in the module.
                 if func.__module__ == module.__name__:
                     if name in self.namespace and override:
-                        self.cells[name].set_formula(func)
+                        self.spacemgr.change_cells_formula(
+                            self.cells[name], func)
                         newcells[name] = self.cells[name]
                     else:
                         newcells[name] = self.new_cells(name, func)

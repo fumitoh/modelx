@@ -192,7 +192,7 @@ def defcells(space=None, name=None, *funcs):
         space = _system.get_curspace()
         name = func.__name__
         if _is_valid_name(name) and name in space.cells:
-            space.cells[name].set_formula(func)
+            space.spacemgr.change_cells_formula(space.cells[name], func)
             return space.cells[name].interface
         else:
             return space.new_cells(formula=func).interface

@@ -41,6 +41,7 @@ from modelx.core.space import (
     SpaceView,
     RefDict
 )
+from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name, AutoNamer
 from modelx.io.baseio import DataClientReferenceManager
 
@@ -1224,6 +1225,19 @@ class SpaceManager(SharedSpaceOperations):
                 root = dynsub.rootspace
                 root.parent.clear_itemspace_at(root.argvalues_if)
             space.cells[old_name].on_rename(name)
+
+    def change_cells_formula(self, cells, func):
+        for space in self._get_subs(cells.parent, skip_self=False):
+            c = space.cells[cells.name]
+            if c is not cells and c.is_defined:
+                break   # Stop when sub cells is defined
+            for dynsub in space._dynamic_subs.copy():
+                root = dynsub.rootspace
+                root.parent.clear_itemspace_at(root.argvalues_if)
+            space.cells[cells.name].on_change_formula(func)
+
+    def del_cells_formula(self, cells):
+        self.change_cells_formula(cells, NULL_FORMULA)
 
     def _check_subs_relrefs(self, space, name, value, refmode):
 
