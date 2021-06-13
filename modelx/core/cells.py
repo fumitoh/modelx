@@ -309,10 +309,14 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     @formula.setter
     def formula(self, formula):
+        if isinstance(self._impl, DynamicCellsImpl):
+            raise ValueError("'%s' is dynamic" % self.name)
         self._impl.spacemgr.change_cells_formula(self._impl, formula)
 
     @formula.deleter
     def formula(self):
+        if isinstance(self._impl, DynamicCellsImpl):
+            raise ValueError("'%s' is dynamic" % self.name)
         self._impl.spacemgr.del_cells_formula(self._impl)
 
     @property
