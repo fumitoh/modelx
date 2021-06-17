@@ -31,6 +31,7 @@ Cells operations
   :toctree: generated/
   :template: mxbase.rst
 
+  ~Cells.rename
   ~Cells.copy
 
 

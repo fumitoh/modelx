@@ -672,6 +672,24 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
         return self._impl.model.updater.copy_space(
             parent._impl, self._impl, name, defined_only).interface
 
+    def rename(self, name):
+        """Rename the space
+
+        Rename the UserSpace itself to ``name``.
+        A UserSpace cannot be renamed if it is subsequently derived
+        by its recursive parent's inheritance.
+
+        When the UserSpace is renamed, all the values, including input values,
+        of the recursive child Cells in the UserSpace are cleared
+        and all the recursive child ItemSpaces are deleted.
+
+        If the UserSpace has subsequently derived sub spaces, these
+        sub spaces are also renamed.
+
+        .. versionadded:: 0.16.0
+        """
+        self._impl.spacemgr.rename_space(self._impl, name)
+
     def add_bases(self, *bases):
         """Add base spaces."""
         return self._impl.model.updater.add_bases(self._impl, get_impls(bases))
@@ -1859,6 +1877,13 @@ class UserSpaceImpl(
     def on_del_ref(self, name):
         self.self_refs[name].on_delete()
         self.self_refs.del_item(name)
+
+    def on_rename(self, name):
+        self.model.clear_obj(self)
+        self.clear_all_cells(clear_input=True, recursive=True, del_items=True)
+        self.parent.named_spaces.delete_item(self.name)
+        self.name = name
+        self.parent.named_spaces.add_item(name, self)
 
 
 class DynamicSpace(BaseSpace):

@@ -657,6 +657,19 @@ class SpaceGraph(nx.DiGraph):
         g.add(node)
         return nx.topological_sort(self.subgraph(g))
 
+    def get_derived_subs(self, node):
+        """Get node and all subs that can be reached only by derived edges"""
+        que = [node]
+        accum = [node]
+        while que:
+            n = que.pop(0)
+            for e in self.out_edges(n):
+                if self.edges[e]["mode"] == "derived":
+                    t, h = e
+                    que.append(h)
+                    accum.append(h)
+        return accum
+
     def max_index(self, node):
         return max(
             [self.edges[e]["index"] + 1 for e in self.in_edges(node)],
@@ -1073,10 +1086,20 @@ class SharedSpaceOperations:
         self._graph = SpaceGraph()
 
     def _can_add(self, parent, name, klass, overwrite=True):
+        """Check name conflict for a given name.
+
+        :obj:`False` if ``name`` is already defined not
+        as an instance of ``klass``
+        in ``parent`` or in any of ``parent`` descendants.
+        :obj:`False` if ``name`` is already defined
+        as an instance of ``klass`` and ``overwirte`` is :obj:`True`,
+        otherwise :obj:`True`.
+        """
+        # TODO: Reflect the overwriting order of names
         if parent is self.model:
             return name not in parent.namespace
 
-        sub = self._find_name_in_subs(parent, name)
+        sub = self._find_name_in_subs(parent, name)   # start from parent
         if sub is None:
             return True
         elif isinstance(sub, klass) and overwrite:
@@ -1156,6 +1179,54 @@ class SharedSpaceOperations:
 
 class SpaceManager(SharedSpaceOperations):
 
+    def rename_space(self, space, name):
+
+        # Check name does not exit already
+        parent = space.parent
+        if not self._can_add(
+                parent, name, UserSpaceImpl, overwrite=False):
+            raise ValueError("Cannot rename '%s' to '%s'" % (space.name, name))
+
+        # Check space is not derived or overwritten
+        for e in self._graph.in_edges(space.namedid):
+            if self._graph.edges[e]["mode"] == "derived":
+                t, h = e
+                raise ValueError(
+                    "'%s' has derived base '%s'" % (h, t))
+
+        # Derived/Overwritten spaces are renamed
+        subspaces = list(
+            self._graph.to_space(n) for n in self._graph.get_derived_subs(
+                space.namedid)
+        )
+
+        # Create name mapping
+        mapping = {}
+        for s in subspaces:
+            old_id = tuple(s.namedid.split("."))
+            new_id = old_id[:-1] + (name,)
+            for node in self._graph.visit_treenodes(
+                    s.namedid, include_self=True):
+
+                old_child = tuple(node.split("."))
+                assert old_id == old_child[:len(old_id)]
+                mapping[node] = ".".join(new_id + old_child[len(new_id):])
+
+        for s in subspaces:
+
+            if not s.parent.is_model():
+                # Clear parent's dynsub, not s's
+                for dynsub in s.parent._dynamic_subs.copy():
+                    root = dynsub.rootspace
+                    root.parent.clear_itemspace_at(root.argvalues_if)
+
+            # Call on_rename callbacks
+            s.on_rename(name)
+
+        # Rename nodes
+        nx.relabel_nodes(self._inheritance, mapping, copy=False)
+        nx.relabel_nodes(self._graph, mapping, copy=False)
+
     def del_cells(self, space, name):
         cells = space.cells[name]
         if cells.is_derived:
@@ -1169,6 +1240,8 @@ class SpaceManager(SharedSpaceOperations):
 
     def new_cells(self, space, name=None, formula=None, data=None,
                   is_derived=False, source=None, overwrite=True):
+
+        # FIX: Creating a Cells of the same name in ``space``
 
         if not self._can_add(space, name, CellsImpl, overwrite=overwrite):
             raise ValueError("Cannot create cells '%s'" % name)
@@ -1312,6 +1385,25 @@ class SpaceManager(SharedSpaceOperations):
                                          is_derived=True, refmode=refmode,
                                          is_relative=is_relative)
             ref.is_relative = is_relative
+
+    def _check_sanity(self):
+
+        # both graph must have the same nodes
+        assert self._inheritance.nodes == self._graph.nodes
+
+        nodes = set(self._graph.nodes)
+        spaces = dict(self.model._all_spaces)
+
+        # consistency between spaces and nodes
+        while spaces:
+            k, v = spaces.popitem()
+            assert k == v.name
+            assert v.namedid in nodes
+            assert v is self._graph.nodes[v.namedid]["space"]
+            nodes.remove(v.namedid)
+            spaces.update(v.named_spaces)
+
+        assert not nodes # Check all nodes are reached
 
 
 class SpaceUpdater(SharedSpaceOperations):

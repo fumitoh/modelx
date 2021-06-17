@@ -31,6 +31,7 @@ Space operations
   :template: mxbase.rst
 
   ~UserSpace.copy
+  ~UserSpace.rename
 
 Inheritance operations
 ----------------------
