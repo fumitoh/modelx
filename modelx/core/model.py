@@ -45,8 +45,11 @@ from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name, AutoNamer
 from modelx.io.baseio import DataClientReferenceManager
 
-_nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
-
+try:
+    _nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
+except ValueError:  # in such case as '2.6rc1'
+    _major, _minor = nx.__version__.split(".")[:2]
+    _nxver = (int(_major), int(_minor[0]))
 
 class TraceGraph(nx.DiGraph):
     """Directed Graph of ObjectArgs"""
