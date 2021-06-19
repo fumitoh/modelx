@@ -1216,9 +1216,7 @@ class SpaceManager(SharedSpaceOperations):
 
             if not s.parent.is_model():
                 # Clear parent's dynsub, not s's
-                for dynsub in s.parent._dynamic_subs.copy():
-                    root = dynsub.rootspace
-                    root.parent.clear_itemspace_at(root.argvalues_if)
+                s.parent.clear_subs_rootitems()
 
             # Call on_rename callbacks
             s.on_rename(name)
@@ -1294,9 +1292,7 @@ class SpaceManager(SharedSpaceOperations):
         old_name = cells.name
 
         for space in self._get_subs(cells.parent, skip_self=False):
-            for dynsub in space._dynamic_subs.copy():
-                root = dynsub.rootspace
-                root.parent.clear_itemspace_at(root.argvalues_if)
+            space.clear_subs_rootitems()
             space.cells[old_name].on_rename(name)
 
     def change_cells_formula(self, cells, func):
@@ -1304,9 +1300,7 @@ class SpaceManager(SharedSpaceOperations):
             c = space.cells[cells.name]
             if c is not cells and c.is_defined:
                 break   # Stop when sub cells is defined
-            for dynsub in space._dynamic_subs.copy():
-                root = dynsub.rootspace
-                root.parent.clear_itemspace_at(root.argvalues_if)
+            space.clear_subs_rootitems()
             space.cells[cells.name].on_change_formula(func)
 
     def del_cells_formula(self, cells):

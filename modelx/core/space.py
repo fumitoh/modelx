@@ -1496,6 +1496,11 @@ class DynamicBase(BaseSpaceImpl):
             baseref = self.self_refs[name]
             dynsub._dynbase_refs.set_item(name, baseref)
 
+    def clear_subs_rootitems(self):
+        for dynsub in self._dynamic_subs.copy():
+            root = dynsub.rootspace
+            root.parent.clear_itemspace_at(root.argvalues_if)
+
 
 @add_stateattrs
 class UserSpaceImpl(
