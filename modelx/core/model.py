@@ -1251,11 +1251,13 @@ class SpaceManager(SharedSpaceOperations):
             space=space, name=name, formula=formula,
             data=data,
             source=source, is_derived=is_derived)
+        space.clear_subs_rootitems()
 
         for subspace in self._get_subs(space):
             if name in subspace.cells:
                 break
             else:
+                subspace.clear_subs_rootitems()
                 UserCellsImpl(
                     space=subspace,
                     base=cells, is_derived=True)
