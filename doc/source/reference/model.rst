@@ -59,6 +59,7 @@ Child Space operations
 
   ~Model.cur_space
   ~Model.new_space
+  ~Model.clear_all
   ~Model.import_module
   ~Model.new_space_from_csv
   ~Model.new_space_from_excel

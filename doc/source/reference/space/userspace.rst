@@ -63,6 +63,7 @@ Child Space operations
   ~UserSpace.new_space_from_module
   ~UserSpace.new_space_from_pandas
   ~UserSpace.reload
+  ~UserSpace.clear_all
 
 
 Child Cells operations
@@ -79,6 +80,7 @@ Child Cells operations
   ~UserSpace.new_cells_from_module
   ~UserSpace.new_cells_from_pandas
   ~UserSpace.import_funcs
+  ~UserSpace.clear_cells
 
 Reference operations
 --------------------
@@ -106,7 +108,7 @@ ItemSpace operations
   ~UserSpace.formula
   ~UserSpace.set_formula
   ~UserSpace.del_formula
-  ~UserSpace.clear_all
+  ~UserSpace.clear_items
   ~UserSpace.clear_at
   ~UserSpace.node
   ~UserSpace.preds
