@@ -28,3 +28,24 @@ def test_rename(sample_for_rename_and_formula):
     assert tuple(sub2.itemspaces) == (2,)   # sub2[2] not deleted
     assert sub2[1].Baz(1) == 1
     assert sub2[2].Bar(1) == 1
+
+
+def test_rename_funcname():
+    """
+        Space1---foo(rename to bar)
+
+        Space2<--Space1
+    """
+
+    m = mx.new_model()
+    s1 = m.new_space('Space1')
+    s2 = m.new_space('Space2', bases=s1)
+
+    @mx.defcells(space=s1)
+    def foo(x):
+        return x
+
+    s1.foo.rename('bar')
+
+    for c in (s1.bar, s2.bar):
+        assert c.formula.source.split("\n")[0][:7] == "def bar"

@@ -777,6 +777,17 @@ class UserCellsImpl(CellsImpl):
         self.model.clear_obj(self)
         self.parent.cells.delete_item(self.name)
         self.name = name
+
+        # Change function name
+        if not self.formula._is_lambda:
+            if self.is_derived:
+                base = self.bases[0]
+                self.formula = base.formula
+            else:
+                self.formula = Formula(self.formula, name=name)
+
+            self.altfunc = BoundFunction(self)
+
         self.parent.cells.add_item(name, self)
 
     def on_change_formula(self, func):
