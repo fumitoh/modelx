@@ -508,6 +508,8 @@ class ModelImpl(
 
         self.tracegraph = nx.relabel_nodes(self.tracegraph, mapping)
 
+        self._global_refs.restore_state()
+
     @property
     def updater(self):
         return SpaceUpdater(self.spacemgr)

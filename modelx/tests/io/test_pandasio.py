@@ -5,6 +5,8 @@ import numpy as np
 import modelx as mx
 import pytest
 
+from modelx.io.baseio import BaseDataClient
+
 # Modified from the sample code on
 # https://pandas.pydata.org/docs/user_guide/advanced.html
 
@@ -48,6 +50,9 @@ def test_new_pandas(
                  data=pdobj, filetype=filetype,
                  expose_data=expose_data)
 
+    if expose_data:
+        assert isinstance(p.pdref._mx_dataclient, BaseDataClient)
+
     if save_meth == "backup":
         getattr(p.model, save_meth)(tmp_path / "model")
 
@@ -63,15 +68,17 @@ def test_new_pandas(
 
     if expose_data:
         if isinstance(pdobj, pd.DataFrame):
-            pd.testing.assert_frame_equal(getattr(p2, "pdref"), pdobj)
+            pd.testing.assert_frame_equal(p2.pdref, pdobj)
+            assert isinstance(p2.pdref._mx_dataclient, BaseDataClient)
         elif isinstance(pdobj, pd.Series):
             pd.testing.assert_series_equal(getattr(p2, "pdref"), pdobj)
+            assert isinstance(p2.pdref._mx_dataclient, BaseDataClient)
     else:
         if isinstance(pdobj, pd.DataFrame):
-            pd.testing.assert_frame_equal(getattr(p2, "pdref")(), pdobj)
+            pd.testing.assert_frame_equal(p2.pdref(), pdobj)
             pd.testing.assert_frame_equal(getattr(p2, "pdref").value, pdobj)
         elif isinstance(pdobj, pd.Series):
-            pd.testing.assert_series_equal(getattr(p2, "pdref")(), pdobj)
+            pd.testing.assert_series_equal(p2.pdref(), pdobj)
             pd.testing.assert_series_equal(getattr(p2, "pdref").value, pdobj)
 
     m2.close()

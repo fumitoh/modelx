@@ -40,7 +40,11 @@ from modelx.core.base import (
     SelectedView
 )
 from modelx.core.formula import BoundFunction, HasFormula
-from modelx.core.reference import ReferenceImpl, ReferenceProxy
+from modelx.core.reference import (
+    ReferenceImpl,
+    ReferenceProxy,
+    DataClientReferenceImpl
+)
 from modelx.core.node import (
     node_get_args,
     tuplize_key,
@@ -109,6 +113,13 @@ class RefDict(ImplDict):
             raise RuntimeError("must not happen")
         else:
             return ReferenceImpl.get_class(value)(parent, name, value, container=self)
+
+    def restore_state(self):
+        for ref in self.values():
+            if isinstance(ref, DataClientReferenceImpl):
+                ref.interface._mx_dataclient = (
+                    self.owner.model.datarefmgr.get_client(ref)
+                )
 
 
 class DynBaseRefDict(RefDict):
@@ -1461,6 +1472,7 @@ class BaseSpaceImpl(
     def restore_state(self):
         """Called after unpickling to restore some attributes manually."""
         BaseSpaceContainerImpl.restore_state(self)
+        self._self_refs.restore_state()
 
     # ----------------------------------------------------------------------
     # Pandas, Module, Excel I/O

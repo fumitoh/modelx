@@ -269,7 +269,12 @@ class DataClientReferenceManager:
     def clients(self):
         return self._client_to_refs.keys()
 
+    def get_client(self, ref):
+        for client, refs in self._client_to_refs.items():
+            if ref in refs:
+                return client
 
+        raise KeyError('must not happen')
 
 
 
