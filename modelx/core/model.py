@@ -341,6 +341,20 @@ class Model(EditableSpaceContainer):
         else:
             return super()._get_object(name, as_proxy)
 
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        """Get attributes"""
+        result = super(Model, self)._get_attrdict(extattrs, recursive)
+
+        if recursive:
+            result["refs"] = self.refs._get_attrdict(extattrs, recursive)
+        else:
+            result["refs"] = tuple(self.refs)
+
+        if extattrs:
+            self._get_attrdict_extra(result, extattrs, recursive)
+
+        return result
+
 
 class TraceManager:
 
