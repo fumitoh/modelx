@@ -113,4 +113,5 @@ class ModuleData(BaseDataClient):
         """Module held in the object"""
         return self._value
 
-
+    def __repr__(self):
+        return "<ModuleData path=%s>" % repr(str(self.path.as_posix()))

@@ -526,3 +526,8 @@ class ExcelRange(BaseDataClient, Mapping):
             for key in keygen:
                 yield key
 
+    def __repr__(self):
+        return (
+            "<ExcelRange " + "path=%s " + "range=%s " + "sheet=%s>"
+        ) % (repr(str(self.path.as_posix())),
+             repr(self.range), repr(self.sheet))

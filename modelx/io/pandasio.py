@@ -167,3 +167,8 @@ class PandasData(BaseDataClient):
     def __call__(self):
         """Returns pandas DataFrame or Series held in the object"""
         return self._value
+
+    def __repr__(self):
+        return (
+            "<PandasData " + "path=%s " + "filetype=%s>"
+        ) % (repr(str(self.path.as_posix())), repr(self.filetype))
