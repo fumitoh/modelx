@@ -46,3 +46,27 @@ def test_precedents(precedstest):
     assert repr(preceds[2]) == "Preceds.Space1.Child.GrandChild.z=3"
     assert repr(preceds[3]) == "Preceds.Space1.Child.y=2"
 
+
+
+def test_nested_globals():
+    """Globals used in generator and nested function"""
+
+    def foo():
+        return list(gvar * i for i in (0, 1, 2))
+
+    def bar():
+        def inner():
+            return gvar
+        return inner()
+
+    s = mx.new_model().new_space()
+    s.gvar = 1
+    s.new_cells(formula=foo)
+    s.new_cells(formula=bar)
+
+    for cells in [s.foo, s.bar]:
+        cells()
+        node = cells.precedents()[0]
+        assert node.obj.name == 'gvar'
+        assert node.obj.value == 1
+

@@ -15,7 +15,7 @@
 import token
 import ast
 import warnings
-from types import FunctionType
+from types import FunctionType, CodeType
 from inspect import signature, getsource, getsourcefile, findsource
 from textwrap import dedent, indent
 import tokenize
@@ -595,14 +595,23 @@ class BoundFunction(LazyEval):
         self.set_update()
 
     def _init_names(self):
-        insts = list(dis.get_instructions(self.owner.formula.func.__code__))
+        return tuple(self._extract_globals(self.owner.formula.func.__code__))
+
+    def _extract_globals(self, codeobj):
+
+        insts = list(dis.get_instructions(codeobj))
 
         names = []
         for inst in insts:
             if inst.opname == "LOAD_GLOBAL" and inst.argval not in names:
                 names.append(inst.argval)
 
-        return tuple(names)
+        # Extract globals in generators and nested functions
+        for co in codeobj.co_consts:
+            if isinstance(co, CodeType):
+                names.extend(self._extract_globals(co))
+
+        return names
 
     def _update_data(self):
         """Update altfunc"""
