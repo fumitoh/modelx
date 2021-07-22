@@ -9,7 +9,7 @@ if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
     if psutil.virtual_memory().total < 8 * 1024**3:
         maxdepth = 30000
     else:
-        maxdepth = 57000
+        maxdepth = 50000
 elif sys.platform == "darwin":
     # https://bugs.python.org/issue18075
     # https://bugs.python.org/issue34602
