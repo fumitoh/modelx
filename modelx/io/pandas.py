@@ -107,14 +107,13 @@ def cellsiter_to_dataframe(cellsiter, args, drop_allna=True):
                         )
                         == 1
                     ):
-
+                        # Change index column dtype to object
                         if str(result[col].dtype) == "object":
-                            frame = df
+                            df = df.assign(**{col: df[col].astype('object')})
                         else:
-                            frame = result
-                        frame[[col]] = frame[col].astype("object")
+                            result = result.assign(
+                                **{col: result[col].astype('object')})
 
-                # Try again
                 result = pd.merge(result, df, how="outer")
 
     if result is None:
