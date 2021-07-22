@@ -126,7 +126,11 @@ class ThreadedExecutor(NonThreadedExecutor):
         NonThreadedExecutor.__init__(self, system, maxdepth)
         self.thread = ThreadedExecutor.ExecThread(self)
         self.thread.daemon = True
-        last_size = threading.stack_size(0xFFFFFFF)
+
+        # Set max stack size to nt limit (256MB)
+        # https://github.com/python/cpython/blob/v3.9.6/Python/thread_nt.h#L358
+
+        last_size = threading.stack_size(0x10000000 - 1)
         self.thread.start()
         threading.stack_size(last_size)
         self.initnode = None
