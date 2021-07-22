@@ -10,6 +10,10 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *23 July 2021:*
+  modelx v0.16.1 is released.
+  See :doc:`releases/relnotes_v0_16_1` release notes for details.
+
 * *19 June 2021:*
   modelx v0.16.0 is released.
   See :doc:`releases/relnotes_v0_16_0` release notes for details.
