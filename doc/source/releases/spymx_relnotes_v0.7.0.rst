@@ -128,7 +128,7 @@ controlling which method to use.
    Indicator in MxAnalyzer showing the selected Cells
 
 
-Bug Fix
+Bug Fixs
 =============
 
 * Fixed the bug that MxAnalyzer fails to unfold the top row
