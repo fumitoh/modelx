@@ -18,8 +18,6 @@ which is build from docstrings of the API functions and classes.
 The reference should cover the details of each API element,
 which may not be fully explained in this tutorial.
 
-.. contents:: Contents
-   :local:
 
 Importing modelx
 ----------------

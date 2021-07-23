@@ -4,8 +4,7 @@ Advanced Usage
 This section covers more advanced modelx concepts and techniques
 that are not covered by the earlier sections.
 
-.. contents:: Contents
-   :local:
+
 
 Advanced Concepts
 -----------------

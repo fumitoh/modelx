@@ -32,10 +32,6 @@ check out `great articles <https://pbpython.com/amortization-model-revised.html>
 on the `Practical Business Python <https://pbpython.com>`_ site.
 
 
-.. contents:: Contents
-   :local:
-
-
 Creating a Model and a Space explicitly
 ---------------------------------------
 

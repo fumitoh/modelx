@@ -6,10 +6,6 @@
 modelx v0.2.0 (13 January 2020)
 ================================
 
-.. contents:: What's new in v0.2.0
-   :depth: 1
-   :local:
-
 This release includes enhancements in reading and writing models,
 as well as some spec changes.
 

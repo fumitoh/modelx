@@ -21,10 +21,6 @@ What's New
 .. End Development Sate
 
 
-.. contents::
-   :depth: 1
-   :local:
-
 Latest Updates
 ===============
 

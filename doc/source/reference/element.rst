@@ -32,9 +32,6 @@ if it exists.
     * :meth:`UserSpace.preds <space.UserSpace.preds>`
     * :meth:`UserSpace.succs <space.UserSpace.succs>`
 
-.. contents:: 
-   :depth: 1
-   :local:
 
 
 BaseNode

@@ -6,8 +6,6 @@ first we learn how to interface with modelx, then
 set up a Python environment for modelx, and
 learn about core modelx objects.
 
-.. contents:: Contents
-   :local:
 
 How to interface with modelx
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

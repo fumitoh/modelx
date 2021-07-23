@@ -36,10 +36,6 @@ update modelx and spyder-modelx manually:
     spyder-modelx v0.8.0 requires modelx v0.15.0 or newer.
 
 
-.. contents:: Contents
-   :local:
-
-
 Enhancements
 =============
 

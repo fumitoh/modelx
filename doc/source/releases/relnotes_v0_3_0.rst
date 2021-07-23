@@ -6,10 +6,6 @@
 modelx v0.3.0 (18 February 2020)
 ================================
 
-.. contents:: What's new in v0.3.0
-   :depth: 1
-   :local:
-
 This release introduces some backward incompatible changes
 to make modelx design clearer and easier to understand.
 

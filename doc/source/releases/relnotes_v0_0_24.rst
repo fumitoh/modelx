@@ -8,10 +8,6 @@ Code around implementing inheritance is extensively refactored in this release,
 and a couple of small enhancements are incorporated in response to user's feature requests.
 
 
-.. contents:: What's new in v0.0.24
-   :depth: 1
-   :local:
-
 Enhancements
 ============
 

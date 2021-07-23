@@ -36,8 +36,6 @@ and ``0, 1, 1, 2, 3, ...`` the values of the formula.
 Through this exercise, we are going to learn how to perform
 basic operations in modelx.
 
-.. contents:: Contents
-   :local:
 
 Creating a Cells and defining its Formula
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

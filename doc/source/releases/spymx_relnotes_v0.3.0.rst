@@ -13,10 +13,6 @@ added to MxExplorer, which lists properties of a selected object.
 modelx needs to be updated to v0.4.0
 for this version of spyder-modelx to work.
 
-.. contents::
-   :depth: 1
-   :local:
-
 Enhancements
 ============
 

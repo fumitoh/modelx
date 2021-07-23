@@ -13,12 +13,6 @@ Installation
     You can start using modelx just by unzipping the downloaded file,
     and no need to follow the steps on this page.
 
-
-.. contents:: Contents
-   :depth: 1
-   :local:
-
-
 Python version
 --------------
 modelx requires Python 3.6 or newer. modelx does not work with Python 3 older

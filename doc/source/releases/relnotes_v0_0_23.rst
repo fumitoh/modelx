@@ -4,10 +4,6 @@
 modelx v0.0.23 (9 August 2019)
 ==============================
 
-.. contents:: What's new in v0.0.23
-   :depth: 1
-   :local:
-
 New Features
 ============
 

@@ -13,9 +13,6 @@ the execution of cells formulas, such as
 how much time each formula takes from start to finish, or
 what formulas are called in what order to identify performance bottlenecks.
 
-.. contents:: What's new in v0.0.25
-   :depth: 1
-   :local:
 
 Enhancements
 ============

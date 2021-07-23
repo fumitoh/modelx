@@ -6,10 +6,6 @@
 modelx v0.4.0 (15 March 2020)
 ================================
 
-.. contents:: What's new in v0.4.0
-   :depth: 1
-   :local:
-
 This release introduces major improvement in calculation tracing
 as well as some bug fixes. The calculation speed is also improved
 by 15% to 20%.

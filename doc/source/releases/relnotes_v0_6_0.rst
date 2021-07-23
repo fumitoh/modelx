@@ -27,10 +27,6 @@ modelx v0.6.0 (27 April 2020)
 This release implements a new error mechanism for tracing errors raised in
 formula execution. The error messages are also improved.
 
-.. contents::
-   :depth: 1
-   :local:
-
 
 Enhancements
 ============

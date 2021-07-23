@@ -24,10 +24,6 @@ The calculation speed is improved by 10% due to the change.
 .. _commit df083f6: https://github.com/fumitoh/lifelib/commit/df083f681752eab16508e676c63f9e2f6ae7ca4f
 .. _lifelib: https://lifelib.io
 
-.. contents::
-   :depth: 1
-   :local:
-
 
 Enhancements
 ============

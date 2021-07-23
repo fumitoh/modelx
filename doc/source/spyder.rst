@@ -57,11 +57,6 @@ own separate windows, and "dock" them back in the main window at
 different positions
 to rearrange the widgets positions in the main window as you like.
 
-.. contents:: Plugin components
-   :depth: 1
-   :local:
-
-
 
 .. _Spyder: https://www.spyder-ide.org/
 

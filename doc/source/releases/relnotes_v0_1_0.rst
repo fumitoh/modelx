@@ -6,10 +6,6 @@
 modelx v0.1.0 (1 December 2019)
 ================================
 
-.. contents:: What's new in v0.1.0
-   :depth: 1
-   :local:
-
 This release introduces major spec changes and enhancements,
 as well as a few minor bug fixes.
 
