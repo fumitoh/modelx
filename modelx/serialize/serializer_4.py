@@ -708,6 +708,10 @@ class CellsEncoder(BaseEncoder):
         else:
             lines.append(self.target.name + " = None")
 
+        # Output allow_none
+        if self.target.allow_none is not None:
+            lines.append("_allow_none = " + str(self.target.allow_none))
+
         return "\n\n".join(lines)
 
     def pickle_value(self):
@@ -1029,6 +1033,12 @@ def _replace_saved_path(space, temppath: str, path: str):
 
     for child in space.spaces.values():
         _replace_saved_path(child, temppath, path)
+
+
+def node_from_token(ast_, index):
+    return next(
+        (n for n in ast_.tree.body if
+         n.first_token.index <= index <= n.last_token.index), None)
 
 
 class ModelReader:
@@ -1382,7 +1392,8 @@ class AttrAssignParser(BaseAssignParser):
 
     @classmethod
     def condition(cls, node, section, atok):
-        if isinstance(node, cls.AST_NODE) and section == "DEFAULT":
+        if isinstance(node, cls.AST_NODE) and (
+                section == "DEFAULT" or section == "CELLSDEFS"):
             return True
         return False
 
@@ -1427,12 +1438,16 @@ class AttrAssignParser(BaseAssignParser):
             return
 
         elif self.target == "_allow_none":
-            value = ast.literal_eval(self.atok.get_text(self.node.value))
-            return Instruction.from_method(
-                obj=self.obj,
-                method="set_property",
-                args=("allow_none", value)
-            )
+            if self.section == "DEFAULT":
+                value = ast.literal_eval(self.atok.get_text(self.node.value))
+                return Instruction.from_method(
+                    obj=self.obj,
+                    method="set_property",
+                    args=("allow_none", value))
+            else:
+                # Cells.allow_none is processed
+                # by LambdaAssignParser and CellsFuncDefParser
+                return
 
         else:
             raise RuntimeError("unknown attribute assignment")
@@ -1518,11 +1533,26 @@ class CellsInputDataMixin(BaseNodeParser):
             self.set_values(data)
 
 
+def skip_blank_tokens(tokens, idx):
+    # There may be trailing comments that must be skipped.
+    # See FunctionDefParser
+    while (tokens[idx].type == token.NEWLINE or
+           tokens[idx].type == token.INDENT or
+           tokens[idx].type == token.DEDENT or
+           tokens[idx].type == token.NL or
+           tokens[idx].type == token.COMMENT):
+        idx += 1
+    return idx
+
+
 class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
 
     @classmethod
     def condition(cls, node, section, atok):
-        if isinstance(node, cls.AST_NODE) and section == "CELLSDEFS":
+        # Exclude assignments of names starting "_"
+        if isinstance(node, cls.AST_NODE) and section == "CELLSDEFS" and (
+            node.targets[0].id[0] != "_"
+        ):
             return True
         return False
 
@@ -1537,17 +1567,17 @@ class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
         }
         # lambda cells definition
         inst = Instruction.from_method(
-            obj=self.impl,
+            obj=self.obj,
             method="new_cells",
             kwargs=kwargs
         )
 
         # find doc
-        next_idx = self.node.last_token.index + 1
-        while (self.atok.tokens[next_idx].type == token.NEWLINE or
-               self.atok.tokens[next_idx].type == token.INDENT):
-            next_idx += 1
+        next_idx = skip_blank_tokens(
+            self.atok.tokens, self.node.last_token.index + 1)
+        next_node = node_from_token(self.atok, next_idx)
 
+        compinst = [inst]
         if self.atok.tokens[next_idx].type == token.STRING:
             doc = ast.literal_eval(self.atok.tokens[next_idx].string)
             inst_doc = Instruction.from_method(
@@ -1555,16 +1585,34 @@ class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
                 method="set_doc",
                 kwargs={'doc': doc}
             )
-            return CompoundInstruction([
-                inst,
-                inst_doc,
-                Instruction(self.load_pickledata)
-            ])
-        else:
-            return CompoundInstruction([
-                inst,
-                Instruction(self.load_pickledata)
-            ])
+            compinst.append(inst_doc)
+
+            next_idx = skip_blank_tokens(
+                self.atok.tokens, next_idx + 1)
+            next_node = node_from_token(self.atok, next_idx)
+
+            if isinstance(next_node, ast.Assign) and (
+                    next_node.first_token.string == "_allow_none"):
+                value = ast.literal_eval(self.atok.get_text(next_node.value))
+                inst_allow_none = Instruction.from_method(
+                    obj=inst,
+                    method="set_property",
+                    args=("allow_none", value)
+                )
+                compinst.append(inst_allow_none)
+
+        elif isinstance(next_node, ast.Assign) and (
+                next_node.first_token.string == "_allow_none"):
+            value = ast.literal_eval(self.atok.get_text(next_node.value))
+            inst_allow_none = Instruction.from_method(
+                obj=inst,
+                method="set_property",
+                args=("allow_none", value)
+            )
+            compinst.append(inst_allow_none)
+
+        compinst.append(Instruction(self.load_pickledata))
+        return CompoundInstruction(compinst)
 
 
 class FunctionDefParser(BaseNodeParser):
@@ -1590,7 +1638,7 @@ class FunctionDefParser(BaseNodeParser):
 
         kwargs = {"formula": funcdef}
         return Instruction.from_method(
-            obj=self.impl,
+            obj=self.obj,
             method=self.METHOD,
             kwargs=kwargs
         )
@@ -1617,10 +1665,26 @@ class CellsFuncDefParser(FunctionDefParser, CellsInputDataMixin):
         return self.node.name
 
     def get_instruction(self):
-        return CompoundInstruction([
-            super().get_instruction(),
-            Instruction(self.load_pickledata)
-        ])
+
+        inst = super().get_instruction()
+        compinst = [inst]
+
+        next_idx = skip_blank_tokens(
+            self.atok.tokens, self.node.last_token.index + 1)
+        next_node = node_from_token(self.atok, next_idx)
+
+        if isinstance(next_node, ast.Assign) and (
+                next_node.first_token.string == "_allow_none"):
+            value = ast.literal_eval(self.atok.get_text(next_node.value))
+            inst_allow_none = Instruction.from_method(
+                obj=inst,
+                method="set_property",
+                args=("allow_none", value)
+            )
+            compinst.append(inst_allow_none)
+
+        compinst.append(Instruction(self.load_pickledata))
+        return CompoundInstruction(compinst)
 
 
 class ParserSelector(BaseSelector):
