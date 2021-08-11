@@ -48,9 +48,6 @@ class NamespaceServer:
     def on_add_item(self, sender, name, value):
         self.notify_referrers(is_all=False, names=[name])
 
-    def on_change_item(self, sender, name, value):
-        self.notify_referrers(is_all=False, names=[name])
-
     def on_delete_item(self, sender, name):
         self.notify_referrers(is_all=False, names=[name])
 

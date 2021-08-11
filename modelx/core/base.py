@@ -775,6 +775,24 @@ class LazyEvalDict(LazyEval, dict):
     def _update_item(self, name):
         raise NotImplementedError
 
+    def _rename_still(self, old_name, new_name):
+        """Rename a key without changing its position.
+        """
+        keys = list(self.keys())
+        i = keys.index(old_name)
+        n = len(keys)
+
+        # Remove old_name and append it as new_name
+        value = self.pop(old_name)
+        dict.__setitem__(self, new_name, value)
+        i += 1
+
+        # Remove and append all the items after old_name
+        while i < n:
+            value = self.pop(keys[i])
+            dict.__setitem__(self, keys[i], value)
+            i += 1
+
     def set_item(self, name, value, skip_self=False):
         dict.__setitem__(self, name, value)
         self.set_refresh(skip_self)
@@ -794,17 +812,6 @@ class LazyEvalDict(LazyEval, dict):
             for observer in self.observers:
                 if observer.is_fresh:
                     observer.on_add_item(self, name, value)
-
-    def change_item(self, name, value):
-        self.on_change_item(None, name, value)
-
-    def on_change_item(self, sender, name, value):
-        dict.__setitem__(self, name, value)
-        if self.is_fresh:
-            self._update_item(name)
-            for observer in self.observers:
-                if observer.is_fresh:
-                    observer.on_change_item(self, name, value)
 
     def delete_item(self, name):
         self.on_delete_item(None, name)
@@ -854,25 +861,13 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
                     if observer.is_fresh:
                         observer.on_add_item(self, name, value)
 
-    def on_change_item(self, sender, name, value):
-        if self.is_fresh:
-            self._update_item(name)
-            map_ = next((m for m in self.maps if name in m), None)
-            if map_ is sender:
-                for observer in self.observers:
-                    if observer.is_fresh:
-                        observer.on_change_item(self, name, value)
-
     def on_delete_item(self, sender, name):
         if self.is_fresh:
             self._update_item(name)
-            map_ = next((m for m in self.maps if name in m), None)
+            # map_ = next((m for m in self.maps if name in m), None)
             for observer in self.observers:
                 if observer.is_fresh:
-                    if map_:
-                        observer.on_change_item(self, name, map_[name])
-                    else:
-                        observer.on_delete_item(self, name)
+                    observer.on_delete_item(self, name)
 
     def __setitem__(self, name, value):
         raise NotImplementedError

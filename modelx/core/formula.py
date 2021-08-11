@@ -661,9 +661,6 @@ class BoundFunction(LazyEval):
     def on_add_item(self, namespace, name, value):
         self.global_names = self._init_names()
 
-    def on_change_item(self, namespace, name, value):
-        self.global_names = self._init_names()
-
     def on_delete_item(self, namespace, name):
         self.global_names = self._init_names()
 
