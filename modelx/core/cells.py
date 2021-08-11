@@ -573,7 +573,7 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
 
             self.model.clear_obj(self)
             self.formula = bases[0].formula
-            self.altfunc.set_update()
+            self.altfunc.set_refresh()
 
     @property
     def namespace(self):

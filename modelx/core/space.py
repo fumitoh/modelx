@@ -1144,7 +1144,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
                 else:
                     self.formula = ParamFunc(formula, name="_formula")
                 self.altfunc = BoundFunction(self)
-                self.altfunc.set_update()
+                self.altfunc.set_refresh()
             else:
                 self.del_formula()
                 self.set_formula(formula)
@@ -1956,7 +1956,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         # dynamic spaces and leafs are not yet constructed here.
 
         # Make _dynbase_refs updated
-        # _dynbase_refs.needs_update must always False
+        # _dynbase_refs.needs_refresh must always False
         self._dynbase_refs.fresh
 
         return ImplChainMap(

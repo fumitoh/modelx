@@ -17,7 +17,7 @@ class LazyEvalDict2(LazyEvalDict):
         self.org_data = data.copy()
         LazyEvalDict.__init__(self, data, observers)
 
-    def _update_data(self):
+    def _refresh_data(self):
         self.clear()
         self.update(self.org_data)
         self.update(self.source)
@@ -53,7 +53,7 @@ def test_lazy_eval_dict_update():
     sample = SampleLazyEval()
     del sample.lazy_eval_dict1["A"]
     sample.lazy_eval_dict1["E"] = 5
-    sample.lazy_eval_dict1.set_update()
+    sample.lazy_eval_dict1.set_refresh()
 
     assert sample.lazy_eval_dict2 == check
 
@@ -68,6 +68,6 @@ def test_lazy_eval_chmap_update():
     sample = SampleLazyEval()
     del sample.lazy_eval_dict1["A"]
     sample.lazy_eval_dict1["E"] = 5
-    sample.lazy_eval_dict1.set_update()
+    sample.lazy_eval_dict1.set_refresh()
 
     assert sample.lazy_eval_chmap == check

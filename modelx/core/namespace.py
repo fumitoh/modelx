@@ -20,18 +20,18 @@ class NamespaceServer:
     __cls_stateattrs = [
      "_namespace",
      "observing",
-     "needs_update",
+     "needs_refresh",
      "_referrers"
     ]
 
     def __init__(self, namespace: ImplChainMap):
         self._namespace = namespace
-        self.needs_update = False   # dummy
+        self.needs_refresh = False   # dummy
         self.observing = []         # dummy
         self._referrers = []
         self._namespace.append_observer(self)
 
-    def set_update(self):
+    def set_refresh(self):
         self.notify_referrers(is_all=True)
 
     def add_referrer(self, referrer: "BaseNamespaceReferrer"):

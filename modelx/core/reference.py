@@ -204,7 +204,7 @@ class ReferenceImpl(Derivable, Impl):
                     raise ValueError("must not happen")
         else:
             self.interface = bases[0].interface
-        self.container.set_update()
+        self.container.set_refresh()
 
 
 ReferenceImpl.picklers.append(_ModulePickler)

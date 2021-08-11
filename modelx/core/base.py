@@ -694,41 +694,41 @@ class LazyEval:
     """Base class for flagging observers so that they update themselves later.
 
     An object of a class inherited from LazyEvaluation can have its observers.
-    When the data of the object is updated, the users call set_update method,
+    When the data of the object is updated, the users call set_refresh method,
     to flag the object's observers.
     When the observers get_updated methods are called later, their data
     contents are updated depending on their update states.
-    The updating operation can be customized by overwriting _update_data method.
+    The updating operation can be customized by overwriting _refresh_data method.
     """
     __slots__ = ()
-    __slots = ("needs_update", "observers", "observing")
+    __slots = ("needs_refresh", "observers", "observing")
     __stateattrs = ("observers", "observing")
 
     def __init__(self, observers):
-        self.needs_update = False  # must be read only
+        self.needs_refresh = False  # must be read only
         self.observers = []
         self.observing = []
         for observer in observers:
             self.append_observer(observer)
 
-    def set_update(self, skip_self=False):
+    def set_refresh(self, skip_self=False):
 
         if not skip_self:
-            self.needs_update = True
+            self.needs_refresh = True
         for observer in self.observers:
-            if not observer.needs_update:
-                observer.set_update()
+            if not observer.needs_refresh:
+                observer.set_refresh()
 
     @property
     def fresh(self):
-        if self.needs_update:
+        if self.needs_refresh:
             for other in self.observing:
                 other.fresh
-            self._update_data()
-            self.needs_update = False
+            self._refresh_data()
+            self.needs_refresh = False
         return self
 
-    def _update_data(self):
+    def _refresh_data(self):
         raise NotImplementedError  # To be overwritten in derived classes
 
     def append_observer(self, observer):
@@ -737,7 +737,7 @@ class LazyEval:
         if all(observer is not other for other in self.observers):
             self.observers.append(observer)
             observer.observing.append(self)
-            observer.set_update()
+            observer.set_refresh()
 
     def observe(self, other):
         other.append_observer(self)
@@ -750,7 +750,7 @@ class LazyEval:
         other.remove_observer(self)
 
     def __setstate(self, state):
-        self.needs_update = True
+        self.needs_refresh = True
 
 
 class LazyEvalDict(LazyEval, dict):
@@ -769,7 +769,7 @@ class LazyEvalDict(LazyEval, dict):
         LazyEval.__init__(self, observers)
         self._repr = ""
 
-    def _update_data(self):
+    def _refresh_data(self):
         pass
 
     def _update_item(self, name):
@@ -777,11 +777,11 @@ class LazyEvalDict(LazyEval, dict):
 
     def set_item(self, name, value, skip_self=False):
         dict.__setitem__(self, name, value)
-        self.set_update(skip_self)
+        self.set_refresh(skip_self)
 
     def del_item(self, name, skip_self=False):
         dict.__delitem__(self, name)
-        self.set_update(skip_self)
+        self.set_refresh(skip_self)
 
     def add_item(self, name, value):
         """Adding new item"""
@@ -789,10 +789,10 @@ class LazyEvalDict(LazyEval, dict):
 
     def on_add_item(self, sender, name, value):
         dict.__setitem__(self, name, value)
-        if not self.needs_update:
+        if not self.needs_refresh:
             self._update_item(name)
             for observer in self.observers:
-                if not observer.needs_update:
+                if not observer.needs_refresh:
                     observer.on_add_item(self, name, value)
 
     def change_item(self, name, value):
@@ -800,10 +800,10 @@ class LazyEvalDict(LazyEval, dict):
 
     def on_change_item(self, sender, name, value):
         dict.__setitem__(self, name, value)
-        if not self.needs_update:
+        if not self.needs_refresh:
             self._update_item(name)
             for observer in self.observers:
-                if not observer.needs_update:
+                if not observer.needs_refresh:
                     observer.on_change_item(self, name, value)
 
     def delete_item(self, name):
@@ -811,10 +811,10 @@ class LazyEvalDict(LazyEval, dict):
 
     def on_delete_item(self, sender, name):
         dict.__delitem__(self, name)
-        if not self.needs_update:
+        if not self.needs_refresh:
             self._update_item(name)
             for observer in self.observers:
-                if not observer.needs_update:
+                if not observer.needs_refresh:
                     observer.on_delete_item(self, name)
 
 
@@ -840,35 +840,35 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
                 if isinstance(other, LazyEval):
                     other.append_observer(self)
 
-    def _update_data(self):
+    def _refresh_data(self):
         for map_ in self.maps:
             if isinstance(map_, LazyEval):
                 map_.fresh
 
     def on_add_item(self, sender, name, value):
-        if not self.needs_update:
+        if not self.needs_refresh:
             self._update_item(name)
             map_ = next((m for m in self.maps if name in m), None)
             if map_ is sender:
                 for observer in self.observers:
-                    if not observer.needs_update:
+                    if not observer.needs_refresh:
                         observer.on_add_item(self, name, value)
 
     def on_change_item(self, sender, name, value):
-        if not self.needs_update:
+        if not self.needs_refresh:
             self._update_item(name)
             map_ = next((m for m in self.maps if name in m), None)
             if map_ is sender:
                 for observer in self.observers:
-                    if not observer.needs_update:
+                    if not observer.needs_refresh:
                         observer.on_change_item(self, name, value)
 
     def on_delete_item(self, sender, name):
-        if not self.needs_update:
+        if not self.needs_refresh:
             self._update_item(name)
             map_ = next((m for m in self.maps if name in m), None)
             for observer in self.observers:
-                if not observer.needs_update:
+                if not observer.needs_refresh:
                     if map_:
                         observer.on_change_item(self, name, map_[name])
                     else:
@@ -903,7 +903,7 @@ class OrderMixin:
 class InterfaceMixin:
     """Mixin to LazyEval to update interface with impl
 
-    _update_interfaces needs to be manually called from _update_data.
+    _update_interfaces needs to be manually called from _refresh_data.
     """
     __slots__ = ()
     __slots = ("_interfaces", "map_class", "interfaces")
@@ -952,8 +952,8 @@ class ImplDict(*bases):
         OrderMixin.__init__(self)
         LazyEvalDict.__init__(self, data, observers)
 
-    def _update_data(self):
-        LazyEvalDict._update_data(self)
+    def _refresh_data(self):
+        LazyEvalDict._refresh_data(self)
         self._update_order()
         self._update_interfaces()
 
@@ -977,8 +977,8 @@ class ImplChainMap(*bases):
         OrderMixin.__init__(self)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
-    def _update_data(self):
-        LazyEvalChainMap._update_data(self)
+    def _refresh_data(self):
+        LazyEvalChainMap._refresh_data(self)
         self._update_order()
         self._update_interfaces()
 
