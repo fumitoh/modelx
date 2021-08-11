@@ -1956,7 +1956,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         # dynamic spaces and leafs are not yet constructed here.
 
         # Make _dynbase_refs updated
-        # _dynbase_refs.needs_refresh must always False
+        # _dynbase_refs.is_fresh must always True
         self._dynbase_refs.fresh
 
         return ImplChainMap(

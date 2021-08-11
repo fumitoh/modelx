@@ -701,11 +701,11 @@ class LazyEval:
     The updating operation can be customized by overwriting _refresh_data method.
     """
     __slots__ = ()
-    __slots = ("needs_refresh", "observers", "observing")
+    __slots = ("is_fresh", "observers", "observing")
     __stateattrs = ("observers", "observing")
 
     def __init__(self, observers):
-        self.needs_refresh = False  # must be read only
+        self.is_fresh = True  # must be read only
         self.observers = []
         self.observing = []
         for observer in observers:
@@ -714,18 +714,18 @@ class LazyEval:
     def set_refresh(self, skip_self=False):
 
         if not skip_self:
-            self.needs_refresh = True
+            self.is_fresh = False
         for observer in self.observers:
-            if not observer.needs_refresh:
+            if observer.is_fresh:
                 observer.set_refresh()
 
     @property
     def fresh(self):
-        if self.needs_refresh:
+        if not self.is_fresh:
             for other in self.observing:
                 other.fresh
             self._refresh_data()
-            self.needs_refresh = False
+            self.is_fresh = True
         return self
 
     def _refresh_data(self):
@@ -750,7 +750,7 @@ class LazyEval:
         other.remove_observer(self)
 
     def __setstate(self, state):
-        self.needs_refresh = True
+        self.is_fresh = False
 
 
 class LazyEvalDict(LazyEval, dict):
@@ -789,10 +789,10 @@ class LazyEvalDict(LazyEval, dict):
 
     def on_add_item(self, sender, name, value):
         dict.__setitem__(self, name, value)
-        if not self.needs_refresh:
+        if self.is_fresh:
             self._update_item(name)
             for observer in self.observers:
-                if not observer.needs_refresh:
+                if observer.is_fresh:
                     observer.on_add_item(self, name, value)
 
     def change_item(self, name, value):
@@ -800,10 +800,10 @@ class LazyEvalDict(LazyEval, dict):
 
     def on_change_item(self, sender, name, value):
         dict.__setitem__(self, name, value)
-        if not self.needs_refresh:
+        if self.is_fresh:
             self._update_item(name)
             for observer in self.observers:
-                if not observer.needs_refresh:
+                if observer.is_fresh:
                     observer.on_change_item(self, name, value)
 
     def delete_item(self, name):
@@ -811,10 +811,10 @@ class LazyEvalDict(LazyEval, dict):
 
     def on_delete_item(self, sender, name):
         dict.__delitem__(self, name)
-        if not self.needs_refresh:
+        if self.is_fresh:
             self._update_item(name)
             for observer in self.observers:
-                if not observer.needs_refresh:
+                if observer.is_fresh:
                     observer.on_delete_item(self, name)
 
 
@@ -846,29 +846,29 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
                 map_.fresh
 
     def on_add_item(self, sender, name, value):
-        if not self.needs_refresh:
+        if self.is_fresh:
             self._update_item(name)
             map_ = next((m for m in self.maps if name in m), None)
             if map_ is sender:
                 for observer in self.observers:
-                    if not observer.needs_refresh:
+                    if observer.is_fresh:
                         observer.on_add_item(self, name, value)
 
     def on_change_item(self, sender, name, value):
-        if not self.needs_refresh:
+        if self.is_fresh:
             self._update_item(name)
             map_ = next((m for m in self.maps if name in m), None)
             if map_ is sender:
                 for observer in self.observers:
-                    if not observer.needs_refresh:
+                    if observer.is_fresh:
                         observer.on_change_item(self, name, value)
 
     def on_delete_item(self, sender, name):
-        if not self.needs_refresh:
+        if self.is_fresh:
             self._update_item(name)
             map_ = next((m for m in self.maps if name in m), None)
             for observer in self.observers:
-                if not observer.needs_refresh:
+                if observer.is_fresh:
                     if map_:
                         observer.on_change_item(self, name, map_[name])
                     else:

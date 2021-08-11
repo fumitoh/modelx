@@ -20,13 +20,13 @@ class NamespaceServer:
     __cls_stateattrs = [
      "_namespace",
      "observing",
-     "needs_refresh",
+     "is_fresh",
      "_referrers"
     ]
 
     def __init__(self, namespace: ImplChainMap):
         self._namespace = namespace
-        self.needs_refresh = False   # dummy
+        self.is_fresh = True   # dummy
         self.observing = []         # dummy
         self._referrers = []
         self._namespace.append_observer(self)
