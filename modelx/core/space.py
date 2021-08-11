@@ -267,23 +267,6 @@ class SpaceView(BaseView):
         space.model.updater.del_defined_space(space)
 
 
-class NamedItemSpaceView(SpaceView):
-
-    def _get_attrdict(self, extattrs=None, recursive=True):
-        """For spyder-modelx to populate SpaceView for named_itemspace"""
-
-        result = {"type": type(self).__name__}
-        try:
-            result["items"] = {
-                name: item._baseattrs
-                for name, item in self.items()
-            }
-        except:
-            raise RuntimeError("%s literadict raised an error" % self)
-
-        return result
-
-
 class RefView(SelectedView):
 
     @property
@@ -297,7 +280,6 @@ class RefView(SelectedView):
                 items[name] = ReferenceProxy(self.impl[name])._baseattrs
 
         return result
-
 
     def _get_attrdict(self, extattrs=None, recursive=True):
 

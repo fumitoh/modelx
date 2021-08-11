@@ -749,11 +749,6 @@ class LazyEval:
     def unobserve(self, other):
         other.remove_observer(self)
 
-    def debug_print_observers(self, indent_level=0):
-        print(" " * indent_level * 4, self, ":", self.needs_update)
-        for observer in self.observers:
-            observer.debug_print_observers(indent_level + 1)
-
     def __setstate(self, state):
         self.needs_update = True
 
@@ -997,10 +992,6 @@ class RefChainMap(ImplChainMap):
             self, owner, ifclass,
             maps=maps, observers=observers, observe_maps=observe_maps
         )
-        for m in maps:
-            if hasattr(m, "scopes") and owner not in m.scopes:
-                raise RuntimeError("must not be used")
-                m.scopes.append(owner)
 
 
 # The code below is modified from UserDict in Python's standard library.
