@@ -569,7 +569,7 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
         else:
             raise ValueError("%s not a scalar" % self.name)
 
-    def inherit(self, updater, bases):
+    def on_inherit(self, updater, bases):
 
             self.model.clear_obj(self)
             self.formula = bases[0].formula

@@ -1803,7 +1803,7 @@ class UserSpaceImpl(
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
 
-    def inherit(self, updater, bases, attr):
+    def on_inherit(self, updater, bases, attr):
 
         if bases and self.is_derived:
             self.set_formula(bases[0].formula)
@@ -1843,7 +1843,7 @@ class UserSpaceImpl(
                     raise RuntimeError("must not happen")
 
             if selfdict[name].is_derived:
-                selfdict[name].inherit(updater, bs)
+                selfdict[name].on_inherit(updater, bs)
 
         for name in diffs:
             if selfdict[name].is_derived:

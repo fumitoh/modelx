@@ -176,7 +176,7 @@ class ReferenceImpl(Derivable, Impl):
         return (isinstance(self.interface, Interface)
                 and self.interface._is_valid())
 
-    def inherit(self, updater, bases):
+    def on_inherit(self, updater, bases):
 
         self.model.clear_obj(self)
         if bases[0].has_interface():

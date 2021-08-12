@@ -1173,7 +1173,7 @@ class SharedSpaceOperations:
         for attr in ("cells", "self_refs"):
             for s in self._get_subs(space, skip_self):
                 b = self._get_space_bases(s, self._graph)
-                s.inherit(self, b, attr)
+                s.on_inherit(self, b, attr)
 
     def _get_subs(self, space, skip_self=True):
         idx = 1 if skip_self else 0
@@ -1492,7 +1492,7 @@ class SpaceUpdater(SharedSpaceOperations):
     def _update_derived_space(self, node):
         space = self._graph.to_space(node)
         bases = self._get_space_bases(space, self._graph)
-        space.inherit(self, bases, 'cells')
+        space.on_inherit(self, bases, 'cells')
         self._instructions.append(
             Instruction(self._update_derived_refs, (node,))
         )
@@ -1500,7 +1500,7 @@ class SpaceUpdater(SharedSpaceOperations):
     def _update_derived_refs(self, node):
         space = self._graph.to_space(node)
         bases = self._get_space_bases(space, self._graph)
-        space.inherit(self, bases, 'self_refs')
+        space.on_inherit(self, bases, 'self_refs')
 
     def _derive_hook(self, graph, edge):
         """Callback passed as on_edge parameter"""
