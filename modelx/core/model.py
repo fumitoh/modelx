@@ -43,6 +43,7 @@ from modelx.core.space import (
 )
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name, AutoNamer
+from modelx.core.chainmap import CustomChainMap
 from modelx.io.baseio import DataClientReferenceManager
 
 try:
@@ -1272,14 +1273,28 @@ class SpaceManager(SharedSpaceOperations):
             source=source, is_derived=is_derived)
         space.clear_subs_rootitems()
 
+        name = cells.name   # If name is none, auto-named in __init__
+
         for subspace in self._get_subs(space):
             if name in subspace.cells:
                 break
             else:
                 subspace.clear_subs_rootitems()
-                UserCellsImpl(
+                derived = UserCellsImpl(
                     space=subspace,
-                    base=cells, is_derived=True)
+                    base=cells, is_derived=True, add_to_space=False
+                )
+                base_cells = {}
+                for b in reversed(subspace.bases):
+                    base_cells.update(b.cells)
+
+                idx = list(base_cells).index(name)
+                cells_after = list(subspace.cells)[idx:]
+                subspace._cells.set_item(name, derived)
+
+                for k in cells_after:
+                    subspace._cells[k] = subspace._cells.pop(k)
+
 
         return cells
 
@@ -1315,6 +1330,17 @@ class SpaceManager(SharedSpaceOperations):
         for space in self._get_subs(cells.parent, skip_self=False):
             space.clear_subs_rootitems()
             space.cells[old_name].on_rename(name)
+
+    def sort_cells(self, space):
+        """Sort cells in a space
+
+        - Applies only to defined UserSpaces
+        - Only cells defined in the space (neither derived/overridden)
+          are sorted and placed before the derived/overridden cells.
+        - Derived/overridden cells in the sub spaces are also sorted.
+        """
+        for subspace in self._get_subs(space, skip_self=False):
+            subspace.on_sort_cells(space=space)
 
     def change_cells_formula(self, cells, func):
         for space in self._get_subs(cells.parent, skip_self=False):

@@ -33,3 +33,28 @@ def test_new_cells_in_dynbase():
 
     # Check new cells in base is reflected
     assert parent[1].Cells2(1) == 2
+
+
+def test_new_cells_order():
+    """Test a new cells in base sapce is inserted in subspace
+    before the cells defined in sub cells.
+    """
+
+    m = mx.new_model()
+
+    s1 = m.new_space()
+    s1.new_cells('bbb')
+    s1.new_cells('aaa')
+    s1.new_cells('ccc')
+
+    s2 = m.new_space()
+    s2.new_cells('fff')
+    s2.new_cells('ddd')
+    s2.new_cells('eee')
+
+    s2.add_bases(s1)
+
+    s1.new_cells('aba')
+
+    assert list(s2.cells) == ['bbb', 'aaa', 'ccc', 'aba',
+                              'fff', 'ddd', 'eee']

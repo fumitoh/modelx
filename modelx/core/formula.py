@@ -664,7 +664,7 @@ class BoundFunction(LazyEval):
     def on_delete_item(self, namespace, name):
         self.global_names = self._init_names()
 
-    def on_update(self, operation, args):
+    def on_update(self, operation, args=()):
         self.global_names = self._init_names()
 
     def __setstate(self, state):

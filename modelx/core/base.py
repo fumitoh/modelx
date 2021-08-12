@@ -747,11 +747,11 @@ class LazyEval:
     def __setstate(self, state):
         self.is_fresh = False
 
-    def on_update(self, method, args):
+    def on_update(self, method, args=()):
         """
         Must self.is_fresh == True before calling this
         """
-        self.UpdateMethods[method](self, *args)
+        args = self.UpdateMethods[method](self, *args)
         for observer in self.observers:
             if observer.is_fresh:
                 observer.on_update(method, args)
@@ -775,6 +775,58 @@ def _rename_item(self, old_name, new_name):
         dict.__setitem__(self, keys[i], value)
         i += 1
 
+
+def _sort_all(self):
+    sorted_ = sorted(self.keys())
+
+    # Find i to start replacement
+    i = 0
+    for name in self:
+        if name == sorted_[i]:
+            i += 1
+        else:
+            break
+
+    for j in range(i, len(sorted_)):
+        k = sorted_[j]
+        self[k] = self.pop(k)
+
+
+def _sort_partial(self, sorted_keys):
+    """Sort a part of a map
+
+    The part to sort in the map must be consecutive
+
+    Example:
+        self: {'a':1, 'bb':1, 'aa':1, 'cc':1, 'b':1}
+        sorted_keys: ['aa', 'bb', 'cc']
+        result: {'a':1, 'aa':1, 'bb':1, 'cc':1, 'b':1}
+
+    """
+    i = 0
+    i0 = -1  # Start position
+
+    self_keys = list(self.keys())
+    for name in self_keys:
+        if name in sorted_keys:
+            if i0 < 0:
+                i0 = i
+            if name != sorted_keys[i-i0]:
+                break
+        i += 1
+
+    sort_len = len(sorted_keys)
+    i0 = max(i0, 0)
+    while i < i0 + sort_len:
+        name = sorted_keys[i-i0]
+        self[name] = self.pop(name)
+        i += 1
+
+    self_len = len(self_keys)
+    while i < self_len:
+        name = self_keys[i]
+        self[name] = self.pop(name)
+        i += 1
 
 class LazyEvalDict(LazyEval, dict):
 
@@ -800,6 +852,13 @@ class LazyEvalDict(LazyEval, dict):
 
     def _rename_item(self, old_name, new_name):
         _rename_item(self, old_name, new_name)
+        return old_name, new_name
+
+    def _sort(self, sorted_keys=None):
+        if sorted_keys is None:
+            _sort_all(self)
+        else:
+            _sort_partial(self, sorted_keys)
 
     def set_item(self, name, value, skip_self=False):
         dict.__setitem__(self, name, value)
@@ -834,6 +893,9 @@ class LazyEvalDict(LazyEval, dict):
 
     def rename_item(self, old_name, new_name):
         self.on_update("rename", (old_name, new_name))
+
+    def sort_items(self, sort_keys):
+        self.on_update("sort", (self, sort_keys))
 
 
 assert issubclass(LazyEvalDict, Mapping)
@@ -932,6 +994,11 @@ class InterfaceMixin:
     def _rename_item(self, old_name, new_name):
         _rename_item(self._interfaces, old_name, new_name)
 
+    def _sort(self, sorted_keys=None):
+        if sorted_keys is None:
+            _sort_all(self._interfaces)
+        else:
+            _sort_partial(self._interfaces, sorted_keys)
 
 bases = InterfaceMixin, LazyEvalDict
 
@@ -954,8 +1021,18 @@ class ImplDict(*bases):
     def _rename_item(self, old_name, new_name):
         LazyEvalDict._rename_item(self, old_name, new_name)
         InterfaceMixin._rename_item(self, old_name, new_name)
+        return old_name, new_name
 
-    UpdateMethods = {"rename": _rename_item}
+    def _sort(self, map_, sorted_keys):
+        LazyEvalDict._sort(self, sorted_keys)
+        InterfaceMixin._sort(self, sorted_keys)
+        # Return self to pass it as argt to LazyEvalChainMap observers
+        return (self, sorted_keys)
+
+    UpdateMethods = {
+        "rename": _rename_item,
+        "sort": _sort
+    }
 
 
 bases = InterfaceMixin, LazyEvalChainMap
@@ -982,8 +1059,33 @@ class ImplChainMap(*bases):
 
     def _rename_item(self, old_name, new_name):
         InterfaceMixin._rename_item(self, old_name, new_name)
+        return old_name, new_name
 
-    UpdateMethods = {"rename": _rename_item}
+    def _sort(self, map_, sorted_keys):
+        if isinstance(map_, (LazyEvalDict, LazyEvalChainMap)):
+            assert any(map_ is m for m in self.maps)
+
+            if sorted_keys is None:
+                prev_keys = map_.keys()
+            else:
+                prev_keys = sorted_keys
+
+            # Filter out overwritten items
+            keys = []
+            for name in prev_keys:
+                m = next(m for m in self.maps if name in m)
+                if m is map_:
+                    keys.append(name)
+        else:
+            raise RuntimeError("must not happen")
+
+        InterfaceMixin._sort(self, keys)
+        return (self, keys)
+
+    UpdateMethods = {
+        "rename": _rename_item,
+        "sort": _sort
+    }
 
 
 class RefChainMap(ImplChainMap):
@@ -1087,13 +1189,15 @@ class BaseView(Mapping):
             name: item._get_attrdict(extattrs, recursive)
             for name, item in self.items()
         }
+        # To make it possible to detect order change by comparison operation
+        result["keys"] = list(self.keys())
 
         return result
 
 
 def _map_repr(self):
     result = [",\n "] * (len(self) * 2 - 1)
-    result[0::2] = sorted(list(self))
+    result[0::2] = list(self)
     return "{" + "".join(result) + "}"
 
 

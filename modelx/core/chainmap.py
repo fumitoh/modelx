@@ -24,7 +24,6 @@ from reprlib import recursive_repr as _recursive_repr
 
 # Modified from ChainMap:
 # * custom slots support
-# * reimplemented __iter__ to return from maps[0]
 # * Add get_map_from_key and get_map_index_from_key
 
 
@@ -68,14 +67,11 @@ class CustomChainMap(_collections_abc.MutableMapping):
     def __len__(self):
         return len(set().union(*self.maps))     # reuses stored hash values if possible
 
-    # Original implementation to return items from maps[0]
     def __iter__(self):
-        s = set()
-        for mapping in self.maps:
-            for k in mapping:
-                if k not in s:
-                    s.add(k)
-                    yield k
+        d = {}
+        for mapping in reversed(self.maps):
+            d.update(mapping)                   # reuses stored hash values if possible
+        return iter(d)
 
     def __contains__(self, key):
         return any(key in m for m in self.maps)

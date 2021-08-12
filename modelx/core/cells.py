@@ -479,7 +479,7 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
-        source=None, is_derived=False
+        source=None, is_derived=False, add_to_space=True
     ):
         # Determine name
         if base:
@@ -504,7 +504,9 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
         self.spacemgr = space.spacemgr
         Derivable.__init__(self, is_derived)
         self.source = source
-        space._cells.set_item(name, self)
+
+        if add_to_space:
+            space._cells.set_item(name, self)
 
         # Set formula
         if base:
@@ -734,12 +736,12 @@ class UserCellsImpl(CellsImpl):
 
     def __init__(
         self, space, name=None, formula=None, data=None, base=None,
-        source=None, is_derived=False
+        source=None, is_derived=False, add_to_space=True
     ):
         CellsImpl.__init__(
             self, space=space, name=name, formula=formula, data=data,
             base=base,
-            source=source, is_derived=is_derived
+            source=source, is_derived=is_derived, add_to_space=add_to_space
         )
 
     # ----------------------------------------------------------------------

@@ -81,6 +81,7 @@ Child Cells operations
   ~UserSpace.new_cells_from_pandas
   ~UserSpace.import_funcs
   ~UserSpace.clear_cells
+  ~UserSpace.sort_cells
 
 Reference operations
 --------------------

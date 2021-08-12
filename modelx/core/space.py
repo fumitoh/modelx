@@ -72,22 +72,28 @@ from modelx.core.util import AutoNamer, is_valid_name, get_module
 
 
 class ParamFunc(Formula):
+
     __slots__ = ()
 
 
 class SpaceDict(ImplDict):
+
     __slots__ = get_mixinslots(ImplDict)
+
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, SpaceView, data, observers)
 
 
 class CellsDict(ImplDict):
+
     __slots__ = get_mixinslots(ImplDict)
+
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, CellsView, data, observers)
 
 
 class RefDict(ImplDict):
+
     __slots__ = get_mixinslots(ImplDict)
 
     def __init__(self, parent, data=None, observers=None):
@@ -917,6 +923,57 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
             args=args,
             kwargs=kwargs
         )
+
+    def sort_cells(self):
+        """Sort child cells alphabetically
+
+        Cells in the sub space that are inherited from this space,
+        exept for those that are inherited from other base spaces
+        prior to this space, are sorted as well.
+
+        Example:
+
+            Suppose the space ``s2`` below inherits from ``s1``, and
+            cells ``eee`` and ``ccc`` are defined in ``s2``::
+
+                >>> s1.cells
+                {ddd,
+                 bbb,
+                 aaa}
+
+                >>> s2.cells
+                {ddd,
+                 bbb,
+                 aaa,
+                 eee,
+                 ccc}
+
+                >>> s1.sort_cells()
+
+                >>> s1.cells
+                {aaa,
+                 bbb,
+                 ddd}
+
+                >>> s2.cells
+                {aaa,
+                 bbb,
+                 ddd,
+                 eee,
+                 ccc}
+
+                >>> s2.sort_cells()
+
+                >>> s2.cells
+                {aaa,
+                 bbb,
+                 ddd,
+                 ccc,
+                 eee}
+
+        .. versionadded:: 0.17.0
+        """
+        self._impl.spacemgr.sort_cells(self._impl)
 
     # ----------------------------------------------------------------------
     # Checking containing subspaces and cells
@@ -1815,17 +1872,14 @@ class UserSpaceImpl(
 
         selfdict = getattr(self, attr)
         basedict = CustomChainMap(*[getattr(b, attr) for b in bases])
+        selfkeys = list(selfdict)
 
-        missing = set(basedict) - set(selfdict)
-        shared = set(selfdict) & set(basedict)
-        diffs = set(selfdict) - set(basedict)
-
-        for name in missing | shared:
+        for name in basedict: # ChainMap iterates from the last map
 
             bs = [bm[name] for bm in basedict.maps
                   if name in bm and bm[name].is_defined]
 
-            if name in missing:
+            if name not in selfdict:
 
                 if attr == "cells":
                     selfdict[name] = UserCellsImpl(
@@ -1842,18 +1896,58 @@ class UserSpaceImpl(
                 else:
                     raise RuntimeError("must not happen")
 
+            else:
+                # Remove & add back for reorder
+                selfdict[name] = selfdict.pop(name)
+                selfkeys.remove(name)
+
             if selfdict[name].is_derived:
                 selfdict[name].on_inherit(updater, bs)
 
-        for name in diffs:
+        for name in selfkeys:
             if selfdict[name].is_derived:
                 attrs[attr](name)
+            else:   # defined
+                selfdict[name] = selfdict.pop(name)
 
     def on_del_cells(self, name):
         cells = self.cells[name]
         self.model.clear_obj(cells)
         self.cells.del_item(name)
         cells.on_delete()
+
+    def on_sort_cells(self, space):
+
+        for c in space.cells:
+            self.model.clear_obj(c)
+
+        if self.bases:
+
+            # Select names in space but not in space's bases
+
+            bases = [self] + list(self.bases)    # bases lists space's bases
+            while True:
+                if bases.pop(0) is space:
+                    break
+
+            keys = list(space.cells)
+            d = {}
+            for b in bases:
+                d.update(b.cells)
+
+            for k in d:
+                try:
+                    keys.remove(k)
+                except ValueError:
+                    pass
+
+            keys = sorted(keys)
+
+        else:
+            assert self is space
+            keys = None
+
+        self.cells.sort_items(keys)
 
     def on_change_ref(self, name, value, is_derived, refmode,
                       is_relative):
