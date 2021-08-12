@@ -17,10 +17,10 @@ import importlib
 import pathlib
 import uuid
 import warnings
-from collections import ChainMap
 from collections.abc import Sequence
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
+from modelx.core.chainmap import CustomChainMap
 from modelx.core.node import ObjectNode, get_node
 
 from modelx.core.base import (
@@ -1814,7 +1814,7 @@ class UserSpaceImpl(
         }
 
         selfdict = getattr(self, attr)
-        basedict = ChainMap(*[getattr(b, attr) for b in bases])
+        basedict = CustomChainMap(*[getattr(b, attr) for b in bases])
 
         missing = set(basedict) - set(selfdict)
         shared = set(selfdict) & set(basedict)

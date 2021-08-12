@@ -13,7 +13,6 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from collections import ChainMap, OrderedDict
 from collections.abc import Sequence, Mapping
 from inspect import BoundArguments
 from modelx.core.chainmap import CustomChainMap
@@ -853,7 +852,7 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
         if observers is None:
             observers = []
 
-        ChainMap.__init__(self, *maps)
+        CustomChainMap.__init__(self, *maps)
         LazyEval.__init__(self, observers)
         self._repr = ""
 

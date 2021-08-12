@@ -46,7 +46,7 @@ class SampleLazyEval:
 
 def test_lazy_eval_dict():
     sample = SampleLazyEval()
-    assert sample.lazy_eval_dict2 == ChainMap(data1, data2)
+    assert sample.lazy_eval_dict2 == CustomChainMap(data1, data2)
 
 
 def test_lazy_eval_dict_update():
@@ -60,7 +60,7 @@ def test_lazy_eval_dict_update():
 
 def test_lazy_eval_chmap():
     sample = SampleLazyEval()
-    assert sample.lazy_eval_chmap == ChainMap(data1, data2)
+    assert sample.lazy_eval_chmap == CustomChainMap(data1, data2)
 
 
 def test_lazy_eval_chmap_update():
