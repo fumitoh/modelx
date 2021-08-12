@@ -775,7 +775,7 @@ class UserCellsImpl(CellsImpl):
         - Renames sub Cells (Repeats the above for the sub Cells)
         """
         self.model.clear_obj(self)
-        self.parent.cells.delete_item(self.name)
+        old_name = self.name
         self.name = name
 
         # Change function name
@@ -788,7 +788,7 @@ class UserCellsImpl(CellsImpl):
 
             self.altfunc = BoundFunction(self)
 
-        self.parent.cells.add_item(name, self)
+        self.parent.cells.rename_item(old_name, name)
 
     def on_change_formula(self, func):
 

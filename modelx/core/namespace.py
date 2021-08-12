@@ -51,6 +51,13 @@ class NamespaceServer:
     def on_delete_item(self, sender, name):
         self.notify_referrers(is_all=False, names=[name])
 
+    def on_update(self, method, args):
+        if method == "rename":
+            # _namespace must be updated directly
+            self.notify_referrers(is_all=False, names=args)
+        else:
+            raise ValueError("invalid method")
+
     @property
     def namespace(self):
         return self._namespace.fresh

@@ -704,6 +704,8 @@ class LazyEval:
     __slots = ("is_fresh", "observers", "observing")
     __stateattrs = ("observers", "observing")
 
+    UpdateMethods = None
+
     def __init__(self, observers):
         self.is_fresh = True  # must be read only
         self.observers = []
@@ -752,6 +754,34 @@ class LazyEval:
     def __setstate(self, state):
         self.is_fresh = False
 
+    def on_update(self, method, args):
+        """
+        Must self.is_fresh == True before calling this
+        """
+        self.UpdateMethods[method](self, *args)
+        for observer in self.observers:
+            if observer.is_fresh:
+                observer.on_update(method, args)
+
+
+def _rename_item(self, old_name, new_name):
+    """Rename a key without changing its position.
+    """
+    keys = list(self.keys())
+    i = keys.index(old_name)
+    n = len(keys)
+
+    # Remove old_name and append it as new_name
+    value = self.pop(old_name)
+    dict.__setitem__(self, new_name, value)
+    i += 1
+
+    # Remove and append all the items after old_name
+    while i < n:
+        value = self.pop(keys[i])
+        dict.__setitem__(self, keys[i], value)
+        i += 1
+
 
 class LazyEvalDict(LazyEval, dict):
 
@@ -775,23 +805,8 @@ class LazyEvalDict(LazyEval, dict):
     def _update_item(self, name):
         raise NotImplementedError
 
-    def _rename_still(self, old_name, new_name):
-        """Rename a key without changing its position.
-        """
-        keys = list(self.keys())
-        i = keys.index(old_name)
-        n = len(keys)
-
-        # Remove old_name and append it as new_name
-        value = self.pop(old_name)
-        dict.__setitem__(self, new_name, value)
-        i += 1
-
-        # Remove and append all the items after old_name
-        while i < n:
-            value = self.pop(keys[i])
-            dict.__setitem__(self, keys[i], value)
-            i += 1
+    def _rename_item(self, old_name, new_name):
+        _rename_item(self, old_name, new_name)
 
     def set_item(self, name, value, skip_self=False):
         dict.__setitem__(self, name, value)
@@ -823,6 +838,9 @@ class LazyEvalDict(LazyEval, dict):
             for observer in self.observers:
                 if observer.is_fresh:
                     observer.on_delete_item(self, name)
+
+    def rename_item(self, old_name, new_name):
+        self.on_update("rename", (old_name, new_name))
 
 
 @add_statemethod
@@ -931,6 +949,9 @@ class InterfaceMixin:
         self._interfaces = dict()
         self._set_interfaces(self.map_class)
 
+    def _rename_item(self, old_name, new_name):
+        _rename_item(self._interfaces, old_name, new_name)
+
 
 bases = InterfaceMixin, OrderMixin, LazyEvalDict
 
@@ -951,6 +972,12 @@ class ImplDict(*bases):
         LazyEvalDict._refresh_data(self)
         self._update_order()
         self._update_interfaces()
+
+    def _rename_item(self, old_name, new_name):
+        LazyEvalDict._rename_item(self, old_name, new_name)
+        InterfaceMixin._rename_item(self, old_name, new_name)
+
+    UpdateMethods = {"rename": _rename_item}
 
 
 bases = InterfaceMixin, OrderMixin, LazyEvalChainMap
@@ -977,6 +1004,10 @@ class ImplChainMap(*bases):
         self._update_order()
         self._update_interfaces()
 
+    def _rename_item(self, old_name, new_name):
+        InterfaceMixin._rename_item(self, old_name, new_name)
+
+    UpdateMethods = {"rename": _rename_item}
 
 class RefChainMap(ImplChainMap):
 
