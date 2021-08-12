@@ -61,13 +61,7 @@ def get_interfaces(impls):
     if impls is None:
         return None
 
-    elif isinstance(impls, OrderMixin):
-        result = OrderedDict()
-        for name in impls.order:
-            result[name] = impls[name].interface
-        return result
-
-    elif isinstance(impls, Mapping):
+    if isinstance(impls, Mapping):  # LazyEvalDict and LazyEvalChainMap
         return {name: impls[name].interface for name in impls}
 
     elif isinstance(impls, Sequence):
@@ -843,6 +837,9 @@ class LazyEvalDict(LazyEval, dict):
         self.on_update("rename", (old_name, new_name))
 
 
+assert issubclass(LazyEvalDict, Mapping)
+
+
 @add_statemethod
 class LazyEvalChainMap(LazyEval, CustomChainMap):
 
@@ -894,23 +891,7 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
         raise NotImplementedError
 
 
-class OrderMixin:
-
-    __slots__ = ()
-    __slots = ("order",)
-
-    def __init__(self):
-        self.order = []  # sorted(list(self))
-
-    def _update_order(self):
-        prev = set(self.order)
-        curr = set(self)
-        deleted = prev - curr
-        added = curr - prev
-        for key in deleted:
-            self.order.remove(key)
-        for key in sorted(list(added)):
-            self.order.append(key)
+assert issubclass(LazyEvalChainMap, Mapping)
 
 
 class InterfaceMixin:
@@ -953,7 +934,7 @@ class InterfaceMixin:
         _rename_item(self._interfaces, old_name, new_name)
 
 
-bases = InterfaceMixin, OrderMixin, LazyEvalDict
+bases = InterfaceMixin, LazyEvalDict
 
 
 @add_statemethod
@@ -965,12 +946,10 @@ class ImplDict(*bases):
     def __init__(self, owner, ifclass, data=None, observers=None):
         self.owner = owner
         InterfaceMixin.__init__(self, ifclass)
-        OrderMixin.__init__(self)
         LazyEvalDict.__init__(self, data, observers)
 
     def _refresh_data(self):
         LazyEvalDict._refresh_data(self)
-        self._update_order()
         self._update_interfaces()
 
     def _rename_item(self, old_name, new_name):
@@ -980,7 +959,7 @@ class ImplDict(*bases):
     UpdateMethods = {"rename": _rename_item}
 
 
-bases = InterfaceMixin, OrderMixin, LazyEvalChainMap
+bases = InterfaceMixin, LazyEvalChainMap
 
 
 @add_statemethod
@@ -996,18 +975,17 @@ class ImplChainMap(*bases):
         self.owner = owner
         self.map_ids = map_ids
         InterfaceMixin.__init__(self, ifclass)
-        OrderMixin.__init__(self)
         LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
 
     def _refresh_data(self):
         LazyEvalChainMap._refresh_data(self)
-        self._update_order()
         self._update_interfaces()
 
     def _rename_item(self, old_name, new_name):
         InterfaceMixin._rename_item(self, old_name, new_name)
 
     UpdateMethods = {"rename": _rename_item}
+
 
 class RefChainMap(ImplChainMap):
 
