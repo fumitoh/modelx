@@ -1880,9 +1880,9 @@ class UserSpaceImpl(
     def on_rename(self, name):
         self.model.clear_obj(self)
         self.clear_all_cells(clear_input=True, recursive=True, del_items=True)
-        self.parent.named_spaces.delete_item(self.name)
+        old_name = self.name
         self.name = name
-        self.parent.named_spaces.add_item(name, self)
+        self.parent.named_spaces.rename_item(old_name, name)
 
 
 class DynamicSpace(BaseSpace):
