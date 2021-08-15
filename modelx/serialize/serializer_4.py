@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import json, types, importlib, pathlib
 import ast
 import enum
@@ -1533,16 +1534,27 @@ class CellsInputDataMixin(BaseNodeParser):
             self.set_values(data)
 
 
-def skip_blank_tokens(tokens, idx):
-    # There may be trailing comments that must be skipped.
-    # See FunctionDefParser
-    while (tokens[idx].type == token.NEWLINE or
-           tokens[idx].type == token.INDENT or
-           tokens[idx].type == token.DEDENT or
-           tokens[idx].type == token.NL or
-           tokens[idx].type == token.COMMENT):
-        idx += 1
-    return idx
+if sys.version_info < (3, 7):
+    def skip_blank_tokens(tokens, idx):
+        # There may be trailing comments that must be skipped.
+        # See FunctionDefParser
+        while (tokens[idx].type == token.NEWLINE or
+               tokens[idx].type == token.INDENT or
+               tokens[idx].type == token.DEDENT or
+               tokens[idx].type == token.COMMENT):
+            idx += 1
+        return idx
+else:
+    def skip_blank_tokens(tokens, idx):
+        # There may be trailing comments that must be skipped.
+        # See FunctionDefParser
+        while (tokens[idx].type == token.NEWLINE or
+               tokens[idx].type == token.INDENT or
+               tokens[idx].type == token.DEDENT or
+               tokens[idx].type == token.NL or      # New in Python 3.7
+               tokens[idx].type == token.COMMENT):
+            idx += 1
+        return idx
 
 
 class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
