@@ -37,4 +37,4 @@ def test_view(viewtest):
         pass
     assert i == 1
 
-    assert repr(selected) == "{bar,\n foo}"
+    assert repr(selected) == "{foo,\n bar}"
