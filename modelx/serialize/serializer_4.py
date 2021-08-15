@@ -1540,7 +1540,9 @@ if sys.version_info < (3, 7):
         # See FunctionDefParser
         while (tokens[idx].type == token.NEWLINE or
                tokens[idx].type == token.INDENT or
-               tokens[idx].type == token.DEDENT):
+               tokens[idx].type == token.DEDENT or
+               tokens[idx].string == "\n"   # token 58 (TYPE_COMMENT?)
+        ):
             idx += 1
         return idx
 else:
