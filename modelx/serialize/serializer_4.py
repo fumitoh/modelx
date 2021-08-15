@@ -1540,8 +1540,7 @@ if sys.version_info < (3, 7):
         # See FunctionDefParser
         while (tokens[idx].type == token.NEWLINE or
                tokens[idx].type == token.INDENT or
-               tokens[idx].type == token.DEDENT or
-               tokens[idx].type == token.COMMENT):
+               tokens[idx].type == token.DEDENT):
             idx += 1
         return idx
 else:
@@ -1552,7 +1551,7 @@ else:
                tokens[idx].type == token.INDENT or
                tokens[idx].type == token.DEDENT or
                tokens[idx].type == token.NL or      # New in Python 3.7
-               tokens[idx].type == token.COMMENT):
+               tokens[idx].type == token.COMMENT):  # New in Python 3.7
             idx += 1
         return idx
 
