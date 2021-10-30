@@ -19,10 +19,10 @@ modelx
 
 What is modelx?
 ---------------
-**modelx** is a Python package to build object-oriented models
-consisting of formulas and values to carry out complex calculations.
-You can think of it as a hierarchical and multidimensional extension
-of spreadsheet, but there's so much more to it!
+**modelx** is a numerical computing tool that enables you to use
+Python like a spreadsheet and build object-oriented models
+by defining formulas. modelx is best suited for building models
+in such fields as actuarial science, quantitative finance and risk management.
 
 .. rubric:: modelx sites
 
