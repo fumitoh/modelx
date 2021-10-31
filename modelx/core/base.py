@@ -145,6 +145,17 @@ def add_statemethod(cls):
     return cls
 
 
+def is_mixin(cls):
+    return hasattr(cls, "_" + cls.__name__ + "__slots")
+
+
+def is_concrete(cls):
+    if hasattr(cls, "__slots__") and not is_mixin(cls):
+        return True
+    else:
+        return False
+
+
 def get_mixinslots(*mixins):
     """Returns slots pushed down from mix-in classes.
 
@@ -166,15 +177,31 @@ def get_mixinslots(*mixins):
     class Temp(*mixins):
         __slots__ = ()
 
-    slots = []
-    for b in Temp.__mro__[1:]:
-        if hasattr(b, "__slots__") and len(b.__slots__):
-            break   # Concrete class
-        attr = "_" + b.__name__ + "__slots"
-        if hasattr(b, attr):
-            slots.extend(getattr(b, attr))
+    bases = Temp.__mro__[1:]
+    count_concrete_or_mixin = tuple(
+        is_concrete(c) or is_mixin(c) for c in bases
+    ).count(True)
 
-    return tuple(slots)
+    bases = bases[:count_concrete_or_mixin]     # Cut off built-in classes
+
+    assert all(is_concrete(c) or is_mixin(c) for c in bases)
+
+    mixins = []
+    concrete_bases = []
+    for b in bases:
+        if is_concrete(b):
+            concrete_bases.append(b)
+        elif is_mixin(b):
+            if any(issubclass(concrete, b) for concrete in concrete_bases):
+                continue
+            else:
+                mixins.append(b)
+        else:
+            raise RuntimeError("must not happen")
+
+    return tuple(attr
+                 for b in mixins
+                 for attr in getattr(b, "_" + b.__name__ + "__slots"))
 
 
 class BaseImpl:
@@ -827,6 +854,7 @@ def _sort_partial(self, sorted_keys):
         name = self_keys[i]
         self[name] = self.pop(name)
         i += 1
+
 
 class LazyEvalDict(LazyEval, dict):
 
