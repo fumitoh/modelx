@@ -434,6 +434,7 @@ class ItemFactory:
 class ItemFactoryImpl:
 
     __slots__ = ()
+    __mixin_slots = ()
 
     # ----------------------------------------------------------------------
     # Dependency

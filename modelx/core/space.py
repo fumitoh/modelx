@@ -28,7 +28,7 @@ from modelx.core.base import (
     add_statemethod,
     get_impls,
     get_interfaces,
-    get_mixinslots,
+    get_mixin_slots,
     Interface,
     Impl,
     set_null_impl,
@@ -78,7 +78,7 @@ class ParamFunc(Formula):
 
 class SpaceDict(ImplDict):
 
-    __slots__ = get_mixinslots(ImplDict)
+    __slots__ = get_mixin_slots(ImplDict)
 
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, SpaceView, data, observers)
@@ -86,7 +86,7 @@ class SpaceDict(ImplDict):
 
 class CellsDict(ImplDict):
 
-    __slots__ = get_mixinslots(ImplDict)
+    __slots__ = get_mixin_slots(ImplDict)
 
     def __init__(self, space, data=None, observers=None):
         ImplDict.__init__(self, space, CellsView, data, observers)
@@ -94,7 +94,7 @@ class CellsDict(ImplDict):
 
 class RefDict(ImplDict):
 
-    __slots__ = get_mixinslots(ImplDict)
+    __slots__ = get_mixin_slots(ImplDict)
 
     def __init__(self, parent, data=None, observers=None):
         ImplDict.__init__(self, parent, RefView, None, observers)
@@ -1148,6 +1148,15 @@ class UserSpace(BaseSpace, EditableSpaceContainer):
 
 class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
 
+    __slots__ = ()
+    __mixin_slots = (
+        "_named_itemspaces",
+        "itemspacenamer",
+        "param_spaces",
+        "formula",
+        "altfunc"
+    )
+
     __cls_stateattrs = [
         "_named_itemspaces",
         "itemspacenamer",
@@ -1164,7 +1173,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         # Construct altfunc after space members are crated
 
         self.param_spaces = {}
-        self.formula = None
+        self.altfunc = self.formula = None
         if formula is not None:
             self.set_formula(formula)
 
@@ -1311,13 +1320,16 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         return self.param_spaces[key].interface
 
 
-@add_stateattrs
-class BaseSpaceImpl(
+_base_space_impl_base = (
     NamespaceServer,
     ItemSpaceParent,
     BaseSpaceContainerImpl,
     Impl
-):
+)
+
+
+@add_stateattrs
+class BaseSpaceImpl(*_base_space_impl_base):
     """Read-only base Space class
 
     * Cells container
@@ -1329,6 +1341,13 @@ class BaseSpaceImpl(
 
     # ----------------------------------------------------------------------
     # Serialization by pickle
+
+    __slots__ = (
+        "_cells",
+        "_local_refs",
+        "_self_refs",
+        "_refs"
+    ) + get_mixin_slots(*_base_space_impl_base)
 
     __cls_stateattrs = [
             "_cells",
@@ -1498,15 +1517,11 @@ class BaseSpaceImpl(
     # Space properties
 
     def __getstate__(self):
-        state = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key in self.stateattrs
-        }
-        return state
+        return {key: getattr(self, key) for key in self.stateattrs}
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
+        for attr in state:
+            setattr(self, attr, state[attr])
 
     def restore_state(self):
         """Called after unpickling to restore some attributes manually."""
@@ -1527,6 +1542,8 @@ class BaseSpaceImpl(
 
 
 class DynamicBase(BaseSpaceImpl):
+
+    __slots__ = ("_dynamic_subs",) + get_mixin_slots(BaseSpaceImpl)
 
     __cls_stateattrs = [
      "_dynamic_subs"
@@ -1566,6 +1583,15 @@ class UserSpaceImpl(
     """
 
     interface_cls = UserSpace
+
+    __slots__ = (
+        "cellsnamer",
+        "source"
+    ) + get_mixin_slots(
+        DynamicBase,
+        EditableSpaceContainerImpl,
+        Derivable
+    )
 
     __cls_stateattrs = [
      "cellsnamer",
@@ -1998,11 +2024,17 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     interface_cls = DynamicSpace
 
+    __slots__ = (
+        "_dynbase",
+        "_allargs",
+        "rootspace",
+        "_dynbase_refs"
+    ) + get_mixin_slots(BaseSpaceImpl)
+
     __cls_stateattrs = [
         "_dynbase",
         "_allargs",
         "rootspace",
-        "_base_refs",
         "_dynbase_refs"
     ]
 
@@ -2142,6 +2174,13 @@ class ItemSpace(DynamicSpace):
 class ItemSpaceImpl(DynamicSpaceImpl):
 
     interface_cls = ItemSpace
+
+    __slots__ = (
+        "_arguments",
+        "boundargs",
+        "argvalues",
+        "argvalues_if"
+    ) + get_mixin_slots(DynamicSpaceImpl)
 
     __cls_stateattrs = ["_arguments"]
 

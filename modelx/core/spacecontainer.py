@@ -722,6 +722,11 @@ class BaseSpaceContainerImpl:
     del_space(name)
 
     """
+    __slots__ = ()
+    __mixin_slots = (
+        "_named_spaces",
+        "_all_spaces"
+    )
 
     __cls_stateattrs = [
         "_named_spaces",
@@ -732,17 +737,11 @@ class BaseSpaceContainerImpl:
     # Serialization by pickle
 
     def __getstate__(self):
-
-        state = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key in self.stateattrs
-        }
-
-        return state
+        return {key: getattr(self, key) for key in self.stateattrs}
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
+        for attr in state:
+            setattr(self, attr, state[attr])
 
     def restore_state(self):
         """Called after unpickling to restore some attributes manually."""
@@ -775,6 +774,9 @@ class BaseSpaceContainerImpl:
 
 @add_stateattrs
 class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
+
+    __slots__ = ()
+    __mixin_slots = ("spacenamer",)
 
     __cls_stateattrs = ["spacenamer"]
 

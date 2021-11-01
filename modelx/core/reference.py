@@ -19,7 +19,7 @@ from types import ModuleType, FunctionType
 import functools
 
 from modelx.core.base import (
-    add_stateattrs, Derivable, Impl, Interface)
+    add_stateattrs, Derivable, Impl, Interface, get_mixin_slots)
 from modelx.io.baseio import BaseDataClient
 from modelx.core.node import ObjectNode, get_node, OBJ
 
@@ -85,6 +85,12 @@ class ReferenceImpl(Derivable, Impl):
 
     picklers = []    # List of _BasePickler sub classes
 
+    __slots__ = (
+        "container",
+        "refmode",
+        "is_relative"
+    ) + get_mixin_slots(Derivable, Impl)
+
     __cls_stateattrs = [
         "container",
         "refmode",
@@ -131,11 +137,8 @@ class ReferenceImpl(Derivable, Impl):
         pass
 
     def __getstate__(self):
-        state = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key in self.stateattrs
-        }
+
+        state = {key: getattr(self, key) for key in self.stateattrs}
         value = state["interface"]
 
         for pickler in self.picklers:
@@ -154,7 +157,8 @@ class ReferenceImpl(Derivable, Impl):
             if isinstance(state["interface"], _BasePickler):
                 state["interface"] = state["interface"].restore()
 
-        self.__dict__.update(state)
+        for attr in state:
+            setattr(self, attr, state[attr])
 
     def to_node(self):
         return ReferenceNode(get_node(self, None, None))
@@ -211,6 +215,8 @@ ReferenceImpl.picklers.append(_ModulePickler)
 
 
 class DataClientReferenceImpl(ReferenceImpl):
+
+    __slots__ = ()
 
     picklers = [_HiddenDataClientPickler]
 

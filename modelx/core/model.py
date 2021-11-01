@@ -25,7 +25,8 @@ from modelx.core.base import (
     get_interfaces,
     ImplChainMap,
     BaseView,
-    Derivable
+    Derivable,
+    get_mixin_slots
 )
 from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.cells import CellsImpl, UserCellsImpl
@@ -359,6 +360,12 @@ class Model(EditableSpaceContainer):
 
 class TraceManager:
 
+    __slots__ = ()
+    __mixin_slots = (
+        "tracegraph",
+        "refgraph"
+    )
+
     __cls_stateattrs = [
             "tracegraph",
             "refgraph"
@@ -390,13 +397,28 @@ class TraceManager:
                 desc[OBJ].on_clear_trace(desc[KEY])
 
 
-@add_stateattrs
-class ModelImpl(
+_model_impl_base = (
     TraceManager,
     EditableSpaceContainerImpl,
-    Impl):
+    Impl
+)
+
+
+@add_stateattrs
+class ModelImpl(*_model_impl_base):
 
     interface_cls = Model
+
+    __slots__ = (
+        "_namespace",
+        "_global_refs",
+        "_dynamic_bases",
+        "_dynamic_bases_inverse",
+        "_dynamic_base_namer",
+        "currentspace",
+        "datarefmgr"
+    ) + get_mixin_slots(*_model_impl_base)
+
     __cls_stateattrs = [
             "_namespace",
             "_global_refs",
@@ -482,11 +504,7 @@ class ModelImpl(
 
     def __getstate__(self):
 
-        state = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key in self.stateattrs
-        }
+        state = {key: getattr(self, key) for key in self.stateattrs}
 
         graphs = {
             name: graph
@@ -507,7 +525,8 @@ class ModelImpl(
         return state
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
+        for attr in state:
+            setattr(self, attr, state[attr])
 
     def restore_state(self, datapath=None):
         """Called after unpickling to restore some attributes manually."""

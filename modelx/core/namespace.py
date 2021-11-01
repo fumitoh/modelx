@@ -17,6 +17,14 @@ from modelx.core.base import ImplChainMap
 
 class NamespaceServer:
 
+    __slots__ = ()
+    __mixin_slots = (
+        "_namespace",
+        "observing",
+        "is_fresh",
+        "_referrers"
+    )
+
     __cls_stateattrs = [
      "_namespace",
      "observing",
@@ -64,6 +72,9 @@ class NamespaceServer:
 
 
 class BaseNamespaceReferrer:
+
+    __slots__ = ()
+    __mixin_slots = ()
     
     def __init__(self, server: NamespaceServer):
         server.add_referrer(self)

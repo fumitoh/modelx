@@ -17,7 +17,7 @@ from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import (
-    add_stateattrs, Impl, Derivable, Interface)
+    add_stateattrs, Impl, Derivable, Interface, get_mixin_slots)
 from modelx.core.node import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node,
     ObjectNode
@@ -458,16 +458,31 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
 class CellsNamespaceReferrer(BaseNamespaceReferrer):
 
+    __slots__ = ()
+    __mixin_slots = ()
+
     def on_namespace_change(self, is_all, names):
         self.clear_all_values(clear_input=False)
 
 
+_cells_impl_base = (CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
+                    HasFormula, Impl)
+
 @add_stateattrs
-class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
-                HasFormula, Impl):
+class CellsImpl(*_cells_impl_base):
     """Cells implementation"""
 
     interface_cls = Cells
+
+    __slots__ = (
+        "formula",
+        "data",
+        "_namespace",
+        "altfunc",
+        "source",
+        "input_keys"
+    ) + get_mixin_slots(*_cells_impl_base)
+
     __cls_stateattrs = [
         "formula",
         "data",
@@ -536,15 +551,11 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
     # Serialization by pickle
 
     def __getstate__(self):
-        state = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key in self.stateattrs
-        }
-        return state
+        return {key: getattr(self, key) for key in self.stateattrs}
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
+        for attr in state:
+            setattr(self, attr, state[attr])
 
     # ----------------------------------------------------------------------
     # repr methods
@@ -734,6 +745,8 @@ class CellsImpl(CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
 
 class UserCellsImpl(CellsImpl):
 
+    __slots__ = ()
+
     def __init__(
         self, space, name=None, formula=None, data=None, base=None,
         source=None, is_derived=False, add_to_space=True
@@ -812,7 +825,7 @@ class UserCellsImpl(CellsImpl):
 
 
 class DynamicCellsImpl(CellsImpl):
-    pass
+    __slots__ = ()
 
 
 def shareable_parameters(cells):

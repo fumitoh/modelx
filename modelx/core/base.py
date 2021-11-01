@@ -103,12 +103,12 @@ def _get_stateattrs(cls):
 
     Collect class.__stateattrs from all base classes
     If __stateattrs is not defined in any of the base class,
-    __slots (which is only defined in mix-in classes) is collected in stead.
+    __mixin_slots (which is only defined in mix-in classes) is collected in stead.
     """
     stateattrs = []
     for c in cls.__mro__:
         attrs = "_" + c.__name__ + "__stateattrs"
-        slots = "_" + c.__name__ + "__slots"
+        slots = "_" + c.__name__ + "__mixin_slots"
         if hasattr(c, attrs):
             stateattrs.extend(getattr(c, attrs))
         elif hasattr(c, slots):     # Mix-in class without __stateattrs
@@ -146,7 +146,7 @@ def add_statemethod(cls):
 
 
 def is_mixin(cls):
-    return hasattr(cls, "_" + cls.__name__ + "__slots")
+    return hasattr(cls, "_" + cls.__name__ + "__mixin_slots")
 
 
 def is_concrete(cls):
@@ -156,22 +156,22 @@ def is_concrete(cls):
         return False
 
 
-def get_mixinslots(*mixins):
+def get_mixin_slots(*mixins):
     """Returns slots pushed down from mix-in classes.
 
     Used to define ``__slots__`` in concrete classes.
     For example::
 
         class A(X):             # A concrete base class (Non-empty slot)
-            __slots__ = ("a",) + get_mixinslots(X)
+            __slots__ = ("a",) + get_mixin_slots(X)
 
         class B:                # A mix-in class
             __slots__ = ()      # Mixins must have empty slots.
-            __slots = ("b",)    # Mixin __slots to be pushed down.
+            __mixin_slots = ("b",)    # Mixin __mixin_slots to be pushed down.
 
         class C(B, A):      # Mixins must come before concrete base classes.
-            __slots__ = ("c",) + get_mixinslots(B, A)
-                            # get_mixinslots adds mixin slots ("b")
+            __slots__ = ("c",) + get_mixin_slots(B, A)
+                            # get_mixin_slots adds mixin slots ("b")
                             # before the nearest concrete class.
     """
     class Temp(*mixins):
@@ -201,7 +201,7 @@ def get_mixinslots(*mixins):
 
     return tuple(attr
                  for b in mixins
-                 for attr in getattr(b, "_" + b.__name__ + "__slots"))
+                 for attr in getattr(b, "_" + b.__name__ + "__mixin_slots"))
 
 
 class BaseImpl:
@@ -216,6 +216,18 @@ class Impl(BaseImpl):
     and the other is to free referring objects from getting affected by
     special methods that are meant for changing the behaviour of operations
     for users."""
+
+    __slots__ = (
+        "system",
+        "interface",
+        "parent",
+        "spacemgr",
+        "name",
+        "model",
+        "allow_none",
+        "lazy_evals",
+        "_doc"
+    )
 
     __cls_stateattrs = [
         "system",
@@ -346,6 +358,9 @@ class Impl(BaseImpl):
 
 @add_stateattrs
 class Derivable:
+
+    __slots__ = ()
+    __mixin_slots = ("_is_derived",)
 
     __cls_stateattrs = ["_is_derived"]
 
@@ -721,7 +736,7 @@ class LazyEval:
     The updating operation can be customized by overwriting _refresh_data method.
     """
     __slots__ = ()
-    __slots = ("is_fresh", "observers", "observing")
+    __mixin_slots = ("is_fresh", "observers", "observing")
     __stateattrs = ("observers", "observing")
 
     UpdateMethods = None
@@ -859,7 +874,7 @@ def _sort_partial(self, sorted_keys):
 class LazyEvalDict(LazyEval, dict):
 
     __stateattrs = ("_repr",)
-    __slots__ = __stateattrs + get_mixinslots(LazyEval, dict)
+    __slots__ = __stateattrs + get_mixin_slots(LazyEval, dict)
 
     def __init__(self, data=None, observers=None):
 
@@ -933,7 +948,7 @@ assert issubclass(LazyEvalDict, Mapping)
 class LazyEvalChainMap(LazyEval, CustomChainMap):
 
     __stateattrs = ("_repr",)
-    __slots__ = __stateattrs + get_mixinslots(LazyEval, CustomChainMap)
+    __slots__ = __stateattrs + get_mixin_slots(LazyEval, CustomChainMap)
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
 
@@ -989,7 +1004,7 @@ class InterfaceMixin:
     _update_interfaces needs to be manually called from _refresh_data.
     """
     __slots__ = ()
-    __slots = ("_interfaces", "map_class", "interfaces")
+    __mixin_slots = ("_interfaces", "map_class", "interfaces")
     __stateattrs = ("map_class",)
 
     def __init__(self, map_class):
@@ -1035,7 +1050,7 @@ bases = InterfaceMixin, LazyEvalDict
 class ImplDict(*bases):
 
     __stateattrs = ("owner",)
-    __slots__ = __stateattrs + get_mixinslots(*bases)
+    __slots__ = __stateattrs + get_mixin_slots(*bases)
 
     def __init__(self, owner, ifclass, data=None, observers=None):
         self.owner = owner
@@ -1070,7 +1085,7 @@ bases = InterfaceMixin, LazyEvalChainMap
 class ImplChainMap(*bases):
 
     __stateattrs = ("owner", "map_ids")
-    __slots__ = __stateattrs + get_mixinslots(*bases)
+    __slots__ = __stateattrs + get_mixin_slots(*bases)
 
     def __init__(
         self, owner, ifclass, maps=None, observers=None, observe_maps=True,
