@@ -87,43 +87,19 @@ def get_impls(interfaces):
 
 def add_stateattrs(cls):
 
-    attrs = []
+    slots = [attr for c in cls.__mro__ if hasattr(c, "__slots__")
+             for attr in c.__slots__]
+
+    no_state = []
     for c in cls.__mro__:
-        if hasattr(c, "__slots__"):
-            no_state = "_" + c.__name__ + "__no_state"
-            if hasattr(c, no_state):
-                attrs.extend(
-                    attr for attr in c.__slots__
-                    if attr not in getattr(c, no_state))
-            else:
-                attrs.extend(c.__slots__)
+        attr = "_" + c.__name__ + "__no_state"
+        if hasattr(c, attr):
+            no_state.extend(getattr(c, attr))
 
-    assert len(attrs) == len(set(attrs))
-    cls.stateattrs = attrs
-    return cls
-
-
-def _get_stateattrs(cls):
-    """Returns attributes to be pickled
-
-    Collect class.__stateattrs from all base classes
-    If __stateattrs is not defined in any of the base class,
-    __mixin_slots (which is only defined in mix-in classes) is collected in stead.
-    """
-    stateattrs = []
-    for c in cls.__mro__:
-        attrs = "_" + c.__name__ + "__stateattrs"
-        slots = "_" + c.__name__ + "__mixin_slots"
-        if hasattr(c, attrs):
-            stateattrs.extend(getattr(c, attrs))
-        elif hasattr(c, slots):     # Mix-in class without __stateattrs
-            stateattrs.extend(getattr(c, slots))
-        elif hasattr(c, "__slots__") and c.__slots__:
-            raise RuntimeError("__stateattrs not found in %s" % c.__name__)
-
+    stateattrs = tuple(attr for attr in slots if attr not in no_state)
     assert len(stateattrs) == len(set(stateattrs))
-
-    return tuple(stateattrs)
+    cls.stateattrs = stateattrs
+    return cls
 
 
 def add_statemethod(cls):
@@ -143,7 +119,7 @@ def add_statemethod(cls):
             if hasattr(cls, name):
                 getattr(cls, name)(self, state)
 
-    cls.stateattrs = _get_stateattrs(cls)
+    add_stateattrs(cls)
     cls.__getstate__ = __getstate__
     cls.__setstate__ = __setstate__
 
@@ -191,7 +167,7 @@ def get_mixin_slots(*mixins):
 
     assert all(is_concrete(c) or is_mixin(c) for c in bases)
 
-    mixins = []
+    mixin_slots = []
     concrete_bases = []
     for b in bases:
         if is_concrete(b):
@@ -200,12 +176,12 @@ def get_mixin_slots(*mixins):
             if any(issubclass(concrete, b) for concrete in concrete_bases):
                 continue
             else:
-                mixins.append(b)
+                mixin_slots.append(b)
         else:
             raise RuntimeError("must not happen")
 
     return tuple(attr
-                 for b in mixins
+                 for b in mixin_slots
                  for attr in getattr(b, "_" + b.__name__ + "__mixin_slots"))
 
 
@@ -351,7 +327,6 @@ class Impl(BaseImpl):
         return self.get_repr(fullname=True, add_params=True)
 
 
-@add_stateattrs
 class Derivable:
 
     __slots__ = ()
@@ -730,7 +705,7 @@ class LazyEval:
     """
     __slots__ = ()
     __mixin_slots = ("is_fresh", "observers", "observing")
-    __stateattrs = ("observers", "observing")
+    __no_state = ("is_fresh",)
 
     UpdateMethods = None
 
@@ -866,8 +841,7 @@ def _sort_partial(self, sorted_keys):
 
 class LazyEvalDict(LazyEval, dict):
 
-    __stateattrs = ("_repr",)
-    __slots__ = __stateattrs + get_mixin_slots(LazyEval, dict)
+    __slots__ = ("_repr",) + get_mixin_slots(LazyEval, dict)
 
     def __init__(self, data=None, observers=None):
 
@@ -940,8 +914,7 @@ assert issubclass(LazyEvalDict, Mapping)
 @add_statemethod
 class LazyEvalChainMap(LazyEval, CustomChainMap):
 
-    __stateattrs = ("_repr",)
-    __slots__ = __stateattrs + get_mixin_slots(LazyEval, CustomChainMap)
+    __slots__ = ("_repr",) + get_mixin_slots(LazyEval, CustomChainMap)
 
     def __init__(self, maps=None, observers=None, observe_maps=True):
 
@@ -998,7 +971,7 @@ class InterfaceMixin:
     """
     __slots__ = ()
     __mixin_slots = ("_interfaces", "map_class", "interfaces")
-    __stateattrs = ("map_class",)
+    __no_state = ("_interfaces", "interfaces")
 
     def __init__(self, map_class):
         self._interfaces = dict()
@@ -1042,8 +1015,7 @@ bases = InterfaceMixin, LazyEvalDict
 @add_statemethod
 class ImplDict(*bases):
 
-    __stateattrs = ("owner",)
-    __slots__ = __stateattrs + get_mixin_slots(*bases)
+    __slots__ = ("owner",) + get_mixin_slots(*bases)
 
     def __init__(self, owner, ifclass, data=None, observers=None):
         self.owner = owner
@@ -1077,8 +1049,7 @@ bases = InterfaceMixin, LazyEvalChainMap
 @add_statemethod
 class ImplChainMap(*bases):
 
-    __stateattrs = ("owner", "map_ids")
-    __slots__ = __stateattrs + get_mixin_slots(*bases)
+    __slots__ = ("owner", "map_ids") + get_mixin_slots(*bases)
 
     def __init__(
         self, owner, ifclass, maps=None, observers=None, observe_maps=True,

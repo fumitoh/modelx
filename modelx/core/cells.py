@@ -17,7 +17,8 @@ from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import (
-    add_stateattrs, Impl, Derivable, Interface, get_mixin_slots)
+    add_statemethod, Impl, Derivable, Interface, get_mixin_slots,
+)
 from modelx.core.node import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node,
     ObjectNode
@@ -468,7 +469,7 @@ class CellsNamespaceReferrer(BaseNamespaceReferrer):
 _cells_impl_base = (CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
                     HasFormula, Impl)
 
-@add_stateattrs
+@add_statemethod
 class CellsImpl(*_cells_impl_base):
     """Cells implementation"""
 
@@ -537,16 +538,6 @@ class CellsImpl(*_cells_impl_base):
             self.altfunc = BoundFunction(self, base.altfunc.fresh)
         else:
             self.altfunc = BoundFunction(self)
-
-    # ----------------------------------------------------------------------
-    # Serialization by pickle
-
-    def __getstate__(self):
-        return {key: getattr(self, key) for key in self.stateattrs}
-
-    def __setstate__(self, state):
-        for attr in state:
-            setattr(self, attr, state[attr])
 
     # ----------------------------------------------------------------------
     # repr methods

@@ -40,8 +40,7 @@ class CustomChainMap(_collections_abc.MutableMapping):
     mapping.
 
     '''
-    __stateattrs = ("maps",)
-    __slots__ = __stateattrs
+    __slots__ = ("maps",)
 
     def __init__(self, *maps):
         '''Initialize a ChainMap by setting *maps* to the given mappings.

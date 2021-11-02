@@ -713,7 +713,6 @@ class EditableSpaceContainer(BaseSpaceContainer):
         return self._impl.new_module(name, path, module)
 
 
-@add_stateattrs
 class BaseSpaceContainerImpl:
     """Base class of Model and Space to work as container of spaces.
 
@@ -767,7 +766,6 @@ class BaseSpaceContainerImpl:
         raise NotImplementedError
 
 
-@add_stateattrs
 class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
 
     __slots__ = ()

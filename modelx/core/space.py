@@ -1320,7 +1320,7 @@ _base_space_impl_base = (
 )
 
 
-@add_stateattrs
+@add_statemethod
 class BaseSpaceImpl(*_base_space_impl_base):
     """Read-only base Space class
 
@@ -1498,16 +1498,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
         else:
             return self.parent.repr_self()
 
-    # ----------------------------------------------------------------------
-    # Space properties
-
-    def __getstate__(self):
-        return {key: getattr(self, key) for key in self.stateattrs}
-
-    def __setstate__(self, state):
-        for attr in state:
-            setattr(self, attr, state[attr])
-
     def restore_state(self):
         """Called after unpickling to restore some attributes manually."""
         BaseSpaceContainerImpl.restore_state(self)
@@ -1550,13 +1540,14 @@ class DynamicBase(BaseSpaceImpl):
             root = dynsub.rootspace
             root.parent.clear_itemspace_at(root.argvalues_if)
 
-
-@add_stateattrs
-class UserSpaceImpl(
+_user_space_impl_base = (
     DynamicBase,
     EditableSpaceContainerImpl,
     Derivable
-):
+)
+
+@add_stateattrs
+class UserSpaceImpl(*_user_space_impl_base):
     """Editable base Space class
 
     * cell creation
@@ -1568,11 +1559,7 @@ class UserSpaceImpl(
     __slots__ = (
         "cellsnamer",
         "source"
-    ) + get_mixin_slots(
-        DynamicBase,
-        EditableSpaceContainerImpl,
-        Derivable
-    )
+    ) + get_mixin_slots(*_user_space_impl_base)
 
     def __init__(
         self,

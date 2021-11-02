@@ -574,7 +574,7 @@ class BoundFunction(LazyEval):
     """Hold function with updated namespace"""
 
     __slots__ = ("owner", "global_names", "altfunc") + get_mixin_slots(LazyEval)
-    __stateattrs = ("owner",)
+    __no_state = ("global_names", "altfunc")
 
     def __init__(self, owner, base=None):
         """Create altered function from owner's formula.
