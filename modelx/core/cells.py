@@ -483,15 +483,6 @@ class CellsImpl(*_cells_impl_base):
         "input_keys"
     ) + get_mixin_slots(*_cells_impl_base)
 
-    __cls_stateattrs = [
-        "formula",
-        "data",
-        "_namespace",
-        "altfunc",
-        "source",
-        "input_keys"
-    ]
-
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
         source=None, is_derived=False, add_to_space=True

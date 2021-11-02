@@ -25,13 +25,6 @@ class NamespaceServer:
         "_referrers"
     )
 
-    __cls_stateattrs = [
-     "_namespace",
-     "observing",
-     "is_fresh",
-     "_referrers"
-    ]
-
     def __init__(self, namespace: ImplChainMap):
         self._namespace = namespace
         self.is_fresh = True   # dummy

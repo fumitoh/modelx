@@ -91,12 +91,6 @@ class ReferenceImpl(Derivable, Impl):
         "is_relative"
     ) + get_mixin_slots(Derivable, Impl)
 
-    __cls_stateattrs = [
-        "container",
-        "refmode",
-        "is_relative"
-    ]
-
     @classmethod
     def get_class(cls, value):
         if isinstance(value, BaseDataClient):

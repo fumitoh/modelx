@@ -1157,14 +1157,6 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         "altfunc"
     )
 
-    __cls_stateattrs = [
-        "_named_itemspaces",
-        "itemspacenamer",
-        "param_spaces",
-        "formula",
-        "altfunc"
-    ]
-
     def __init__(self, formula):
         self._named_itemspaces = ImplDict(self, SpaceView)
         self.itemspacenamer = AutoNamer("__Space")
@@ -1348,13 +1340,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
         "_self_refs",
         "_refs"
     ) + get_mixin_slots(*_base_space_impl_base)
-
-    __cls_stateattrs = [
-            "_cells",
-            "_local_refs",
-            "_self_refs",
-            "_refs"
-    ]
 
     def __init__(
         self,
@@ -1545,10 +1530,6 @@ class DynamicBase(BaseSpaceImpl):
 
     __slots__ = ("_dynamic_subs",) + get_mixin_slots(BaseSpaceImpl)
 
-    __cls_stateattrs = [
-     "_dynamic_subs"
-    ]
-
     def __init__(self):
         BaseNamespaceReferrer.__init__(self, self)
         self._dynamic_subs = []
@@ -1592,11 +1573,6 @@ class UserSpaceImpl(
         EditableSpaceContainerImpl,
         Derivable
     )
-
-    __cls_stateattrs = [
-     "cellsnamer",
-     "source"
-    ]
 
     def __init__(
         self,
@@ -2031,13 +2007,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         "_dynbase_refs"
     ) + get_mixin_slots(BaseSpaceImpl)
 
-    __cls_stateattrs = [
-        "_dynbase",
-        "_allargs",
-        "rootspace",
-        "_dynbase_refs"
-    ]
-
     def __init__(
         self,
         parent,
@@ -2182,7 +2151,11 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         "argvalues_if"
     ) + get_mixin_slots(DynamicSpaceImpl)
 
-    __cls_stateattrs = ["_arguments"]
+    __no_state = (
+        "boundargs",
+        "argvalues",
+        "argvalues_if"
+    )
 
     def __init__(
         self,

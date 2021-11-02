@@ -86,15 +86,20 @@ def get_impls(interfaces):
 
 
 def add_stateattrs(cls):
-    stateattrs = []
-    for c in cls.__mro__:
-        attrs = "_" + c.__name__ + "__cls_stateattrs"
-        if hasattr(c, attrs):
-            for attr in getattr(c, attrs):
-                stateattrs.append(attr)
 
-    assert len(stateattrs) == len(set(stateattrs))
-    cls.stateattrs = stateattrs
+    attrs = []
+    for c in cls.__mro__:
+        if hasattr(c, "__slots__"):
+            no_state = "_" + c.__name__ + "__no_state"
+            if hasattr(c, no_state):
+                attrs.extend(
+                    attr for attr in c.__slots__
+                    if attr not in getattr(c, no_state))
+            else:
+                attrs.extend(c.__slots__)
+
+    assert len(attrs) == len(set(attrs))
+    cls.stateattrs = attrs
     return cls
 
 
@@ -229,16 +234,6 @@ class Impl(BaseImpl):
         "_doc"
     )
 
-    __cls_stateattrs = [
-        "system",
-        "interface",
-        "parent",
-        "spacemgr",
-        "name",
-        "model",
-        "allow_none",
-        "lazy_evals",
-        "_doc"]
     interface_cls = None  # Override in sub classes if interface class exists
 
     def __init__(self, system, parent, name, interface=None, doc=None):
@@ -361,8 +356,6 @@ class Derivable:
 
     __slots__ = ()
     __mixin_slots = ("_is_derived",)
-
-    __cls_stateattrs = ["_is_derived"]
 
     def __init__(self, is_derived):
         self._is_derived = is_derived

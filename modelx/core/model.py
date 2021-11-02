@@ -366,11 +366,6 @@ class TraceManager:
         "refgraph"
     )
 
-    __cls_stateattrs = [
-            "tracegraph",
-            "refgraph"
-    ]
-
     def __init__(self):
         self.tracegraph = TraceGraph()
         self.refgraph = ReferenceGraph()
@@ -418,16 +413,6 @@ class ModelImpl(*_model_impl_base):
         "currentspace",
         "datarefmgr"
     ) + get_mixin_slots(*_model_impl_base)
-
-    __cls_stateattrs = [
-            "_namespace",
-            "_global_refs",
-            "_dynamic_bases",
-            "_dynamic_bases_inverse",
-            "_dynamic_base_namer",
-            "currentspace",
-            "datarefmgr"
-    ]
 
     def __init__(self, *, system, name):
 
