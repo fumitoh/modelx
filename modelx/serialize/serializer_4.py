@@ -296,8 +296,6 @@ def output_input(obj, key):
 class ModelWriter:
 
     version = 4
-    model_encoder = None
-    space_encoder = None
 
     def __init__(self, system, model: Model, path: pathlib.Path,
                  log_input: bool,
@@ -320,7 +318,7 @@ class ModelWriter:
         try:
             self.system.serializing = self
 
-            encoder = self.model_encoder(
+            encoder = ModelEncoder(
                 self, self.model,
                 self.root / "__init__.py",
                 self.root / "_data")
@@ -361,7 +359,7 @@ class ModelWriter:
                     and not MethodCallEncoder.from_method(space)):
                 srcpath = (encoder.srcpath.parent / space.name / "__init__.py")
 
-                e = self.space_encoder(
+                e = SpaceEncoder(
                     self,
                     space,
                     srcpath=srcpath
@@ -409,8 +407,6 @@ class BaseEncoder:
 
 class ModelEncoder(BaseEncoder):
 
-    refview_encoder_class = None
-
     def __init__(self, writer,
                  model: Model, srcpath: pathlib.Path, datapath: pathlib.Path):
         super().__init__(writer, model,
@@ -420,7 +416,7 @@ class ModelEncoder(BaseEncoder):
                          datapath=datapath)
         self.model = model
 
-        self.refview_encoder = self.refview_encoder_class(
+        self.refview_encoder = RefViewEncoder(
             self,
             self.model.refs,
             parent=self.model,
@@ -473,19 +469,14 @@ class ModelEncoder(BaseEncoder):
         return CompoundInstruction(insts)
 
 
-ModelWriter.model_encoder = ModelEncoder
-
-
 class SpaceEncoder(BaseEncoder):
-
-    refview_encoder_class = None
 
     def __init__(self, writer, target, srcpath=None):
         super().__init__(writer, target, target.parent, target.name, srcpath,
                          datapath=srcpath.parent / "_data")
         self.space = target
 
-        self.refview_encoder = self.refview_encoder_class(
+        self.refview_encoder = RefViewEncoder(
             self,
             self.space._self_refs,
             parent=self.space,
@@ -652,12 +643,7 @@ class SpaceEncoder(BaseEncoder):
             self._pickle_dynamic_space(file, subspace, static_parent)
 
 
-ModelWriter.space_encoder = SpaceEncoder
-
-
 class RefViewEncoder(BaseEncoder):
-
-    selector_class = None
 
     def __init__(self, writer, target, parent, name=None, srcpath=None):
         super().__init__(writer, target, parent, name, srcpath,
@@ -671,7 +657,7 @@ class RefViewEncoder(BaseEncoder):
                 ref = parent._get_object(key, as_proxy=True)
                 if (is_model or not ref.is_derived):
                     datafile = self.datapath / key
-                    self.encoders.append(self.selector_class.select(val)(
+                    self.encoders.append(EncoderSelector.select(val)(
                         writer,
                         ref, parent=parent, name=key, srcpath=srcpath,
                         datapath=datafile))
@@ -688,10 +674,6 @@ class RefViewEncoder(BaseEncoder):
     def instruct(self):
         return CompoundInstruction(
             [encoder.instruct() for encoder in self.encoders])
-
-
-ModelEncoder.refview_encoder_class = RefViewEncoder
-SpaceEncoder.refview_encoder_class = RefViewEncoder
 
 
 class CellsEncoder(BaseEncoder):
@@ -1014,10 +996,6 @@ class EncoderSelector(BaseSelector):
         PickleEncoder
     ]
 
-
-RefViewEncoder.selector_class = EncoderSelector
-
-
 # --------------------------------------------------------------------------
 # Model Reading
 
@@ -1045,7 +1023,6 @@ def node_from_token(ast_, index):
 class ModelReader:
 
     version = ModelWriter.version
-    parser_selector_class = None
 
     def __init__(self, system, path: pathlib.Path):
         self.system = system
@@ -1161,7 +1138,7 @@ class ModelReader:
 
         for i, stmt in enumerate(atok.tree.body):
             sec = srcstructure.get_section(stmt.lineno)
-            parser = self.parser_selector_class.select(stmt, sec, atok)(
+            parser = ParserSelector.select(stmt, sec, atok)(
                 stmt, atok, self, sec, obj, srcpath=path_
             )
             ist = parser.get_instruction()
@@ -1456,7 +1433,6 @@ class AttrAssignParser(BaseAssignParser):
 
 class RefAssignParser(BaseAssignParser):
     AST_NODE = ast.Assign
-    selector_class = None
 
     @classmethod
     def condition(cls, node, section, atok):
@@ -1469,7 +1445,7 @@ class RefAssignParser(BaseAssignParser):
         name = self.target
         valnode = self.node.value
 
-        decoder_class = self.selector_class.select(valnode)
+        decoder_class = DecoderSelector.select(valnode)
         decoder = decoder_class(
             self.reader, valnode, self.atok,
             self.obj, name=name, srcpath=self.srcpath)
@@ -1715,9 +1691,6 @@ class ParserSelector(BaseSelector):
     ]
 
 
-ModelReader.parser_selector_class = ParserSelector
-
-
 class ValueDecoder:
 
     def __init__(self, reader, node, atok, obj, name=None, srcpath=None):
@@ -1813,9 +1786,6 @@ class DecoderSelector(BaseSelector):
         PickleDecoder,
         LiteralDecoder
     ]
-
-
-RefAssignParser.selector_class = DecoderSelector
 
 
 if __name__ == "__main__":
