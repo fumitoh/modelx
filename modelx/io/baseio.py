@@ -169,7 +169,6 @@ class BaseDataClient:
         :attr:`~modelx.core.model.Model.dataclients`
 
     """
-
     def __init__(self, path, is_hidden):
         self.path = pathlib.Path(path)
         self._manager = None
@@ -226,58 +225,6 @@ class BaseDataClient:
             self._data.add_client(self)
         else:
             self._on_unpickle(state)
-
-
-class DataClientReferenceManager:
-    """Maintains dataclient-reference mapping"""
-
-    def __init__(self):
-        self._client_to_refs = {}
-
-    def add_reference(self, ref, client):
-
-        refs = self._client_to_refs.get(client, None)
-        if refs:
-            refs.add(ref)
-        else:
-            self._client_to_refs[client] = {ref}
-
-    def del_reference(self, ref, client):
-
-        if isinstance(client, BaseDataClient):
-            refs = self._client_to_refs[client]
-            refs.remove(ref)
-            if not refs:
-                del self._client_to_refs[client]
-                client._manager.del_client(client)
-        else:
-            raise ValueError("client must be BaseDataClient")
-
-    def save_data(self, root):
-        saved = set()
-        for client in self._client_to_refs:
-            if not client._data in saved:
-                client._data.save(root)
-                saved.add(client._data)
-
-    def del_all(self):
-        for client, refs in self._client_to_refs.copy().items():
-            for ref in refs.copy():
-                self.del_reference(ref, client)
-
-    @property
-    def clients(self):
-        return self._client_to_refs.keys()
-
-    def get_client(self, ref):
-        for client, refs in self._client_to_refs.items():
-            if ref in refs:
-                return client
-
-        raise KeyError('must not happen')
-
-
-
 
 
 

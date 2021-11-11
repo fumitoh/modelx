@@ -11,7 +11,8 @@ _MX_TO_FORMAT = {
     (0, 0, 25): 1,
     (0, 1, 0): 2,
     (0, 2, 0): 3,
-    (0, 9, 0): 4
+    (0, 9, 0): 4,
+    (0, 18, 0): 5
 }
 
 HIGHEST_VERSION = list(_MX_TO_FORMAT.values())[-1]

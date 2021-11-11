@@ -947,6 +947,7 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             self.system.iomanager.del_client(result)
             raise KeyError("cannot assign '%s'" % name)
 
+        self.model.refmgr.assoc_client(result, result)
         return result
 
     def new_pandas(self, name, path, data, filetype, expose_data):
@@ -963,15 +964,14 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
             model=self.model.interface,
             client_args=cargs
         )
-        ref = client.value if expose_data else client
-
         try:
-            self.set_attr(name, ref)
+            self.set_attr(name, data)
         except (ValueError, KeyError, AttributeError):
             self.system.iomanager.del_client(client)
             raise KeyError("cannot assign '%s'" % name)
 
-        return ref
+        self.model.refmgr.assoc_client(data, client)
+        return data
 
     def new_module(self, name, path, module):
 
@@ -990,6 +990,8 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         except (ValueError, KeyError, AttributeError):
             self.system.iomanager.del_client(client)
             raise KeyError("cannot assign '%s'" % name)
+
+        self.model.refmgr.assoc_client(client.value, client)
 
         return client.value
 

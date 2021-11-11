@@ -27,10 +27,11 @@ from modelx.core.model import Model
 from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
-from modelx.io.baseio import BaseDataClient
 import asttokens
 from . import ziputil
-from .custom_pickle import ModelUnpickler, ModelPickler
+from .custom_pickle import (
+    DataClientUnpickler, ModelUnpickler,
+    DataClientPickler, ModelPickler)
 
 
 Section = namedtuple("Section", ["id", "symbol"])
@@ -304,6 +305,9 @@ class ModelWriter:
 
         self.system = system
         self.model = model
+        self.dataclients = {id(dc): dc for dc in self.model.dataclients}
+        self.value_id_map = {   # id(value) -> id(dataclient)
+            id(d.value): id(d) for d in self.model.dataclients}
         self.root = path
         self.call_ids = []
         self.pickledata = {}
@@ -328,12 +332,12 @@ class ModelWriter:
             if zipfile.is_zipfile(self.root):
                 with tempfile.TemporaryDirectory() as tempdir:
                     temproot = pathlib.Path(tempdir)
-                    self.model._impl.datarefmgr.save_data(root=temproot)
+                    self.model._impl.refmgr.save_data(root=temproot)
                     ziputil.copy_dir_to_zip(temproot, self.root,
                                             compression=self.compression,
                                             compresslevel=self.compresslevel)
             else:
-                self.model._impl.datarefmgr.save_data(root=self.root)
+                self.model._impl.refmgr.save_data(root=self.root)
 
             if self.log_input:
                 ziputil.write_str_utf8(
@@ -369,10 +373,18 @@ class ModelWriter:
         encoder.instruct().execute()
 
     def write_pickledata(self):
+        if self.model.dataclients:
+            file = self.root / "_data/dataclient.pickle"
+            ziputil.write_file_utf8(
+                lambda f: DataClientPickler(f).dump(self.dataclients),
+                file, mode="b",
+                compression=self.compression,
+                compresslevel=self.compresslevel
+            )
         if self.pickledata:
             file = self.root / "_data/data.pickle"
             ziputil.write_file_utf8(
-                lambda f: ModelPickler(f).dump(self.pickledata),
+                lambda f: ModelPickler(f, writer=self).dump(self.pickledata),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel
@@ -417,7 +429,7 @@ class ModelEncoder(BaseEncoder):
         self.model = model
 
         self.refview_encoder = RefViewEncoder(
-            self,
+            self.writer,
             self.model.refs,
             parent=self.model,
             srcpath=self.srcpath
@@ -477,7 +489,7 @@ class SpaceEncoder(BaseEncoder):
         self.space = target
 
         self.refview_encoder = RefViewEncoder(
-            self,
+            self.writer,
             self.space._self_refs,
             parent=self.space,
             srcpath=srcpath
@@ -657,7 +669,7 @@ class RefViewEncoder(BaseEncoder):
                 ref = parent._get_object(key, as_proxy=True)
                 if (is_model or not ref.is_derived):
                     datafile = self.datapath / key
-                    self.encoders.append(EncoderSelector.select(val)(
+                    self.encoders.append(EncoderSelector.select(ref, writer)(
                         writer,
                         ref, parent=parent, name=key, srcpath=srcpath,
                         datapath=datafile))
@@ -869,7 +881,8 @@ class MethodCallSelector(BaseSelector):
 class InterfaceRefEncoder(BaseEncoder):
 
     @classmethod
-    def condition(cls, value):
+    def condition(cls, ref, writer):
+        value = ref.value
         return isinstance(value, Interface) and value._is_valid()
 
     def encode(self):
@@ -901,7 +914,8 @@ class LiteralEncoder(BaseEncoder):
     literal_types = [bool, int, float, str]
 
     @classmethod
-    def condition(cls, value):
+    def condition(cls, ref, writer):
+        value = ref.value
         return any(type(value) is t for t in cls.literal_types)
 
     def encode(self):
@@ -914,44 +928,23 @@ class LiteralEncoder(BaseEncoder):
 class DataClientEncoder(BaseEncoder):
 
     @classmethod
-    def condition(cls, value):
+    def condition(cls, ref, writer):
 
-        if not isinstance(value, Interface):    # Avoid null object
-
-            if isinstance(value, BaseDataClient):
-                return True
-            elif hasattr(value, "_mx_dataclient") and isinstance(
-                    value._mx_dataclient, BaseDataClient):
-                return True
-
-        return False
+        if not isinstance(ref, Interface): # Avoid null object
+            return id(ref.value) in writer.value_id_map
+        else:
+            return False
 
     def encode(self):
-        return "(\"DataClient\", %s)" % self._get_key()
-
-    def _is_hidden(self):
-        if isinstance(self.target.value, BaseDataClient):
-            return False
-        elif hasattr(self.target.value, "_mx_dataclient"):
-            return True
-        else:
-            raise RuntimeError("must not happen")
-
-    def _get_key(self):
-        if self._is_hidden():
-            return  id(self.target.value._mx_dataclient)
-        else:
-            return id(self.target.value)
+        value_id = id(self.target.value)
+        client_id = self.writer.value_id_map[value_id]
+        return "(\"DataClient\", %s, %s)" % (value_id, client_id)
 
     def pickle_value(self):
-        key = self._get_key()
-        if self._is_hidden():
-            value = self.target.value._mx_dataclient
-        else:
-            value = self.target.value
+        key = id(self.target.value)
 
         if key not in self.writer.pickledata:
-            self.writer.pickledata[key] = value
+            self.writer.pickledata[key] = self.target.value
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -960,8 +953,12 @@ class DataClientEncoder(BaseEncoder):
 class ModuleEncoder(BaseEncoder):
 
     @classmethod
-    def condition(cls, value):
-        return isinstance(value, types.ModuleType)
+    def condition(cls, ref, writer):
+        value = ref.value
+        if id(value) in writer.value_id_map:   # Use PickleEncoder
+            return False
+        else:
+            return isinstance(value, types.ModuleType)
 
     def encode(self):
         return "(\"Module\", \"%s\")" % self.target.value.__name__
@@ -970,7 +967,7 @@ class ModuleEncoder(BaseEncoder):
 class PickleEncoder(BaseEncoder):
 
     @classmethod
-    def condition(cls, value):
+    def condition(cls, ref, writer):
         return True  # default encoder
 
     def pickle_value(self):
@@ -1032,6 +1029,7 @@ class ModelReader:
         self.result = None      # To pass list of space names
         self.model = None
         self.pickledata = None
+        self.dataclients = None
         self.temproot = None
 
     def read_model(self, **kwargs):
@@ -1076,8 +1074,8 @@ class ModelReader:
         self.instructions.execute_selected_methods(["add_bases"])
         self.read_pickledata()
         self.instructions.execute_selected_methods(["load_pickledata"])
-        self.instructions.execute_selected_methods(["__setattr__", "set_ref",
-                                                    "assoc_client"])
+        self.instructions.execute_selected_methods(
+            ["__setattr__", "set_ref", "assoc_client"])
         self.instructions.execute_selected_methods(
             ["_set_dynamic_inputs"])
 
@@ -1157,6 +1155,12 @@ class ModelReader:
         def compat_load(file):
             from .pandas_compat import CompatUnpickler
             return CompatUnpickler(file, self).load()
+
+        file = self.path / "_data/dataclient.pickle"
+        if ziputil.exists(file):
+            self.dataclients = ziputil.read_file_utf8(
+                lambda f: DataClientUnpickler(f, self).load(), file, "b"
+            )
 
         file = self.path / "_data/data.pickle"
         if ziputil.exists(file):
@@ -1485,41 +1489,14 @@ class RefAssignParser(BaseAssignParser):
 
             def arghook(inst):
                 "Return arguments for assoc_client"
-                val_or_dc = inst.args[0].restore()
-                if hasattr(val_or_dc, "_mx_dataclient"):
-                    dc = val_or_dc._mx_dataclient
-                    val = val_or_dc
-                else:
-                    dc = val_or_dc
-                    val = val_or_dc.value
-
-                return (val, dc), {}
+                dc_id, reader = inst.args
+                client = reader.dataclients[dc_id]
+                return (client.value, client), {}
 
             assoc = Instruction.from_method(
                 obj=self.impl.model.refmgr,
                 method="assoc_client",
-                args=(decoder,),
-                arghook=arghook
-            )
-            return CompoundInstruction([setter, assoc])
-
-        elif isinstance(decoder, PickleDecoder):
-            # For ExcelRange object
-
-            def arghook(inst):
-                val = inst.args[0].restore()
-                if isinstance(val, BaseDataClient):
-                    return (val, val), {}
-                else:
-                    return (val, None), {}
-
-            def assoc_client(value, client):
-                if client:  # Do nothing if not a client
-                    self.impl.model.refmgr.assoc_client(value, client)
-
-            assoc = Instruction(
-                func=assoc_client,
-                args=(decoder,),
+                args=(decoder.elm(2), self.reader),
                 arghook=arghook
             )
             return CompoundInstruction([setter, assoc])
@@ -1791,11 +1768,7 @@ class DataClientDecoder(TupleDecoder):
         return self.elm(1)
 
     def restore(self):
-        client = self.reader.pickledata[self.decode()]
-        if client._is_hidden:
-            return client.value
-        else:
-            return client
+        return self.reader.pickledata[self.decode()]
 
 
 class ModuleDecoder(TupleDecoder):

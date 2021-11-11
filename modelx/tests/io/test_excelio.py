@@ -342,9 +342,9 @@ def test_dataclients(tmp_path):
 
     assert m.dataclients
     m.x = s.table1
-    del s.table1
-    assert m.dataclients
     del m.x
+    assert m.dataclients
+    del s.table1
     assert not m.dataclients
 
 

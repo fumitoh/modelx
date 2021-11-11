@@ -21,7 +21,6 @@ from collections.abc import Sequence
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
 from modelx.core.chainmap import CustomChainMap
-from modelx.core.node import ObjectNode, get_node
 
 from modelx.core.base import (
     add_stateattrs,
@@ -42,8 +41,7 @@ from modelx.core.base import (
 from modelx.core.formula import BoundFunction, HasFormula
 from modelx.core.reference import (
     ReferenceImpl,
-    ReferenceProxy,
-    DataClientReferenceImpl
+    ReferenceProxy
 )
 from modelx.core.node import (
     node_get_args,
@@ -118,14 +116,10 @@ class RefDict(ImplDict):
         elif isinstance(value, Impl):
             raise RuntimeError("must not happen")
         else:
-            return ReferenceImpl.get_class(value)(parent, name, value, container=self)
+            return ReferenceImpl(parent, name, value, container=self)
 
     def restore_state(self):
-        for ref in self.values():
-            if isinstance(ref, DataClientReferenceImpl):
-                ref.interface._mx_dataclient = (
-                    self.owner.model.datarefmgr.get_client(ref)
-                )
+        pass
 
 
 class DynBaseRefDict(RefDict):
@@ -1390,7 +1384,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
         if refs is not None:
             for key, value in refs.items():
-                ReferenceImpl.get_class(value)(self, key, value, container=self._self_refs,
+                ReferenceImpl(self, key, value, container=self._self_refs,
                               refmode="auto")
 
     def _init_self_refs(self):
@@ -1539,6 +1533,7 @@ class DynamicBase(BaseSpaceImpl):
         for dynsub in self._dynamic_subs.copy():
             root = dynsub.rootspace
             root.parent.clear_itemspace_at(root.argvalues_if)
+
 
 _user_space_impl_base = (
     DynamicBase,
@@ -1763,9 +1758,9 @@ class UserSpaceImpl(*_user_space_impl_base):
         if name in self.namespace:
             if name in self.refs:
                 if name in self.self_refs:
-                    self.spacemgr.change_ref(self, name, value, refmode)
+                    self.model.refmgr.change_ref(self, name, value, refmode)
                 elif self.refs[name].parent is self.model:
-                    self.spacemgr.new_ref(self, name, value, refmode)
+                    self.model.refmgr.new_ref(self, name, value, refmode)
                 else:
                     raise RuntimeError("must not happen")
 
@@ -1777,7 +1772,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             else:
                 raise ValueError
         else:
-            self.spacemgr.new_ref(self, name, value, refmode)
+            self.model.refmgr.new_ref(self, name, value, refmode)
 
     def del_attr(self, name):
         """Implementation of attribute deletion
@@ -1805,7 +1800,7 @@ class UserSpaceImpl(*_user_space_impl_base):
     def del_ref(self, name):
 
         if name in self.self_refs:
-            self.spacemgr.del_ref(self, name)
+            self.model.refmgr.del_ref(self, name)
         elif name in self.is_derived:
             raise KeyError("Derived ref '%s' cannot be deleted" % name)
         elif name in self.arguments:
@@ -1876,7 +1871,7 @@ class UserSpaceImpl(*_user_space_impl_base):
                         is_derived=True)
 
                 elif attr == "self_refs":
-                    selfdict[name] = ReferenceImpl.get_class(None)(
+                    selfdict[name] = ReferenceImpl(
                         self, name, None,
                         container=self._self_refs,
                         is_derived=True,
@@ -1948,7 +1943,7 @@ class UserSpaceImpl(*_user_space_impl_base):
         return ref
 
     def on_create_ref(self, name, value, is_derived, refmode):
-        ref = ReferenceImpl.get_class(value)(self, name, value,
+        ref = ReferenceImpl(self, name, value,
                             container=self._self_refs,
                             is_derived=is_derived,
                             refmode=refmode,

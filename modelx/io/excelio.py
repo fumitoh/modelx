@@ -490,6 +490,10 @@ class ExcelRange(BaseDataClient, Mapping):
         else:
             raise KeyError("invalid key: %s" % repr(key))
 
+    @property
+    def value(self):
+        return self
+
     def __getitem__(self, key):
         r, c = self._get_index(key)
         return _redirect_merged(self._cells[r][c]).value

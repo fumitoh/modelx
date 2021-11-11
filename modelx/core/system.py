@@ -644,7 +644,7 @@ class System:
         del self.models[model.name]
         if self.currentmodel is model:
             self.currentmodel = None
-        model.datarefmgr.del_all()
+        model.refmgr.del_all_client()
 
     def get_object(self, name, as_proxy=False):
         """Retrieve an object by its absolute name."""

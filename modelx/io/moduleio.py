@@ -85,22 +85,18 @@ class ModuleData(BaseDataClient):
         if self._value is None:
             self._value = self._data._load_module()
 
-        self._value._mx_dataclient = self
-
     def _on_pickle(self, state):
         return state
 
     def _on_unpickle(self, state):
         mod = self._data._load_module()
         self._value = mod
-        self._value._mx_dataclient = self
 
     def _on_serialize(self, state):
         return state
 
     def _on_unserialize(self, state):
         self._value = self._data._load_module()
-        self._value._mx_dataclient = self
 
     def _after_save_file(self):
         pass

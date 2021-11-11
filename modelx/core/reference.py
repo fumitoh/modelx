@@ -65,41 +65,16 @@ class _ModulePickler(_BasePickler):
         return importlib.import_module(self.value)
 
 
-class _HiddenDataClientPickler(_BasePickler):
-
-    __slots__ = ()
-
-    @classmethod
-    def condition(cls, value):
-        return hasattr(value, "_mx_dataclient")
-
-    def convert(self, value):
-        return value._mx_dataclient
-
-    def restore(self):
-        return self.value.value
-
-
 @add_stateattrs
 class ReferenceImpl(Derivable, Impl):
 
-    picklers = []    # List of _BasePickler sub classes
+    picklers = [_ModulePickler]    # List of _BasePickler sub classes
 
     __slots__ = (
         "container",
         "refmode",
         "is_relative"
     ) + get_mixin_slots(Derivable, Impl)
-
-    @classmethod
-    def get_class(cls, value):
-        if isinstance(value, BaseDataClient):
-            return DataClientReferenceImpl
-        elif not isinstance(    # Avoid null object
-                value, Interface) and hasattr(value, "_mx_dataclient"):
-            return DataClientReferenceImpl
-        else:
-            return cls
 
     def __init__(self, parent, name, value, container, is_derived=False,
                  refmode=None, set_item=True):
@@ -122,11 +97,6 @@ class ReferenceImpl(Derivable, Impl):
         else:   # 'auto' or 'relative'
             self.is_relative = True
 
-        self.on_init(value)
-
-    def on_init(self, value):
-        pass
-
     def on_delete(self):
         pass
 
@@ -135,10 +105,13 @@ class ReferenceImpl(Derivable, Impl):
         state = {key: getattr(self, key) for key in self.stateattrs}
         value = state["interface"]
 
-        for pickler in self.picklers:
-            if pickler.condition(value):
-                state["interface"] = pickler(value)
-                break
+        if self.model.refmgr.has_client(value):
+            state["interface"] = self.model.refmgr.get_client(value)
+        else:
+            for pickler in self.picklers:
+                if pickler.condition(value):
+                    state["interface"] = pickler(value)
+                    break
 
         return state
 
@@ -147,6 +120,8 @@ class ReferenceImpl(Derivable, Impl):
         if isinstance(state["interface"], _DummyBuiltins):
             # For backward compatibility with -v0.0.23
             state["interface"] = builtins
+        elif isinstance(state["interface"], BaseDataClient):
+            state["interface"] = state["interface"].value
         else:
             if isinstance(state["interface"], _BasePickler):
                 state["interface"] = state["interface"].restore()
@@ -203,34 +178,6 @@ class ReferenceImpl(Derivable, Impl):
         else:
             self.interface = bases[0].interface
         self.container.set_refresh()
-
-
-ReferenceImpl.picklers.append(_ModulePickler)
-
-
-class DataClientReferenceImpl(ReferenceImpl):
-
-    __slots__ = ()
-
-    picklers = [_HiddenDataClientPickler]
-
-    def on_init(self, value):
-
-        if isinstance(value, BaseDataClient):
-            client = value
-        else:
-            client = value._mx_dataclient
-
-        self.model.datarefmgr.add_reference(self, client)
-
-    def on_delete(self):
-
-        if isinstance(self.interface, BaseDataClient):
-            client = self.interface
-        else:
-            client = self.interface._mx_dataclient
-
-        self.model.datarefmgr.del_reference(self, client)
 
 
 class ReferenceProxy:

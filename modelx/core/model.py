@@ -45,7 +45,7 @@ from modelx.core.space import (
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name, AutoNamer
 from modelx.core.chainmap import CustomChainMap
-from modelx.io.baseio import DataClientReferenceManager
+# from modelx.io.baseio import DataClientManager
 
 try:
     _nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
@@ -318,7 +318,7 @@ class Model(EditableSpaceContainer):
         .. versionadded:: 0.9.0
 
         """
-        return list(self._impl.datarefmgr.clients)
+        return list(self._impl.refmgr.clients)
 
     @property
     def tracegraph(self):
@@ -411,7 +411,7 @@ class ModelImpl(*_model_impl_base):
         "_dynamic_bases_inverse",
         "_dynamic_base_namer",
         "currentspace",
-        "datarefmgr"
+        "refmgr"
     ) + get_mixin_slots(*_model_impl_base)
 
     def __init__(self, *, system, name):
@@ -441,7 +441,7 @@ class ModelImpl(*_model_impl_base):
         )
         self.allow_none = False
         self.lazy_evals = self._namespace
-        self.datarefmgr = DataClientReferenceManager()
+        self.refmgr = ReferenceManager()
 
     def rename(self, name):
         """Rename self. Must be called only by its system."""
@@ -467,6 +467,8 @@ class ModelImpl(*_model_impl_base):
     @property
     def global_refs(self):
         return self._global_refs.fresh
+
+    refs = global_refs
 
     @property
     def namespace(self):
@@ -540,12 +542,15 @@ class ModelImpl(*_model_impl_base):
         self.global_refs.delete_item(name)
 
     def change_ref(self, name, value):
-        """Not Used"""
-        assert False
-        ref = self.global_refs[name]
-        self.model.clear_attr_referrers(ref)
-        ref.change_value(value, False, refmode="absolute",
-                         is_relative=False)
+        self.del_ref(name)
+        self.new_ref(name, value)
+
+    def new_ref(self, name, value):
+        ref = ReferenceImpl(
+            self, name, value, container=self._global_refs,
+            set_item=False)
+        self._global_refs.add_item(name, ref)
+        return ref
 
     def get_attr(self, name):
         if name in self.spaces:
@@ -561,19 +566,16 @@ class ModelImpl(*_model_impl_base):
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
         elif name in self.global_refs:
-            self.del_ref(name)
-
-        ref = ReferenceImpl.get_class(value)(
-            self, name, value, container=self._global_refs,
-            set_item=False)
-        self._global_refs.add_item(name, ref)
+            self.change_ref(name, value)
+        else:
+            self.refmgr.new_ref(self, name, value, refmode)
 
     def del_attr(self, name):
 
         if name in self.named_spaces:
             self.updater.del_defined_space(self.named_spaces[name])
         elif name in self.global_refs:
-            self.del_ref(name)
+            self.refmgr.del_ref(self, name)
         else:
             raise KeyError("Name '%s' not defined" % name)
 
@@ -1387,7 +1389,7 @@ class SpaceManager(SharedSpaceOperations):
         self._check_subs_relrefs(space, name, value, refmode)
         self._set_defined(space.namedid)
         space.set_defined()
-        space.on_create_ref(name, value, is_derived=False,
+        result = space.on_create_ref(name, value, is_derived=False,
                             refmode=refmode)
 
         for subspace in self._get_subs(space):
@@ -1401,6 +1403,8 @@ class SpaceManager(SharedSpaceOperations):
             ref = subspace.on_create_ref(name, value, is_derived=True,
                                    refmode=refmode)
             ref.is_relative = is_relative
+
+        return result
 
     def change_ref(self, space, name, value, refmode):
         """Assigns a new value to an existing name."""
@@ -1881,3 +1885,140 @@ class SpaceUpdater(SharedSpaceOperations):
                 space, child, child.name, defined_only)
 
         return space
+
+
+class ReferenceManager:
+
+    def __init__(self):
+        self._valid_to_refs = {}         # id(value) -> [refs]
+        self._valid_to_client = {}
+
+    def has_client(self, value):
+        return id(value) in self._valid_to_client
+
+    def get_client(self, value):
+        return self._valid_to_client[id(value)]
+
+    @property
+    def clients(self):
+        return list(self._valid_to_client.values())
+
+    def new_ref(self, impl, name, value, refmode):
+
+        if isinstance(impl, ModelImpl):
+            ref = impl.new_ref(name, value)
+        elif isinstance(impl, UserSpaceImpl):
+            ref = impl.model.spacemgr.new_ref(impl, name, value, refmode)
+        else:
+            raise RuntimeError("must not happen")
+
+        id_ = id(value)
+        if id_ in self._valid_to_refs:
+            refs = self._valid_to_refs[id_]
+            assert ref not in refs
+            refs.append(ref)
+        else:
+            self._valid_to_refs[id_] = [ref]
+
+    def del_ref(self, impl, name):
+
+        if isinstance(impl, ModelImpl):
+            refdict = impl.global_refs
+        elif isinstance(impl, UserSpaceImpl):
+            refdict = impl.self_refs
+        else:
+            raise RuntimeError("must not happen")
+
+        ref = refdict[name]
+        valid = id(ref.interface)
+
+        if isinstance(impl, ModelImpl):
+            impl.del_ref(name)
+        elif isinstance(impl, UserSpaceImpl):
+            impl.model.spacemgr.del_ref(impl, name)
+        else:
+            raise RuntimeError("must not happen")
+
+        refs = self._valid_to_refs.get(valid)
+        assert refs
+        refs.remove(ref)
+        if not refs:
+            del self._valid_to_refs[valid]
+            self.del_client(valid)
+
+    def change_ref(self, impl, name, value, refmode):
+
+        if isinstance(impl, ModelImpl):
+            refdict = impl.global_refs
+        elif isinstance(impl, UserSpaceImpl):
+            refdict = impl.self_refs
+        else:
+            raise RuntimeError("must not happen")
+
+        prev_ref = refdict[name]
+        prev_valid = id(prev_ref.interface)
+
+        if isinstance(impl, ModelImpl):
+            impl.model.change_ref(name, value)
+        elif isinstance(impl, UserSpaceImpl):
+            impl.model.spacemgr.change_ref(impl, name, value, refmode)
+        else:
+            raise RuntimeError("must not happen")
+
+        refs = self._valid_to_refs.get(prev_valid, None)
+        if refs is not None:        # in case prev_ref is derived
+            if prev_ref in refs:
+                refs.remove(prev_ref)
+            if not refs:    # ref is empty
+                del self._valid_to_refs[prev_valid]
+                self.del_client(prev_valid)
+
+        valid = id(value)
+        if valid in self._valid_to_refs:
+            self._valid_to_refs[valid].append(refdict[name])
+        else:
+            self._valid_to_refs[id(value)] = [refdict[name]]
+
+    def assoc_client(self, value, client):
+        """"""
+        valid = id(value)
+        if valid in self._valid_to_client:
+            if client is self._valid_to_client[valid]:
+                return True     # Expected by serializer
+            else:
+                raise ValueError("Another client already associated")
+        else:
+            self._valid_to_client[valid] = client
+            return True
+
+    def del_client(self, valid):
+        c = self._valid_to_client.pop(valid, None)
+        if c is not None:
+            c._manager.del_client(c)
+
+    def del_all_client(self):
+        while self._valid_to_client:
+            _, c = self._valid_to_client.popitem()
+            c._manager.del_client(c)
+
+    def save_data(self, root):
+        saved = set()
+        for client in self._valid_to_client.values():
+            if not client._data in saved:
+                client._data.save(root)
+                saved.add(client._data)
+
+    def __getstate__(self):
+        return {
+            "refs": [refs for refs in self._valid_to_refs.values()],
+            "clients": [c for c in self._valid_to_client.values()]
+        }
+
+    def __setstate__(self, state):
+        self._valid_to_refs = {
+            id(refs[0].interface): refs for refs in state["refs"]
+        }
+        self._valid_to_client = {
+            id(c.value): c for c in state["clients"]
+        }
+
