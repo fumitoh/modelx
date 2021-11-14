@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import modelx as mx
 import pytest
+from modelx.serialize import ziputil
 
 from modelx.io.baseio import BaseDataClient
 
@@ -26,7 +27,7 @@ DF_COL2_IDX2 = pd.DataFrame(np.random.randn(6, 8), index=idx, columns=cols)
 params = [[p1, *p2, p3, p4] for p1, p2, p3, p4 in
           itertools.product(
               [S_IDX1, S_IDX2, DF_COL2_IDX2],
-              [("new_model", True), ("new_space", False)],
+              [("model", True), ("space", False)],
               ("write", "zip", "backup"),
               ("excel", "csv")
             )
@@ -34,39 +35,52 @@ params = [[p1, *p2, p3, p4] for p1, p2, p3, p4 in
 
 
 @pytest.mark.parametrize(
-    "pdobj, meth, is_relative, save_meth, filetype",
+    "pdobj, pstr, is_relative, save_meth, filetype",
     params)
 def test_new_pandas(
-        tmp_path, pdobj, meth, is_relative, save_meth, filetype):
+        tmp_path, pdobj, pstr, is_relative, save_meth, filetype):
 
-    p = getattr(mx, meth)()
-    parent_name = p.name
+    m = mx.new_model()
+    if pstr == "model":
+        parent = m
+    else:
+        parent = m.new_space()
 
-    path = "files/testpandas.xlsx" if is_relative else (
+    parent_name = parent.name
+
+    file_path = "files/testpandas.xlsx" if is_relative else (
             tmp_path / "testpandas.xlsx")
 
-    p.new_pandas(name="pdref", path=path,
+    parent.new_pandas(name="pdref", path=file_path,
                  data=pdobj, filetype=filetype)
 
-    if save_meth == "backup":
-        getattr(p.model, save_meth)(tmp_path / "model")
+    for nth in "12":
+        model_name = "model%s" % nth
+        model_loc = tmp_path / model_name
+        file_loc = (model_loc / file_path) if is_relative else file_path
 
-        p.model.close()
-        m2 = mx.restore_model(tmp_path / "model")
+        # Save, close and restore
+        if save_meth == "backup":
+            getattr(m, save_meth)(model_loc)
+            m.close()
+            m = mx.restore_model(model_loc)
+        else:
+            getattr(m, save_meth)(model_loc)
+            m.close()
+            assert ziputil.exists(file_loc)
+            m = mx.read_model(model_loc)
 
-    else:
-        getattr(p.model, save_meth)(tmp_path / "model")
-        p.model.close()
-        m2 = mx.read_model(tmp_path / "model")
+        parent = m if pstr == "model" else m.spaces[parent_name]
 
-    p2 = m2 if meth == "new_model" else m2.spaces[parent_name]
+        m._impl.system._check_sanity(check_members=False)
+        m._impl._check_sanity()
 
-    if isinstance(pdobj, pd.DataFrame):
-        pd.testing.assert_frame_equal(p2.pdref, pdobj)
-    elif isinstance(pdobj, pd.Series):
-        pd.testing.assert_series_equal(getattr(p2, "pdref"), pdobj)
+        if isinstance(pdobj, pd.DataFrame):
+            pd.testing.assert_frame_equal(parent.pdref, pdobj)
+        elif isinstance(pdobj, pd.Series):
+            pd.testing.assert_series_equal(parent.pdref, pdobj)
 
-    m2.close()
+    m.close()
 
 
 params2 = zip([S_IDX1, S_IDX2, DF_COL2_IDX2], ["B2:B9", "C2:C9", "C4:J9"])

@@ -210,6 +210,17 @@ class ExcelWorkbook(BaseSharedData):
     def _on_save(self, path):
         self.book.save(path)
 
+    def get_range(self, range_, sheet):
+        return _get_range(self.book, range_, sheet)
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        state["book"] = self.book
+        return state
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self.book = state["book"]
 
 class _RangeType:
 
@@ -308,8 +319,7 @@ class ExcelRange(BaseDataClient, Mapping):
         self._load_cells(self.keyids)
 
     def _load_cells(self, keys):
-        self._cells = _get_range(
-            self._data.book, self.range, self.sheet)
+        self._cells = self._data.get_range(self.range, self.sheet)
         self._datasize = (len(self._cells), len(self._cells[0]))
         self._key_to_index = self._create_key_to_index(keys)
 

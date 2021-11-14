@@ -531,6 +531,22 @@ class ModelImpl(*_model_impl_base):
 
         self._global_refs.restore_state()
 
+        # unpickling does not work as expected
+        # Adding clients in self.refmgr afterwards
+        from modelx.io.excelio import ExcelRange
+
+        for c in self.refmgr.values:
+            if isinstance(c, ExcelRange):
+                self.refmgr._valid_to_client[id(c)] = c
+
+        # Unpickling does not add data in system.iomanager
+        # Adding data here
+        for client in self.refmgr.clients:
+            self.system.iomanager.restore_data(self, client._data)
+
+    def _check_sanity(self):
+        self.refmgr._check_sanity()
+
     @property
     def updater(self):
         return SpaceUpdater(self.spacemgr)
@@ -1893,11 +1909,22 @@ class ReferenceManager:
         self._valid_to_refs = {}         # id(value) -> [refs]
         self._valid_to_client = {}
 
+    def _check_sanity(self):
+        for valid, client in self._valid_to_client.items():
+            refs = self._valid_to_refs[valid]
+            for r in refs:
+                assert r.interface is client.value
+            client._check_sanity()
+
     def has_client(self, value):
         return id(value) in self._valid_to_client
 
     def get_client(self, value):
         return self._valid_to_client[id(value)]
+
+    @property
+    def values(self):
+        return list(ref[0].interface for ref in self._valid_to_refs.values())
 
     @property
     def clients(self):
@@ -2010,8 +2037,8 @@ class ReferenceManager:
 
     def __getstate__(self):
         return {
-            "refs": [refs for refs in self._valid_to_refs.values()],
-            "clients": [c for c in self._valid_to_client.values()]
+            "refs": list(self._valid_to_refs.values()),
+            "clients": list(self._valid_to_client.values())
         }
 
     def __setstate__(self, state):

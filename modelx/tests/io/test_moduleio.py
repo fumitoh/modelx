@@ -39,6 +39,9 @@ def test_new_module(tmp_path, parent, save_meth, module):
     assert p2.Foo.modbar(2) == 4
     assert p2.Bar is p2.Foo
 
+    m2._impl.system._check_sanity(check_members=False)
+    m2._impl._check_sanity()
+
     # Check saving again
     # https://github.com/fumitoh/modelx/issues/45
     getattr(p2.model, save_meth)(tmp_path / "model")
@@ -49,7 +52,11 @@ def test_new_module(tmp_path, parent, save_meth, module):
     else:
         m3 = mx.read_model(tmp_path / "model")
 
-    p3 = m3 if parent == "model" else m3.spaces["Parent"]
+    m3._impl.system._check_sanity(check_members=False)
+    m3._impl._check_sanity()
 
+    p3 = m3 if parent == "model" else m3.spaces["Parent"]
     assert p3.Foo.modbar(2) == 4
     assert p3.Bar is p3.Foo
+
+    m3.close()

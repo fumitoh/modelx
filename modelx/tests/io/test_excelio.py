@@ -1,6 +1,7 @@
-
+import pathlib
 import modelx as mx
 from modelx.tests.testdata import XL_TESTDATA
+from modelx.serialize.ziputil import exists
 import itertools
 import zipfile
 import pytest
@@ -46,36 +47,41 @@ testargs = [
 
 params = [[*p1, p2, p3] for p1, p2, p3 in
     itertools.product(
-        [("new_model", True),
-         ("new_space", False)],
+        [("model", True),
+         ("space", False)],
         (True, False),
         ("write", "zip", "backup")
     )
 ]
 
 
-@pytest.mark.parametrize("meth, is_relative, edit_value, save_meth", params)
-def test_new_excel_range(tmp_path, meth, is_relative, edit_value, save_meth):
+@pytest.mark.parametrize("pstr, is_relative, edit_value, save_meth", params)
+def test_new_excel_range(tmp_path, pstr, is_relative, edit_value, save_meth):
     """Check data new_excel_range
 
     Check data before and after value edit before after saving and reloading
     """
+    m = mx.new_model()
+    if pstr == "model":
+        parent = m
+    else:
+        parent = m.new_space()
 
-    p = getattr(mx, meth)()
-    parent_name = p.name
+    parent_name = parent.name
+    loc = ("files/testexcel.xlsx"
+           if is_relative else tmp_path / "testexcel.xlsx")
 
     for kwargs in testargs:
 
         kwargs = kwargs.copy()
 
-        kwargs["path"] = ("files/testexcel.xlsx"
-                          if is_relative else tmp_path / "testexcel.xlsx")
+        kwargs["path"] = loc
         kwargs["sheet"] = "TestTables"
         kwargs["loadpath"] = XL_TESTDATA
         expected = kwargs.pop("expected").copy()
-        p.new_excel_range(**kwargs)
+        parent.new_excel_range(**kwargs)
 
-        xlr = getattr(p, kwargs["name"])
+        xlr = getattr(parent, kwargs["name"])
 
         if edit_value:
             for key, val in xlr.items():
@@ -86,32 +92,39 @@ def test_new_excel_range(tmp_path, meth, is_relative, edit_value, save_meth):
 
         assert xlr == expected
 
-    if save_meth == "backup":
-        datapath = tmp_path / "data"
-        datapath.mkdir()
-        getattr(p.model, save_meth)(tmp_path / "model", datapath=datapath)
+    # backup fails in unpickling in 2nd iteration - don't know why
+    repeat_ = "1" if save_meth == "backup" else "12"
 
-        p.model.close()
-        m2 = mx.restore_model(tmp_path / "model", datapath=datapath)
+    for nth in repeat_:
 
-    else:
-        getattr(p.model, save_meth)(tmp_path / "model")
-        p.model.close()
-        m2 = mx.read_model(tmp_path / "model")
+        model_name = ("model%s" % nth)
+        file_loc = (tmp_path / model_name / loc) if is_relative else loc
 
-    p2 = m2 if meth == "new_model" else m2.spaces[parent_name]
+        getattr(m, save_meth)(tmp_path / model_name)
+        m.close()
 
-    for kwargs in testargs:
+        if save_meth == "backup":
+            m = mx.restore_model(tmp_path / model_name)
+        else:
+            assert exists(file_loc)
+            m = mx.read_model(tmp_path / model_name)
 
-        name = kwargs["name"]
-        expected = kwargs["expected"].copy()
+        parent = m if pstr == "model" else m.spaces[parent_name]
 
-        if edit_value:
-            expected = {key: 2 * val for key, val in expected.items()}
+        for kwargs in testargs:
 
-        assert getattr(p2, name) == expected
+            name = kwargs["name"]
+            expected = kwargs["expected"].copy()
 
-    m2.close()
+            if edit_value:
+                expected = {key: 2 * val for key, val in expected.items()}
+
+            assert getattr(parent, name) == expected
+
+        m._impl.system._check_sanity(check_members=False)
+        m._impl._check_sanity()
+
+    m.close()
 
 
 testargs_missingkeys = [

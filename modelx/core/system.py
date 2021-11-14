@@ -746,8 +746,11 @@ class System:
         else:
             raise RuntimeError("call stack trace not active")
 
-    def _check_sanity(self):
+    def _check_sanity(self, check_members=True):
         self.iomanager._check_sanity()
+        if check_members:
+            for m in self.models.values():
+                m._check_sanity()
 
     def _get_stacktrace_summary(self, stacktrace):
         """

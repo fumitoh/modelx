@@ -52,6 +52,9 @@ class BaseSharedData:
         self.is_updated = False
         self.after_save_file()
 
+    def is_external(self):
+        return self.path.is_absolute()
+
     def _on_save(self, path):
         raise NotImplementedError
 
@@ -80,9 +83,30 @@ class BaseSharedData:
             client._after_save_file()
 
     def _check_sanity(self):
+
+        key, val = next(
+            (k, v) for k, v in self.manager.data.items() if v is self)
+
+        assert self.path == key[0]
+        assert self is val
+
         for client in self.clients.values():
             assert client._data is self
-            assert client._manager is self.manager
+            client._check_sanity()
+
+    def __getstate__(self):
+        return {
+            "path": pathlib.PurePath(self.path),
+            "clients": list(self.clients.values()),
+            "manager": self.manager,
+            "load_from": self.load_from
+        }
+
+    def __setstate__(self, state):
+        self.path = pathlib.Path(state["path"])
+        self.manager = state["manager"]
+        self.load_from = state["load_from"]
+        self.clients = {id(c): c for c in state["clients"]}
 
 
 class IOManager:
@@ -100,6 +124,7 @@ class IOManager:
         self.system = system
 
     def _check_sanity(self):
+        assert len(self.data) == len(set(id(v) for v in self.data.values()))
         for data in self.data.values():
             data._check_sanity()
 
@@ -118,6 +143,13 @@ class IOManager:
             self.data[self._get_dataid(data.path, model)] = data
             data.manager = self
         return data
+
+    def restore_data(self, model, data):
+        # Used only by restore_state in ModelImpl
+        # To add unpickled data in self.data
+        res = self.get_data(data.path, model)
+        if not res:
+            self.data[self._get_dataid(data.path, model)] = data
 
     def get_or_create_data(self, path, model, cls, load_from=None, **kwargs):
         data = self.get_data(path, model)
@@ -174,6 +206,11 @@ class BaseDataClient:
         self._manager = None
         self._data = None
         self._is_hidden = is_hidden
+
+    def _check_sanity(self):
+        assert self._data.clients[id(self)] is self
+        assert any(self._data is d for d in self._manager.data.values())
+        assert self._manager is self._data.manager
 
     def _on_load_value(self):
         raise NotImplementedError
