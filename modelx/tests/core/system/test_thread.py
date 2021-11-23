@@ -14,7 +14,7 @@ elif sys.platform == "darwin":
     # https://bugs.python.org/issue18075
     # https://bugs.python.org/issue34602
     # https://github.com/python/cpython/pull/14546
-    if sys.version_info[:2] == (3, 9):
+    if sys.version_info[:2] >= (3, 9):
         maxdepth = 3500
     else:
         maxdepth = 4000
