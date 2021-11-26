@@ -14,7 +14,7 @@ elif sys.platform == "darwin":
     # https://bugs.python.org/issue18075
     # https://bugs.python.org/issue34602
     # https://github.com/python/cpython/pull/14546
-    if sys.version_info[:2] >= (3, 9):
+    if sys.version_info[:2] == (3, 9):
         maxdepth = 3500
     else:
         maxdepth = 4000
@@ -22,6 +22,7 @@ else:
     maxdepth = 65000
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="macOS shallow stack")
 def test_max_recursion():
 
     m, s = mx.new_model(), mx.new_space()
@@ -36,6 +37,7 @@ def test_max_recursion():
     assert foo(maxdepth) == maxdepth
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="macOS shallow stack")
 def test_maxout_recursion():
     
     m, s = mx.new_model(), mx.new_space()
