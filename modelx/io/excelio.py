@@ -19,7 +19,7 @@ import pathlib
 import openpyxl as opxl
 import openpyxl.cell
 from collections.abc import Mapping
-from .baseio import BaseDataClient, BaseSharedData
+from .baseio import BaseDataSpec, BaseSharedData
 
 
 def _get_col_index(name):
@@ -230,7 +230,7 @@ class _RangeType:
     TABLE = 4
 
 
-class ExcelRange(BaseDataClient, Mapping):
+class ExcelRange(BaseDataSpec, Mapping):
     """Mapping class for accessing Excel ranges
 
     An ExcelRange is a dict-like object that
@@ -247,16 +247,16 @@ class ExcelRange(BaseDataClient, Mapping):
     method.
 
     :class:`ExcelRange` is a subclass of the
-    :class:`~modelx.io.baseio.BaseDataClient` abstract class.
-    The :attr:`~modelx.core.model.Model.dataclients` property
-    list all the :class:`~modelx.io.baseio.BaseDataClient` instances
+    :class:`~modelx.io.baseio.BaseDataSpec` abstract class.
+    The :attr:`~modelx.core.model.Model.dataspecs` property
+    list all the :class:`~modelx.io.baseio.BaseDataSpec` instances
     held in the Model including :class:`ExcelRange` objects.
 
     See Also:
 
         :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
         :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
-        :attr:`~modelx.core.model.Model.dataclients`
+        :attr:`~modelx.core.model.Model.dataspecs`
 
     .. versionadded:: 0.9.0
 
@@ -275,7 +275,7 @@ class ExcelRange(BaseDataClient, Mapping):
             loadpath(optional): Absolute path to the Excel file to be read in.
                 Defaults to ``path``.
         """
-        BaseDataClient.__init__(self, path, is_hidden=False)
+        BaseDataSpec.__init__(self, path, is_hidden=False)
         self.range = range_
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None

@@ -49,7 +49,7 @@ Attributes:
 
 
 .. _ExcelRange:
-   https://docs.modelx.io/en/latest/reference/dataclient.html#excelrange
+   https://docs.modelx.io/en/latest/reference/dataspec.html#excelrange
 
 .. _mapping:
    https://docs.python.org/3/glossary.html#term-mapping

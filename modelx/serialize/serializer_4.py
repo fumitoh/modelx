@@ -27,7 +27,7 @@ from modelx.core.model import Model
 from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
-from modelx.io.baseio import BaseDataClient
+from modelx.io.baseio import BaseDataSpec
 import asttokens
 from . import ziputil
 from .custom_pickle import ModelUnpickler, ModelPickler
@@ -918,10 +918,10 @@ class DataClientEncoder(BaseEncoder):
 
         if not isinstance(value, Interface):    # Avoid null object
 
-            if isinstance(value, BaseDataClient):
+            if isinstance(value, BaseDataSpec):
                 return True
             elif hasattr(value, "_mx_dataclient") and isinstance(
-                    value._mx_dataclient, BaseDataClient):
+                    value._mx_dataclient, BaseDataSpec):
                 return True
 
         return False
@@ -930,7 +930,7 @@ class DataClientEncoder(BaseEncoder):
         return "(\"DataClient\", %s)" % self._get_key()
 
     def _is_hidden(self):
-        if isinstance(self.target.value, BaseDataClient):
+        if isinstance(self.target.value, BaseDataSpec):
             return False
         elif hasattr(self.target.value, "_mx_dataclient"):
             return True
@@ -1077,7 +1077,7 @@ class ModelReader:
         self.read_pickledata()
         self.instructions.execute_selected_methods(["load_pickledata"])
         self.instructions.execute_selected_methods(["__setattr__", "set_ref",
-                                                    "assoc_client"])
+                                                    "assoc_spec"])
         self.instructions.execute_selected_methods(
             ["_set_dynamic_inputs"])
 
@@ -1484,7 +1484,7 @@ class RefAssignParser(BaseAssignParser):
         if isinstance(decoder, DataClientDecoder):
 
             def arghook(inst):
-                "Return arguments for assoc_client"
+                "Return arguments for assoc_spec"
                 val_or_dc = inst.args[0].restore()
                 if hasattr(val_or_dc, "_mx_dataclient"):
                     dc = val_or_dc._mx_dataclient
@@ -1497,7 +1497,7 @@ class RefAssignParser(BaseAssignParser):
 
             assoc = Instruction.from_method(
                 obj=self.impl.model.refmgr,
-                method="assoc_client",
+                method="assoc_spec",
                 args=(decoder,),
                 arghook=arghook
             )
@@ -1508,17 +1508,17 @@ class RefAssignParser(BaseAssignParser):
 
             def arghook(inst):
                 val = inst.args[0].restore()
-                if isinstance(val, BaseDataClient):
+                if isinstance(val, BaseDataSpec):
                     return (val, val), {}
                 else:
                     return (val, None), {}
 
-            def assoc_client(value, client):
-                if client:  # Do nothing if not a client
-                    self.impl.model.refmgr.assoc_client(value, client)
+            def assoc_spec(value, spec):
+                if spec:  # Do nothing if not a spec
+                    self.impl.model.refmgr.assoc_spec(value, spec)
 
             assoc = Instruction(
-                func=assoc_client,
+                func=assoc_spec,
                 args=(decoder,),
                 arghook=arghook
             )
@@ -1791,11 +1791,11 @@ class DataClientDecoder(TupleDecoder):
         return self.elm(1)
 
     def restore(self):
-        client = self.reader.pickledata[self.decode()]
-        if client._is_hidden:
-            return client.value
+        spec = self.reader.pickledata[self.decode()]
+        if spec._is_hidden:
+            return spec.value
         else:
-            return client
+            return spec
 
 
 class ModuleDecoder(TupleDecoder):

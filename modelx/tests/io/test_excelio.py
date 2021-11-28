@@ -339,7 +339,7 @@ def test_range_conflict_error(tmp_path, parent, is_relative, erroneous):
         del s.table1
 
 
-def test_dataclients(tmp_path):
+def test_dataspecs(tmp_path):
 
     m = mx.new_model()
     s = m.new_space()
@@ -353,12 +353,12 @@ def test_dataclients(tmp_path):
 
     xlr = s.new_excel_range(**kwargs)
 
-    assert m.dataclients
+    assert m.dataspecs
     m.x = s.table1
     del m.x
-    assert m.dataclients
+    assert m.dataspecs
     del s.table1
-    assert not m.dataclients
+    assert not m.dataspecs
 
 
 @pytest.mark.parametrize("meth_or_func, compression",

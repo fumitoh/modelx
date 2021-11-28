@@ -13,7 +13,7 @@ Reference Guide
    cells
    reference
    view
-   dataclient
+   dataspec
    element
 
 

@@ -20,7 +20,7 @@ import functools
 
 from modelx.core.base import (
     add_stateattrs, Derivable, Impl, Interface, get_mixin_slots)
-from modelx.io.baseio import BaseDataClient
+from modelx.io.baseio import BaseDataSpec
 from modelx.core.node import ObjectNode, get_node, OBJ
 
 
@@ -105,8 +105,8 @@ class ReferenceImpl(Derivable, Impl):
         state = {key: getattr(self, key) for key in self.stateattrs}
         value = state["interface"]
 
-        if self.model.refmgr.has_client(value):
-            state["interface"] = self.model.refmgr.get_client(value)
+        if self.model.refmgr.has_spec(value):
+            state["interface"] = self.model.refmgr.get_spec(value)
         else:
             for pickler in self.picklers:
                 if pickler.condition(value):
@@ -120,7 +120,7 @@ class ReferenceImpl(Derivable, Impl):
         if isinstance(state["interface"], _DummyBuiltins):
             # For backward compatibility with -v0.0.23
             state["interface"] = builtins
-        elif isinstance(state["interface"], BaseDataClient):
+        elif isinstance(state["interface"], BaseDataSpec):
             state["interface"] = state["interface"].value
         else:
             if isinstance(state["interface"], _BasePickler):

@@ -1,12 +1,12 @@
-DataClient types
+DataSpec types
 ================
 
 
-BaseDataClient
+BaseDataSpec
 --------------
 .. currentmodule:: modelx.io.baseio
 
-.. autoclass:: BaseDataClient
+.. autoclass:: BaseDataSpec
 
 
 ExcelRange

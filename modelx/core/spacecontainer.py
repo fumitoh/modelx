@@ -456,7 +456,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
                 >>> xlr2 = space.new_excel_range("y", "files/Book1.xlsx", "B2:D4",
                         sheet="Sheet1", loadpath="Book1.xlsx")
-                ValueError: cannot add client
+                ValueError: cannot add spec
 
                 >>> del space.x
 
@@ -489,7 +489,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         See Also:
 
             :class:`~modelx.io.excelio.ExcelRange`
-            :attr:`~modelx.core.model.Model.dataclients`
+            :attr:`~modelx.core.model.Model.dataspecs`
 
         .. versionadded:: 0.9.0
 
@@ -936,18 +936,18 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                  "keyids": keyids}
         dargs = {"load_from": loadpath}
 
-        result = self.system.iomanager.new_client(path, ExcelRange,
+        result = self.system.iomanager.new_spec(path, ExcelRange,
                                          model=self.model.interface,
-                                         client_args=cargs,
+                                         spec_args=cargs,
                                          data_args=dargs)
 
         try:
             self.set_attr(name, result)
         except (ValueError, KeyError, AttributeError):
-            self.system.iomanager.del_client(result)
+            self.system.iomanager.del_spec(result)
             raise KeyError("cannot assign '%s'" % name)
 
-        self.model.refmgr.assoc_client(result, result)
+        self.model.refmgr.assoc_spec(result, result)
         return result
 
     def new_pandas(self, name, path, data, filetype, expose_data):
@@ -958,42 +958,42 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
                 "data": data,
                 "is_hidden": expose_data}
 
-        client = self.system.iomanager.new_client(
+        spec = self.system.iomanager.new_spec(
             path,
             PandasData,
             model=self.model.interface,
-            client_args=cargs
+            spec_args=cargs
         )
         try:
             self.set_attr(name, data)
         except (ValueError, KeyError, AttributeError):
-            self.system.iomanager.del_client(client)
+            self.system.iomanager.del_spec(spec)
             raise KeyError("cannot assign '%s'" % name)
 
-        self.model.refmgr.assoc_client(data, client)
+        self.model.refmgr.assoc_spec(data, spec)
         return data
 
     def new_module(self, name, path, module):
 
         from modelx.io.moduleio import ModuleData
 
-        client = self.system.iomanager.new_client(
+        spec = self.system.iomanager.new_spec(
             path,
             ModuleData,
             model=self.model.interface,
-            client_args={"module": module},
+            spec_args={"module": module},
             data_args={"module": module}
         )
 
         try:
-            self.set_attr(name, client.value)
+            self.set_attr(name, spec.value)
         except (ValueError, KeyError, AttributeError):
-            self.system.iomanager.del_client(client)
+            self.system.iomanager.del_spec(spec)
             raise KeyError("cannot assign '%s'" % name)
 
-        self.model.refmgr.assoc_client(client.value, client)
+        self.model.refmgr.assoc_spec(spec.value, spec)
 
-        return client.value
+        return spec.value
 
     def set_attr(self, name, value, refmode):
         raise NotImplementedError

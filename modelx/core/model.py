@@ -45,7 +45,6 @@ from modelx.core.space import (
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name, AutoNamer
 from modelx.core.chainmap import CustomChainMap
-# from modelx.io.baseio import DataClientManager
 
 try:
     _nxver = tuple(int(n) for n in nx.__version__.split(".")[:2])
@@ -284,15 +283,15 @@ class Model(EditableSpaceContainer):
         return self._impl.namespace.interfaces
 
     @property
-    def dataclients(self):
-        """List of :class:`~modelx.io.baseio.BaseDataClient` objects
+    def dataspecs(self):
+        """List of :class:`~modelx.io.baseio.BaseDataSpec` objects
 
-        Returns a list of all objects of BaseDataClient subclasses
+        Returns a list of all objects of BaseDataSpec subclasses
         defined in this Model.
 
         :class:`~modelx.io.excelio.ExcelRange` and
         :class:`~modelx.io.pandasio.PandasData`
-        are subclasses of :class:`~modelx.io.baseio.BaseDataClient`.
+        are subclasses of :class:`~modelx.io.baseio.BaseDataSpec`.
 
         :class:`~modelx.io.excelio.ExcelRange`
         objects are created either by
@@ -318,7 +317,7 @@ class Model(EditableSpaceContainer):
         .. versionadded:: 0.9.0
 
         """
-        return list(self._impl.refmgr.clients)
+        return list(self._impl.refmgr.specs)
 
     @property
     def tracegraph(self):
@@ -532,17 +531,17 @@ class ModelImpl(*_model_impl_base):
         self._global_refs.restore_state()
 
         # unpickling does not work as expected
-        # Adding clients in self.refmgr afterwards
+        # Adding specs in self.refmgr afterwards
         from modelx.io.excelio import ExcelRange
 
         for c in self.refmgr.values:
             if isinstance(c, ExcelRange):
-                self.refmgr._valid_to_client[id(c)] = c
+                self.refmgr._valid_to_spec[id(c)] = c
 
         # Unpickling does not add data in system.iomanager
         # Adding data here
-        for client in self.refmgr.clients:
-            self.system.iomanager.restore_data(self, client._data)
+        for spec in self.refmgr.specs:
+            self.system.iomanager.restore_data(self, spec._data)
 
     def _check_sanity(self):
         self.refmgr._check_sanity()
@@ -1907,28 +1906,28 @@ class ReferenceManager:
 
     def __init__(self):
         self._valid_to_refs = {}         # id(value) -> [refs]
-        self._valid_to_client = {}
+        self._valid_to_spec = {}
 
     def _check_sanity(self):
-        for valid, client in self._valid_to_client.items():
+        for valid, spec in self._valid_to_spec.items():
             refs = self._valid_to_refs[valid]
             for r in refs:
-                assert r.interface is client.value
-            client._check_sanity()
+                assert r.interface is spec.value
+            spec._check_sanity()
 
-    def has_client(self, value):
-        return id(value) in self._valid_to_client
+    def has_spec(self, value):
+        return id(value) in self._valid_to_spec
 
-    def get_client(self, value):
-        return self._valid_to_client[id(value)]
+    def get_spec(self, value):
+        return self._valid_to_spec[id(value)]
 
     @property
     def values(self):
         return list(ref[0].interface for ref in self._valid_to_refs.values())
 
     @property
-    def clients(self):
-        return list(self._valid_to_client.values())
+    def specs(self):
+        return list(self._valid_to_spec.values())
 
     def new_ref(self, impl, name, value, refmode):
 
@@ -1971,7 +1970,7 @@ class ReferenceManager:
         refs.remove(ref)
         if not refs:
             del self._valid_to_refs[valid]
-            self.del_client(valid)
+            self.del_spec(valid)
 
     def change_ref(self, impl, name, value, refmode):
 
@@ -1998,7 +1997,7 @@ class ReferenceManager:
                 refs.remove(prev_ref)
             if not refs:    # ref is empty
                 del self._valid_to_refs[prev_valid]
-                self.del_client(prev_valid)
+                self.del_spec(prev_valid)
 
         valid = id(value)
         if valid in self._valid_to_refs:
@@ -2006,46 +2005,46 @@ class ReferenceManager:
         else:
             self._valid_to_refs[id(value)] = [refdict[name]]
 
-    def assoc_client(self, value, client):
+    def assoc_spec(self, value, spec):
         """"""
         valid = id(value)
-        if valid in self._valid_to_client:
-            if client is self._valid_to_client[valid]:
+        if valid in self._valid_to_spec:
+            if spec is self._valid_to_spec[valid]:
                 return True     # Expected by serializer
             else:
-                raise ValueError("Another client already associated")
+                raise ValueError("Another spec already associated")
         else:
-            self._valid_to_client[valid] = client
+            self._valid_to_spec[valid] = spec
             return True
 
-    def del_client(self, valid):
-        c = self._valid_to_client.pop(valid, None)
+    def del_spec(self, valid):
+        c = self._valid_to_spec.pop(valid, None)
         if c is not None:
-            c._manager.del_client(c)
+            c._manager.del_spec(c)
 
-    def del_all_client(self):
-        while self._valid_to_client:
-            _, c = self._valid_to_client.popitem()
-            c._manager.del_client(c)
+    def del_all_spec(self):
+        while self._valid_to_spec:
+            _, c = self._valid_to_spec.popitem()
+            c._manager.del_spec(c)
 
     def save_data(self, root):
         saved = set()
-        for client in self._valid_to_client.values():
-            if not client._data in saved:
-                client._data.save(root)
-                saved.add(client._data)
+        for spec in self._valid_to_spec.values():
+            if not spec._data in saved:
+                spec._data.save(root)
+                saved.add(spec._data)
 
     def __getstate__(self):
         return {
             "refs": list(self._valid_to_refs.values()),
-            "clients": list(self._valid_to_client.values())
+            "specs": list(self._valid_to_spec.values())
         }
 
     def __setstate__(self, state):
         self._valid_to_refs = {
             id(refs[0].interface): refs for refs in state["refs"]
         }
-        self._valid_to_client = {
-            id(c.value): c for c in state["clients"]
+        self._valid_to_spec = {
+            id(c.value): c for c in state["specs"]
         }
 

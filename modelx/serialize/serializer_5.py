@@ -30,8 +30,8 @@ from modelx.core.util import (
 import asttokens
 from . import ziputil
 from .custom_pickle import (
-    DataClientUnpickler, ModelUnpickler,
-    DataClientPickler, ModelPickler)
+    DataSpecUnpickler, ModelUnpickler,
+    DataSpecPickler, ModelPickler)
 
 
 Section = namedtuple("Section", ["id", "symbol"])
@@ -305,9 +305,9 @@ class ModelWriter:
 
         self.system = system
         self.model = model
-        self.dataclients = {id(dc): dc for dc in self.model.dataclients}
-        self.value_id_map = {   # id(value) -> id(dataclient)
-            id(d.value): id(d) for d in self.model.dataclients}
+        self.dataspecs = {id(dc): dc for dc in self.model.dataspecs}
+        self.value_id_map = {   # id(value) -> id(dataspec)
+            id(d.value): id(d) for d in self.model.dataspecs}
         self.root = path
         self.call_ids = []
         self.pickledata = {}
@@ -373,10 +373,10 @@ class ModelWriter:
         encoder.instruct().execute()
 
     def write_pickledata(self):
-        if self.model.dataclients:
-            file = self.root / "_data/dataclient.pickle"
+        if self.model.dataspecs:
+            file = self.root / "_data/dataspecs.pickle"
             ziputil.write_file_utf8(
-                lambda f: DataClientPickler(f).dump(self.dataclients),
+                lambda f: DataSpecPickler(f).dump(self.dataspecs),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel
@@ -925,7 +925,7 @@ class LiteralEncoder(BaseEncoder):
             return json.dumps(self.target.value, ensure_ascii=False)
 
 
-class DataClientEncoder(BaseEncoder):
+class DataSpecEncoder(BaseEncoder):
 
     @classmethod
     def condition(cls, ref, writer):
@@ -937,8 +937,8 @@ class DataClientEncoder(BaseEncoder):
 
     def encode(self):
         value_id = id(self.target.value)
-        client_id = self.writer.value_id_map[value_id]
-        return "(\"DataClient\", %s, %s)" % (value_id, client_id)
+        spec_id = self.writer.value_id_map[value_id]
+        return "(\"DataSpec\", %s, %s)" % (value_id, spec_id)
 
     def pickle_value(self):
         key = id(self.target.value)
@@ -988,7 +988,7 @@ class EncoderSelector(BaseSelector):
     classes = [
         InterfaceRefEncoder,
         LiteralEncoder,
-        DataClientEncoder,
+        DataSpecEncoder,
         ModuleEncoder,
         PickleEncoder
     ]
@@ -1029,7 +1029,7 @@ class ModelReader:
         self.result = None      # To pass list of space names
         self.model = None
         self.pickledata = None
-        self.dataclients = None
+        self.dataspecs = None
         self.temproot = None
 
     def read_model(self, **kwargs):
@@ -1075,7 +1075,7 @@ class ModelReader:
         self.read_pickledata()
         self.instructions.execute_selected_methods(["load_pickledata"])
         self.instructions.execute_selected_methods(
-            ["__setattr__", "set_ref", "assoc_client"])
+            ["__setattr__", "set_ref", "assoc_spec"])
         self.instructions.execute_selected_methods(
             ["_set_dynamic_inputs"])
 
@@ -1156,10 +1156,10 @@ class ModelReader:
             from .pandas_compat import CompatUnpickler
             return CompatUnpickler(file, self).load()
 
-        file = self.path / "_data/dataclient.pickle"
+        file = self.path / "_data/dataspecs.pickle"
         if ziputil.exists(file):
-            self.dataclients = ziputil.read_file_utf8(
-                lambda f: DataClientUnpickler(f, self).load(), file, "b"
+            self.dataspecs = ziputil.read_file_utf8(
+                lambda f: DataSpecUnpickler(f, self).load(), file, "b"
             )
 
         file = self.path / "_data/data.pickle"
@@ -1485,17 +1485,17 @@ class RefAssignParser(BaseAssignParser):
                 kwargs={'refmode': refmode}
             )
 
-        if isinstance(decoder, DataClientDecoder):
+        if isinstance(decoder, DataSpecDecoder):
 
             def arghook(inst):
-                "Return arguments for assoc_client"
+                "Return arguments for assoc_spec"
                 dc_id, reader = inst.args
-                client = reader.dataclients[dc_id]
-                return (client.value, client), {}
+                spec = reader.dataspecs[dc_id]
+                return (spec.value, spec), {}
 
             assoc = Instruction.from_method(
                 obj=self.impl.model.refmgr,
-                method="assoc_client",
+                method="assoc_spec",
                 args=(decoder.elm(2), self.reader),
                 arghook=arghook
             )
@@ -1761,8 +1761,8 @@ class InterfaceDecoder(TupleDecoder):
         return mxsys.get_object_from_tupleid(decoded)
 
 
-class DataClientDecoder(TupleDecoder):
-    DECTYPE = "DataClient"
+class DataSpecDecoder(TupleDecoder):
+    DECTYPE = "DataSpec"
 
     def decode(self):
         return self.elm(1)
@@ -1801,7 +1801,7 @@ class LiteralDecoder(ValueDecoder):
 class DecoderSelector(BaseSelector):
     classes = [
         InterfaceDecoder,
-        DataClientDecoder,
+        DataSpecDecoder,
         ModuleDecoder,
         PickleDecoder,
         LiteralDecoder

@@ -2,11 +2,11 @@ import pickle
 import pathlib
 from modelx.core.system import mxsys
 from modelx.core.base import NullImpl, null_impl
-from modelx.io.baseio import BaseSharedData, IOManager, BaseDataClient
+from modelx.io.baseio import BaseSharedData, IOManager, BaseDataSpec
 from . import ziputil
 
 
-class DataClientPickler(pickle.Pickler):
+class DataSpecPickler(pickle.Pickler):
 
     def persistent_id(self, obj):
 
@@ -33,8 +33,8 @@ class ModelPickler(pickle.Pickler):
 
         if id(obj) in self.writer.value_id_map:
             return "DataValue", self.writer.value_id_map[id(obj)]
-        elif isinstance(obj, BaseDataClient):
-            return "BaseDataClient", id(obj)
+        elif isinstance(obj, BaseDataSpec):
+            return "BaseDataSpec", id(obj)
         elif isinstance(obj, BaseSharedData):
             return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__
         elif isinstance(obj, IOManager):
@@ -48,7 +48,7 @@ class ModelPickler(pickle.Pickler):
             return None
 
 
-class DataClientUnpickler(pickle.Unpickler):
+class DataSpecUnpickler(pickle.Unpickler):
 
     def __init__(self, file, reader):
         super().__init__(file)
@@ -98,17 +98,17 @@ class ModelUnpickler(pickle.Unpickler):
         self.reader = reader
         self.manager = reader.system.iomanager
         self.model = reader.model
-        self.dataclients = reader.dataclients
+        self.dataspecs = reader.dataspecs
 
     def persistent_load(self, pid):
 
         if pid[0] == "DataValue":
             _, dc_id = pid
-            return self.dataclients[dc_id].value
+            return self.dataspecs[dc_id].value
 
-        elif pid[0] == "BaseDataClient":
+        elif pid[0] == "BaseDataSpec":
             _, dc_id = pid
-            return self.dataclients[dc_id]
+            return self.dataspecs[dc_id]
 
         elif pid[0] == "BaseSharedData":
 

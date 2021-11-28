@@ -8,7 +8,7 @@ This release fixes bugs and reflects some minor enhancements.
 Enhancements
 ============
 
-* :class:`~modelx.io.baseio.BaseDataClient` classes now have
+* :class:`~modelx.io.baseio.BaseDataSpec` classes now have
   descriptive ``repr``.
 
 * :meth:`~modelx.core.model.Model._get_attrdict` includes the ``refs``

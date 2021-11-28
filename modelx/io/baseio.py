@@ -37,7 +37,7 @@ class BaseSharedData:
 
     def __init__(self, path: pathlib.Path, load_from):
         self.path = path
-        self.clients = {}
+        self.specs = {}
         self.manager = None
         self.load_from = load_from
 
@@ -58,29 +58,29 @@ class BaseSharedData:
     def _on_save(self, path):
         raise NotImplementedError
 
-    def can_add_client(self, client):
-        return all(c._can_add_other(client) for c in self.clients.values())
+    def can_add_spec(self, spec):
+        return all(c._can_add_other(spec) for c in self.specs.values())
 
-    def add_client(self, client):
-        if id(client) not in self.clients:
-            if self.can_add_client(client):
-                self.clients[id(client)] = client
+    def add_spec(self, spec):
+        if id(spec) not in self.specs:
+            if self.can_add_spec(spec):
+                self.specs[id(spec)] = spec
             else:
-                raise ValueError("cannot add client")
+                raise ValueError("cannot add spec")
 
-    def remove_client(self, client):
-        if id(client) in self.clients:
-            del self.clients[id(client)]
-            if not self.clients:
+    def remove_spec(self, spec):
+        if id(spec) in self.specs:
+            del self.specs[id(spec)]
+            if not self.specs:
                 self.manager.remove_data(self)
 
-    def remove_all_clients(self):
-        self.clients.clear()
+    def remove_all_specs(self):
+        self.specs.clear()
         self.manager.remove_data(self)
 
     def after_save_file(self):
-        for client in self.clients.values():
-            client._after_save_file()
+        for spec in self.specs.values():
+            spec._after_save_file()
 
     def _check_sanity(self):
 
@@ -90,14 +90,14 @@ class BaseSharedData:
         assert self.path == key[0]
         assert self is val
 
-        for client in self.clients.values():
-            assert client._data is self
-            client._check_sanity()
+        for spec in self.specs.values():
+            assert spec._data is self
+            spec._check_sanity()
 
     def __getstate__(self):
         return {
             "path": pathlib.PurePath(self.path),
-            "clients": list(self.clients.values()),
+            "specs": list(self.specs.values()),
             "manager": self.manager,
             "load_from": self.load_from
         }
@@ -106,17 +106,17 @@ class BaseSharedData:
         self.path = pathlib.Path(state["path"])
         self.manager = state["manager"]
         self.load_from = state["load_from"]
-        self.clients = {id(c): c for c in state["clients"]}
+        self.specs = {id(c): c for c in state["specs"]}
 
 
 class IOManager:
     """A class to manage shared data files
 
-    * Create new client
-        - Create a new client
-        - Register a new client
+    * Create new spec
+        - Create a new spec
+        - Register a new spec
             - Create a SharedData if not exit
-            - Register the client to the data
+            - Register the spec to the data
     """
 
     def __init__(self, system):
@@ -160,45 +160,45 @@ class IOManager:
 
     def remove_data(self, data):
 
-        if data.clients:
-            raise RuntimeError("clients must be deleted beforehand")
+        if data.specs:
+            raise RuntimeError("specs must be deleted beforehand")
 
         key = next((k for k, v in self.data.items() if v is data), None)
         if key:
             del self.data[key]
 
-    def new_client(
-            self, path, cls, model, client_args=None, data_args=None):
+    def new_spec(
+            self, path, cls, model, spec_args=None, data_args=None):
 
-        if client_args is None:
-            client_args = {}
+        if spec_args is None:
+            spec_args = {}
         if data_args is None:
             data_args = {}
 
-        client = cls(path, **client_args)
-        client._manager = self
-        client._data = self.get_or_create_data(
-            client.path, model, cls=cls.data_class, **data_args)
+        spec = cls(path, **spec_args)
+        spec._manager = self
+        spec._data = self.get_or_create_data(
+            spec.path, model, cls=cls.data_class, **data_args)
         try:
-            client._on_load_value()
-            client._data.add_client(client)
+            spec._on_load_value()
+            spec._data.add_spec(spec)
         except:
-            if not client._data.clients:
-                del self.data[self._get_dataid(client._data.path, model)]
+            if not spec._data.specs:
+                del self.data[self._get_dataid(spec._data.path, model)]
             raise
 
-        return client
+        return spec
 
-    def del_client(self, client):
-        client._data.remove_client(client)
+    def del_spec(self, spec):
+        spec._data.remove_spec(spec)
 
 
-class BaseDataClient:
+class BaseDataSpec:
     """Abstract base class for accessing data stored in files
 
     See Also:
         :class:`~modelx.io.excelio.ExcelRange`
-        :attr:`~modelx.core.model.Model.dataclients`
+        :attr:`~modelx.core.model.Model.dataspecs`
 
     """
     def __init__(self, path, is_hidden):
@@ -208,7 +208,7 @@ class BaseDataClient:
         self._is_hidden = is_hidden
 
     def _check_sanity(self):
-        assert self._data.clients[id(self)] is self
+        assert self._data.specs[id(self)] is self
         assert any(self._data is d for d in self._manager.data.values())
         assert self._manager is self._data.manager
 
@@ -259,7 +259,7 @@ class BaseDataClient:
             self._is_hidden = False
         if self._manager.system.serializing:
             self._on_unserialize(state)
-            self._data.add_client(self)
+            self._data.add_spec(self)
         else:
             self._on_unpickle(state)
 
