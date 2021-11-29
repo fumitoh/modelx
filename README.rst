@@ -2,8 +2,8 @@ modelx
 ======
 *Use Python like a spreadsheet!*
 
-.. image:: https://travis-ci.org/fumitoh/modelx.svg?branch=master
-    :target: https://travis-ci.org/fumitoh/modelx
+.. image:: https://github.com/fumitoh/modelx/actions/workflows/python-package.yml/badge.svg
+    :target: https://github.com/fumitoh/modelx/actions/workflows/python-package.yml
 
 .. image:: https://img.shields.io/pypi/pyversions/modelx
     :target: https://pypi.org/project/modelx/
