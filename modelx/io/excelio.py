@@ -202,9 +202,9 @@ def _redirect_merged(cells):
 
 class ExcelWorkbook(BaseSharedData):
 
-    def __init__(self, path, loadpath):
-        super().__init__(path, load_from=loadpath)
-        self.book = opxl.load_workbook(loadpath, data_only=True)
+    def __init__(self, path, manager, load_from):
+        super().__init__(path, manager, load_from=load_from)
+        self.book = opxl.load_workbook(load_from, data_only=True)
         self.is_updated = True  # Not Used
 
     def _on_save(self, path):
@@ -282,6 +282,9 @@ class ExcelRange(BaseDataSpec, Mapping):
 
     def _on_load_value(self):
         self._load_cells(self.keyids)
+
+    def _can_update_value(self, value, kwargs):
+        return False
 
     def _on_pickle(self, state):
         state.update({

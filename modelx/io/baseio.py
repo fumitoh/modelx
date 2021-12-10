@@ -35,10 +35,10 @@ def is_in_root(path: pathlib.Path):
 
 class BaseSharedData:
 
-    def __init__(self, path: pathlib.Path, load_from):
+    def __init__(self, path: pathlib.Path, manager, load_from):
         self.path = path
         self.specs = {}
-        self.manager = None
+        self.manager = manager
         self.load_from = load_from
 
     def save(self, root):
@@ -138,10 +138,9 @@ class IOManager:
             return path, model
 
     def new_data(self, path, model, cls, load_from, **kwargs):
-        data = cls(path, load_from, **kwargs)
+        data = cls(path, model._impl.system.iomanager, load_from, **kwargs)
         if not self.get_data(data.path, model):
             self.data[self._get_dataid(data.path, model)] = data
-            data.manager = self
         return data
 
     def restore_data(self, model, data):
@@ -192,9 +191,20 @@ class IOManager:
     def del_spec(self, spec):
         spec._data.remove_spec(spec)
 
+    def update_spec_value(self, spec, value, kwargs):
+        if spec._can_update_value(value, kwargs):
+            spec._on_update_value(value, kwargs)
+        else:
+            raise ValueError(
+                "%s does not allow to replace its value" % repr(spec)
+            )
+
 
 class BaseDataSpec:
     """Abstract base class for accessing data stored in files
+
+    .. versionchanged:: 0.18.0 the class name is changed
+        from ``BaseDataClient`` to ``BaseDataSpec``
 
     See Also:
         :class:`~modelx.io.excelio.ExcelRange`
@@ -213,6 +223,12 @@ class BaseDataSpec:
         assert self._manager is self._data.manager
 
     def _on_load_value(self):
+        raise NotImplementedError
+
+    def _can_update_value(self, value, kwargs):
+        raise NotImplementedError
+
+    def _on_update_value(self, value, kwargs):
         raise NotImplementedError
 
     def _on_pickle(self, state):

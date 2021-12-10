@@ -271,6 +271,9 @@ class ReferenceProxy:
     def _evalrepr(self):
         return Interface._evalrepr.fget(self)
 
+    def __repr__(self):
+        return Interface.__repr__(self)
+
 
 class ReferenceNode(ObjectNode):
 

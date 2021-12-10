@@ -27,18 +27,17 @@ from modelx.serialize.ziputil import write_str_utf8
 
 class ModuleIO(BaseSharedData):
 
-    def __init__(self, path, load_from, module=None):
+    def __init__(self, path, manager, load_from, module=None):
+        self._init_inner(path, manager, load_from, module)
+
+    def _init_inner(self, path, manager, load_from, module):
         if isinstance(module, ModuleType):
             load_from = pathlib.Path(module.__file__)
-            self.source = inspect.getsource(module)
         elif isinstance(module, (str, os.PathLike)):
             load_from = pathlib.Path(module).resolve()
-            self.source = None  # Set on _load_module
-        else:
-            self.source = None  # Set on _load_module
 
-        super().__init__(path, load_from=load_from)
-        self.is_updated = True  # Not Used
+        self.source = None  # Set on _load_module
+        super().__init__(path, manager, load_from=load_from)
 
     def _on_save(self, path):
         write_str_utf8(self.source, path=path)
@@ -82,8 +81,31 @@ class ModuleData(BaseDataSpec):
             self._value = None
 
     def _on_load_value(self):
-        if self._value is None:
-            self._value = self._data._load_module()
+        self._value = self._data._load_module()
+
+    def _can_update_value(self, value, kwargs):
+        return isinstance(value, (ModuleType, str, os.PathLike, type(None)))
+
+    def _on_update_value(self, value, kwargs):
+
+        if isinstance(value, (ModuleType, str, os.PathLike)):
+            self._data._init_inner(
+                path=self._data.path,
+                manager=self._data.manager,
+                load_from=None,
+                module=value
+            )
+        elif value is None:     # reload current
+            self._data._init_inner(
+                path=self._data.path,
+                manager=self._data.manager,
+                load_from=self._data.load_from,
+                module=None
+            )
+        else:
+            raise ValueError("must not happen")
+
+        self._value = self._data._load_module()
 
     def _on_pickle(self, state):
         return state

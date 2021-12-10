@@ -19,8 +19,8 @@ import pandas as pd
 
 class PandasIO(BaseSharedData):
 
-    def __init__(self, path, load_from):
-        super().__init__(path, load_from)
+    def __init__(self, path, manager, load_from):
+        super().__init__(path, manager, load_from)
         self.is_updated = True  # Not Used
 
     def _on_save(self, path):
@@ -78,6 +78,31 @@ class PandasData(BaseDataSpec):
         BaseDataSpec.__init__(self, path, is_hidden=is_hidden)
         self.filetype = filetype.lower()
         self._value = data
+
+        # initialized in _init_spec
+        self.name = None
+        self._read_args = {}
+
+        # For backward compatibility
+        if is_hidden:
+            self._value._mx_dataclient = self
+
+    def _on_load_value(self):
+        self._init_spec()
+
+    def _can_update_value(self, value, kwargs):
+        return isinstance(value, (pd.Series, pd.DataFrame))
+
+    def _on_update_value(self, value, kwargs):
+        self._value = value
+        self.name = None
+        self._read_args.clear()
+        self._init_spec()
+
+    def _init_spec(self):
+        """Initialize name and _read_args"""
+
+        data = self._value
         self.name = data.name if isinstance(data, pd.Series) else None
 
         self._read_args = {}
@@ -96,12 +121,6 @@ class PandasData(BaseDataSpec):
                     self._read_args["engine"] = "openpyxl"
         else:
             raise ValueError("Pandas IO type not supported")
-
-        if is_hidden:
-            self._value._mx_dataclient = self
-
-    def _on_load_value(self):
-        pass
 
     def _on_pickle(self, state):
         state.update({

@@ -641,10 +641,10 @@ class System:
         return model
 
     def close_model(self, model):
+        model.refmgr.del_all_spec()
         del self.models[model.name]
         if self.currentmodel is model:
             self.currentmodel = None
-        model.refmgr.del_all_spec()
 
     def get_object(self, name, as_proxy=False):
         """Retrieve an object by its absolute name."""

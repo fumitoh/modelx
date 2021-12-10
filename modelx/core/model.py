@@ -315,6 +315,8 @@ class Model(EditableSpaceContainer):
             * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
 
         .. versionadded:: 0.9.0
+        .. versionchanged:: 0.18.0 the property name is changed
+            from ``dataclients`` to ``dataspecs``
 
         """
         return list(self._impl.refmgr.specs)
@@ -355,6 +357,11 @@ class Model(EditableSpaceContainer):
             self._get_attrdict_extra(result, extattrs, recursive)
 
         return result
+
+    def _get_refs(self, value):
+        """Get references referring to a value"""
+        refs = self._impl.refmgr._valid_to_refs[id(value)]
+        return [ReferenceProxy(impl) for impl in refs]
 
 
 class TraceManager:
@@ -468,6 +475,7 @@ class ModelImpl(*_model_impl_base):
         return self._global_refs.fresh
 
     refs = global_refs
+    self_refs = global_refs
 
     @property
     def namespace(self):
@@ -1938,23 +1946,18 @@ class ReferenceManager:
         else:
             raise RuntimeError("must not happen")
 
-        id_ = id(value)
-        if id_ in self._valid_to_refs:
-            refs = self._valid_to_refs[id_]
-            assert ref not in refs
-            refs.append(ref)
-        else:
-            self._valid_to_refs[id_] = [ref]
+        if not isinstance(value, Interface):
+            id_ = id(value)
+            if id_ in self._valid_to_refs:
+                refs = self._valid_to_refs[id_]
+                assert all(ref is not r for r in refs)
+                refs.append(ref)
+            else:
+                self._valid_to_refs[id_] = [ref]
 
     def del_ref(self, impl, name):
 
-        if isinstance(impl, ModelImpl):
-            refdict = impl.global_refs
-        elif isinstance(impl, UserSpaceImpl):
-            refdict = impl.self_refs
-        else:
-            raise RuntimeError("must not happen")
-
+        refdict = impl.self_refs
         ref = refdict[name]
         valid = id(ref.interface)
 
@@ -1974,13 +1977,7 @@ class ReferenceManager:
 
     def change_ref(self, impl, name, value, refmode):
 
-        if isinstance(impl, ModelImpl):
-            refdict = impl.global_refs
-        elif isinstance(impl, UserSpaceImpl):
-            refdict = impl.self_refs
-        else:
-            raise RuntimeError("must not happen")
-
+        refdict = impl.self_refs
         prev_ref = refdict[name]
         prev_valid = id(prev_ref.interface)
 
@@ -1992,7 +1989,7 @@ class ReferenceManager:
             raise RuntimeError("must not happen")
 
         refs = self._valid_to_refs.get(prev_valid, None)
-        if refs is not None:        # in case prev_ref is derived
+        if refs is not None:        # None in case prev_ref is derived
             if prev_ref in refs:
                 refs.remove(prev_ref)
             if not refs:    # ref is empty
@@ -2018,14 +2015,14 @@ class ReferenceManager:
             return True
 
     def del_spec(self, valid):
-        c = self._valid_to_spec.pop(valid, None)
-        if c is not None:
-            c._manager.del_spec(c)
+        spec = self._valid_to_spec.pop(valid, None)
+        if spec is not None:
+            spec._manager.del_spec(spec)
 
     def del_all_spec(self):
         while self._valid_to_spec:
-            _, c = self._valid_to_spec.popitem()
-            c._manager.del_spec(c)
+            _, spec = self._valid_to_spec.popitem()
+            spec._manager.del_spec(spec)
 
     def save_data(self, root):
         saved = set()
@@ -2033,6 +2030,47 @@ class ReferenceManager:
             if not spec._data in saved:
                 spec._data.save(root)
                 saved.add(spec._data)
+
+    def update_value(self, old_value, new_value=None, **kwargs):
+
+        prev_id = id(old_value)
+        refs = self._valid_to_refs.get(prev_id, None)
+        spec = self._valid_to_spec.get(prev_id, None)
+
+        if refs is None:
+            raise ValueError("value not referenced")
+
+        if spec is not None:
+            # raise if not allowed
+            spec._manager.update_spec_value(spec, new_value, kwargs)
+            self._valid_to_spec.pop(prev_id)
+            self._valid_to_spec[id(spec.value)] = spec
+            new_value = spec.value
+        else:
+            raise ValueError("value has no spec")
+
+        newrefs = []
+        while refs:
+            ref = refs.pop()
+            impl = ref.parent
+            name = ref.name
+            refmode = ref.refmode
+            value = new_value
+            self._impl_change_ref(impl, name, value, refmode)
+            newrefs.append(impl.self_refs[name])
+
+        self._valid_to_refs.pop(prev_id)
+        self._valid_to_refs[id(spec.value)] = newrefs
+
+    @staticmethod
+    def _impl_change_ref(impl, name, value, *refmode):
+
+        if isinstance(impl, ModelImpl):
+            impl.model.change_ref(name, value)
+        elif isinstance(impl, UserSpaceImpl):
+            impl.model.spacemgr.change_ref(impl, name, value, refmode)
+        else:
+            raise RuntimeError("must not happen")
 
     def __getstate__(self):
         return {
