@@ -548,3 +548,12 @@ class ExcelRange(BaseDataSpec, Mapping):
             "<ExcelRange " + "path=%s " + "range=%s " + "sheet=%s>"
         ) % (repr(str(self.path.as_posix())),
              repr(self.range), repr(self.sheet))
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)
+        result.update({
+            "range": self.range,
+            "sheet": self.sheet,
+            "keyids": self.keyids})
+
+        return result

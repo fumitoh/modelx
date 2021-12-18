@@ -191,3 +191,9 @@ class PandasData(BaseDataSpec):
         return (
             "<PandasData " + "path=%s " + "filetype=%s>"
         ) % (repr(str(self.path.as_posix())), repr(self.filetype))
+
+    def _get_attrdict(self, extattrs=None, recursive=True):
+        result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)
+        result["filetype"] = self.filetype
+
+        return result

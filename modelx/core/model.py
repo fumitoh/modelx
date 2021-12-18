@@ -363,6 +363,19 @@ class Model(EditableSpaceContainer):
         refs = self._impl.refmgr._valid_to_refs[id(value)]
         return [ReferenceProxy(impl) for impl in refs]
 
+    def _get_assoc_values(self):
+        """Get a list of values in the model with their associates"""
+        result = []
+
+        for valid, refs in self._impl.refmgr._valid_to_refs.items():
+            info = {}
+            info["value"] = refs[0].interface
+            info["spec"] = self._impl.refmgr._valid_to_spec.get(valid, None)
+            info["refs"] = self._get_refs(info["value"])
+            result.append(info)
+
+        return result
+
 
 class TraceManager:
 
@@ -1996,11 +2009,12 @@ class ReferenceManager:
                 del self._valid_to_refs[prev_valid]
                 self.del_spec(prev_valid)
 
-        valid = id(value)
-        if valid in self._valid_to_refs:
-            self._valid_to_refs[valid].append(refdict[name])
-        else:
-            self._valid_to_refs[id(value)] = [refdict[name]]
+        if not isinstance(value, Interface):
+            valid = id(value)
+            if valid in self._valid_to_refs:
+                self._valid_to_refs[valid].append(refdict[name])
+            else:
+                self._valid_to_refs[id(value)] = [refdict[name]]
 
     def assoc_spec(self, value, spec):
         """"""

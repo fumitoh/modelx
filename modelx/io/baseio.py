@@ -280,5 +280,14 @@ class BaseDataSpec:
             self._on_unpickle(state)
 
 
+    def _get_attrdict(self, extattrs=None, recursive=True):
+
+        result = {
+            "type": type(self).__name__,
+            "path": str(self.path),
+            "load_from": str(self._data.load_from),
+            "value": self.value
+        }
+        return result
 
 
