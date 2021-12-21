@@ -183,6 +183,7 @@ class Model(EditableSpaceContainer):
         for example, due to package upgrade.
         Saving the model by :meth:`write` method is more robust.
 
+        .. deprecated:: 0.18.0 Use :meth:`write` or :meth:`zip` instead.
         .. versionchanged:: 0.9.0 ``datapath`` parameter is added.
         .. versionadded:: 0.7.0
 
@@ -314,9 +315,9 @@ class Model(EditableSpaceContainer):
             * :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
             * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
 
-        .. versionadded:: 0.9.0
         .. versionchanged:: 0.18.0 the property name is changed
             from ``dataclients`` to ``dataspecs``
+        .. versionadded:: 0.9.0
 
         """
         return list(self._impl.refmgr.specs)
@@ -2060,8 +2061,6 @@ class ReferenceManager:
             self._valid_to_spec.pop(prev_id)
             self._valid_to_spec[id(spec.value)] = spec
             new_value = spec.value
-        else:
-            raise ValueError("value has no spec")
 
         newrefs = []
         while refs:
@@ -2074,7 +2073,7 @@ class ReferenceManager:
             newrefs.append(impl.self_refs[name])
 
         self._valid_to_refs.pop(prev_id)
-        self._valid_to_refs[id(spec.value)] = newrefs
+        self._valid_to_refs[id(new_value)] = newrefs
 
     @staticmethod
     def _impl_change_ref(impl, name, value, *refmode):

@@ -194,3 +194,26 @@ def test_update_pandas(
             pd.testing.assert_frame_equal(parent.pdref, pdobj)
 
     m.close()
+
+
+def test_update_pandas_no_spec():
+    """
+        m---SpaceA---SpaceB
+    """
+    m = mx.new_model()
+    SpaceA = m.new_space('SpaceA')
+    SpaceB = SpaceA.new_space('SpaceB')
+
+    m.s1 = S_IDX1
+    SpaceA.s2 = S_IDX1
+    SpaceB.s3 = S_IDX1
+
+    assert m.s1 is S_IDX1
+    assert SpaceA.s2 is S_IDX1
+    assert SpaceB.s3 is S_IDX1
+
+    SpaceA.update_pandas(S_IDX1, S_IDX2)
+
+    assert m.s1 is S_IDX2
+    assert SpaceA.s2 is S_IDX2
+    assert SpaceB.s3 is S_IDX2
