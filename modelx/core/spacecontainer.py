@@ -499,7 +499,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
             path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath
         )
 
-    def new_pandas(self, name, path, data, filetype, expose_data=True):
+    def new_pandas(self, name, path, data, filetype):
         """Assigns a pandas object to a Reference associating a
         new :class:`~modelx.io.pandasio.PandasData` object
 
@@ -635,7 +635,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
 
         """
         return self._impl.new_pandas(
-            name, path, data, filetype, expose_data)
+            name, path, data, filetype)
 
     def new_module(self, name, path, module):
         """Assigns a user module to a Reference associating a
@@ -1039,13 +1039,12 @@ class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
         self.model.refmgr.assoc_spec(result, result)
         return result
 
-    def new_pandas(self, name, path, data, filetype, expose_data):
+    def new_pandas(self, name, path, data, filetype):
 
         from modelx.io.pandasio import PandasData
 
         cargs= {"filetype": filetype,
-                "data": data,
-                "is_hidden": expose_data}
+                "data": data}
 
         spec = self.system.iomanager.new_spec(
             path,

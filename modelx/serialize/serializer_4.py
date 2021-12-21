@@ -1792,7 +1792,7 @@ class DataClientDecoder(TupleDecoder):
 
     def restore(self):
         spec = self.reader.pickledata[self.decode()]
-        if spec._is_hidden:
+        if hasattr(spec, "_is_hidden") and spec._is_hidden:
             return spec.value
         else:
             return spec

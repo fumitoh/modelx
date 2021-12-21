@@ -275,7 +275,7 @@ class ExcelRange(BaseDataSpec, Mapping):
             loadpath(optional): Absolute path to the Excel file to be read in.
                 Defaults to ``path``.
         """
-        BaseDataSpec.__init__(self, path, is_hidden=False)
+        BaseDataSpec.__init__(self, path)
         self.range = range_
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None

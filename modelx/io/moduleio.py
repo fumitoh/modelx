@@ -74,7 +74,7 @@ class ModuleData(BaseDataSpec):
     data_class = ModuleIO
 
     def __init__(self, path, module=None):
-        BaseDataSpec.__init__(self, path, is_hidden=True)
+        BaseDataSpec.__init__(self, path)
         if isinstance(module, ModuleType):
             self._value = module
         else:

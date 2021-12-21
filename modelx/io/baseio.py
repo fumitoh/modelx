@@ -211,11 +211,10 @@ class BaseDataSpec:
         :attr:`~modelx.core.model.Model.dataspecs`
 
     """
-    def __init__(self, path, is_hidden):
+    def __init__(self, path):
         self.path = pathlib.Path(path)
         self._manager = None
         self._data = None
-        self._is_hidden = is_hidden
 
     def _check_sanity(self):
         assert self._data.specs[id(self)] is self
@@ -257,8 +256,9 @@ class BaseDataSpec:
             "manager": self._manager,
             "_data": self._data,
             "path": pathlib.PurePath(self.path),
-            "is_hidden": self._is_hidden
         }
+        if hasattr(self, "_is_hidden"):
+            state["is_hidden"] = self._is_hidden
         if self._manager.system.serializing:
             return self._on_serialize(state)
         else:
@@ -278,7 +278,6 @@ class BaseDataSpec:
             self._data.add_spec(self)
         else:
             self._on_unpickle(state)
-
 
     def _get_attrdict(self, extattrs=None, recursive=True):
 

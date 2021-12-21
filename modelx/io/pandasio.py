@@ -74,18 +74,14 @@ class PandasData(BaseDataSpec):
 
     data_class = PandasIO
 
-    def __init__(self, path, data, filetype, is_hidden):
-        BaseDataSpec.__init__(self, path, is_hidden=is_hidden)
+    def __init__(self, path, data, filetype):
+        BaseDataSpec.__init__(self, path)
         self.filetype = filetype.lower()
         self._value = data
 
         # initialized in _init_spec
         self.name = None
         self._read_args = {}
-
-        # For backward compatibility
-        if is_hidden:
-            self._value._mx_dataclient = self
 
     def _on_load_value(self):
         self._init_spec()
@@ -167,7 +163,7 @@ class PandasData(BaseDataSpec):
         if isinstance(self._value, pd.Series):
             self._value.name = self.name
 
-        if self._is_hidden:
+        if hasattr(self, "_is_hidden") and self._is_hidden:
             self._value._mx_dataclient = self
 
     def _write_pandas(self, path):
