@@ -203,12 +203,15 @@ class IOManager:
 class BaseDataSpec:
     """Abstract base class for accessing data stored in files
 
+    .. versionchanged:: 0.18.0 The ``is_hidden`` parameter is removed.
     .. versionchanged:: 0.18.0 the class name is changed
-        from ``BaseDataClient`` to ``BaseDataSpec``
+        from ``BaseDataClient`` to :class:`BaseDataSpec`.
 
     See Also:
-        :class:`~modelx.io.excelio.ExcelRange`
-        :attr:`~modelx.core.model.Model.dataspecs`
+        * :class:`~modelx.io.pandasio.PandasData`
+        * :class:`~modelx.io.moduleio.ModuleData`
+        * :class:`~modelx.io.excelio.ExcelRange`
+        * :attr:`~modelx.core.model.Model.dataspecs`
 
     """
     def __init__(self, path):

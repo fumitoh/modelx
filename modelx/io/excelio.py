@@ -253,10 +253,9 @@ class ExcelRange(BaseDataSpec, Mapping):
     held in the Model including :class:`ExcelRange` objects.
 
     See Also:
-
-        :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
-        :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
-        :attr:`~modelx.core.model.Model.dataspecs`
+        * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+        * :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+        * :attr:`~modelx.core.model.Model.dataspecs`
 
     .. versionadded:: 0.9.0
 

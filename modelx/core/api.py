@@ -323,6 +323,9 @@ def restore_model(path, name=None, datapath=None):
     See Also:
         :py:meth:`~modelx.core.model.Model.backup`
 
+    .. deprecated:: 0.18.0 Use :func:`read_model` for reading
+        and :func:`write_model` or :func:`zip_model` for writing.
+
     """
     return _system.restore_model(path, name, datapath)
 

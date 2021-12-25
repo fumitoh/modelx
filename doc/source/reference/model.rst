@@ -77,3 +77,5 @@ Reference operations
   ~Model.new_excel_range
   ~Model.new_pandas
   ~Model.new_module
+  ~Model.update_pandas
+  ~Model.update_module

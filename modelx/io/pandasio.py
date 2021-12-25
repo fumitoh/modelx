@@ -50,14 +50,20 @@ class PandasData(BaseDataSpec):
         filetype(:obj:`str`): String to specify the file format.
             "excel" or "csv"
 
+    .. currentmodule:: modelx.core
+
     See Also:
-        :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
-        :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
-        :attr:`~modelx.core.model.Model.dataspecs`
+        * :meth:`Model.new_pandas<model.Model.new_pandas>`
+        * :meth:`Model.update_pandas<model.Model.update_pandas>`
+        * :meth:`UserSpace.new_pandas<space.UserSpace.new_pandas>`
+        * :meth:`UserSpace.update_pandas<space.UserSpace.update_pandas>`
+        * :attr:`~model.Model.dataspecs`
 
     Attributes:
         path: A path to the associated file as a `pathlib.Path`_ object.
         filetype(:obj:`str`): "excel" or "csv".
+
+    .. versionchanged:: 0.18.0 The ``expose_data`` parameter is removed.
 
     .. _pathlib.Path:
         https://docs.python.org/3/library/pathlib.html#pathlib.Path

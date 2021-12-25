@@ -64,10 +64,11 @@ class ModuleData(BaseDataSpec):
     .. versionadded:: 0.13.0
 
     See Also:
-
-        :meth:`UserSpace.new_module<modelx.core.space.UserSpace.new_module>`
-        :meth:`Model.new_module<modelx.core.model.Model.new_module>`
-        :attr:`~modelx.core.model.Model.dataspecs`
+        * :meth:`UserSpace.new_module<modelx.core.space.UserSpace.new_module>`
+        * :meth:`UserSpace.update_module<modelx.core.space.UserSpace.update_module>`
+        * :meth:`Model.new_module<modelx.core.model.Model.new_module>`
+        * :meth:`Model.update_module<modelx.core.model.Model.update_module>`
+        * :attr:`~modelx.core.model.Model.dataspecs`
 
     """
 
