@@ -1,8 +1,19 @@
 .. currentmodule:: modelx
 
+=========================================
+spyder-modelx v0.11
+=========================================
+
+.. _release-mxplugin-v0.11.1:
+
+spyder-modelx v0.11.1 (2 January 2022)
+=========================================
+
+This release is for supporting Spyder 5.1.
+
+
 .. _release-mxplugin-v0.11.0:
 
-=========================================
 spyder-modelx v0.11.0 (18 December 2021)
 =========================================
 
