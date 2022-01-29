@@ -105,7 +105,7 @@ setup(
     # An asterisk is needed to exlude temp directory according to the post below.
     # https://stackoverflow.com/questions/43365915/python-packaging-exclude-directory-from-bdist-wheel
     packages=find_packages(exclude=[
-        'contrib', 'doc', 'modelx.tests*', 'temp*']),
+        'contrib', 'doc', 'modelx.tests*', 'temp*', 'samples*']),
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
