@@ -15,8 +15,11 @@ Installation
 
 Python version
 --------------
-modelx requires Python 3.6 or newer. modelx does not work with Python 3 older
-than version 3.6 or any version of Python 2.
+
+modelx requires Python 3.6 or newer.
+However, Python 3.6 reached its `end of life <https://devguide.python.org/devcycle/#end-of-life-branches>`_
+so if you're still using Python 3.6, you should upgrade it.
+The newer the version of Python is, the faster it performs.
 
 
 Package dependency
@@ -24,11 +27,11 @@ Package dependency
 The packages listed below are either required by modelx,
 or can be used with modelx to develop models more efficiently.
 
-* NetworkX (>=2.0)
-* asttokens
-* Pandas
-* OpenPyXL
-* Spyder (>=3.2.5)
+* NetworkX (>=2.0) (required)
+* asttokens (required)
+* pandas (optional)
+* OpenPyXL (optional)
+* Spyder (>=4.0.0) (optional)
 
 networkx
 ^^^^^^^^
@@ -60,7 +63,7 @@ a popular open-source Python IDE,
 A plugin for modelx is available.
 ``spyder-modelx`` is a separate package to add custom IPython consoles
 and Modelx explorer, a widget that shows the current model in a tree view.
-The supported Spyder version is 3.2.5 or newer.
+The supported Spyder version is 4.0.0 or newer.
 For how to install the plugin, see :ref:`here <install-spyder-plugin>`.
 
 Installing modelx
@@ -69,15 +72,16 @@ Installing modelx
 .. note::
 
    For `lifelib`_ users, when installing `lifelib`_ using
-   ``pip``, modelx is automatically installed due to its dependency, so
+   ``pip`` or ``conda``, modelx is automatically installed due to its dependency, so
    no need to install modelx separately.
 
 .. _lifelib: http://lifelib.io
-
+.. _Anaconda: https://www.anaconda.com/
 
 Just like other Python packages, you can install ``modelx`` by
 running ``pip`` command from a terminal on Linux, or from a command prompt on
-Windows.
+Windows. If your Python environment is `Anaconda`_, use the ``conda`` command in stead of ``pip``,
+as explained below.
 
 To install the current version of ``modelx`` with ``pip``::
 
@@ -92,23 +96,51 @@ install it into your user directory using the ``--user`` flag::
 
     $ pip install --user modelx
 
+To uninstall ``modelx``::
+
+    $ pip uninstall modelx
+
 If you prefer to install ``modelx`` from files placed locally on your machine
 instead of directly fetching from the Web,
 you can manually download ``modelx`` files from
 `GitHub <https://github.com/fumitoh/modelx/releases>`_  or
 `PyPI <http://pypi.python.org/pypi/modelx>`_.
-
 Unpack the downloaded files and run the following command
 at the top of the source directory::
 
     $ pip install .
 
+To install the latest development version instead of the released version,
+clone the `modelx repository`_  from github,
+and install them from the cloned repos in `editable mode`_.
+
+.. _modelx repository: https://github.com/fumitoh/modelx
+.. _editable mode: https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs
+
+Anaconda environment
+^^^^^^^^^^^^^^^^^^^^
+`Anaconda`_ is a Python distribution for scientific computing that has
+its own package management command named ``conda``.
+If your Python environment is based on the Anaconda distribution, do not use ``pip``
+to install and update ``modelx``. In stead, use the ``conda`` command.
+
+To install the current version of ``modelx``::
+
+    $ conda install -c conda-forge modelx
+
+To upgrade modelx::
+
+    $ conda update modelx
+
+To uninstall modelx::
+
+    $ conda remove modelx
 
 Spyder integration
 ------------------
 
 `Spyder`_ is a popular open-source Python IDE, and
-a Spyder plugin for modelx is avaialble. For more about the Spyder plugin
+a Spyder plugin for modelx is available. For more about the Spyder plugin
 for modelx, see the :doc:`spyder` page
 
 
@@ -164,41 +196,37 @@ modelx is imported as ``mx`` in the IPython's global namespace.
 Installing Spyder plugin for modelx
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The plugin is available as a separate Python package named ``spyder-modelx``.
+The plugin is available as separate Python packages named ``spyder-modelx`` and ``spymx-kernels``.
 
-The supported version of Spyder is 3.2.5 or newer. The plugin does not
-work with Spyder versions older than 3.2.5.
+The supported version of Spyder is 4.0.0 or newer. The plugin does not
+work with Spyder 3.x.
 
-``spyder-modelx`` package is available on PyPI, and
-can be installed using ``pip`` command.
+``spyder-modelx`` package is available on PyPI, and can be installed using ``pip`` command.
+If you're using `Anaconda`_ distribution, do not use ``pip`` but use ``conda`` instead::
 
-If you're using Anaconda distribution,
-run the following command in Anaconda command prompt to install the plugin
-after installing ``modelx``::
+    > pip install spyder-modelx
 
-    $ pip install --no-deps spyder-modelx
+With Anaconda::
 
-.. warning::
+    > conda install -c conda-forge spyder-modelx
 
-    On Anaconda environments, install modelx manually if it is not yet installed.
-    Do not forget to add ``--no-deps`` parameter when installing
-    spyder-modelx on Anaconda environments, otherwise,
-    `pip` will overwrite packages spyder-modelx depends on.
+``spymx-kernels`` is installed automatically because ``spyder-modelx`` depends on ``spymx-kernels``.
 
 If Spyder is running while the plugin gets installed, close Spyder once
 and restart it to bring the plugin into effect.
-
 
 .. _updating-packages:
 
 Updating packages
 -----------------
 
-To update modelx to the latest version, use ``-U`` option with ``pip install``::
+To update modelx to the latest version, use ``-U`` option with ``pip install``,
+or ``conda update`` with `Anaconda`_::
 
     $ pip install -U modelx
 
-To update spyder-modelx, use ``-U`` options together with ``--no-deps``::
+On Anaconda::
 
-    $ pip install -U --no-deps spyder-modelx
+    $ conda update modelx
+
 

@@ -10,6 +10,14 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *4 February 2022:*
+  modelx, spyder-modelx, spymx-kernels are now on `conda-forge <https://conda-forge.org/>`_.
+  See :doc:`updated installation</installation>` instructions for Anaconda environments.
+
+* *4 February 2022:*
+  spyder-modelx v0.12.0 is released.
+  See :ref:`release-mxplugin-v0.12.0` release notes for details.
+
 * *2 January 2022:*
   :ref:`spyder-modelx v0.11.1<release-mxplugin-v0.11.1>` is released to support
   Spyder 5.1.

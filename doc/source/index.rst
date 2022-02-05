@@ -8,9 +8,9 @@ modelx Documentation
 
 *Use Python like a spreadsheet!*
 
-.. figure:: images/spyder/MxPluginImage.png
+.. raw:: html
 
-   Spyder plugin for modelx
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/rHPuXmZd0TY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 
 Latest Updates
