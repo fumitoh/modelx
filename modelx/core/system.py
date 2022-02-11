@@ -197,8 +197,8 @@ class ThreadedExecutor(NonThreadedExecutor):
 
 class CallStack(deque):
 
-    if sys.platform == "win32" and sys.version_info[:2] == (3, 8):
-        default_maxdepth = 57000
+    if sys.platform == "win32":
+        default_maxdepth = 50000
     else:
         default_maxdepth = 65000
 
