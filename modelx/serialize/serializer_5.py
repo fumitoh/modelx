@@ -1795,7 +1795,11 @@ class LiteralDecoder(ValueDecoder):
         return True
 
     def decode(self):
-        return ast.literal_eval(self.node)
+        valstr = self.node.first_token.string.strip()
+        if valstr in ["True", "False"]:
+            return ast.literal_eval(self.node)
+        else:
+            return json.loads(valstr)   # such as 3.1415, Infinity
 
 
 class DecoderSelector(BaseSelector):
