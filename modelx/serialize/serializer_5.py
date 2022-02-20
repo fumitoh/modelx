@@ -911,7 +911,7 @@ class InterfaceRefEncoder(BaseEncoder):
 
 
 class LiteralEncoder(BaseEncoder):
-    literal_types = [bool, int, float, str]
+    literal_types = [bool, int, float, str, type(None)]
 
     @classmethod
     def condition(cls, ref, writer):
@@ -919,7 +919,8 @@ class LiteralEncoder(BaseEncoder):
         return any(type(value) is t for t in cls.literal_types)
 
     def encode(self):
-        if isinstance(self.target.value, bool):
+        # True, False, None
+        if isinstance(self.target.value, bool) or isinstance(self.target.value, type(None)):
             return str(self.target.value)
         else:
             return json.dumps(self.target.value, ensure_ascii=False)
@@ -1796,7 +1797,7 @@ class LiteralDecoder(ValueDecoder):
 
     def decode(self):
         valstr = self.node.first_token.string.strip()
-        if valstr in ["True", "False"]:
+        if valstr in ["True", "False", "None"]:
             return ast.literal_eval(self.node)
         else:
             return json.loads(valstr)   # such as 3.1415, Infinity
