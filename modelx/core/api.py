@@ -675,7 +675,7 @@ def set_recalc(recalc):
     by the user to overwrite the cell's existing value, values of the cells
     that depend on the overwritten cell are recalculated.
     If the option is set to :obj:`False`, the dependent values are cleared.
-    By default, the option is set to :obj:`True`.
+    By default, the option is set to :obj:`False`.
 
     Args:
         recalc(bool):  :obj:`True` to recalculate, :obj:`False`
