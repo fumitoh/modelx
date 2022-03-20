@@ -71,7 +71,7 @@ class TraceGraph(nx.DiGraph):
         return desc
 
     def clear_obj(self, obj):
-        """"Remove all nodes with `obj` and their descendants."""
+        """Remove all nodes with `obj` and their descendants."""
         obj_nodes = self.get_nodes_with(obj)
         removed = set()
         for node in obj_nodes:
