@@ -676,15 +676,12 @@ class CellsImpl(*_cells_impl_base):
 
     def clear_all_values(self, clear_input):
         for key in list(self.data):
-            if clear_input:
-                self.clear_value_at(key)
-            else:
-                if key not in self.input_keys:
-                    self.clear_value_at(key)
+            self.clear_value_at(key, clear_input)
 
-    def clear_value_at(self, key):
+    def clear_value_at(self, key, clear_input=True):
         if self.has_node(key):
-            self.model.clear_with_descs(key_to_node(self, key))
+            if clear_input or (key not in self.input_keys):
+                self.model.clear_with_descs(key_to_node(self, key))
 
     # ----------------------------------------------------------------------
     # Pandas I/O
