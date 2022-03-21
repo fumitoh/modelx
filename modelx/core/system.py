@@ -302,14 +302,23 @@ class TraceableCallStack(CallStack):
 
         CallStack.append(self, item)
         self.tracestack.append(
-            ("ENTER", len(self) - 1, _trace_time(),
-             item[OBJ].get_repr(fullname=True, add_params=True), item[KEY]))
+            ("ENTER", len(self) - 1, _trace_time(), item)
+        )
 
     def pop(self):
         item = super().pop()
         self.tracestack.append(
-            ("EXIT", len(self), _trace_time(),
-             item[OBJ].get_repr(fullname=True, add_params=True), item[KEY])
+            ("EXIT", len(self), _trace_time(), item)
+        )
+
+    def get_tracestack(self):
+        return list(
+            (sign,
+             depth,
+             t_stamp,
+             item[OBJ].get_repr(fullname=True, add_params=True),
+             item[KEY]
+             ) for sign, depth, t_stamp, item in self.tracestack
         )
 
 
@@ -732,7 +741,7 @@ class System:
 
     def get_stacktrace(self, summarize):
         if self._is_stacktrace_active():
-            trace = list(self.callstack.tracestack)
+            trace = self.callstack.get_tracestack()
             if not summarize:
                 return trace
             else:
