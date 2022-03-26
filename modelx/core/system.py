@@ -23,6 +23,7 @@ import threading
 import traceback
 import pathlib
 from collections import deque
+from contextlib import contextmanager
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.node import get_node_repr
 from modelx.core.base import NullImpl, null_impl
@@ -320,6 +321,10 @@ class TraceableCallStack(CallStack):
              item[KEY]
              ) for sign, depth, t_stamp, item in self.tracestack
         )
+
+    def get_nodes(self):
+        return list(
+            trace[3] for trace in self.tracestack if trace[0] == "ENTER")
 
 
 class ErrorStack(deque):
@@ -754,6 +759,16 @@ class System:
             self.callstack.tracestack.clear()
         else:
             raise RuntimeError("call stack trace not active")
+
+    @contextmanager
+    def trace_stack(self, maxlen):
+        """Context manager to activate stack trace in with statements"""
+        self.start_stacktrace(maxlen)
+        try:
+            yield None
+        finally:
+            self.clear_stacktrace()
+            self.stop_stacktrace()
 
     def _check_sanity(self, check_members=True):
         self.iomanager._check_sanity()

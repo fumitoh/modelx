@@ -638,6 +638,10 @@ class CellsImpl(*_cells_impl_base):
 
         node = get_node(self, args, {})
         key = node[KEY]
+        self.set_value_from_key(key, value)
+
+    def set_value_from_key(self, key, value):
+        node = key_to_node(self, key)
 
         if self.system.callstack:
             if node == self.system.callstack[-1]:

@@ -15,6 +15,7 @@
 import builtins
 import itertools
 import zipfile
+import gc
 
 import networkx as nx
 
@@ -30,7 +31,7 @@ from modelx.core.base import (
 )
 from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.cells import CellsImpl, UserCellsImpl
-from modelx.core.node import OBJ, KEY, get_node, node_has_key
+from modelx.core.node import OBJ, KEY, get_node, node_has_key, ItemNode
 from modelx.core.spacecontainer import (
     BaseSpaceContainerImpl,
     EditableSpaceContainerImpl,
@@ -377,6 +378,78 @@ class Model(EditableSpaceContainer):
 
         return result
 
+    # ----------------------------------------------------------------------
+    def generate_calcsteps(self,
+            targets, parent=None, ref=None, value=None):
+        """Return a profile result or a calculation"""
+
+        if parent is not None:
+            old_value = parent.__getattr__(ref)
+            parent.__setattr__(ref, value)
+
+        calc_targets = []
+        calculated = []
+        try:
+            for n in targets:
+                obj, key = n._impl[OBJ], n._impl[KEY]
+                if key not in obj.input_keys:
+                    with self._impl.system.trace_stack(maxlen=None):
+                        obj.get_value_from_key(key)
+                        tracestack = self._impl.system.callstack.tracestack
+                        for trace in tracestack:
+                            if trace[0] == "ENTER":
+                                calculated.append(trace[3])
+
+                    calc_targets.append(n._impl)
+
+            result = self._impl.get_calcsteps(
+                calc_targets, calculated, 1000)
+
+        finally:
+            if parent is not None:
+                parent.__setattr__(ref, old_value)
+
+            for n in calculated:
+                n[OBJ].clear_value_at(n[KEY])
+
+        return result
+
+    def calc_stepwise(self, calc_steps):
+        """Calculate cells by saving memory"""
+
+        gc_status = gc.isenabled()
+        gc.disable()
+        try:
+            for step in calc_steps:
+                action, nodes = step
+
+                if action == "calc":
+                    for n in nodes:
+                        node = n._impl
+                        node[OBJ].get_value_from_key(node[KEY])
+
+                elif action == "paste":
+                    node_value_pairs = []
+                    for n in nodes:
+                        node = n._impl
+                        node_value_pairs.append(
+                            [node, node[OBJ].get_value_from_key(node[KEY])]
+                        )
+                    for node, value in node_value_pairs:
+                        node[OBJ].set_value_from_key(node[KEY], value)
+
+                elif action == "clear":
+                    for n in nodes:
+                        node = n._impl
+                        node[OBJ].clear_value_at(node[KEY])
+
+                    gc.collect()
+                else:
+                    raise RuntimeError("must not happen")
+        finally:
+            if gc_status:
+                gc.enable()
+
 
 class TraceManager:
 
@@ -410,6 +483,72 @@ class TraceManager:
             descs = self.tracegraph.remove_with_descs(node)
             for desc in descs:
                 desc[OBJ].on_clear_trace(desc[KEY])
+
+    def get_calcsteps(self, targets, nodes, step_size=1000):
+        """ Get calculation steps
+        Calculate a new block
+        Find nodes to paste in the block
+        Find nodes to clear from the earlier blocks
+        Push the paste node in the earlier blocks
+        """
+        subgraph = self.tracegraph.subgraph(nodes)
+
+        ordered = list(nx.topological_sort(subgraph))
+        node_len = len(ordered)
+
+        pasted = []         # in reverse order
+        step = 0
+        result = []
+        while step * step_size < node_len:
+
+            start = step * step_size
+            stop = min(node_len, (step + 1) * step_size)
+
+            cur_block = ordered[start:stop]
+            cur_paste = []
+            cur_clear = []
+            cur_targets = []    # also included in cur_paste
+            for n in cur_block:
+
+                paste = False
+                if n in targets:
+                    cur_targets.append(n)
+                    paste = True
+                else:
+                    for suc in subgraph.successors(n):
+                        if suc not in cur_block:
+                            paste = True
+                            break
+                if paste:
+                    cur_paste.append(n)
+                else:
+                    cur_clear.append(n)
+
+            accum_nodes = set(ordered[:stop])
+            for n in pasted.copy():
+
+                paste = False
+                for suc in subgraph.successors(n):
+                    if suc not in accum_nodes:
+                        paste = True
+                        break
+
+                if not paste:
+                    cur_clear.append(n)
+                    pasted.remove(n)
+
+            for n in cur_paste:
+                if n not in cur_targets:
+                    pasted.append(n)
+
+            result.append(['calc', [ItemNode(n) for n in cur_block]])
+            result.append(['paste', [ItemNode(n) for n in reversed(cur_paste)]])
+            result.append(['clear', [ItemNode(n) for n in cur_clear]])
+
+            step += 1
+
+        assert not pasted
+        return result
 
 
 _model_impl_base = (

@@ -465,3 +465,9 @@ class ItemFactoryImpl:
 
     def to_node(self):
         return ObjectNode(get_node(self, None, None))
+
+    def set_value_from_key(self, key, value):
+        pass
+
+    def clear_value_at(self, key, clear_input=True):
+        pass

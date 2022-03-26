@@ -29,6 +29,7 @@ import ast as _ast
 import warnings
 from types import FunctionType as _FunctionType
 import zipfile
+from contextlib import contextmanager
 
 from modelx.core import mxsys as _system
 from modelx.core.cells import CellsMaker as _CellsMaker
@@ -515,6 +516,17 @@ def get_stacktrace(summarize=False):
     .. versionadded:: 0.0.25
     """
     return _system.get_stacktrace(summarize)
+
+
+@contextmanager
+def trace_stack(maxlen=10000):
+    """Context manager to activate stack trace in with statements"""
+    start_stacktrace(maxlen)
+    try:
+        yield None
+    finally:
+        clear_stacktrace()
+        stop_stacktrace()
 
 
 def write_model(model, model_path, backup=True, log_input=False, version=None):
