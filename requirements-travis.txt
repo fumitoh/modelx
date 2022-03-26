@@ -3,6 +3,6 @@ asttokens
 pandas
 numpy >= 1.16.5
 openpyxl
--e https://github.com/fumitoh/lifelib.git#egg=lifelib
+-e git+https://github.com/fumitoh/lifelib.git#egg=lifelib
 pytest-benchmark
 psutil
