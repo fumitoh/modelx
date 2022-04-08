@@ -705,6 +705,11 @@ class ModelImpl(*_model_impl_base):
             self.system.iomanager.restore_data(self, spec._data)
 
     def _check_sanity(self):
+
+        for name, r in self.global_refs.items():
+            if name != "__builtins__":
+                assert id(r.interface) in self.refmgr._valid_to_refs
+
         self.refmgr._check_sanity()
 
     @property
@@ -742,7 +747,7 @@ class ModelImpl(*_model_impl_base):
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
         elif name in self.global_refs:
-            self.change_ref(name, value)
+            self.refmgr.change_ref(self, name, value)
         else:
             self.refmgr.new_ref(self, name, value, refmode)
 
@@ -2128,7 +2133,7 @@ class ReferenceManager:
             del self._valid_to_refs[valid]
             self.del_spec(valid)
 
-    def change_ref(self, impl, name, value, refmode):
+    def change_ref(self, impl, name, value, refmode=None):
 
         refdict = impl.self_refs
         prev_ref = refdict[name]

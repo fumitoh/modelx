@@ -217,3 +217,24 @@ def test_update_pandas_no_spec():
     assert m.s1 is S_IDX2
     assert SpaceA.s2 is S_IDX2
     assert SpaceB.s3 is S_IDX2
+
+
+@pytest.mark.parametrize("parent_type", ["model", "space"])
+def test_del_val_with_spec_by_change_ref(parent_type):
+
+    m = mx.new_model()
+    s = m.new_space()
+    parent = m if parent_type == "model" else s
+
+    df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+    df2 = pd.DataFrame({'col3': [5, 6], 'col4': [7, 8]})
+
+    parent.new_pandas('foo', 'foo.xlsx', df, 'excel')
+
+    parent.foo = df2
+
+    assert parent.foo is df2
+    assert not m.dataspecs
+
+    if parent_type == "model":
+        parent._impl._check_sanity()
