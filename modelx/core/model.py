@@ -600,7 +600,7 @@ class ModelImpl(*_model_impl_base):
         )
         self.allow_none = False
         self.lazy_evals = self._namespace
-        self.refmgr = ReferenceManager()
+        self.refmgr = ReferenceManager(system.iomanager)
 
     def rename(self, name):
         """Rename self. Must be called only by its system."""
@@ -2070,7 +2070,8 @@ class SpaceUpdater(SharedSpaceOperations):
 
 class ReferenceManager:
 
-    def __init__(self):
+    def __init__(self, iomanager):
+        self._manager = iomanager
         self._valid_to_refs = {}         # id(value) -> [refs]
         self._valid_to_spec = {}
 
@@ -2176,12 +2177,12 @@ class ReferenceManager:
     def del_spec(self, valid):
         spec = self._valid_to_spec.pop(valid, None)
         if spec is not None:
-            spec._manager.del_spec(spec)
+            self._manager.del_spec(spec)
 
     def del_all_spec(self):
         while self._valid_to_spec:
             _, spec = self._valid_to_spec.popitem()
-            spec._manager.del_spec(spec)
+            self._manager.del_spec(spec)
 
     def save_data(self, root):
         saved = set()
@@ -2201,7 +2202,7 @@ class ReferenceManager:
 
         if spec is not None:
             # raise if not allowed
-            spec._manager.update_spec_value(spec, new_value, kwargs)
+            self._manager.update_spec_value(spec, new_value, kwargs)
             self._valid_to_spec.pop(prev_id)
             self._valid_to_spec[id(spec.value)] = spec
             new_value = spec.value
@@ -2231,11 +2232,13 @@ class ReferenceManager:
 
     def __getstate__(self):
         return {
+            "manager": self._manager,
             "refs": list(self._valid_to_refs.values()),
             "specs": list(self._valid_to_spec.values())
         }
 
     def __setstate__(self, state):
+        self._manager = state["manager"]
         self._valid_to_refs = {
             id(refs[0].interface): refs for refs in state["refs"]
         }
