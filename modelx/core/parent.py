@@ -22,7 +22,7 @@ from modelx.core.base import (
 from modelx.core.util import AutoNamer, get_module, get_param_func
 
 
-class BaseSpaceContainer(Interface):
+class BaseParent(Interface):
     """A common base class shared by Model and Space.
 
     This base class defines methods to serve as child space container,
@@ -87,7 +87,7 @@ class BaseSpaceContainer(Interface):
         return result
 
 
-class EditableSpaceContainer(BaseSpaceContainer):
+class EditableParent(BaseParent):
 
     __slots__ = ()
 
@@ -802,7 +802,7 @@ class EditableSpaceContainer(BaseSpaceContainer):
         return self._impl.model.refmgr.update_value(old_module, new_module)
 
 
-class BaseSpaceContainerImpl:
+class BaseParentImpl:
     """Base class of Model and Space to work as container of spaces.
 
     **Space Deletion**
@@ -855,7 +855,7 @@ class BaseSpaceContainerImpl:
         raise NotImplementedError
 
 
-class EditableSpaceContainerImpl(BaseSpaceContainerImpl):
+class EditableParentImpl(BaseParentImpl):
 
     __slots__ = ()
     __mixin_slots = ("spacenamer",)

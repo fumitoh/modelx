@@ -53,11 +53,11 @@ from modelx.core.node import (
     ItemFactory,
     ItemFactoryImpl
 )
-from modelx.core.spacecontainer import (
-    BaseSpaceContainer,
-    BaseSpaceContainerImpl,
-    EditableSpaceContainer,
-    EditableSpaceContainerImpl,
+from modelx.core.parent import (
+    BaseParent,
+    BaseParentImpl,
+    EditableParent,
+    EditableParentImpl,
 )
 from modelx.core.formula import Formula, ModuleSource
 from modelx.core.cells import (
@@ -294,7 +294,7 @@ class RefView(SelectedView):
         return result
 
 
-class BaseSpace(BaseSpaceContainer, ItemFactory):
+class BaseSpace(BaseParent, ItemFactory):
 
     __slots__ = ()
 
@@ -623,7 +623,7 @@ class BaseSpace(BaseSpaceContainer, ItemFactory):
         return result
 
 
-class UserSpace(BaseSpace, EditableSpaceContainer):
+class UserSpace(BaseSpace, EditableParent):
     """Container of cells, other spaces, and cells namespace.
 
     UserSpace objects can contain cells and other spaces.
@@ -1309,7 +1309,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
 _base_space_impl_base = (
     NamespaceServer,
     ItemSpaceParent,
-    BaseSpaceContainerImpl,
+    BaseParentImpl,
     Impl
 )
 
@@ -1494,7 +1494,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
     def restore_state(self):
         """Called after unpickling to restore some attributes manually."""
-        BaseSpaceContainerImpl.restore_state(self)
+        BaseParentImpl.restore_state(self)
         self._self_refs.restore_state()
 
     # ----------------------------------------------------------------------
@@ -1537,7 +1537,7 @@ class DynamicBase(BaseSpaceImpl):
 
 _user_space_impl_base = (
     DynamicBase,
-    EditableSpaceContainerImpl,
+    EditableParentImpl,
     Derivable
 )
 
@@ -1577,7 +1577,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             doc=doc
         )
         DynamicBase.__init__(self)
-        EditableSpaceContainerImpl.__init__(self)
+        EditableParentImpl.__init__(self)
         Derivable.__init__(self, is_derived)
 
         self.cellsnamer = AutoNamer("Cells")

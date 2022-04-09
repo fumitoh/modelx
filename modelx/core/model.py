@@ -32,10 +32,10 @@ from modelx.core.base import (
 from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.cells import CellsImpl, UserCellsImpl
 from modelx.core.node import OBJ, KEY, get_node, node_has_key, ItemNode
-from modelx.core.spacecontainer import (
-    BaseSpaceContainerImpl,
-    EditableSpaceContainerImpl,
-    EditableSpaceContainer,
+from modelx.core.parent import (
+    BaseParentImpl,
+    EditableParentImpl,
+    EditableParent,
 )
 from modelx.core.space import (
     UserSpaceImpl,
@@ -123,7 +123,7 @@ class ReferenceGraph(nx.DiGraph):
         return desc     # Not including ref
 
 
-class Model(EditableSpaceContainer):
+class Model(EditableParent):
     """Top-level container in modelx object hierarchy.
 
     Model instances are the top-level objects and directly contain
@@ -553,7 +553,7 @@ class TraceManager:
 
 _model_impl_base = (
     TraceManager,
-    EditableSpaceContainerImpl,
+    EditableParentImpl,
     Impl
 )
 
@@ -581,7 +581,7 @@ class ModelImpl(*_model_impl_base):
             raise ValueError("Invalid name '%s'." % name)
 
         Impl.__init__(self, system=system, parent=None, name=name)
-        EditableSpaceContainerImpl.__init__(self)
+        EditableParentImpl.__init__(self)
         TraceManager.__init__(self)
 
         self.spacemgr = SpaceManager(self)
@@ -677,7 +677,7 @@ class ModelImpl(*_model_impl_base):
 
     def restore_state(self, datapath=None):
         """Called after unpickling to restore some attributes manually."""
-        BaseSpaceContainerImpl.restore_state(self)
+        BaseParentImpl.restore_state(self)
         mapping = {}
         for node in self.tracegraph:
             if isinstance(node, tuple):
@@ -2015,7 +2015,7 @@ class SpaceUpdater(SharedSpaceOperations):
 
     def copy_space(
             self,
-            parent: EditableSpaceContainerImpl,
+            parent: EditableParentImpl,
             source: UserSpaceImpl,
             name=None,
             defined_only=False
@@ -2031,7 +2031,7 @@ class SpaceUpdater(SharedSpaceOperations):
             name = source.name
 
         if self.manager._can_add(
-            parent, name, EditableSpaceContainerImpl, overwrite=False):
+            parent, name, EditableParentImpl, overwrite=False):
             return self._copy_space_recursively(
                 parent, source, name, defined_only
             )
