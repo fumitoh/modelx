@@ -170,7 +170,8 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         .. versionadded:: 0.1.0
 
         See Also:
-            :meth:`celar`, :meth:`clear_all`
+            * :meth:`celar`
+            * :meth:`clear_all`
         """
         node = get_node(self._impl, args, kwargs)
         return self._impl.clear_value_at(node[KEY])

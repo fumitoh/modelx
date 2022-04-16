@@ -79,3 +79,14 @@ Reference operations
   ~Model.new_module
   ~Model.update_pandas
   ~Model.update_module
+
+
+Run operations
+--------------------
+
+.. autosummary::
+  :toctree: generated/
+  :template: mxbase.rst
+
+  ~Model.generate_actions
+  ~Model.execute_actions

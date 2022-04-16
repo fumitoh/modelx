@@ -10,6 +10,10 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *16 April 2022:*
+  modelx v0.19.0 is released.See :doc:`releases/relnotes_v0_19_0`.
+  :doc:`spymx-kernels<releases/spymx_kernels_relnotes>` is updated to support modelx v0.19.0.
+
 * *4 February 2022:*
   modelx, spyder-modelx, spymx-kernels are now on `conda-forge <https://conda-forge.org/>`_.
   See :doc:`updated installation</installation>` instructions for Anaconda environments.

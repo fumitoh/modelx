@@ -379,13 +379,23 @@ class Model(EditableParent):
         return result
 
     # ----------------------------------------------------------------------
-    def generate_calcsteps(self,
-            targets, parent=None, ref=None, value=None):
-        """Return a profile result or a calculation"""
+    def generate_actions(self, targets, step_size=1000):
+        """Generates actions for memory-optimized run
 
-        if parent is not None:
-            old_value = parent.__getattr__(ref)
-            parent.__setattr__(ref, value)
+        Returns a list of *actions* for :meth:`execute_actions`
+        to perform a memory-optimized calculation.
+        See :meth:`execute_actions` for details.
+
+        Args:
+            targets: :obj:`list` of :class:`~modelx.core.node.ItemNode`.
+            step_size(:obj:`int`, optional): Number of calculations in a step.
+
+        Returns:
+            :obj:`list` of *actions*.
+
+        .. seealso::
+            * :meth:`execute_actions`
+        """
 
         calc_targets = []
         calculated = []
@@ -403,24 +413,113 @@ class Model(EditableParent):
                     calc_targets.append(n._impl)
 
             result = self._impl.get_calcsteps(
-                calc_targets, calculated, 1000)
+                calc_targets, calculated, step_size)
 
         finally:
-            if parent is not None:
-                parent.__setattr__(ref, old_value)
-
             for n in calculated:
                 n[OBJ].clear_value_at(n[KEY])
 
         return result
 
-    def calc_stepwise(self, calc_steps):
-        """Calculate cells by saving memory"""
+    def execute_actions(self, actions):
+        """Performs memory-optimized run
+
+        Performs a memory-optimized run.
+        Memory-optimized runs are for calculating specified nodes (*targets*)
+        by consuming less memory.
+        Memory-optimized runs are useful when
+        the intermediate results contain large data.
+
+        A memory-optimized run actually involves two runs.
+        The first run is invoked by calling
+        :meth:`generate_actions` and
+        the second run is performed by calling :meth:`execute_actions`.
+        The :meth:`generate_actions` method runs the model to generate
+        and return
+        a list of *actions* from a list of *targets* passed to the
+        ``targets`` parameter.
+        The user should set a small data set in the model
+        before calling :meth:`generate_actions`.
+        The elements of ``targets`` should be
+        :class:`~modelx.core.node.ItemNode` objects representing
+        combinations of a :class:`~modelx.core.cells.Cells` object
+        and its arguments.
+        Node objects can be created by passing the arguments
+        to :meth:`~modelx.core.cells.Cells.node` method.
+        For example, the expression below creates a node object representing
+        ``Model1.Space1.Cells3(x=2)``::
+
+            Model1.Space1.Cells3.node(x=2)
+
+        :meth:`generate_actions` runs the model to analyze
+        the dependency of the target nodes.
+        :meth:`generate_actions` identifies all the calculated nodes
+        that the target nodes depend on, and
+        sort the nodes in a topological order.
+        Then the ordered nodes are split into groups so that
+        each group has at most the number of nodes specified by
+        ``step_size`` (1000 by default).
+        Then :meth:`generate_actions` generates actions
+        to process each group.
+        For each group, *calc*, *paste*, and *clear* actions are generated in this order.
+        Each action is associted with nodes that the action applies to.
+        A *calc* action indicates its associated nodes
+        should be calculated.
+        A *paste* action indicates its associted nodes should be value-pasted
+        so that the values of the nodes persist after their
+        precedents are cleared.
+        A *clear* action indicates its associated nodes should be cleared
+        to save memory.
+
+        :meth:`generate_actions` returns a list
+        of actions. Each action is also represented by a list,
+        whose first element is a string,
+        which is either ``'calc'``, ``'paste'``, or ``'clear'``.
+        The string indicates the type of action to perform.
+        The second element is a list of :class:`~modelx.core.node.ItemNode`,
+        to which the action indicated by the first element apply.
+        Below is an example of the action list.
+         
+        .. code-block::
+
+            [
+                ['calc', [Model1.Space1.Cells1(), Model1.Space1.Cells2(x=0)]],
+                ['paste', [Model1.Space1.Cells2(x=0), Model1.Space1.Cells1()]],
+                ['clear', []],
+                ['calc', [Model1.Space1.Cells2(x=1), Model1.Space1.Cells2(x=2)]],
+                ['paste', [Model1.Space1.Cells2(x=2)]],
+                ['clear', [Model1.Space1.Cells2(x=1), Model1.Space1.Cells2(x=0)]],
+                ['calc', [Model1.Space1.Cells3(x=2)]],
+                ['paste', [Model1.Space1.Cells3(x=2)]],
+                ['clear', [Model1.Space1.Cells1(), Model1.Space1.Cells2(x=2)]]
+            ]
+
+        :meth:`execute_actions` executes actions passed as ``actions``.
+        Before calling :meth:`execute_actions`, the user should
+        set the entire data set instead of the small data set
+        used for generating the actions.
+        After the execusion, the target nodes are value-pasted, and
+        the values of precedent nodes of the target nodes are all cleared.
+        To clear the values call :meth:`~modelx.core.cells.Cells.clear_at`
+        for the targets
+        or call :meth:`Cells.clear_all<modelx.core.cells.Cells.clear_all>`
+        or :meth:`Space.clear_all<modelx.core.space.UserSpace.clear_all>`
+        or :meth:`Model.clear_all<modelx.core.model.Model.clear_all>`.
+
+        Args:
+            actions(:obj:`list`): The *actions* list
+
+        .. seealso::
+            * :meth:`generate_actions`
+            * `Running a heavy model while saving memory <https://modelx.io/blog/2022/03/26/running-model-while-saving-memory/>`_,
+              a blog post on https://modelx.io
+
+        """
 
         gc_status = gc.isenabled()
         gc.disable()
         try:
-            for step in calc_steps:
+            for step in actions:
                 action, nodes = step
 
                 if action == "calc":
@@ -484,7 +583,7 @@ class TraceManager:
             for desc in descs:
                 desc[OBJ].on_clear_trace(desc[KEY])
 
-    def get_calcsteps(self, targets, nodes, step_size=1000):
+    def get_calcsteps(self, targets, nodes, step_size):
         """ Get calculation steps
         Calculate a new block
         Find nodes to paste in the block
