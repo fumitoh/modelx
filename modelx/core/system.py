@@ -674,15 +674,22 @@ class System:
         else:
             return model
 
-    def get_object_from_tupleid(self, tupleid):
+    def get_object_from_tupleid(self, tupleid, as_proxy=False):
         """Retrieve an object from tuple id."""
         obj = None
-        for key in tupleid:
+        ids = list(tupleid)
+
+        while ids:
+            key = ids.pop(0)
             if isinstance(key, str):
                 if obj:
-                    obj = getattr(obj, key)
+                    if (not ids) and as_proxy and (key in obj.refs):
+                        obj = obj._get_object(key, as_proxy=as_proxy)
+                    else:
+                        obj = getattr(obj, key)
                 else:
                     obj = self.models[key].interface
+
             elif isinstance(key, tuple):
                 obj = obj.__call__(*key)
             else:
@@ -699,13 +706,13 @@ class System:
 
         return self.get_object(name)
 
-    def _get_object_from_tupleid_reduce(self, tupleid):
+    def _get_object_from_tupleid_reduce(self, tupleid, as_proxy=False):
 
         if not tupleid[0]:
             model = self.serializing.model.name
             tupleid = (model,) + tupleid[1:]
 
-        return self.get_object_from_tupleid(tupleid)
+        return self.get_object_from_tupleid(tupleid, as_proxy)
 
     # ----------------------------------------------------------------------
     # Call stack tracing

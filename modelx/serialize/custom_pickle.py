@@ -3,6 +3,7 @@ import pathlib
 from modelx.core.system import mxsys
 from modelx.core.base import NullImpl, null_impl
 from modelx.io.baseio import BaseSharedData, IOManager, BaseDataSpec
+from modelx.core.node import BaseNode, ObjectNode, get_node, ItemNode, OBJ, KEY
 from . import ziputil
 
 
@@ -37,6 +38,20 @@ class ModelPickler(pickle.Pickler):
             return "BaseDataSpec", id(obj)
         elif isinstance(obj, BaseSharedData):
             return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__
+        elif isinstance(obj, BaseNode):
+
+            model = self.writer.model
+            if model is obj.obj.model:
+                # Replace model name with empty string
+                tupleid = ("",) + obj.obj._tupleid[1:]
+            else:
+                tupleid = obj.obj._tupleid
+
+            if isinstance(obj, ItemNode):
+                return "Node", tupleid, obj._impl[KEY]
+            else:
+                raise ValueError("invalid node" + repr(obj))
+
         elif isinstance(obj, IOManager):
             return "IOManager", None
         elif isinstance(obj, NullImpl):
@@ -129,6 +144,10 @@ class ModelUnpickler(pickle.Unpickler):
 
             return self.manager.get_or_create_data(
                 path, model=self.model, cls=cls, load_from=loadpath)
+
+        elif pid[0] == "Node":
+            _, tupleid, key = pid
+            return mxsys._get_object_from_tupleid_reduce(tupleid).node(*key)
 
         elif pid[0] == "IOManager":
             return self.manager
