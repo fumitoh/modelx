@@ -789,11 +789,11 @@ class UserCellsImpl(CellsImpl):
 
         self.parent.cells.rename_item(old_name, name)
 
-    def on_change_formula(self, func):
+    def on_change_formula(self, func, define):
 
         self.model.clear_obj(self)
 
-        if self.is_derived:
+        if self.is_derived and define:
             self.is_derived = False
 
         if isinstance(func, NullFormula):

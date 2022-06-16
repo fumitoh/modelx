@@ -1629,12 +1629,14 @@ class SpaceManager(SharedSpaceOperations):
             subspace.on_sort_cells(space=space)
 
     def change_cells_formula(self, cells, func):
+        define = True
         for space in self._get_subs(cells.parent, skip_self=False):
             c = space.cells[cells.name]
             if c is not cells and c.is_defined:
                 break   # Stop when sub cells is defined
             space.clear_subs_rootitems()
-            space.cells[cells.name].on_change_formula(func)
+            space.cells[cells.name].on_change_formula(func, define)
+            define = False  # Do not define derived cells
 
     def del_cells_formula(self, cells):
         self.change_cells_formula(cells, NULL_FORMULA)

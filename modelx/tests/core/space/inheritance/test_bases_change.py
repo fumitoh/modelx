@@ -396,3 +396,24 @@ def test_remove_bases_shared_subs():
     assert hasattr(B.X, "N")
     assert not hasattr(B.X, "M")
     print(hasattr(B.X, "N"))
+
+
+def test_update_base_cells():
+
+    m = mx.new_model()
+    base = m.new_space('Base')
+
+    @mx.defcells(base)
+    def foo():
+        return 1
+
+    sub = m.new_space(bases=base)
+    assert sub.foo._is_derived()
+
+    def foo2():
+        return 2
+
+    base.foo.formula = foo2
+
+    assert sub.foo() == 2
+    assert sub.foo._is_derived()
