@@ -88,6 +88,7 @@ class PandasData(BaseDataSpec):
         # initialized in _init_spec
         self.name = None
         self._read_args = {}
+        self._squeeze = False
 
     def _on_load_value(self):
         self._init_spec()
@@ -116,7 +117,7 @@ class PandasData(BaseDataSpec):
             else:
                 self._read_args["index_col"] = 0
             if isinstance(data, pd.Series):
-                self._read_args["squeeze"] = True
+                self._squeeze = True
             if self.filetype == "excel":
                 if (len(self.path.suffix[1:]) > 3
                         and self.path.suffix[1:4] == "xls"):
@@ -129,6 +130,7 @@ class PandasData(BaseDataSpec):
             "filetype": self.filetype,
             "value": self._value,
             "read_args": self._read_args,
+            "squeeze": self._squeeze,
             "name": self.name
         })
         return state
@@ -137,12 +139,19 @@ class PandasData(BaseDataSpec):
         self.filetype = state["filetype"]
         self._value = state["value"]
         self._read_args = state["read_args"]
+        if "squeeze" in state:
+            self._squeeze = state["squeeze"]
+        elif "squeeze" in self._read_args:
+            self._squeeze = state.pop("squeeze")
+        else:
+            self._squeeze = False
         self.name = state["name"]
 
     def _on_serialize(self, state):
         state.update({
             "filetype": self.filetype,
             "read_args": self._read_args,
+            "squeeze": self._squeeze,
             "name": self.name
         })
         return state
@@ -150,6 +159,12 @@ class PandasData(BaseDataSpec):
     def _on_unserialize(self, state):
         self.filetype = state["filetype"]
         self._read_args = state["read_args"]
+        if "squeeze" in state:
+            self._squeeze = state["squeeze"]
+        elif "squeeze" in self._read_args:
+            self._squeeze = self._read_args.pop("squeeze")
+        else:
+            self._squeeze = False
         self.name = state["name"]
         self._read_pandas()
 
@@ -165,6 +180,9 @@ class PandasData(BaseDataSpec):
                 self._data.load_from, **self._read_args)
         else:
             raise ValueError
+
+        if self._squeeze:
+            self._value = self._value.squeeze("columns")
 
         if isinstance(self._value, pd.Series):
             self._value.name = self.name
