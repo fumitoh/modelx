@@ -153,20 +153,17 @@ MxExploer, and check *MxDataViewer*.
 
 .. figure:: images/spyder/SpyderMainMenuForModelx.png
 
-To specify the object to examine,
-enter a Python expression that returns
-the object in the text box labeled *Expression* and
-click the *Update* button.
-The Python expression is evaluated in the global namespace of the
-Python session in the active MxConsole.
+To specify the object to examine, click the object in the object tree
+in MxExplorer, right click to open the context menu, and
+select either *Select in DataView* or *Select in New DataView*.
+You can alternatively click one of the tool bar buttons located above the tree.
+Then enter arguments in the box in MxDataView if the object has parameters,
+and click the *Update* button.
 
-Alternatively, you can examine the value of the object
-selected in *MxExplorer*.
-
-.. figure:: images/spyder/MxDataViewerSelectedObject.png
+.. figure:: images/spyder/MenuInMxExplorerForMxDataView.png
    :align: center
 
-   MxDataViewer showing the value selected in MxExplorer
+   Items in toolbar and context menu of MxExplorer for selecting objects in MxDataView
 
 
 .. _MxAnalyzer:
