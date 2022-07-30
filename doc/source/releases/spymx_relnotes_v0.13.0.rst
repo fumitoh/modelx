@@ -7,6 +7,15 @@ spyder-modelx v0.13.0 (30 July 2022)
 
 This release introduces enhanced MxDataView and supports Spyder 5.3.0 - 5.3.2.
 
+To update spyder-modelx, run the following command::
+
+    >>> pip install spyder-modelx --upgrade
+
+If you're using Anaconda, use the ``conda`` command instead::
+
+    >>> conda update spyder-modelx
+
+
 Enhanced MxDataView
 --------------------
 This release introduces an enhanced MxDataView widget for Spyder5.
