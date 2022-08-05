@@ -48,6 +48,10 @@ To address the issues above, MxDataView is now enhanced as follows:
 
     New items in toolbar and context menu of MxExplorer for selecting objects in MxDataView
 
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/U2VOWWJRIkg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 Support for Spyder 5.3.x
 ------------------------------
 This release supports Spyder 5.3.0, 5.3.1, 5.3.2 and possibly future versions of Spyder 5.
