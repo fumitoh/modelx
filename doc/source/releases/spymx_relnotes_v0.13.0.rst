@@ -50,7 +50,7 @@ To address the issues above, MxDataView is now enhanced as follows:
 
 .. raw:: html
 
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/U2VOWWJRIkg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    <div style="text-align: center"><iframe width="560" height="315" src="https://www.youtube.com/embed/U2VOWWJRIkg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
 
 Support for Spyder 5.3.x
 ------------------------------
