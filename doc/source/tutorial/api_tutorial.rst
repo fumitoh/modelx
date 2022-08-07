@@ -1,4 +1,4 @@
-Advanced Usage
+Advanced usage
 ===================
 
 This section covers more advanced modelx concepts and techniques
@@ -156,8 +156,8 @@ section.
 
 Space Inheritance
 ^^^^^^^^^^^^^^^^^
-Space inheritance is a concept analogous to class inheritance
-in object-oriented programming languages.
+Inheritance in modelx is a feature analogous to class inheritance
+in object-oriented programming languages, such as Python.
 By making full use of space inheritance, you can organize multiple
 spaces sharing similar features into an inheritance tree of spaces,
 minimizing duplicated

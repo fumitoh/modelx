@@ -1,4 +1,4 @@
-Getting Started
+Getting started
 ---------------
 
 This section explains how to prepare a Python environment
