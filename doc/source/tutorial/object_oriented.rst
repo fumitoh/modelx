@@ -156,7 +156,7 @@ We start from the ``Mortgage`` model from the earlier example, but you may also 
 
     >>> import modelx as mx
 
-    >>> model = mx.read_model(``Mortgage``)
+    >>> model = mx.read_model("Mortgage")
 
 
 Let's use the ``Fixed`` space as the base space. Rename it ``BaseMortgage``::
