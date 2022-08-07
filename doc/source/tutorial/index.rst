@@ -28,10 +28,11 @@ except for Windows specific parts.
    fibonacci
    mortgage
    basic_operations
+   object_oriented
    api_tutorial
 
 ..
    debugging
    save_and_restore
    interface_with_python
-   object_oriented
+
