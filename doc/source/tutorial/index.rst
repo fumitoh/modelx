@@ -5,8 +5,8 @@ This tutorial helps you learn how to use modelx for the first time
 by walking you through some hands-on examples.
 
 To fully understand what's written in this tutorial,
-it's better to have basic understanding of Python
-itself, but advanced knowledge of Python is not required.
+having a basic understanding of Python
+itself is preferable, but advanced knowledge of Python is not required.
 Even if you have never used Python before, you can still go
 through this tutorial by following instructions step-by-step.
 To learn Python itself, there are plenty of quality resources
@@ -24,8 +24,14 @@ except for Windows specific parts.
    :caption: Contents
 
    gettingstarted
+   introduction
    fibonacci
    mortgage
    basic_operations
-   eval_formulas
    api_tutorial
+
+..
+   debugging
+   save_and_restore
+   interface_with_python
+   object_oriented

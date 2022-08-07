@@ -1,4 +1,4 @@
-Example 2: Mortgage Loan
+Basic modeling example
 ========================
 
 For the second example, we are going to model a fixed-rate mortgage loan,

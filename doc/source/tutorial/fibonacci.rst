@@ -1,8 +1,10 @@
 
 
 
-Example 1: Fibonacci Sequence
-------------------------------
+The simplest example
+======================
+
+
 
 Now that we have modelx ready for our exercise and we
 understand the basics of modelx objects, we are going to model
@@ -38,7 +40,7 @@ basic operations in modelx.
 
 
 Creating a Cells and defining its Formula
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------------
 
 Find MxExplorer widget in your Spyder IDE.
 
@@ -151,7 +153,7 @@ then you will see the formula in the bottom right pane.
 
 
 Getting calculated results
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 
 The Cells ``Fibo`` does not have values yet right after it is created.
 
@@ -222,7 +224,7 @@ or as a Pandas Series or DataFrame object::
 
 
 Tracing calculation
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 Tracing calculation is for inspecting calculation dependency.
 It is useful, for example, when you want to debug a calculation,
@@ -256,7 +258,7 @@ of ``Fibo[5]`` directly or indirectly.
 
 
 Overriding calculation by input
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------
 
 Cells values can be assigned by the user. When the user
 assigns values for certain arguments, then the assigned values
@@ -291,7 +293,7 @@ for ``n=11`` before changing ``Fibo[0]``.
 
 
 Saving the work
-^^^^^^^^^^^^^^^
+---------------
 
 The last step is to save the Model we created. Bring up the context menu
 in *MxExplorer* by right-clicking in the widget, and select *Write Model* item.
