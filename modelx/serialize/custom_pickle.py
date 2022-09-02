@@ -113,7 +113,8 @@ class ModelUnpickler(pickle.Unpickler):
         self.reader = reader
         self.manager = reader.system.iomanager
         self.model = reader.model
-        self.dataspecs = reader.dataspecs
+        if reader.version >= 5:
+            self.dataspecs = reader.dataspecs
 
     def persistent_load(self, pid):
 

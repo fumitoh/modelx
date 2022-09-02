@@ -492,7 +492,7 @@ class System:
         else:
             self.is_ipysetup = False
 
-        self.iomanager = IOManager(self)
+        self.iomanager = IOManager()
 
     def setup_ipython(self):
         """Monkey patch shell's error handler.
@@ -628,11 +628,19 @@ class System:
     def backup_model(self, model, filepath, datapath):
         model._impl.update_lazyevals()
         with open(filepath, "wb") as file:
-            SystemPickler(file, datapath, protocol=4).dump(model)
+            try:
+                self.iomanager.serializing = False
+                SystemPickler(file, datapath, protocol=4).dump(model)
+            finally:
+                self.iomanager.serializing = None
 
     def restore_model(self, path, name, datapath):
         with open(path, "rb") as file:
-            model = SystemUnpickler(file, self).load()
+            try:
+                self.iomanager.serializing = False
+                model = SystemUnpickler(file, self).load()
+            finally:
+                self.iomanager.serializing = None
 
         model._impl.restore_state(datapath)
 

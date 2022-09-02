@@ -539,10 +539,8 @@ class Interface:
 
             if self._impl.system.serializing.version == 2:
                 return self._reduce_serialize_2()
-            elif self._impl.system.serializing.version == 3:
+            elif self._impl.system.serializing.version in (3, 4, 5):
                 return self._reduce_serialize_3()
-            elif self._impl.system.serializing.version == 4:
-                return self._reduce_serialize_4()
             else:
                 raise ValueError("invalid serializer version")
         else:
@@ -570,8 +568,6 @@ class Interface:
             tupleid = self._tupleid
 
         return self._impl.system._get_object_from_tupleid_reduce, (tupleid,)
-
-    _reduce_serialize_4 = _reduce_serialize_3
 
     def set_property(self, name: str, value):
         """Set property ``name``

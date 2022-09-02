@@ -119,9 +119,9 @@ class IOManager:
             - Register the spec to the data
     """
 
-    def __init__(self, system):
+    def __init__(self):
         self.data = {}
-        self.system = system
+        self.serializing = None     # Set from external
 
     def _check_sanity(self):
         assert len(self.data) == len(set(id(v) for v in self.data.values()))
@@ -138,7 +138,7 @@ class IOManager:
             return path, model
 
     def new_data(self, path, model, cls, load_from, **kwargs):
-        data = cls(path, model._impl.system.iomanager, load_from, **kwargs)
+        data = cls(path, self, load_from, **kwargs)
         if not self.get_data(data.path, model):
             self.data[self._get_dataid(data.path, model)] = data
         return data
@@ -262,10 +262,12 @@ class BaseDataSpec:
         }
         if hasattr(self, "_is_hidden"):
             state["is_hidden"] = self._is_hidden
-        if self._manager.system.serializing:
+        if self._manager.serializing is True:
             return self._on_serialize(state)
-        else:
+        elif self._manager.serializing is False:
             return self._on_pickle(state)
+        else:
+            raise RuntimeError("must not happen")
 
     def __setstate__(self, state):
         self._manager = state["manager"]
@@ -276,11 +278,13 @@ class BaseDataSpec:
         else:
             # For backward compatibility with v0.12
             self._is_hidden = False
-        if self._manager.system.serializing:
+        if self._manager.serializing is True:
             self._on_unserialize(state)
             self._data.add_spec(self)
-        else:
+        elif self._manager.serializing is False:
             self._on_unpickle(state)
+        else:
+            RuntimeError("must not happen")
 
     def _get_attrdict(self, extattrs=None, recursive=True):
 

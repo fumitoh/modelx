@@ -317,6 +317,7 @@ class ModelWriter:
 
         try:
             self.system.serializing = self
+            self.system.iomanager.serializing = True
 
             encoder = ModelEncoder(
                 self, self.model,
@@ -345,6 +346,7 @@ class ModelWriter:
 
         finally:
             self.system.serializing = None
+            self.system.iomanager.serializing = None
             self.call_ids.clear()
 
     def _write_recursive(self, encoder):
@@ -1038,6 +1040,7 @@ class ModelReader:
 
         try:
             self.system.serializing = self
+            self.system.iomanager.serializing = True
             self.kwargs = kwargs
             if zipfile.is_zipfile(self.path):
                 with tempfile.TemporaryDirectory() as tempdir:
@@ -1054,6 +1057,7 @@ class ModelReader:
 
         finally:
             self.system.serializing = None
+            self.system.iomanager.serializing = None
 
         return model
 
