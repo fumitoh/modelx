@@ -24,45 +24,6 @@ class DataSpecPickler(pickle.Pickler):
             return None
 
 
-class ModelPickler(pickle.Pickler):
-
-    def __init__(self, file, writer):
-        super().__init__(file)
-        self.writer = writer
-
-    def persistent_id(self, obj):
-
-        if id(obj) in self.writer.value_id_map:
-            return "DataValue", self.writer.value_id_map[id(obj)]
-        elif isinstance(obj, BaseDataSpec):
-            return "BaseDataSpec", id(obj)
-        elif isinstance(obj, BaseSharedData):
-            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
-        elif isinstance(obj, BaseNode):
-
-            model = self.writer.model
-            if model is obj.obj.model:
-                # Replace model name with empty string
-                tupleid = ("",) + obj.obj._tupleid[1:]
-            else:
-                tupleid = obj.obj._tupleid
-
-            if isinstance(obj, ItemNode):
-                return "Node", tupleid, obj._impl[KEY]
-            else:
-                raise ValueError("invalid node" + repr(obj))
-
-        elif isinstance(obj, IOManager):
-            return "IOManager", None
-        elif isinstance(obj, NullImpl):
-            return "NullImpl", None
-        elif obj is mxsys:
-            # Needed by Interface._reduce_serialize
-            return "System", None
-        else:
-            return None
-
-
 class DataSpecUnpickler(pickle.Unpickler):
 
     def __init__(self, file, reader):
@@ -111,6 +72,45 @@ class DataSpecUnpickler(pickle.Unpickler):
 
         else:
             raise pickle.UnpicklingError("unsupported persistent object")
+
+
+class ModelPickler(pickle.Pickler):
+
+    def __init__(self, file, writer):
+        super().__init__(file)
+        self.writer = writer
+
+    def persistent_id(self, obj):
+
+        if id(obj) in self.writer.value_id_map:
+            return "DataValue", self.writer.value_id_map[id(obj)]
+        elif isinstance(obj, BaseDataSpec):
+            return "BaseDataSpec", id(obj)
+        elif isinstance(obj, BaseSharedData):
+            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
+        elif isinstance(obj, BaseNode):
+
+            model = self.writer.model
+            if model is obj.obj.model:
+                # Replace model name with empty string
+                tupleid = ("",) + obj.obj._tupleid[1:]
+            else:
+                tupleid = obj.obj._tupleid
+
+            if isinstance(obj, ItemNode):
+                return "Node", tupleid, obj._impl[KEY]
+            else:
+                raise ValueError("invalid node" + repr(obj))
+
+        elif isinstance(obj, IOManager):
+            return "IOManager", None
+        elif isinstance(obj, NullImpl):
+            return "NullImpl", None
+        elif obj is mxsys:
+            # Needed by Interface._reduce_serialize
+            return "System", None
+        else:
+            return None
 
 
 class ModelUnpickler(pickle.Unpickler):
