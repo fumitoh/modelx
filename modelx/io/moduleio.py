@@ -74,8 +74,8 @@ class ModuleData(BaseDataSpec):
 
     data_class = ModuleIO
 
-    def __init__(self, path, module=None):
-        BaseDataSpec.__init__(self, path)
+    def __init__(self, module=None):
+        BaseDataSpec.__init__(self)
         if isinstance(module, ModuleType):
             self._value = module
         else:
@@ -133,4 +133,4 @@ class ModuleData(BaseDataSpec):
         return self._value
 
     def __repr__(self):
-        return "<ModuleData path=%s>" % repr(str(self.path.as_posix()))
+        return "<ModuleData path=%s>" % repr(str(self._data.path.as_posix()))

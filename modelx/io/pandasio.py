@@ -91,8 +91,8 @@ class PandasData(BaseDataSpec):
 
     data_class = PandasIO
 
-    def __init__(self, path, data, sheet=None):
-        BaseDataSpec.__init__(self, path)
+    def __init__(self, data, sheet=None):
+        BaseDataSpec.__init__(self)
         self.sheet = sheet
         self._value = data
 
@@ -130,8 +130,8 @@ class PandasData(BaseDataSpec):
             if isinstance(data, pd.Series):
                 self._squeeze = True
             if self._data.file_type == "excel":
-                if (len(self.path.suffix[1:]) > 3
-                        and self.path.suffix[1:4] == "xls"):
+                if (len(self._data.path.suffix[1:]) > 3
+                        and self._data.path.suffix[1:4] == "xls"):
                     self._read_args["engine"] = "openpyxl"
                 if self.sheet:
                     self._read_args["sheet_name"] = self.sheet
@@ -239,7 +239,7 @@ class PandasData(BaseDataSpec):
     def __repr__(self):
         res = (
             "<PandasData" + " path=%s" + " file_type=%s"
-        ) % (repr(str(self.path.as_posix())), repr(self._data.file_type))
+        ) % (repr(str(self._data.path.as_posix())), repr(self._data.file_type))
 
         if self._data.file_type == "excel" and self.sheet:
             return res + (" sheet=%s>" % repr(self.sheet))

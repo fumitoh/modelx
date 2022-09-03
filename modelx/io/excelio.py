@@ -262,7 +262,7 @@ class ExcelRange(BaseDataSpec, Mapping):
     """
     data_class = ExcelWorkbook
 
-    def __init__(self, path, range_, sheet=None, keyids=None):
+    def __init__(self, range_, sheet=None, keyids=None):
         """
         Args:
             path: Path to the Excel file for saving data. If a relative
@@ -274,7 +274,7 @@ class ExcelRange(BaseDataSpec, Mapping):
             loadpath(optional): Absolute path to the Excel file to be read in.
                 Defaults to ``path``.
         """
-        BaseDataSpec.__init__(self, path)
+        BaseDataSpec.__init__(self)
         self.range = range_
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None
@@ -545,7 +545,7 @@ class ExcelRange(BaseDataSpec, Mapping):
     def __repr__(self):
         return (
             "<ExcelRange " + "path=%s " + "range=%s " + "sheet=%s>"
-        ) % (repr(str(self.path.as_posix())),
+        ) % (repr(str(self._data.path.as_posix())),
              repr(self.range), repr(self.sheet))
 
     def _get_attrdict(self, extattrs=None, recursive=True):

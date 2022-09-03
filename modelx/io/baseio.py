@@ -178,10 +178,10 @@ class IOManager:
         if data_args is None:
             data_args = {}
 
-        spec = cls(path, **spec_args)
+        spec = cls(**spec_args)
         spec._manager = self
         spec._data = self.get_or_create_data(
-            spec.path, model, cls=cls.data_class, **data_args)
+            pathlib.Path(path), model, cls=cls.data_class, **data_args)
         try:
             spec._on_load_value()
             spec._data.add_spec(spec)
@@ -218,8 +218,7 @@ class BaseDataSpec:
         * :attr:`~modelx.core.model.Model.dataspecs`
 
     """
-    def __init__(self, path):
-        self.path = pathlib.Path(path)
+    def __init__(self):
         self._manager = None
         self._data = None
 
@@ -261,8 +260,7 @@ class BaseDataSpec:
     def __getstate__(self):
         state = {
             "manager": self._manager,
-            "_data": self._data,
-            "path": pathlib.PurePath(self.path),
+            "_data": self._data
         }
         if hasattr(self, "_is_hidden"):
             state["is_hidden"] = self._is_hidden
@@ -276,7 +274,6 @@ class BaseDataSpec:
     def __setstate__(self, state):
         self._manager = state["manager"]
         self._data = state["_data"]
-        self.path = pathlib.Path(state["path"])
         if "is_hidden" in state:
             self._is_hidden = state["is_hidden"]
         else:
@@ -294,7 +291,7 @@ class BaseDataSpec:
 
         result = {
             "type": type(self).__name__,
-            "path": str(self.path),
+            "path": str(self._data.path),
             "load_from": str(self._data.load_from),
             "value": self.value
         }
