@@ -25,8 +25,15 @@ class PandasIO(BaseSharedData):
         self.is_updated = True  # Not Used
 
     def _on_save(self, path):
-        for c in self.specs.values():     # Only one spec
-            c._write_pandas(path)
+        if self.file_type == "excel":
+            with pd.ExcelWriter(path) as writer:
+                for c in self.specs.values():
+                    c._write_pandas(writer)
+        elif self.file_type == "csv":
+            for c in self.specs.values():     # Only one spec
+                c._write_pandas(path)
+        else:
+            raise RuntimeError("must not happen")
 
     @property
     def persistent_args(self):
@@ -185,7 +192,10 @@ class PandasData(BaseDataSpec):
         if self._data.file_type == "csv":
             return False
         elif self._data.file_type == "excel":
-            return not self.sheet == other.sheet
+            if self.sheet is None or other.sheet is None:
+                return False
+            else:
+                return not self.sheet == other.sheet
         else:
             raise RuntimeError("must not happen")
 
@@ -210,7 +220,8 @@ class PandasData(BaseDataSpec):
 
     def _write_pandas(self, path_or_writer):
         if self._data.file_type == "excel":
-            self._value.to_excel(path_or_writer)
+            kwargs = {"sheet_name": self.sheet} if self.sheet else {}
+            self._value.to_excel(path_or_writer, **kwargs)
         elif self._data.file_type == "csv":
             self._value.to_csv(path_or_writer, header=True)
         else:
@@ -226,9 +237,14 @@ class PandasData(BaseDataSpec):
         return self._value
 
     def __repr__(self):
-        return (
-            "<PandasData " + "path=%s " + "file type=%s>"
+        res = (
+            "<PandasData" + " path=%s" + " file_type=%s"
         ) % (repr(str(self.path.as_posix())), repr(self._data.file_type))
+
+        if self._data.file_type == "excel" and self.sheet:
+            return res + (" sheet=%s>" % repr(self.sheet))
+        else:
+            return res + ">"
 
     def _get_attrdict(self, extattrs=None, recursive=True):
         result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)

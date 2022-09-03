@@ -132,6 +132,60 @@ def test_new_pandas_change_excel(tmp_path, pdobj, range_):
     m2.close()
 
 
+params_mult_sheets = [
+    [*p1, p2] for p1, p2 in
+          itertools.product(
+              [("model", True), ("space", False)],
+              ("write", "zip"),
+            )
+]
+
+@pytest.mark.parametrize(
+    "pstr, is_relative, save_meth", params_mult_sheets)
+def test_new_pandas_mult_sheets(
+        tmp_path, pstr, is_relative, save_meth):
+    """Test writing to multiple sheets in an Excel file"""
+
+    m = mx.new_model()
+    parent = m if pstr == "model" else m.new_space()
+    parent_name = parent.name
+
+    file_path = "files/testpandas.xlsx" if is_relative else (
+            tmp_path / "testpandas.xlsx")
+
+    for obj, name in zip((S_IDX1, S_IDX2, DF_COL2_IDX2), ("s1", "s2", "df1")):
+
+        parent.new_pandas(
+            name=name, path=file_path,
+            data=obj, file_type="excel", sheet=name)
+
+    for nth in "12":
+        model_name = "model%s" % nth
+        model_loc = tmp_path / model_name
+        file_loc = (model_loc / file_path) if is_relative else file_path
+
+        # Save, close and restore
+        getattr(m, save_meth)(model_loc)
+        m.close()
+        assert ziputil.exists(file_loc)
+        m = mx.read_model(model_loc)
+
+        parent = m if pstr == "model" else m.spaces[parent_name]
+
+        m._impl.system._check_sanity(check_members=False)
+        m._impl._check_sanity()
+
+        pd.testing.assert_series_equal(parent.s1, S_IDX1)
+        pd.testing.assert_series_equal(parent.s2, S_IDX2)
+        pd.testing.assert_frame_equal(parent.df1, DF_COL2_IDX2)
+
+        pd.testing.assert_index_equal(parent.s1.index, S_IDX1.index)
+        pd.testing.assert_index_equal(parent.s2.index, S_IDX2.index)
+        pd.testing.assert_index_equal(parent.df1.index, DF_COL2_IDX2.index)
+
+    m.close()
+
+
 params_update = [
     [*p1, p2, p3] for p1, p2, p3 in
           itertools.product(

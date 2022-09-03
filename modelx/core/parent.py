@@ -499,44 +499,49 @@ class EditableParent(BaseParent):
             path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath
         )
 
-    def new_pandas(self, name, path, data, file_type=None, filetype=None):
-        """Assigns a pandas object to a Reference associating a
-        new :class:`~modelx.io.pandasio.PandasData` object
+    def new_pandas(self, name, path, data, file_type=None, sheet=None, filetype=None):
+        """Create a Reference bound to a pandas DataFrame or Series
+        associating a new :class:`~modelx.io.pandasio.PandasData` object.
 
-        pandas `DataFrame`_ and `Series`_ objects can be assigned to
+        This method creates a Reference named ``name`` bound to
+        a pandas `DataFrame`_ or `Series`_ passed as ``data``,
+        creates a :class:`~modelx.io.pandasio.PandasData` object
+        from ``path``, ``file_type`` and optionally ``sheet``,
+        and associate it with the pandas object.
+
+        pandas objects can be assigned to
         References by the normal assignment operation,
-        such as ``space.x = df``, but the pandas `DataFrame`_/`Series`_
+        such as ``space.x = df``, but the pandas objects
         assigned this way are saved in a binary file together with
-        other Reference objects. This method allows a `DataFrame`_/`Series`_
-        object passed as ``data`` to be saved
-        in a separate file.
-
-        This method creates a :class:`~modelx.io.pandasio.PandasData` object
-        that wraps a `DataFrame`_ or `Series`_ passed as ``data``,
-        and assigns ``data`` or the :class:`~modelx.io.pandasio.PandasData`
-        object to a Reference named ``name`` in this Space/Model.
+        other Reference objects by
+        :meth:`write` or :func:`~modelx.write_model`.
+        This method allows the assigned pandas
+        object to be saved in a separate file by
+        :meth:`write` or :func:`~modelx.write_model`
+        using information stored in the associated
+        :class:`~modelx.io.pandasio.PandasData`.
 
         When the model is saved, the `DataFrame`_ or `Series`_ is
         written to a file whose path is given by the ``path`` parameter,
-        and whose format is specified by the ``filetype`` parameter.
+        and whose format is specified by the ``file_type`` parameter.
         If ``path`` is relative, it is interpreted relative to the model
-        folder. The ``filetype`` can take either "excel" or "csv".
+        folder. The ``file_type`` can take either "excel" or "csv".
 
-        If "excel" is given, the pandas object is written to an Excel file.
+        If "excel" is given to ``file_type``, the pandas object is written to an Excel file.
         The file name in ``path`` must have either ".xlsx", ".xlsm" or ".xls"
         extention.
+        The optional ``sheet`` paramter is to specify the sheet name
+        in the Excel file. Multiple :class:`~modelx.io.pandasio.PandasData`
+        objects can be associated with the same Excel file,
+        as long as their sheet names are all different.
+        If "csv" is given to ``file_type``, the pandas object is written to a CSV file.
+        Only one object can be saved in one file.
+
         This method internally uses `pandas.read_excel`_ function and
         `to_excel`_ method for reading from and writing to Excel files,
         so appropriate Excel engines for reading and writing Excel files
         must be installed, depending on the types of Excel files.
         See `pandas' document`_ for the required packeges for Excel engines.
-
-        By default, ``data`` is assigned to ``name``, and the associated
-        :class:`~modelx.io.pandasio.PandasData` object is assigned to
-        ``data._mx_dataclient``. If ``False`` is passed  to ``expose_data``,
-        the :class:`~modelx.io.pandasio.PandasData` object is assigned
-        to ``name``. To get ``data``, call the
-        :class:`~modelx.io.pandasio.PandasData` or get its ``value`` attribute.
 
         .. _pandas.read_excel: https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
 
@@ -564,10 +569,9 @@ class EditableParent(BaseParent):
 
             The code below assigns the DataFrame created above
             to a Reference named ``x`` in ``space``, and at the same time
-            creates a :class:`~modelx.io.pandasio.PandasData` object and
-            assigns it to the ``_mx_dataclient`` attribute of the DataFrame::
+            creates a :class:`~modelx.io.pandasio.PandasData` object::
 
-                >>> space.new_pandas("x", "Space1/df.xlsx", data=df, filetype="excel")
+                >>> space.new_pandas("x", "Space1/df.xlsx", data=df, file_type="excel", sheet="df1")
 
                 >>> space.x
                                    X         Y         Z
@@ -575,9 +579,8 @@ class EditableParent(BaseParent):
                 2021-01-02 -1.029170  0.588080  0.081129
                 2021-01-03  0.028450 -0.490102  0.025208
 
-                >>> space.x._mx_dataclient
-                <modelx.io.pandasio.PandasData at 0x15ebc562356>
-
+                >>> model.dataspecs
+                [<PandasData path='Space1/df.xlsx' file_type='excel' sheet='df1'>]
 
             When the model is saved, the DataFrame is written to an Excel file
             named `df.xlsx` placed under the `Space1` folder in `model`.
@@ -595,32 +598,25 @@ class EditableParent(BaseParent):
                 2021-01-02 -1.029170  0.588080  0.081129
                 2021-01-03  0.028450 -0.490102  0.025208
 
-            If ``False`` is passed to ``expose_data``,
-            the :class:`~modelx.io.pandasio.PandasData` object instead of
-            ``data`` itself is assigned to ``x``
-            To get the DataFrame,
-            call the :class:`~modelx.io.pandasio.PandasData` object
-            or access its :attr:`~modelx.io.pandasio.PandasData.value` property::
-
-                >>> space.x
-                <modelx.io.pandasio.PandasData at 0x15efa565548>
-
-                >>> space.x()     # or space.value
-                                   X         Y         Z
-                2021-01-01  0.184497  0.140037 -1.599499
-                2021-01-02 -1.029170  0.588080  0.081129
-                2021-01-03  0.028450 -0.490102  0.025208
-
         Args:
             name(:obj:`str`): Name of the Reference
             path: A path to a file to save the Pandas object. If a relative
                 path is given, it is relative to the model folder.
             data: pandas DataFrame or Series
-            filetype: String to indicate file format. ("excel" or "csv")
-            expose_data(:obj:`bool`, optional): If ``True``, assigns
-                ``data`` to ``name``, otherwise assigns the
-                :class:`~modelx.io.pandasio.PandasData` object
-                associted with ``data`` to ``name``. ``True`` by default.
+            file_type: String to indicate file format. ("excel" or "csv")
+            sheet(:obj:`str`, optional): If ``file_type`` is "excel",
+                the name of the sheet to write the object on.
+
+        .. versionchanged:: 0.20.0
+
+            * The ``sheet`` parameter is added to allow
+              writing objects to multiple sheets in an Excel file.
+
+            * The ``filetype`` parameter is replaced with ``file_type``.
+              ``filetype`` still works but raises a deprecation warning.
+
+        .. versionchanged:: 0.13.0
+            The ``expose_data`` parameter is removed.
 
         .. versionchanged:: 0.13.0
             Add the ``expose_data`` parameter. By default,
@@ -643,7 +639,7 @@ class EditableParent(BaseParent):
                 raise ValueError("file_type is mssing")
 
         return self._impl.new_pandas(
-            name, path, data, file_type)
+            name, path, data, file_type, sheet)
 
     def new_module(self, name, path, module):
         """Assigns a user module to a Reference associating a
@@ -1047,14 +1043,14 @@ class EditableParentImpl(BaseParentImpl):
         self.model.refmgr.assoc_spec(result, result)
         return result
 
-    def new_pandas(self, name, path, data, file_type):
+    def new_pandas(self, name, path, data, file_type, sheet):
 
         from modelx.io.pandasio import PandasData
         spec = self.system.iomanager.new_spec(
             path,
             PandasData,
             model=self.model.interface,
-            spec_args={"data": data},
+            spec_args={"data": data, "sheet": sheet},
             data_args={"file_type": file_type}
         )
         try:
