@@ -12,7 +12,7 @@ class DataSpecPickler(pickle.Pickler):
     def persistent_id(self, obj):
 
         if isinstance(obj, BaseSharedData):
-            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__
+            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
         elif isinstance(obj, IOManager):
             return "IOManager", None
         elif isinstance(obj, NullImpl):
@@ -37,7 +37,7 @@ class ModelPickler(pickle.Pickler):
         elif isinstance(obj, BaseDataSpec):
             return "BaseDataSpec", id(obj)
         elif isinstance(obj, BaseSharedData):
-            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__
+            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
         elif isinstance(obj, BaseNode):
 
             model = self.writer.model
@@ -75,7 +75,14 @@ class DataSpecUnpickler(pickle.Unpickler):
 
         if pid[0] == "BaseSharedData":
 
-            _, path, cls = pid
+            if len(pid) == 3:   # mx < v0.20
+                _, path, cls = pid
+                kwargs = {}
+            elif len(pid) == 4:
+                _, path, cls, kwargs = pid
+            else:
+                raise RuntimeError("must not happen")
+
             path = pathlib.Path(path)
 
             if not path.is_absolute():
@@ -91,7 +98,7 @@ class DataSpecUnpickler(pickle.Unpickler):
                 loadpath = path
 
             return self.manager.get_or_create_data(
-                path, model=self.model, cls=cls, load_from=loadpath)
+                path, model=self.model, cls=cls, load_from=loadpath, **kwargs)
 
         elif pid[0] == "IOManager":
             return self.manager
@@ -128,7 +135,14 @@ class ModelUnpickler(pickle.Unpickler):
 
         elif pid[0] == "BaseSharedData":
 
-            _, path, cls = pid
+            if len(pid) == 3:   # mx < v0.20
+                _, path, cls = pid
+                kwargs = {}
+            elif len(pid) == 4:
+                _, path, cls, kwargs = pid
+            else:
+                raise RuntimeError("must not happen")
+
             path = pathlib.Path(path)
 
             if not path.is_absolute():
@@ -144,7 +158,7 @@ class ModelUnpickler(pickle.Unpickler):
                 loadpath = path
 
             return self.manager.get_or_create_data(
-                path, model=self.model, cls=cls, load_from=loadpath)
+                path, model=self.model, cls=cls, load_from=loadpath, **kwargs)
 
         elif pid[0] == "Node":
             _, tupleid, key = pid

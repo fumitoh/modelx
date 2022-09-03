@@ -19,14 +19,18 @@ import pandas as pd
 
 class PandasIO(BaseSharedData):
 
-    def __init__(self, path, manager, load_from):
+    def __init__(self, path, manager, load_from, file_type=None):
         super().__init__(path, manager, load_from)
+        self.file_type = file_type
         self.is_updated = True  # Not Used
 
     def _on_save(self, path):
         for c in self.specs.values():     # Only one spec
             c._write_pandas(path)
 
+    @property
+    def persistent_args(self):
+        return {"file_type": self.file_type}
 
 class PandasData(BaseDataSpec):
     """A subclass of :class:`~modelx.io.baseio.BaseDataSpec` that
@@ -80,9 +84,9 @@ class PandasData(BaseDataSpec):
 
     data_class = PandasIO
 
-    def __init__(self, path, data, filetype):
+    def __init__(self, path, data, sheet=None):
         BaseDataSpec.__init__(self, path)
-        self.filetype = filetype.lower()
+        self.sheet = sheet
         self._value = data
 
         # initialized in _init_spec
@@ -109,7 +113,7 @@ class PandasData(BaseDataSpec):
         self.name = data.name if isinstance(data, pd.Series) else None
 
         self._read_args = {}
-        if self.filetype == "excel" or self.filetype == "csv":
+        if self._data.file_type == "excel" or self._data.file_type == "csv":
             if isinstance(data, pd.DataFrame) and data.columns.nlevels > 1:
                 self._read_args["header"] = list(range(data.columns.nlevels))
             if data.index.nlevels > 1:
@@ -118,25 +122,31 @@ class PandasData(BaseDataSpec):
                 self._read_args["index_col"] = 0
             if isinstance(data, pd.Series):
                 self._squeeze = True
-            if self.filetype == "excel":
+            if self._data.file_type == "excel":
                 if (len(self.path.suffix[1:]) > 3
                         and self.path.suffix[1:4] == "xls"):
                     self._read_args["engine"] = "openpyxl"
+                if self.sheet:
+                    self._read_args["sheet_name"] = self.sheet
         else:
             raise ValueError("Pandas IO type not supported")
 
     def _on_pickle(self, state):
         state.update({
-            "filetype": self.filetype,
             "value": self._value,
             "read_args": self._read_args,
             "squeeze": self._squeeze,
-            "name": self.name
+            "name": self.name,
+            "sheet": self.sheet
         })
         return state
 
     def _on_unpickle(self, state):
-        self.filetype = state["filetype"]
+        # For mx < 0.20
+        if "filetype" in state:
+            if not hasattr(self._data, "file_type"):
+                self._data.file_type = state["filetype"]
+
         self._value = state["value"]
         self._read_args = state["read_args"]
         if "squeeze" in state:
@@ -146,18 +156,20 @@ class PandasData(BaseDataSpec):
         else:
             self._squeeze = False
         self.name = state["name"]
+        self.sheet = state["sheet"] if "sheet" in state else None
 
     def _on_serialize(self, state):
         state.update({
-            "filetype": self.filetype,
             "read_args": self._read_args,
             "squeeze": self._squeeze,
-            "name": self.name
+            "name": self.name,
+            "sheet": self.sheet
         })
         return state
 
     def _on_unserialize(self, state):
-        self.filetype = state["filetype"]
+        if self._data.file_type is None:
+            self._data.file_type = state["filetype"]
         self._read_args = state["read_args"]
         if "squeeze" in state:
             self._squeeze = state["squeeze"]
@@ -166,16 +178,22 @@ class PandasData(BaseDataSpec):
         else:
             self._squeeze = False
         self.name = state["name"]
+        self.sheet = state["sheet"] if "sheet" in state else None
         self._read_pandas()
 
     def _can_add_other(self, other):
-        return False
+        if self._data.file_type == "csv":
+            return False
+        elif self._data.file_type == "excel":
+            return not self.sheet == other.sheet
+        else:
+            raise RuntimeError("must not happen")
 
     def _read_pandas(self):
-        if self.filetype == "excel":
+        if self._data.file_type == "excel":
             self._value = pd.read_excel(
                 self._data.load_from, **self._read_args)
-        elif self.filetype == "csv":
+        elif self._data.file_type == "csv":
             self._value = pd.read_csv(
                 self._data.load_from, **self._read_args)
         else:
@@ -190,11 +208,11 @@ class PandasData(BaseDataSpec):
         if hasattr(self, "_is_hidden") and self._is_hidden:
             self._value._mx_dataclient = self
 
-    def _write_pandas(self, path):
-        if self.filetype == "excel":
-            self._value.to_excel(path)
-        elif self.filetype == "csv":
-            self._value.to_csv(path, header=True)
+    def _write_pandas(self, path_or_writer):
+        if self._data.file_type == "excel":
+            self._value.to_excel(path_or_writer)
+        elif self._data.file_type == "csv":
+            self._value.to_csv(path_or_writer, header=True)
         else:
             raise ValueError
 
@@ -209,11 +227,12 @@ class PandasData(BaseDataSpec):
 
     def __repr__(self):
         return (
-            "<PandasData " + "path=%s " + "filetype=%s>"
-        ) % (repr(str(self.path.as_posix())), repr(self.filetype))
+            "<PandasData " + "path=%s " + "file type=%s>"
+        ) % (repr(str(self.path.as_posix())), repr(self._data.file_type))
 
     def _get_attrdict(self, extattrs=None, recursive=True):
         result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)
-        result["filetype"] = self.filetype
+        result["filetype"] = self._data.file_type
+        result["sheet"] = self.sheet
 
         return result

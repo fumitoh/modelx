@@ -53,7 +53,7 @@ def test_new_pandas(
             tmp_path / "testpandas.xlsx")
 
     parent.new_pandas(name="pdref", path=file_path,
-                 data=pdobj, filetype=filetype)
+                 data=pdobj, file_type=filetype)
 
     # For checking preserved object identity
     parent.nestedpd = [pdobj]
@@ -102,7 +102,7 @@ def test_new_pandas_change_excel(tmp_path, pdobj, range_):
     p = mx.new_model().new_space("SpaceA")
 
     path = "files/testpandas.xlsx"
-    p.new_pandas(name="pdref", path=path, data=pdobj, filetype="excel")
+    p.new_pandas(name="pdref", path=path, data=pdobj, file_type="excel")
 
     p.model.write(tmp_path / "model")
     p.model.close()
@@ -158,7 +158,7 @@ def test_update_pandas(
             tmp_path / "testpandas.xlsx")
 
     parent.new_pandas(name="pdref", path=file_path,
-                      data=S_IDX1, filetype=filetype)
+                      data=S_IDX1, file_type=filetype)
     pd.testing.assert_series_equal(parent.pdref, S_IDX1)
 
     for nth in "12":

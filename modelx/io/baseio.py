@@ -108,6 +108,10 @@ class BaseSharedData:
         self.load_from = state["load_from"]
         self.specs = {id(c): c for c in state["specs"]}
 
+    @property
+    def persistent_args(self):
+        return {}
+
 
 class IOManager:
     """A class to manage shared data files
@@ -128,7 +132,7 @@ class IOManager:
         for data in self.data.values():
             data._check_sanity()
 
-    def get_data(self, path: pathlib.Path, model=None):
+    def _get_data(self, path: pathlib.Path, model=None):
         return self.data.get(self._get_dataid(path, model), None)
 
     def _get_dataid(self, path, model):
@@ -137,25 +141,25 @@ class IOManager:
         else:
             return path, model
 
-    def new_data(self, path, model, cls, load_from, **kwargs):
+    def _new_data(self, path, model, cls, load_from, **kwargs):
         data = cls(path, self, load_from, **kwargs)
-        if not self.get_data(data.path, model):
+        if not self._get_data(data.path, model):
             self.data[self._get_dataid(data.path, model)] = data
         return data
 
     def restore_data(self, model, data):
         # Used only by restore_state in ModelImpl
         # To add unpickled data in self.data
-        res = self.get_data(data.path, model)
+        res = self._get_data(data.path, model)
         if not res:
             self.data[self._get_dataid(data.path, model)] = data
 
     def get_or_create_data(self, path, model, cls, load_from=None, **kwargs):
-        data = self.get_data(path, model)
+        data = self._get_data(path, model)
         if data:
             return data
         else:
-            return self.new_data(path, model, cls, load_from, **kwargs)
+            return self._new_data(path, model, cls, load_from, **kwargs)
 
     def remove_data(self, data):
 

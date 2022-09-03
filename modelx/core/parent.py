@@ -499,7 +499,7 @@ class EditableParent(BaseParent):
             path, range_, sheet=sheet, keyids=keyids, loadpath=loadpath
         )
 
-    def new_pandas(self, name, path, data, filetype):
+    def new_pandas(self, name, path, data, file_type=None, filetype=None):
         """Assigns a pandas object to a Reference associating a
         new :class:`~modelx.io.pandasio.PandasData` object
 
@@ -634,8 +634,16 @@ class EditableParent(BaseParent):
             * :class:`~modelx.io.pandasio.PandasData`
 
         """
+        if file_type is None:
+            if filetype is not None:
+                warnings.warn(
+                    "'filetype' parameter is deprecated. Use 'file_type' instead.")
+                file_type = filetype
+            else:
+                raise ValueError("file_type is mssing")
+
         return self._impl.new_pandas(
-            name, path, data, filetype)
+            name, path, data, file_type)
 
     def new_module(self, name, path, module):
         """Assigns a user module to a Reference associating a
@@ -1039,18 +1047,15 @@ class EditableParentImpl(BaseParentImpl):
         self.model.refmgr.assoc_spec(result, result)
         return result
 
-    def new_pandas(self, name, path, data, filetype):
+    def new_pandas(self, name, path, data, file_type):
 
         from modelx.io.pandasio import PandasData
-
-        cargs= {"filetype": filetype,
-                "data": data}
-
         spec = self.system.iomanager.new_spec(
             path,
             PandasData,
             model=self.model.interface,
-            spec_args=cargs
+            spec_args={"data": data},
+            data_args={"file_type": file_type}
         )
         try:
             self.set_attr(name, data)
