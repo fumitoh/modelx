@@ -2,7 +2,7 @@ import pickle
 import pathlib
 from modelx.core.system import mxsys
 from modelx.core.base import NullImpl, null_impl
-from modelx.io.baseio import BaseSharedData, IOManager, BaseDataSpec
+from modelx.io.baseio import BaseSharedIO, IOManager, BaseDataSpec
 from modelx.core.node import BaseNode, ObjectNode, get_node, ItemNode, OBJ, KEY
 from . import ziputil
 
@@ -11,8 +11,8 @@ class DataSpecPickler(pickle.Pickler):
 
     def persistent_id(self, obj):
 
-        if isinstance(obj, BaseSharedData):
-            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
+        if isinstance(obj, BaseSharedIO):
+            return "BaseSharedIO", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
         elif isinstance(obj, IOManager):
             return "IOManager", None
         elif isinstance(obj, NullImpl):
@@ -34,7 +34,7 @@ class DataSpecUnpickler(pickle.Unpickler):
 
     def persistent_load(self, pid):
 
-        if pid[0] == "BaseSharedData":
+        if pid[0] in ("BaseSharedIO", "BaseSharedData"):
 
             if len(pid) == 3:   # mx < v0.20
                 _, path, cls = pid
@@ -86,8 +86,8 @@ class ModelPickler(pickle.Pickler):
             return "DataValue", self.writer.value_id_map[id(obj)]
         elif isinstance(obj, BaseDataSpec):
             return "BaseDataSpec", id(obj)
-        elif isinstance(obj, BaseSharedData):
-            return "BaseSharedData", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
+        elif isinstance(obj, BaseSharedIO):
+            return "BaseSharedIO", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
         elif isinstance(obj, BaseNode):
 
             model = self.writer.model
@@ -133,7 +133,7 @@ class ModelUnpickler(pickle.Unpickler):
             _, dc_id = pid
             return self.dataspecs[dc_id]
 
-        elif pid[0] == "BaseSharedData":
+        elif pid[0] in ("BaseSharedIO", "BaseSharedData"):
 
             if len(pid) == 3:   # mx < v0.20
                 _, path, cls = pid

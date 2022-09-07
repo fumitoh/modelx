@@ -19,7 +19,7 @@ import pathlib
 import openpyxl as opxl
 import openpyxl.cell
 from collections.abc import Mapping
-from .baseio import BaseDataSpec, BaseSharedData
+from .baseio import BaseDataSpec, BaseSharedIO
 
 
 def _get_col_index(name):
@@ -200,7 +200,7 @@ def _redirect_merged(cells):
         return cells.parent.cell(range_.min_row, range_.min_col)
 
 
-class ExcelWorkbook(BaseSharedData):
+class ExcelWorkbook(BaseSharedIO):
 
     def __init__(self, path, manager, load_from):
         super().__init__(path, manager, load_from=load_from)

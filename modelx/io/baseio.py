@@ -33,7 +33,7 @@ def is_in_root(path: pathlib.Path):
     return True
 
 
-class BaseSharedData:
+class BaseSharedIO:
 
     def __init__(self, path: pathlib.Path, manager, load_from):
         self.path = path

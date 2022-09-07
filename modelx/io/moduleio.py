@@ -21,11 +21,11 @@ import importlib
 from importlib.machinery import SourceFileLoader
 from importlib.util import spec_from_loader, module_from_spec
 
-from .baseio import BaseDataSpec, BaseSharedData
+from .baseio import BaseDataSpec, BaseSharedIO
 from modelx.serialize.ziputil import write_str_utf8
 
 
-class ModuleIO(BaseSharedData):
+class ModuleIO(BaseSharedIO):
 
     def __init__(self, path, manager, load_from, module=None):
         self._init_inner(path, manager, load_from, module)

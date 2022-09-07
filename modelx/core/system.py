@@ -31,7 +31,7 @@ from modelx.core.model import ModelImpl
 from modelx.core.util import AutoNamer, is_valid_name
 from modelx.core.errors import DeepReferenceError, FormulaError
 from modelx.core.node import OBJ, KEY, ItemNode
-from modelx.io.baseio import IOManager, BaseSharedData
+from modelx.io.baseio import IOManager, BaseSharedIO
 
 
 class NonThreadedExecutor:

@@ -13,11 +13,11 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import pathlib
-from .baseio import BaseDataSpec, BaseSharedData
+from .baseio import BaseDataSpec, BaseSharedIO
 import pandas as pd
 
 
-class PandasIO(BaseSharedData):
+class PandasIO(BaseSharedIO):
 
     def __init__(self, path, manager, load_from, file_type=None):
         super().__init__(path, manager, load_from)
