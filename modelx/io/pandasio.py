@@ -22,7 +22,6 @@ class PandasIO(BaseSharedData):
     def __init__(self, path, manager, load_from, file_type=None):
         super().__init__(path, manager, load_from)
         self.file_type = file_type
-        self.is_updated = True  # Not Used
 
     def _on_save(self, path):
         if self.file_type == "excel":

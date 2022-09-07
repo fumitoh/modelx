@@ -121,9 +121,6 @@ class ModuleData(BaseDataSpec):
     def _on_unserialize(self, state):
         self._value = self._data._load_module()
 
-    def _after_save_file(self):
-        pass
-
     def _can_add_other(self, other):
         return False
 

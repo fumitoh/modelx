@@ -205,7 +205,6 @@ class ExcelWorkbook(BaseSharedData):
     def __init__(self, path, manager, load_from):
         super().__init__(path, manager, load_from=load_from)
         self.book = opxl.load_workbook(load_from, data_only=True)
-        self.is_updated = True  # Not Used
 
     def _on_save(self, path):
         self.book.save(path)
@@ -513,7 +512,6 @@ class ExcelRange(BaseDataSpec, Mapping):
     def __setitem__(self, key, value):
         r, c = self._get_index(key)
         _redirect_merged(self._cells[r][c]).value = value
-        self._data.is_updated = True
 
     def __len__(self):
         return self._size[0] * self._size[1]

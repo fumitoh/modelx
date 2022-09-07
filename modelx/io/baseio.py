@@ -49,8 +49,6 @@ class BaseSharedData:
 
         path.parent.mkdir(parents=True, exist_ok=True)
         self._on_save(path)
-        self.is_updated = False
-        self.after_save_file()
 
     def is_external(self):
         return self.path.is_absolute()
@@ -58,29 +56,8 @@ class BaseSharedData:
     def _on_save(self, path):
         raise NotImplementedError
 
-    def can_add_spec(self, spec):
+    def _can_add_spec(self, spec):
         return all(c._can_add_other(spec) for c in self.specs.values())
-
-    def add_spec(self, spec):
-        if id(spec) not in self.specs:
-            if self.can_add_spec(spec):
-                self.specs[id(spec)] = spec
-            else:
-                raise ValueError("cannot add spec")
-
-    def remove_spec(self, spec):
-        if id(spec) in self.specs:
-            del self.specs[id(spec)]
-            if not self.specs:
-                self.manager.remove_data(self)
-
-    def remove_all_specs(self):
-        self.specs.clear()
-        self.manager.remove_data(self)
-
-    def after_save_file(self):
-        for spec in self.specs.values():
-            spec._after_save_file()
 
     def _check_sanity(self):
 
@@ -184,7 +161,7 @@ class IOManager:
             pathlib.Path(path), model, cls=cls.data_class, **data_args)
         try:
             spec._on_load_value()
-            spec._data.add_spec(spec)
+            self.add_spec(spec._data, spec)
         except:
             if not spec._data.specs:
                 del self.data[self._get_dataid(spec._data.path, model)]
@@ -192,8 +169,19 @@ class IOManager:
 
         return spec
 
+    def add_spec(self, data, spec):
+        if id(spec) not in data.specs:
+            if data._can_add_spec(spec):
+                data.specs[id(spec)] = spec
+            else:
+                raise ValueError("cannot add spec")
+
     def del_spec(self, spec):
-        spec._data.remove_spec(spec)
+        data = spec._data
+        if id(spec) in data.specs:
+            del data.specs[id(spec)]
+            if not data.specs:
+                self.remove_data(data)
 
     def update_spec_value(self, spec, value, kwargs):
         if spec._can_update_value(value, kwargs):
@@ -248,9 +236,6 @@ class BaseDataSpec:
     def _on_unserialize(self, state):
         raise NotImplementedError
 
-    def _after_save_file(self):
-        pass
-
     def _can_add_other(self, other):
         raise NotImplementedError
 
@@ -281,7 +266,7 @@ class BaseDataSpec:
             self._is_hidden = False
         if self._manager.serializing is True:
             self._on_unserialize(state)
-            self._data.add_spec(self)
+            self._manager.add_spec(self._data, self)
         elif self._manager.serializing is False:
             self._on_unpickle(state)
         else:
