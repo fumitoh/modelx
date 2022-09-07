@@ -41,19 +41,10 @@ class BaseSharedIO:
         self.manager = manager
         self.load_from = load_from
 
-    def save(self, root):
-        if not self.path.is_absolute():
-            path = root.joinpath(self.path)
-        else:
-            path = self.path
-
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self._on_save(path)
-
     def is_external(self):
         return self.path.is_absolute()
 
-    def _on_save(self, path):
+    def _on_write(self, path):
         raise NotImplementedError
 
     def _can_add_spec(self, spec):
@@ -62,13 +53,13 @@ class BaseSharedIO:
     def _check_sanity(self):
 
         key, val = next(
-            (k, v) for k, v in self.manager.data.items() if v is self)
+            (k, v) for k, v in self.manager.ios.items() if v is self)
 
         assert self.path == key[0]
         assert self is val
 
         for spec in self.specs.values():
-            assert spec._data is self
+            assert spec._io is self
             spec._check_sanity()
 
     def __getstate__(self):
@@ -91,97 +82,97 @@ class BaseSharedIO:
 
 
 class IOManager:
-    """A class to manage shared data files
+    """A class to manage shared file
 
     * Create new spec
         - Create a new spec
         - Register a new spec
             - Create a SharedData if not exit
-            - Register the spec to the data
+            - Register the spec to the file
     """
 
     def __init__(self):
-        self.data = {}
+        self.ios = {}
         self.serializing = None     # Set from external
 
     def _check_sanity(self):
-        assert len(self.data) == len(set(id(v) for v in self.data.values()))
-        for data in self.data.values():
-            data._check_sanity()
+        assert len(self.ios) == len(set(id(v) for v in self.ios.values()))
+        for a_io in self.ios.values():
+            a_io._check_sanity()
 
-    def _get_data(self, path: pathlib.Path, model=None):
-        return self.data.get(self._get_dataid(path, model), None)
+    def _get_io(self, path: pathlib.Path, io_group=None):
+        return self.ios.get(self._get_io_key(path, io_group), None)
 
-    def _get_dataid(self, path, model):
+    def _get_io_key(self, path, io_group):
         if path.is_absolute():
             return path, None
         else:
-            return path, model
+            return path, io_group
 
-    def _new_data(self, path, model, cls, load_from, **kwargs):
-        data = cls(path, self, load_from, **kwargs)
-        if not self._get_data(data.path, model):
-            self.data[self._get_dataid(data.path, model)] = data
-        return data
+    def _new_io(self, path, io_group, cls, load_from, **kwargs):
+        a_io = cls(path, self, load_from, **kwargs)
+        if not self._get_io(a_io.path, io_group):
+            self.ios[self._get_io_key(a_io.path, io_group)] = a_io
+        return a_io
 
-    def restore_data(self, model, data):
+    def restore_io(self, io_group, io_):
         # Used only by restore_state in ModelImpl
-        # To add unpickled data in self.data
-        res = self._get_data(data.path, model)
+        # To add unpickled IO in self.ios
+        res = self._get_io(io_.path, io_group)
         if not res:
-            self.data[self._get_dataid(data.path, model)] = data
+            self.ios[self._get_io_key(io_.path, io_group)] = io_
 
-    def get_or_create_data(self, path, model, cls, load_from=None, **kwargs):
-        data = self._get_data(path, model)
-        if data:
-            return data
+    def get_or_create_io(self, path, io_group, cls, load_from=None, **kwargs):
+        a_io = self._get_io(path, io_group)
+        if a_io:
+            return a_io
         else:
-            return self._new_data(path, model, cls, load_from, **kwargs)
+            return self._new_io(path, io_group, cls, load_from, **kwargs)
 
-    def remove_data(self, data):
+    def remove_io(self, io_):
 
-        if data.specs:
+        if io_.specs:
             raise RuntimeError("specs must be deleted beforehand")
 
-        key = next((k for k, v in self.data.items() if v is data), None)
+        key = next((k for k, v in self.ios.items() if v is io_), None)
         if key:
-            del self.data[key]
+            del self.ios[key]
 
     def new_spec(
-            self, path, cls, model, spec_args=None, data_args=None):
+            self, path, cls, io_group, spec_args=None, io_args=None):
 
         if spec_args is None:
             spec_args = {}
-        if data_args is None:
-            data_args = {}
+        if io_args is None:
+            io_args = {}
 
         spec = cls(**spec_args)
         spec._manager = self
-        spec._data = self.get_or_create_data(
-            pathlib.Path(path), model, cls=cls.data_class, **data_args)
+        spec._io = self.get_or_create_io(
+            pathlib.Path(path), io_group, cls=cls.io_class, **io_args)
         try:
             spec._on_load_value()
-            self.add_spec(spec._data, spec)
+            self.add_spec(spec._io, spec)
         except:
-            if not spec._data.specs:
-                del self.data[self._get_dataid(spec._data.path, model)]
+            if not spec._io.specs:
+                del self.ios[self._get_io_key(spec._io.path, io_group)]
             raise
 
         return spec
 
-    def add_spec(self, data, spec):
-        if id(spec) not in data.specs:
-            if data._can_add_spec(spec):
-                data.specs[id(spec)] = spec
+    def add_spec(self, io_, spec):
+        if id(spec) not in io_.specs:
+            if io_._can_add_spec(spec):
+                io_.specs[id(spec)] = spec
             else:
                 raise ValueError("cannot add spec")
 
     def del_spec(self, spec):
-        data = spec._data
-        if id(spec) in data.specs:
-            del data.specs[id(spec)]
-            if not data.specs:
-                self.remove_data(data)
+        a_io = spec._io
+        if id(spec) in a_io.specs:
+            del a_io.specs[id(spec)]
+            if not a_io.specs:
+                self.remove_io(a_io)
 
     def update_spec_value(self, spec, value, kwargs):
         if spec._can_update_value(value, kwargs):
@@ -191,6 +182,18 @@ class IOManager:
                 "%s does not allow to replace its value" % repr(spec)
             )
 
+    def write_ios(self, io_group, root):
+        for a_io in self.ios.values():
+            self.write_io(a_io, root)
+
+    def write_io(self, io_, root):
+        if not io_.path.is_absolute():
+            path = root.joinpath(io_.path)
+        else:
+            path = io_.path
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        io_._on_write(path)
 
 class BaseDataSpec:
     """Abstract base class for accessing data stored in files
@@ -208,12 +211,12 @@ class BaseDataSpec:
     """
     def __init__(self):
         self._manager = None
-        self._data = None
+        self._io = None
 
     def _check_sanity(self):
-        assert self._data.specs[id(self)] is self
-        assert any(self._data is d for d in self._manager.data.values())
-        assert self._manager is self._data.manager
+        assert self._io.specs[id(self)] is self
+        assert any(self._io is d for d in self._manager.ios.values())
+        assert self._manager is self._io.manager
 
     def _on_load_value(self):
         raise NotImplementedError
@@ -245,7 +248,7 @@ class BaseDataSpec:
     def __getstate__(self):
         state = {
             "manager": self._manager,
-            "_data": self._data
+            "_io": self._io
         }
         if hasattr(self, "_is_hidden"):
             state["is_hidden"] = self._is_hidden
@@ -258,7 +261,7 @@ class BaseDataSpec:
 
     def __setstate__(self, state):
         self._manager = state["manager"]
-        self._data = state["_data"]
+        self._io = state["_io"] if "_io" in state else state["_data"]  # renamed from v0.20.0
         if "is_hidden" in state:
             self._is_hidden = state["is_hidden"]
         else:
@@ -266,7 +269,7 @@ class BaseDataSpec:
             self._is_hidden = False
         if self._manager.serializing is True:
             self._on_unserialize(state)
-            self._manager.add_spec(self._data, self)
+            self._manager.add_spec(self._io, self)
         elif self._manager.serializing is False:
             self._on_unpickle(state)
         else:
@@ -276,8 +279,8 @@ class BaseDataSpec:
 
         result = {
             "type": type(self).__name__,
-            "path": str(self._data.path),
-            "load_from": str(self._data.load_from),
+            "path": str(self._io.path),
+            "load_from": str(self._io.load_from),
             "value": self.value
         }
         return result

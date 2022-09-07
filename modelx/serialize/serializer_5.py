@@ -333,12 +333,12 @@ class ModelWriter:
             if zipfile.is_zipfile(self.root):
                 with tempfile.TemporaryDirectory() as tempdir:
                     temproot = pathlib.Path(tempdir)
-                    self.model._impl.refmgr.save_data(root=temproot)
+                    self.system.iomanager.write_ios(self.model, root=temproot)
                     ziputil.copy_dir_to_zip(temproot, self.root,
                                             compression=self.compression,
                                             compresslevel=self.compresslevel)
             else:
-                self.model._impl.refmgr.save_data(root=self.root)
+                self.system.iomanager.write_ios(self.model, root=self.root)
 
             if self.log_input:
                 ziputil.write_str_utf8(

@@ -23,7 +23,7 @@ class PandasIO(BaseSharedIO):
         super().__init__(path, manager, load_from)
         self.file_type = file_type
 
-    def _on_save(self, path):
+    def _on_write(self, path):
         if self.file_type == "excel":
             with pd.ExcelWriter(path) as writer:
                 for c in self.specs.values():
@@ -88,7 +88,7 @@ class PandasData(BaseDataSpec):
 
     """
 
-    data_class = PandasIO
+    io_class = PandasIO
 
     def __init__(self, data, sheet=None):
         BaseDataSpec.__init__(self)
@@ -119,7 +119,7 @@ class PandasData(BaseDataSpec):
         self.name = data.name if isinstance(data, pd.Series) else None
 
         self._read_args = {}
-        if self._data.file_type == "excel" or self._data.file_type == "csv":
+        if self._io.file_type == "excel" or self._io.file_type == "csv":
             if isinstance(data, pd.DataFrame) and data.columns.nlevels > 1:
                 self._read_args["header"] = list(range(data.columns.nlevels))
             if data.index.nlevels > 1:
@@ -128,9 +128,9 @@ class PandasData(BaseDataSpec):
                 self._read_args["index_col"] = 0
             if isinstance(data, pd.Series):
                 self._squeeze = True
-            if self._data.file_type == "excel":
-                if (len(self._data.path.suffix[1:]) > 3
-                        and self._data.path.suffix[1:4] == "xls"):
+            if self._io.file_type == "excel":
+                if (len(self._io.path.suffix[1:]) > 3
+                        and self._io.path.suffix[1:4] == "xls"):
                     self._read_args["engine"] = "openpyxl"
                 if self.sheet:
                     self._read_args["sheet_name"] = self.sheet
@@ -150,8 +150,8 @@ class PandasData(BaseDataSpec):
     def _on_unpickle(self, state):
         # For mx < 0.20
         if "filetype" in state:
-            if not hasattr(self._data, "file_type"):
-                self._data.file_type = state["filetype"]
+            if not hasattr(self._io, "file_type"):
+                self._io.file_type = state["filetype"]
 
         self._value = state["value"]
         self._read_args = state["read_args"]
@@ -174,8 +174,8 @@ class PandasData(BaseDataSpec):
         return state
 
     def _on_unserialize(self, state):
-        if self._data.file_type is None:
-            self._data.file_type = state["filetype"]
+        if self._io.file_type is None:
+            self._io.file_type = state["filetype"]
         self._read_args = state["read_args"]
         if "squeeze" in state:
             self._squeeze = state["squeeze"]
@@ -188,9 +188,9 @@ class PandasData(BaseDataSpec):
         self._read_pandas()
 
     def _can_add_other(self, other):
-        if self._data.file_type == "csv":
+        if self._io.file_type == "csv":
             return False
-        elif self._data.file_type == "excel":
+        elif self._io.file_type == "excel":
             if self.sheet is None or other.sheet is None:
                 return False
             else:
@@ -199,12 +199,12 @@ class PandasData(BaseDataSpec):
             raise RuntimeError("must not happen")
 
     def _read_pandas(self):
-        if self._data.file_type == "excel":
+        if self._io.file_type == "excel":
             self._value = pd.read_excel(
-                self._data.load_from, **self._read_args)
-        elif self._data.file_type == "csv":
+                self._io.load_from, **self._read_args)
+        elif self._io.file_type == "csv":
             self._value = pd.read_csv(
-                self._data.load_from, **self._read_args)
+                self._io.load_from, **self._read_args)
         else:
             raise ValueError
 
@@ -218,10 +218,10 @@ class PandasData(BaseDataSpec):
             self._value._mx_dataclient = self
 
     def _write_pandas(self, path_or_writer):
-        if self._data.file_type == "excel":
+        if self._io.file_type == "excel":
             kwargs = {"sheet_name": self.sheet} if self.sheet else {}
             self._value.to_excel(path_or_writer, **kwargs)
-        elif self._data.file_type == "csv":
+        elif self._io.file_type == "csv":
             self._value.to_csv(path_or_writer, header=True)
         else:
             raise ValueError
@@ -238,16 +238,16 @@ class PandasData(BaseDataSpec):
     def __repr__(self):
         res = (
             "<PandasData" + " path=%s" + " file_type=%s"
-        ) % (repr(str(self._data.path.as_posix())), repr(self._data.file_type))
+        ) % (repr(str(self._io.path.as_posix())), repr(self._io.file_type))
 
-        if self._data.file_type == "excel" and self.sheet:
+        if self._io.file_type == "excel" and self.sheet:
             return res + (" sheet=%s>" % repr(self.sheet))
         else:
             return res + ">"
 
     def _get_attrdict(self, extattrs=None, recursive=True):
         result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)
-        result["filetype"] = self._data.file_type
+        result["filetype"] = self._io.file_type
         result["sheet"] = self.sheet
 
         return result

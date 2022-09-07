@@ -39,7 +39,7 @@ class ModuleIO(BaseSharedIO):
         self.source = None  # Set on _load_module
         super().__init__(path, manager, load_from=load_from)
 
-    def _on_save(self, path):
+    def _on_write(self, path):
         write_str_utf8(self.source, path=path)
 
     def _load_module(self):
@@ -72,7 +72,7 @@ class ModuleData(BaseDataSpec):
 
     """
 
-    data_class = ModuleIO
+    io_class = ModuleIO
 
     def __init__(self, module=None):
         BaseDataSpec.__init__(self)
@@ -82,7 +82,7 @@ class ModuleData(BaseDataSpec):
             self._value = None
 
     def _on_load_value(self):
-        self._value = self._data._load_module()
+        self._value = self._io._load_module()
 
     def _can_update_value(self, value, kwargs):
         return isinstance(value, (ModuleType, str, os.PathLike, type(None)))
@@ -90,36 +90,36 @@ class ModuleData(BaseDataSpec):
     def _on_update_value(self, value, kwargs):
 
         if isinstance(value, (ModuleType, str, os.PathLike)):
-            self._data._init_inner(
-                path=self._data.path,
-                manager=self._data.manager,
+            self._io._init_inner(
+                path=self._io.path,
+                manager=self._io.manager,
                 load_from=None,
                 module=value
             )
         elif value is None:     # reload current
-            self._data._init_inner(
-                path=self._data.path,
-                manager=self._data.manager,
-                load_from=self._data.load_from,
+            self._io._init_inner(
+                path=self._io.path,
+                manager=self._io.manager,
+                load_from=self._io.load_from,
                 module=None
             )
         else:
             raise ValueError("must not happen")
 
-        self._value = self._data._load_module()
+        self._value = self._io._load_module()
 
     def _on_pickle(self, state):
         return state
 
     def _on_unpickle(self, state):
-        mod = self._data._load_module()
+        mod = self._io._load_module()
         self._value = mod
 
     def _on_serialize(self, state):
         return state
 
     def _on_unserialize(self, state):
-        self._value = self._data._load_module()
+        self._value = self._io._load_module()
 
     def _can_add_other(self, other):
         return False
@@ -130,4 +130,4 @@ class ModuleData(BaseDataSpec):
         return self._value
 
     def __repr__(self):
-        return "<ModuleData path=%s>" % repr(str(self._data.path.as_posix()))
+        return "<ModuleData path=%s>" % repr(str(self._io.path.as_posix()))

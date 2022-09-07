@@ -206,7 +206,7 @@ class ExcelWorkbook(BaseSharedIO):
         super().__init__(path, manager, load_from=load_from)
         self.book = opxl.load_workbook(load_from, data_only=True)
 
-    def _on_save(self, path):
+    def _on_write(self, path):
         self.book.save(path)
 
     def get_range(self, range_, sheet):
@@ -259,7 +259,7 @@ class ExcelRange(BaseDataSpec, Mapping):
     .. versionadded:: 0.9.0
 
     """
-    data_class = ExcelWorkbook
+    io_class = ExcelWorkbook
 
     def __init__(self, range_, sheet=None, keyids=None):
         """
@@ -320,7 +320,7 @@ class ExcelRange(BaseDataSpec, Mapping):
         self._load_cells(self.keyids)
 
     def _load_cells(self, keys):
-        self._cells = self._data.get_range(self.range, self.sheet)
+        self._cells = self._io.get_range(self.range, self.sheet)
         self._datasize = (len(self._cells), len(self._cells[0]))
         self._key_to_index = self._create_key_to_index(keys)
 
@@ -543,7 +543,7 @@ class ExcelRange(BaseDataSpec, Mapping):
     def __repr__(self):
         return (
             "<ExcelRange " + "path=%s " + "range=%s " + "sheet=%s>"
-        ) % (repr(str(self._data.path.as_posix())),
+        ) % (repr(str(self._io.path.as_posix())),
              repr(self.range), repr(self.sheet))
 
     def _get_attrdict(self, extattrs=None, recursive=True):

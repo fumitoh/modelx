@@ -699,7 +699,7 @@ class ModelImpl(*_model_impl_base):
         )
         self.allow_none = False
         self.lazy_evals = self._namespace
-        self.refmgr = ReferenceManager(system.iomanager)
+        self.refmgr = ReferenceManager(self, system.iomanager)
 
     def rename(self, name):
         """Rename self. Must be called only by its system."""
@@ -801,7 +801,7 @@ class ModelImpl(*_model_impl_base):
         # Unpickling does not add data in system.iomanager
         # Adding data here
         for spec in self.refmgr.specs:
-            self.system.iomanager.restore_data(self, spec._data)
+            self.system.iomanager.restore_io(self, spec._io)
 
     def _check_sanity(self):
 
@@ -2171,7 +2171,8 @@ class SpaceUpdater(SharedSpaceOperations):
 
 class ReferenceManager:
 
-    def __init__(self, iomanager):
+    def __init__(self, model, iomanager):
+        self._model = model
         self._manager = iomanager
         self._valid_to_refs = {}         # id(value) -> [refs]
         self._valid_to_spec = {}
@@ -2285,13 +2286,6 @@ class ReferenceManager:
             _, spec = self._valid_to_spec.popitem()
             self._manager.del_spec(spec)
 
-    def save_data(self, root):
-        saved = set()
-        for spec in self._valid_to_spec.values():
-            if not spec._data in saved:
-                spec._data.save(root)
-                saved.add(spec._data)
-
     def update_value(self, old_value, new_value=None, **kwargs):
 
         prev_id = id(old_value)
@@ -2333,12 +2327,14 @@ class ReferenceManager:
 
     def __getstate__(self):
         return {
+            "model": self._model,
             "manager": self._manager,
             "refs": list(self._valid_to_refs.values()),
             "specs": list(self._valid_to_spec.values())
         }
 
     def __setstate__(self, state):
+        self._model = state["model"]
         self._manager = state["manager"]
         self._valid_to_refs = {
             id(refs[0].interface): refs for refs in state["refs"]

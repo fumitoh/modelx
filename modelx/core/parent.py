@@ -1030,9 +1030,9 @@ class EditableParentImpl(BaseParentImpl):
         dargs = {"load_from": loadpath}
 
         result = self.system.iomanager.new_spec(path, ExcelRange,
-                                         model=self.model.interface,
+                                         io_group=self.model.interface,
                                          spec_args=cargs,
-                                         data_args=dargs)
+                                         io_args=dargs)
 
         try:
             self.set_attr(name, result)
@@ -1049,9 +1049,9 @@ class EditableParentImpl(BaseParentImpl):
         spec = self.system.iomanager.new_spec(
             path,
             PandasData,
-            model=self.model.interface,
+            io_group=self.model.interface,
             spec_args={"data": data, "sheet": sheet},
-            data_args={"file_type": file_type}
+            io_args={"file_type": file_type}
         )
         try:
             self.set_attr(name, data)
@@ -1069,9 +1069,9 @@ class EditableParentImpl(BaseParentImpl):
         spec = self.system.iomanager.new_spec(
             path,
             ModuleData,
-            model=self.model.interface,
+            io_group=self.model.interface,
             spec_args={"module": module},
-            data_args={"module": module}
+            io_args={"module": module}
         )
 
         try:

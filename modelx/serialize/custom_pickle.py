@@ -58,8 +58,8 @@ class DataSpecUnpickler(pickle.Unpickler):
             else:
                 loadpath = path
 
-            return self.manager.get_or_create_data(
-                path, model=self.model, cls=cls, load_from=loadpath, **kwargs)
+            return self.manager.get_or_create_io(
+                path, io_group=self.model, cls=cls, load_from=loadpath, **kwargs)
 
         elif pid[0] == "IOManager":
             return self.manager
@@ -157,8 +157,8 @@ class ModelUnpickler(pickle.Unpickler):
             else:
                 loadpath = path
 
-            return self.manager.get_or_create_data(
-                path, model=self.model, cls=cls, load_from=loadpath, **kwargs)
+            return self.manager.get_or_create_io(
+                path, io_group=self.model, cls=cls, load_from=loadpath, **kwargs)
 
         elif pid[0] == "Node":
             _, tupleid, key = pid
