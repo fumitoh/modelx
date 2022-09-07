@@ -1029,8 +1029,9 @@ class EditableParentImpl(BaseParentImpl):
                  "keyids": keyids}
         dargs = {"load_from": loadpath}
 
-        result = self.system.iomanager.new_spec(path, ExcelRange,
+        result = self.system.iomanager.new_spec(ExcelRange,
                                          io_group=self.model.interface,
+                                         path=path,
                                          spec_args=cargs,
                                          io_args=dargs)
 
@@ -1047,9 +1048,9 @@ class EditableParentImpl(BaseParentImpl):
 
         from modelx.io.pandasio import PandasData
         spec = self.system.iomanager.new_spec(
-            path,
             PandasData,
             io_group=self.model.interface,
+            path=path,
             spec_args={"data": data, "sheet": sheet},
             io_args={"file_type": file_type}
         )
@@ -1067,9 +1068,9 @@ class EditableParentImpl(BaseParentImpl):
         from modelx.io.moduleio import ModuleData
 
         spec = self.system.iomanager.new_spec(
-            path,
             ModuleData,
             io_group=self.model.interface,
+            path=path,
             spec_args={"module": module},
             io_args={"module": module}
         )

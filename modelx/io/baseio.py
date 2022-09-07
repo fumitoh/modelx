@@ -55,7 +55,7 @@ class BaseSharedIO:
         key, val = next(
             (k, v) for k, v in self.manager.ios.items() if v is self)
 
-        assert self.path == key[0]
+        assert self.path == key[1]
         assert self is val
 
         for spec in self.specs.values():
@@ -100,34 +100,34 @@ class IOManager:
         for a_io in self.ios.values():
             a_io._check_sanity()
 
-    def _get_io(self, path: pathlib.Path, io_group=None):
-        return self.ios.get(self._get_io_key(path, io_group), None)
+    def _get_io(self, io_group, path: pathlib.Path):
+        return self.ios.get(self._get_io_key(io_group, path), None)
 
-    def _get_io_key(self, path, io_group):
+    def _get_io_key(self, io_group, path):
         if path.is_absolute():
-            return path, None
+            return None, path
         else:
-            return path, io_group
+            return io_group, path
 
-    def _new_io(self, path, io_group, cls, load_from, **kwargs):
+    def _new_io(self, io_group, path, cls, load_from, **kwargs):
         a_io = cls(path, self, load_from, **kwargs)
-        if not self._get_io(a_io.path, io_group):
-            self.ios[self._get_io_key(a_io.path, io_group)] = a_io
+        if not self._get_io(io_group, a_io.path):
+            self.ios[self._get_io_key(io_group, a_io.path)] = a_io
         return a_io
 
     def restore_io(self, io_group, io_):
         # Used only by restore_state in ModelImpl
         # To add unpickled IO in self.ios
-        res = self._get_io(io_.path, io_group)
+        res = self._get_io(io_group, io_.path)
         if not res:
-            self.ios[self._get_io_key(io_.path, io_group)] = io_
+            self.ios[self._get_io_key(io_group, io_.path)] = io_
 
-    def get_or_create_io(self, path, io_group, cls, load_from=None, **kwargs):
-        a_io = self._get_io(path, io_group)
+    def get_or_create_io(self, io_group, path, cls, load_from=None, **kwargs):
+        a_io = self._get_io(io_group, path)
         if a_io:
             return a_io
         else:
-            return self._new_io(path, io_group, cls, load_from, **kwargs)
+            return self._new_io(io_group, path, cls, load_from, **kwargs)
 
     def remove_io(self, io_):
 
@@ -139,7 +139,7 @@ class IOManager:
             del self.ios[key]
 
     def new_spec(
-            self, path, cls, io_group, spec_args=None, io_args=None):
+            self, cls, io_group, path, spec_args=None, io_args=None):
 
         if spec_args is None:
             spec_args = {}
@@ -149,13 +149,13 @@ class IOManager:
         spec = cls(**spec_args)
         spec._manager = self
         spec._io = self.get_or_create_io(
-            pathlib.Path(path), io_group, cls=cls.io_class, **io_args)
+            io_group, pathlib.Path(path), cls=cls.io_class, **io_args)
         try:
             spec._on_load_value()
             self.add_spec(spec._io, spec)
         except:
             if not spec._io.specs:
-                del self.ios[self._get_io_key(spec._io.path, io_group)]
+                del self.ios[self._get_io_key(io_group, spec._io.path)]
             raise
 
         return spec
