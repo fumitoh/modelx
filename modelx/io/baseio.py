@@ -115,6 +115,14 @@ class IOManager:
             self.ios[self._get_io_key(io_group, a_io.path)] = a_io
         return a_io
 
+    def _del_io(self, io_):
+        if io_.specs:
+            raise RuntimeError("specs must be deleted beforehand")
+
+        key = next((k for k, v in self.ios.items() if v is io_), None)
+        if key:
+            del self.ios[key]
+
     def restore_io(self, io_group, io_):
         # Used only by restore_state in ModelImpl
         # To add unpickled IO in self.ios
@@ -128,15 +136,6 @@ class IOManager:
             return a_io
         else:
             return self._new_io(io_group, path, cls, load_from, **kwargs)
-
-    def remove_io(self, io_):
-
-        if io_.specs:
-            raise RuntimeError("specs must be deleted beforehand")
-
-        key = next((k for k, v in self.ios.items() if v is io_), None)
-        if key:
-            del self.ios[key]
 
     def new_spec(
             self, cls, io_group, path, spec_args=None, io_args=None):
@@ -172,7 +171,7 @@ class IOManager:
         if id(spec) in a_io.specs:
             del a_io.specs[id(spec)]
             if not a_io.specs:
-                self.remove_io(a_io)
+                self._del_io(a_io)
 
     def update_spec_value(self, spec, value, kwargs):
         if spec._can_update_value(value, kwargs):

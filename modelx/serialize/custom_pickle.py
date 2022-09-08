@@ -12,7 +12,7 @@ class DataSpecPickler(pickle.Pickler):
     def persistent_id(self, obj):
 
         if isinstance(obj, BaseSharedIO):
-            return "BaseSharedIO", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
+            return "BaseSharedIO", obj.path.as_posix(), obj.__class__, obj.persistent_args
         elif isinstance(obj, IOManager):
             return "IOManager", None
         elif isinstance(obj, NullImpl):
@@ -87,7 +87,7 @@ class ModelPickler(pickle.Pickler):
         elif isinstance(obj, BaseDataSpec):
             return "BaseDataSpec", id(obj)
         elif isinstance(obj, BaseSharedIO):
-            return "BaseSharedIO", pathlib.PurePath(obj.path), obj.__class__, obj.persistent_args
+            return "BaseSharedIO", obj.path.as_posix(), obj.__class__, obj.persistent_args
         elif isinstance(obj, BaseNode):
 
             model = self.writer.model
