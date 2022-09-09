@@ -34,6 +34,9 @@ class PandasIO(BaseSharedIO):
         else:
             raise RuntimeError("must not happen")
 
+    def _on_update_value(self, value, kwargs):
+        pass
+
     @property
     def persistent_args(self):
         return {"file_type": self.file_type}

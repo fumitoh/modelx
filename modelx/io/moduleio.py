@@ -28,19 +28,31 @@ from modelx.serialize.ziputil import write_str_utf8
 class ModuleIO(BaseSharedIO):
 
     def __init__(self, path, manager, load_from, module=None):
-        self._init_inner(path, manager, load_from, module)
-
-    def _init_inner(self, path, manager, load_from, module):
-        if isinstance(module, ModuleType):
-            load_from = pathlib.Path(module.__file__)
-        elif isinstance(module, (str, os.PathLike)):
-            load_from = pathlib.Path(module).resolve()
-
-        self.source = None  # Set on _load_module
+        # module prior to load_from
+        load_from = self._get_module_path(module) if module is not None else load_from
         super().__init__(path, manager, load_from=load_from)
+        self.source = None  # call _load_module to set source
+
+    @staticmethod
+    def _get_module_path(module):
+        if isinstance(module, ModuleType):
+            return pathlib.Path(module.__file__)
+        elif isinstance(module, (str, os.PathLike)):
+            return pathlib.Path(module).resolve()
+        else:
+            raise RuntimeError("must not happen")
 
     def _on_write(self, path):
         write_str_utf8(self.source, path=path)
+
+    def _on_update_value(self, value, kwargs):
+        if isinstance(value, (ModuleType, str, os.PathLike)):
+            self.load_from = self._get_module_path(value)
+        elif value is None:     # reload current
+            pass
+        else:
+            raise ValueError("must not happen")
+        self.source = None  # call _load_module to set source
 
     def _load_module(self):
         loader = SourceFileLoader("<unnamed module>", path=str(self.load_from))
@@ -88,24 +100,6 @@ class ModuleData(BaseDataSpec):
         return isinstance(value, (ModuleType, str, os.PathLike, type(None)))
 
     def _on_update_value(self, value, kwargs):
-
-        if isinstance(value, (ModuleType, str, os.PathLike)):
-            self._io._init_inner(
-                path=self._io.path,
-                manager=self._io.manager,
-                load_from=None,
-                module=value
-            )
-        elif value is None:     # reload current
-            self._io._init_inner(
-                path=self._io.path,
-                manager=self._io.manager,
-                load_from=self._io.load_from,
-                module=None
-            )
-        else:
-            raise ValueError("must not happen")
-
         self._value = self._io._load_module()
 
     def _on_pickle(self, state):

@@ -372,7 +372,10 @@ class Model(EditableParent):
         for valid, refs in self._impl.refmgr._valid_to_refs.items():
             info = {}
             info["value"] = refs[0].interface
-            info["spec"] = self._impl.refmgr._valid_to_spec.get(valid, None)
+            info["spec"] = self._impl.system.iomanager.get_spec_from_value(
+                io_group=self,
+                value=refs[0].interface
+            )
             info["refs"] = self._get_refs(info["value"])
             result.append(info)
 
@@ -768,11 +771,15 @@ class ModelImpl(*_model_impl_base):
                     mapping[node] = name
             state[gname] = nx.relabel_nodes(graph, mapping)
 
+        state["ios"] = list(spec._io for spec in self.refmgr.specs)
         return state
 
     def __setstate__(self, state):
+        ios = state.pop("ios")
         for attr in state:
             setattr(self, attr, state[attr])
+        for io_ in ios:
+            self.system.iomanager.restore_io(self.interface, io_)
 
     def restore_state(self, datapath=None):
         """Called after unpickling to restore some attributes manually."""
@@ -789,19 +796,6 @@ class ModelImpl(*_model_impl_base):
         self.tracegraph = nx.relabel_nodes(self.tracegraph, mapping)
 
         self._global_refs.restore_state()
-
-        # unpickling does not work as expected
-        # Adding specs in self.refmgr afterwards
-        from modelx.io.excelio import ExcelRange
-
-        for c in self.refmgr.values:
-            if isinstance(c, ExcelRange):
-                self.refmgr._valid_to_spec[id(c)] = c
-
-        # Unpickling does not add data in system.iomanager
-        # Adding data here
-        for spec in self.refmgr.specs:
-            self.system.iomanager.restore_io(self, spec._io)
 
     def _check_sanity(self):
 
@@ -2175,20 +2169,24 @@ class ReferenceManager:
         self._model = model
         self._manager = iomanager
         self._valid_to_refs = {}         # id(value) -> [refs]
-        self._valid_to_spec = {}
 
     def _check_sanity(self):
-        for valid, spec in self._valid_to_spec.items():
-            refs = self._valid_to_refs[valid]
+
+        for refs in self._valid_to_refs.values():
             for r in refs:
-                assert r.interface is spec.value
-            spec._check_sanity()
+                spec = self._manager.get_spec_from_value(
+                    io_group=self._model.interface,
+                    value=r.interface)
+                if spec is not None:
+                    assert r.interface is spec.value
+                    spec._check_sanity()
 
     def has_spec(self, value):
-        return id(value) in self._valid_to_spec
+        spec = self._manager.get_spec_from_value(self._model.interface, value)
+        return spec is not None
 
     def get_spec(self, value):
-        return self._valid_to_spec[id(value)]
+        return self._manager.get_spec_from_value(self._model.interface, value)
 
     @property
     def values(self):
@@ -2196,7 +2194,12 @@ class ReferenceManager:
 
     @property
     def specs(self):
-        return list(self._valid_to_spec.values())
+        result = []
+        for r in self._valid_to_refs.values():
+            spec = self.get_spec(r[0].interface)
+            if spec is not None:
+                result.append(spec)
+        return result
 
     def new_ref(self, impl, name, value, refmode):
 
@@ -2221,6 +2224,7 @@ class ReferenceManager:
         refdict = impl.self_refs
         ref = refdict[name]
         valid = id(ref.interface)
+        val = ref.interface
 
         if isinstance(impl, ModelImpl):
             impl.del_ref(name)
@@ -2234,13 +2238,19 @@ class ReferenceManager:
         refs.remove(ref)
         if not refs:
             del self._valid_to_refs[valid]
-            self.del_spec(valid)
+            spec = self._manager.get_spec_from_value(
+                io_group=self._model.interface,
+                value=val
+            )
+            if spec:
+                self._manager.del_spec(spec)
 
     def change_ref(self, impl, name, value, refmode=None):
 
         refdict = impl.self_refs
         prev_ref = refdict[name]
         prev_valid = id(prev_ref.interface)
+        prev_val = prev_ref.interface
 
         if isinstance(impl, ModelImpl):
             impl.model.change_ref(name, value)
@@ -2255,7 +2265,9 @@ class ReferenceManager:
                 refs.remove(prev_ref)
             if not refs:    # ref is empty
                 del self._valid_to_refs[prev_valid]
-                self.del_spec(prev_valid)
+                spec = self._manager.get_spec_from_value(self._model.interface, prev_val)
+                if spec:
+                    self._manager.del_spec(spec)
 
         if not isinstance(value, Interface):
             valid = id(value)
@@ -2264,42 +2276,22 @@ class ReferenceManager:
             else:
                 self._valid_to_refs[id(value)] = [refdict[name]]
 
-    def assoc_spec(self, value, spec):
-        """"""
-        valid = id(value)
-        if valid in self._valid_to_spec:
-            if spec is self._valid_to_spec[valid]:
-                return True     # Expected by serializer
-            else:
-                raise ValueError("Another spec already associated")
-        else:
-            self._valid_to_spec[valid] = spec
-            return True
-
-    def del_spec(self, valid):
-        spec = self._valid_to_spec.pop(valid, None)
-        if spec is not None:
-            self._manager.del_spec(spec)
-
     def del_all_spec(self):
-        while self._valid_to_spec:
-            _, spec = self._valid_to_spec.popitem()
-            self._manager.del_spec(spec)
+        specs = self.specs.copy()
+        while specs:
+            self._manager.del_spec(specs.pop())
 
     def update_value(self, old_value, new_value=None, **kwargs):
 
         prev_id = id(old_value)
         refs = self._valid_to_refs.get(prev_id, None)
-        spec = self._valid_to_spec.get(prev_id, None)
+        spec = self._manager.get_spec_from_value(self._model.interface, old_value)
 
         if refs is None:
             raise ValueError("value not referenced")
 
         if spec is not None:
-            # raise if not allowed
             self._manager.update_spec_value(spec, new_value, kwargs)
-            self._valid_to_spec.pop(prev_id)
-            self._valid_to_spec[id(spec.value)] = spec
             new_value = spec.value
 
         newrefs = []
@@ -2329,8 +2321,7 @@ class ReferenceManager:
         return {
             "model": self._model,
             "manager": self._manager,
-            "refs": list(self._valid_to_refs.values()),
-            "specs": list(self._valid_to_spec.values())
+            "refs": list(self._valid_to_refs.values())
         }
 
     def __setstate__(self, state):
@@ -2339,7 +2330,3 @@ class ReferenceManager:
         self._valid_to_refs = {
             id(refs[0].interface): refs for refs in state["refs"]
         }
-        self._valid_to_spec = {
-            id(c.value): c for c in state["specs"]
-        }
-

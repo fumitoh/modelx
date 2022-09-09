@@ -333,12 +333,12 @@ class ModelWriter:
             if zipfile.is_zipfile(self.root):
                 with tempfile.TemporaryDirectory() as tempdir:
                     temproot = pathlib.Path(tempdir)
-                    self.system.iomanager.write_ios(self.model, root=temproot)
+                    self.system.iomanager.write_ios(root=temproot)
                     ziputil.copy_dir_to_zip(temproot, self.root,
                                             compression=self.compression,
                                             compresslevel=self.compresslevel)
             else:
-                self.system.iomanager.write_ios(self.model, root=self.root)
+                self.system.iomanager.write_ios(root=self.root)
 
             if self.log_input:
                 ziputil.write_str_utf8(
@@ -1080,7 +1080,7 @@ class ModelReader:
         self.read_pickledata()
         self.instructions.execute_selected_methods(["load_pickledata"])
         self.instructions.execute_selected_methods(
-            ["__setattr__", "set_ref", "assoc_spec"])
+            ["__setattr__", "set_ref"])
         self.instructions.execute_selected_methods(
             ["_set_dynamic_inputs"])
 
@@ -1490,24 +1490,7 @@ class RefAssignParser(BaseAssignParser):
                 kwargs={'refmode': refmode}
             )
 
-        if isinstance(decoder, DataSpecDecoder):
-
-            def arghook(inst):
-                "Return arguments for assoc_spec"
-                dc_id, reader = inst.args
-                spec = reader.dataspecs[dc_id]
-                return (spec.value, spec), {}
-
-            assoc = Instruction.from_method(
-                obj=self.impl.model.refmgr,
-                method="assoc_spec",
-                args=(decoder.elm(2), self.reader),
-                arghook=arghook
-            )
-            return CompoundInstruction([setter, assoc])
-
-        else:
-            return setter
+        return setter
 
 
 class CellsInputDataMixin(BaseNodeParser):

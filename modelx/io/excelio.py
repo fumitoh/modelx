@@ -209,6 +209,9 @@ class ExcelWorkbook(BaseSharedIO):
     def _on_write(self, path):
         self.book.save(path)
 
+    def _on_update_value(self, value, kwargs):
+        pass
+
     def get_range(self, range_, sheet):
         return _get_range(self.book, range_, sheet)
 

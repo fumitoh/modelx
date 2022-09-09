@@ -329,12 +329,12 @@ class ModelWriter:
             if zipfile.is_zipfile(self.root):
                 with tempfile.TemporaryDirectory() as tempdir:
                     temproot = pathlib.Path(tempdir)
-                    self.system.iomanager.write_ios(self.model, root=temproot)
+                    self.system.iomanager.write_ios(root=temproot)
                     ziputil.copy_dir_to_zip(temproot, self.root,
                                             compression=self.compression,
                                             compresslevel=self.compresslevel)
             else:
-                self.system.iomanager.write_ios(self.model, root=self.root)
+                self.system.iomanager.write_ios(root=self.root)
 
             if self.log_input:
                 ziputil.write_str_utf8(
@@ -1080,8 +1080,7 @@ class ModelReader:
         self.instructions.execute_selected_methods(["add_bases"])
         self.read_pickledata()
         self.instructions.execute_selected_methods(["load_pickledata"])
-        self.instructions.execute_selected_methods(["__setattr__", "set_ref",
-                                                    "assoc_spec"])
+        self.instructions.execute_selected_methods(["__setattr__", "set_ref"])
         self.instructions.execute_selected_methods(
             ["_set_dynamic_inputs"])
 
@@ -1485,51 +1484,7 @@ class RefAssignParser(BaseAssignParser):
                 kwargs={'refmode': refmode}
             )
 
-        if isinstance(decoder, DataClientDecoder):
-
-            def arghook(inst):
-                "Return arguments for assoc_spec"
-                val_or_dc = inst.args[0].restore()
-                if hasattr(val_or_dc, "_mx_dataclient"):
-                    dc = val_or_dc._mx_dataclient
-                    val = val_or_dc
-                else:
-                    dc = val_or_dc
-                    val = val_or_dc.value
-
-                return (val, dc), {}
-
-            assoc = Instruction.from_method(
-                obj=self.impl.model.refmgr,
-                method="assoc_spec",
-                args=(decoder,),
-                arghook=arghook
-            )
-            return CompoundInstruction([setter, assoc])
-
-        elif isinstance(decoder, PickleDecoder):
-            # For ExcelRange object
-
-            def arghook(inst):
-                val = inst.args[0].restore()
-                if isinstance(val, BaseDataSpec):
-                    return (val, val), {}
-                else:
-                    return (val, None), {}
-
-            def assoc_spec(value, spec):
-                if spec:  # Do nothing if not a spec
-                    self.impl.model.refmgr.assoc_spec(value, spec)
-
-            assoc = Instruction(
-                func=assoc_spec,
-                args=(decoder,),
-                arghook=arghook
-            )
-            return CompoundInstruction([setter, assoc])
-
-        else:
-            return setter
+        return setter
 
 
 class CellsInputDataMixin(BaseNodeParser):

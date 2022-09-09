@@ -1041,7 +1041,6 @@ class EditableParentImpl(BaseParentImpl):
             self.system.iomanager.del_spec(result)
             raise KeyError("cannot assign '%s'" % name)
 
-        self.model.refmgr.assoc_spec(result, result)
         return result
 
     def new_pandas(self, name, path, data, file_type, sheet):
@@ -1060,7 +1059,6 @@ class EditableParentImpl(BaseParentImpl):
             self.system.iomanager.del_spec(spec)
             raise KeyError("cannot assign '%s'" % name)
 
-        self.model.refmgr.assoc_spec(data, spec)
         return data
 
     def new_module(self, name, path, module):
@@ -1080,8 +1078,6 @@ class EditableParentImpl(BaseParentImpl):
         except (ValueError, KeyError, AttributeError):
             self.system.iomanager.del_spec(spec)
             raise KeyError("cannot assign '%s'" % name)
-
-        self.model.refmgr.assoc_spec(spec.value, spec)
 
         return spec.value
 

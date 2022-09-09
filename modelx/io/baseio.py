@@ -37,7 +37,7 @@ class BaseSharedIO:
 
     def __init__(self, path: pathlib.Path, manager, load_from):
         self.path = path
-        self.specs = {}
+        self.specs = {}     # {id(spec): spec}
         self.manager = manager
         self.load_from = load_from
 
@@ -45,6 +45,9 @@ class BaseSharedIO:
         return self.path.is_absolute()
 
     def _on_write(self, path):
+        raise NotImplementedError
+
+    def _on_update_value(self, value, kwargs):
         raise NotImplementedError
 
     def _can_add_spec(self, spec):
@@ -102,6 +105,10 @@ class IOManager:
 
     def _get_io(self, io_group, path: pathlib.Path):
         return self.ios.get(self._get_io_key(io_group, path), None)
+
+    def get_ios(self, io_group):
+        return {path: ios for (group, path), ios in self.ios.items()
+                if group == io_group}
 
     def _get_io_key(self, io_group, path):
         if path.is_absolute():
@@ -173,15 +180,23 @@ class IOManager:
             if not a_io.specs:
                 self._del_io(a_io)
 
+    def get_spec_from_value(self, io_group, value):
+        ios = self.get_ios(io_group)
+        ios.update(self.get_ios(None))
+        return next(
+            (spec for io_ in ios.values() for spec in io_.specs.values()
+         if spec.value is value), None)
+
     def update_spec_value(self, spec, value, kwargs):
         if spec._can_update_value(value, kwargs):
+            spec._io._on_update_value(value, kwargs)
             spec._on_update_value(value, kwargs)
         else:
             raise ValueError(
                 "%s does not allow to replace its value" % repr(spec)
             )
 
-    def write_ios(self, io_group, root):
+    def write_ios(self, root):
         for a_io in self.ios.values():
             self.write_io(a_io, root)
 
