@@ -490,7 +490,7 @@ class EditableParent(BaseParent):
         See Also:
 
             :class:`~modelx.io.excelio.ExcelRange`
-            :attr:`~modelx.core.model.Model.dataspecs`
+            :attr:`~modelx.core.model.Model.iospecs`
 
         .. versionadded:: 0.9.0
 
@@ -579,7 +579,7 @@ class EditableParent(BaseParent):
                 2021-01-02 -1.029170  0.588080  0.081129
                 2021-01-03  0.028450 -0.490102  0.025208
 
-                >>> model.dataspecs
+                >>> model.iospecs
                 [<PandasData path='Space1/df.xlsx' file_type='excel' sheet='df1'>]
 
             When the model is saved, the DataFrame is written to an Excel file

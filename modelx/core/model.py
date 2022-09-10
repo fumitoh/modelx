@@ -285,7 +285,7 @@ class Model(EditableParent):
         return self._impl.namespace.interfaces
 
     @property
-    def dataspecs(self):
+    def iospecs(self):
         """List of :class:`~modelx.io.baseio.BaseIOSpec` objects
 
         Returns a list of all objects of BaseIOSpec subclasses
@@ -316,6 +316,7 @@ class Model(EditableParent):
             * :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
             * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
 
+        .. versionchanged:: 0.20.0 renamed to ``iospecs`` from ``dataspecs``
         .. versionchanged:: 0.18.0 the property name is changed
             from ``dataclients`` to ``dataspecs``
         .. versionadded:: 0.9.0

@@ -305,9 +305,9 @@ class ModelWriter:
 
         self.system = system
         self.model = model
-        self.dataspecs = {id(dc): dc for dc in self.model.dataspecs}
-        self.value_id_map = {   # id(value) -> id(dataspec)
-            id(d.value): id(d) for d in self.model.dataspecs}
+        self.iospecs = {id(sp): sp for sp in self.model.iospecs}
+        self.value_id_map = {   # id(value) -> id(iospec)
+            id(sp.value): id(sp) for sp in self.model.iospecs}
         self.root = path
         self.call_ids = []
         self.pickledata = {}
@@ -375,10 +375,10 @@ class ModelWriter:
         encoder.instruct().execute()
 
     def write_pickledata(self):
-        if self.model.dataspecs:
-            file = self.root / "_data/dataspecs.pickle"
+        if self.model.iospecs:
+            file = self.root / "_data/iospecs.pickle"
             ziputil.write_file_utf8(
-                lambda f: DataSpecPickler(f).dump(self.dataspecs),
+                lambda f: DataSpecPickler(f).dump(self.iospecs),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel
@@ -1032,7 +1032,7 @@ class ModelReader:
         self.result = None      # To pass list of space names
         self.model = None
         self.pickledata = None
-        self.dataspecs = None
+        self.iospecs = None
         self.temproot = None
 
     def read_model(self, **kwargs):
@@ -1161,11 +1161,15 @@ class ModelReader:
             from .pandas_compat import CompatUnpickler
             return CompatUnpickler(file, self).load()
 
-        file = self.path / "_data/dataspecs.pickle"
-        if ziputil.exists(file):
-            self.dataspecs = ziputil.read_file_utf8(
-                lambda f: DataSpecUnpickler(f, self).load(), file, "b"
-            )
+        file = self.path / "_data/iospecs.pickle"
+        file_old = self.path / "_data/dataspecs.pickle"     # before mx v0.20.0
+
+        for f in (file, file_old):
+            if ziputil.exists(f):
+                self.iospecs = ziputil.read_file_utf8(
+                    lambda f: DataSpecUnpickler(f, self).load(), f, "b"
+                )
+                break
 
         file = self.path / "_data/data.pickle"
         if ziputil.exists(file):

@@ -250,14 +250,14 @@ class ExcelRange(BaseIOSpec, Mapping):
 
     :class:`ExcelRange` is a subclass of the
     :class:`~modelx.io.baseio.BaseIOSpec` abstract class.
-    The :attr:`~modelx.core.model.Model.dataspecs` property
+    The :attr:`~modelx.core.model.Model.iospecs` property
     list all the :class:`~modelx.io.baseio.BaseIOSpec` instances
     held in the Model including :class:`ExcelRange` objects.
 
     See Also:
         * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
         * :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
-        * :attr:`~modelx.core.model.Model.dataspecs`
+        * :attr:`~modelx.core.model.Model.iospecs`
 
     .. versionadded:: 0.9.0
 

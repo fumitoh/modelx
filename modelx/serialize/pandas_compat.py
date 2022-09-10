@@ -18,7 +18,7 @@ class CompatUnpickler(pickle._Unpickler):
         self.manager = reader.system.iomanager
         self.model = reader.model
         if reader.version >= 5:
-            self.dataspecs = reader.dataspecs
+            self.iospecs = reader.iospecs
 
     persistent_load = ModelUnpickler.persistent_load
 

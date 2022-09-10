@@ -70,7 +70,7 @@ class PandasData(BaseIOSpec):
         * :meth:`Model.update_pandas<model.Model.update_pandas>`
         * :meth:`UserSpace.new_pandas<space.UserSpace.new_pandas>`
         * :meth:`UserSpace.update_pandas<space.UserSpace.update_pandas>`
-        * :attr:`~model.Model.dataspecs`
+        * :attr:`~model.Model.iospecs`
 
     Attributes:
         path: A path to the associated file as a `pathlib.Path`_ object.

@@ -287,7 +287,7 @@ def test_del_val_with_spec_by_change_ref(parent_type):
     parent.foo = df2
 
     assert parent.foo is df2
-    assert not m.dataspecs
+    assert not m.iospecs
 
     if parent_type == "model":
         parent._impl._check_sanity()

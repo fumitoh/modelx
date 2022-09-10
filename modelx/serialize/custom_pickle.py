@@ -121,17 +121,17 @@ class ModelUnpickler(pickle.Unpickler):
         self.manager = reader.system.iomanager
         self.model = reader.model
         if reader.version >= 5:
-            self.dataspecs = reader.dataspecs
+            self.iospecs = reader.iospecs
 
     def persistent_load(self, pid):
 
         if pid[0] == "DataValue":
-            _, dc_id = pid
-            return self.dataspecs[dc_id].value
+            _, sp_id = pid
+            return self.iospecs[sp_id].value
 
         elif pid[0] in ("BaseIOSpec", "BaseDataSpec"):  # renamed in v0.20
-            _, dc_id = pid
-            return self.dataspecs[dc_id]
+            _, sp_id = pid
+            return self.iospecs[sp_id]
 
         elif pid[0] in ("BaseSharedIO", "BaseSharedData"):  # renamed in v0.20
 

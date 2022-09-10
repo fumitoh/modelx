@@ -220,7 +220,7 @@ class BaseIOSpec:
         * :class:`~modelx.io.pandasio.PandasData`
         * :class:`~modelx.io.moduleio.ModuleData`
         * :class:`~modelx.io.excelio.ExcelRange`
-        * :attr:`~modelx.core.model.Model.dataspecs`
+        * :attr:`~modelx.core.model.Model.iospecs`
 
     """
     def __init__(self):
