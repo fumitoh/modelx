@@ -286,14 +286,14 @@ class Model(EditableParent):
 
     @property
     def dataspecs(self):
-        """List of :class:`~modelx.io.baseio.BaseDataSpec` objects
+        """List of :class:`~modelx.io.baseio.BaseIOSpec` objects
 
-        Returns a list of all objects of BaseDataSpec subclasses
+        Returns a list of all objects of BaseIOSpec subclasses
         defined in this Model.
 
         :class:`~modelx.io.excelio.ExcelRange` and
         :class:`~modelx.io.pandasio.PandasData`
-        are subclasses of :class:`~modelx.io.baseio.BaseDataSpec`.
+        are subclasses of :class:`~modelx.io.baseio.BaseIOSpec`.
 
         :class:`~modelx.io.excelio.ExcelRange`
         objects are created either by

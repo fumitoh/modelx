@@ -27,7 +27,7 @@ from modelx.core.model import Model
 from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
-from modelx.io.baseio import BaseDataSpec
+from modelx.io.baseio import BaseIOSpec
 import asttokens
 from . import ziputil
 from .custom_pickle import ModelUnpickler, ModelPickler
@@ -920,10 +920,10 @@ class DataClientEncoder(BaseEncoder):
 
         if not isinstance(value, Interface):    # Avoid null object
 
-            if isinstance(value, BaseDataSpec):
+            if isinstance(value, BaseIOSpec):
                 return True
             elif hasattr(value, "_mx_dataclient") and isinstance(
-                    value._mx_dataclient, BaseDataSpec):
+                    value._mx_dataclient, BaseIOSpec):
                 return True
 
         return False
@@ -932,7 +932,7 @@ class DataClientEncoder(BaseEncoder):
         return "(\"DataClient\", %s)" % self._get_key()
 
     def _is_hidden(self):
-        if isinstance(self.target.value, BaseDataSpec):
+        if isinstance(self.target.value, BaseIOSpec):
             return False
         elif hasattr(self.target.value, "_mx_dataclient"):
             return True

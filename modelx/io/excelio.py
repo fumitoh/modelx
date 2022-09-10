@@ -19,7 +19,7 @@ import pathlib
 import openpyxl as opxl
 import openpyxl.cell
 from collections.abc import Mapping
-from .baseio import BaseDataSpec, BaseSharedIO
+from .baseio import BaseIOSpec, BaseSharedIO
 
 
 def _get_col_index(name):
@@ -232,7 +232,7 @@ class _RangeType:
     TABLE = 4
 
 
-class ExcelRange(BaseDataSpec, Mapping):
+class ExcelRange(BaseIOSpec, Mapping):
     """Mapping class for accessing Excel ranges
 
     An ExcelRange is a dict-like object that
@@ -249,9 +249,9 @@ class ExcelRange(BaseDataSpec, Mapping):
     method.
 
     :class:`ExcelRange` is a subclass of the
-    :class:`~modelx.io.baseio.BaseDataSpec` abstract class.
+    :class:`~modelx.io.baseio.BaseIOSpec` abstract class.
     The :attr:`~modelx.core.model.Model.dataspecs` property
-    list all the :class:`~modelx.io.baseio.BaseDataSpec` instances
+    list all the :class:`~modelx.io.baseio.BaseIOSpec` instances
     held in the Model including :class:`ExcelRange` objects.
 
     See Also:
@@ -276,7 +276,7 @@ class ExcelRange(BaseDataSpec, Mapping):
             loadpath(optional): Absolute path to the Excel file to be read in.
                 Defaults to ``path``.
         """
-        BaseDataSpec.__init__(self)
+        BaseIOSpec.__init__(self)
         self.range = range_
         self.sheet = sheet
         self.keyids = tuple(keyids) if keyids else None

@@ -6,7 +6,6 @@ import modelx as mx
 import pytest
 from modelx.serialize import ziputil
 
-from modelx.io.baseio import BaseDataSpec
 
 # Modified from the sample code on
 # https://pandas.pydata.org/docs/user_guide/advanced.html

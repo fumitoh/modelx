@@ -2,7 +2,7 @@ import pickle
 import pathlib
 from modelx.core.system import mxsys
 from modelx.core.base import NullImpl, null_impl
-from modelx.io.baseio import BaseSharedIO, IOManager, BaseDataSpec
+from modelx.io.baseio import BaseSharedIO, IOManager, BaseIOSpec
 from modelx.core.node import BaseNode, ObjectNode, get_node, ItemNode, OBJ, KEY
 from . import ziputil
 
@@ -34,7 +34,7 @@ class DataSpecUnpickler(pickle.Unpickler):
 
     def persistent_load(self, pid):
 
-        if pid[0] in ("BaseSharedIO", "BaseSharedData"):
+        if pid[0] in ("BaseSharedIO", "BaseSharedData"):    # renamed in v0.20
 
             if len(pid) == 3:   # mx < v0.20
                 _, path, cls = pid
@@ -84,8 +84,8 @@ class ModelPickler(pickle.Pickler):
 
         if id(obj) in self.writer.value_id_map:
             return "DataValue", self.writer.value_id_map[id(obj)]
-        elif isinstance(obj, BaseDataSpec):
-            return "BaseDataSpec", id(obj)
+        elif isinstance(obj, BaseIOSpec):
+            return "BaseIOSpec", id(obj)
         elif isinstance(obj, BaseSharedIO):
             return "BaseSharedIO", obj.path.as_posix(), obj.__class__, obj.persistent_args
         elif isinstance(obj, BaseNode):
@@ -129,11 +129,11 @@ class ModelUnpickler(pickle.Unpickler):
             _, dc_id = pid
             return self.dataspecs[dc_id].value
 
-        elif pid[0] == "BaseDataSpec":
+        elif pid[0] in ("BaseIOSpec", "BaseDataSpec"):  # renamed in v0.20
             _, dc_id = pid
             return self.dataspecs[dc_id]
 
-        elif pid[0] in ("BaseSharedIO", "BaseSharedData"):
+        elif pid[0] in ("BaseSharedIO", "BaseSharedData"):  # renamed in v0.20
 
             if len(pid) == 3:   # mx < v0.20
                 _, path, cls = pid

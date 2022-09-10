@@ -20,7 +20,7 @@ import functools
 
 from modelx.core.base import (
     add_stateattrs, Derivable, Impl, Interface, get_mixin_slots)
-from modelx.io.baseio import BaseDataSpec
+from modelx.io.baseio import BaseIOSpec
 from modelx.core.node import ObjectNode, get_node, OBJ
 
 
@@ -120,7 +120,7 @@ class ReferenceImpl(Derivable, Impl):
         if isinstance(state["interface"], _DummyBuiltins):
             # For backward compatibility with -v0.0.23
             state["interface"] = builtins
-        elif isinstance(state["interface"], BaseDataSpec):
+        elif isinstance(state["interface"], BaseIOSpec):
             state["interface"] = state["interface"].value
         else:
             if isinstance(state["interface"], _BasePickler):

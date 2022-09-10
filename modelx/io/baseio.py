@@ -209,7 +209,7 @@ class IOManager:
         path.parent.mkdir(parents=True, exist_ok=True)
         io_._on_write(path)
 
-class BaseDataSpec:
+class BaseIOSpec:
     """Abstract base class for accessing data stored in files
 
     .. versionchanged:: 0.18.0 The ``is_hidden`` parameter is removed.

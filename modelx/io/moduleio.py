@@ -21,7 +21,7 @@ import importlib
 from importlib.machinery import SourceFileLoader
 from importlib.util import spec_from_loader, module_from_spec
 
-from .baseio import BaseDataSpec, BaseSharedIO
+from .baseio import BaseIOSpec, BaseSharedIO
 from modelx.serialize.ziputil import write_str_utf8
 
 
@@ -63,8 +63,8 @@ class ModuleIO(BaseSharedIO):
         return mod
 
 
-class ModuleData(BaseDataSpec):
-    """A subclass of :class:`~modelx.io.baseio.BaseDataSpec` that
+class ModuleData(BaseIOSpec):
+    """A subclass of :class:`~modelx.io.baseio.BaseIOSpec` that
     associates a user module with its source file in the model
 
     A :class:`ModuleData` is created either by
@@ -87,7 +87,7 @@ class ModuleData(BaseDataSpec):
     io_class = ModuleIO
 
     def __init__(self, module=None):
-        BaseDataSpec.__init__(self)
+        BaseIOSpec.__init__(self)
         if isinstance(module, ModuleType):
             self._value = module
         else:

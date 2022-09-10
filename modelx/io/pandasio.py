@@ -13,7 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import pathlib
-from .baseio import BaseDataSpec, BaseSharedIO
+from .baseio import BaseIOSpec, BaseSharedIO
 import pandas as pd
 
 
@@ -41,8 +41,8 @@ class PandasIO(BaseSharedIO):
     def persistent_args(self):
         return {"file_type": self.file_type}
 
-class PandasData(BaseDataSpec):
-    """A subclass of :class:`~modelx.io.baseio.BaseDataSpec` that
+class PandasData(BaseIOSpec):
+    """A subclass of :class:`~modelx.io.baseio.BaseIOSpec` that
     associates a `pandas`_ `DataFrame`_ or `Series`_ with a file
 
     A :class:`PandasData` holds a pandas `DataFrame`_ or `Series`_ object,
@@ -94,7 +94,7 @@ class PandasData(BaseDataSpec):
     io_class = PandasIO
 
     def __init__(self, data, sheet=None):
-        BaseDataSpec.__init__(self)
+        BaseIOSpec.__init__(self)
         self.sheet = sheet
         self._value = data
 
