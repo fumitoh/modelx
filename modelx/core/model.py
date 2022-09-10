@@ -771,7 +771,7 @@ class ModelImpl(*_model_impl_base):
                     mapping[node] = name
             state[gname] = nx.relabel_nodes(graph, mapping)
 
-        state["ios"] = list(spec._io for spec in self.refmgr.specs)
+        state["ios"] = list(spec.io for spec in self.refmgr.specs)
         return state
 
     def __setstate__(self, state):

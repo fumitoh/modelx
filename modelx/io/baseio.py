@@ -62,7 +62,7 @@ class BaseSharedIO:
         assert self is val
 
         for spec in self.specs.values():
-            assert spec._io is self
+            assert spec.io is self
             spec._check_sanity()
 
     def __getstate__(self):
@@ -158,10 +158,10 @@ class IOManager:
             io_group, pathlib.Path(path), cls=cls.io_class, **io_args)
         try:
             spec._on_load_value()
-            self.add_spec(spec._io, spec)
+            self.add_spec(spec.io, spec)
         except:
-            if not spec._io.specs:
-                del self.ios[self._get_io_key(io_group, spec._io.path)]
+            if not spec.io.specs:
+                del self.ios[self._get_io_key(io_group, spec.io.path)]
             raise
 
         return spec
@@ -174,7 +174,7 @@ class IOManager:
                 raise ValueError("cannot add spec")
 
     def del_spec(self, spec):
-        a_io = spec._io
+        a_io = spec.io
         if id(spec) in a_io.specs:
             del a_io.specs[id(spec)]
             if not a_io.specs:
@@ -189,7 +189,7 @@ class IOManager:
 
     def update_spec_value(self, spec, value, kwargs):
         if spec._can_update_value(value, kwargs):
-            spec._io._on_update_value(value, kwargs)
+            spec.io._on_update_value(value, kwargs)
             spec._on_update_value(value, kwargs)
         else:
             raise ValueError(
@@ -226,6 +226,11 @@ class BaseDataSpec:
     def __init__(self):
         self._manager = None
         self._io = None
+
+    @property
+    def io(self):
+        """The :class:`~BaseSharedIO` object that this object is associated to"""
+        return self._io
 
     def _check_sanity(self):
         assert self._io.specs[id(self)] is self
