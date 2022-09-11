@@ -47,7 +47,7 @@ class ModuleIO(BaseSharedIO):
 
     def _on_update_value(self, value, kwargs):
         if isinstance(value, (ModuleType, str, os.PathLike)):
-            self.load_from = self._get_module_path(value)
+            self._load_from = self._get_module_path(value)
         elif value is None:     # reload current
             pass
         else:

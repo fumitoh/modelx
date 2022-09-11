@@ -13,7 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import pathlib
-
+from types import MappingProxyType
 
 def is_in_root(path: pathlib.Path):
     """Returns False if the relative path with dots go beyond root"""
@@ -36,10 +36,22 @@ def is_in_root(path: pathlib.Path):
 class BaseSharedIO:
 
     def __init__(self, path: pathlib.Path, manager, load_from):
-        self.path = path
-        self.specs = {}     # {id(spec): spec}
-        self.manager = manager
-        self.load_from = load_from
+        self._path = path
+        self._specs = {}     # {id(spec): spec}
+        self._manager = manager
+        self._load_from = load_from
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def specs(self):
+        return MappingProxyType(self._specs)
+
+    @property
+    def load_from(self):
+        return self._load_from
 
     def is_external(self):
         return self.path.is_absolute()
@@ -51,33 +63,33 @@ class BaseSharedIO:
         raise NotImplementedError
 
     def _can_add_spec(self, spec):
-        return all(c._can_add_other(spec) for c in self.specs.values())
+        return all(c._can_add_other(spec) for c in self._specs.values())
 
     def _check_sanity(self):
 
         key, val = next(
-            (k, v) for k, v in self.manager.ios.items() if v is self)
+            (k, v) for k, v in self._manager.ios.items() if v is self)
 
         assert self.path == key[1]
         assert self is val
 
-        for spec in self.specs.values():
+        for spec in self._specs.values():
             assert spec.io is self
             spec._check_sanity()
 
     def __getstate__(self):
         return {
             "path": pathlib.PurePath(self.path),
-            "specs": list(self.specs.values()),
-            "manager": self.manager,
-            "load_from": self.load_from
+            "specs": list(self._specs.values()),
+            "manager": self._manager,
+            "load_from": self._load_from
         }
 
     def __setstate__(self, state):
-        self.path = pathlib.Path(state["path"])
-        self.manager = state["manager"]
-        self.load_from = state["load_from"]
-        self.specs = {id(c): c for c in state["specs"]}
+        self._path = pathlib.Path(state["path"])
+        self._manager = state["manager"]
+        self._load_from = state["load_from"]
+        self._specs = {id(c): c for c in state["specs"]}
 
     @property
     def persistent_args(self):
@@ -169,14 +181,14 @@ class IOManager:
     def add_spec(self, io_, spec):
         if id(spec) not in io_.specs:
             if io_._can_add_spec(spec):
-                io_.specs[id(spec)] = spec
+                io_._specs[id(spec)] = spec
             else:
                 raise ValueError("cannot add spec")
 
     def del_spec(self, spec):
         a_io = spec.io
         if id(spec) in a_io.specs:
-            del a_io.specs[id(spec)]
+            del a_io._specs[id(spec)]
             if not a_io.specs:
                 self._del_io(a_io)
 
@@ -235,7 +247,7 @@ class BaseIOSpec:
     def _check_sanity(self):
         assert self._io.specs[id(self)] is self
         assert any(self._io is d for d in self._manager.ios.values())
-        assert self._manager is self._io.manager
+        assert self._manager is self._io._manager
 
     def _on_load_value(self):
         raise NotImplementedError
