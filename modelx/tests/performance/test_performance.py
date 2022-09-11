@@ -1,6 +1,8 @@
 import modelx as mx
+import pytest
 
 
+@pytest.mark.skip()
 def test_cells_calls(benchmark):
 
     s = mx.new_model().new_space()
@@ -23,6 +25,7 @@ def test_cells_calls(benchmark):
     assert sum(bar.values())
 
 
+@pytest.mark.skip()
 def test_space_items(benchmark):
 
     s = mx.new_model().new_space()

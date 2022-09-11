@@ -45,6 +45,10 @@ class BaseSharedIO:
     def path(self):
         return self._path
 
+    @path.setter
+    def path(self, path):
+        self._manager.update_path(self, path)
+
     @property
     def specs(self):
         return MappingProxyType(self._specs)
@@ -58,6 +62,9 @@ class BaseSharedIO:
 
     def _on_write(self, path):
         raise NotImplementedError
+
+    def _on_update_path(self, path: pathlib.Path):
+        self._path = path   # override as necessary
 
     def _on_update_value(self, value, kwargs):
         raise NotImplementedError
@@ -96,6 +103,37 @@ class BaseSharedIO:
         return {}
 
 
+class BiDict(dict):
+    """Bidirectional Dictionary
+
+    Some methods on dict, such as update(), does not work.
+    """
+    def __init__(self, *args, **kwargs):
+        super(BiDict, self).__init__(*args, **kwargs)
+        self.inverse = {}
+        for key, value in self.items():
+            if value in self.inverse:
+                raise ValueError("not injective mapping")
+            else:
+                self.inverse[value] = key
+
+    def __setitem__(self, key, value):
+        if key in self:
+            if value == self[key]:
+                return
+            elif value not in self.inverse:
+                del self.inverse[self[key]]
+            else:
+                raise ValueError("not injective key-value")
+
+        super(BiDict, self).__setitem__(key, value)
+        self.inverse[value] = key
+
+    def __delitem__(self, key):
+        del self.inverse[self[key]]
+        super(BiDict, self).__delitem__(key)
+
+
 class IOManager:
     """A class to manage shared file
 
@@ -107,7 +145,7 @@ class IOManager:
     """
 
     def __init__(self):
-        self.ios = {}
+        self.ios = BiDict({})
         self.serializing = None     # Set from external
 
     def _check_sanity(self):
@@ -132,7 +170,9 @@ class IOManager:
         a_io = cls(path, self, load_from, **kwargs)
         if not self._get_io(io_group, a_io.path):
             self.ios[self._get_io_key(io_group, a_io.path)] = a_io
-        return a_io
+            return a_io
+        else:
+            raise RuntimeError("must not happen")
 
     def _del_io(self, io_):
         if io_.specs:
@@ -208,6 +248,20 @@ class IOManager:
                 "%s does not allow to replace its value" % repr(spec)
             )
 
+    def update_path(self, io_, path):
+        path = pathlib.Path(path)
+        group, path_old = key_old = self.ios.inverse[io_]
+        if path == path_old:
+            return
+        else:
+            key = self._get_io_key(group, path)
+            if key in self.ios:
+                raise ValueError("cannot change path")
+            else:
+                del self.ios[key_old]
+                io_._on_update_path(path)
+                self.ios[key] = io_
+
     def write_ios(self, root):
         for a_io in self.ios.values():
             self.write_io(a_io, root)
@@ -220,6 +274,7 @@ class IOManager:
 
         path.parent.mkdir(parents=True, exist_ok=True)
         io_._on_write(path)
+
 
 class BaseIOSpec:
     """Abstract base class for accessing data stored in files
@@ -244,12 +299,23 @@ class BaseIOSpec:
         """The :class:`~BaseSharedIO` object that this object is associated to"""
         return self._io
 
+    @property
+    def path(self):
+        return self._io.path
+
+    @path.setter
+    def path(self, path):
+        self._io.path = path
+
     def _check_sanity(self):
         assert self._io.specs[id(self)] is self
         assert any(self._io is d for d in self._manager.ios.values())
         assert self._manager is self._io._manager
 
     def _on_load_value(self):
+        raise NotImplementedError
+
+    def _on_update_path(self, path):
         raise NotImplementedError
 
     def _can_update_value(self, value, kwargs):

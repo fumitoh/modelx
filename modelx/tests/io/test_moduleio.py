@@ -149,3 +149,71 @@ def test_update_module(
 
     assert_updated(p3)
     m3.close()
+
+
+params_update_path = list(itertools.product(
+    ["model", "space"],
+    ["write", "zip"]
+))
+
+@pytest.mark.parametrize("parent, save_meth", params_update_path)
+def test_update_path(tmp_path, parent, save_meth):
+
+    if parent == "model":
+        p = mx.new_model(name="Parent")
+    else:
+        p = mx.new_model().new_space(name="Parent")
+
+    module1 = tmp_path / SAMPLE_MODULE.name
+
+    # Copy sample modules in tmp_path
+    shutil.copyfile(SAMPLE_MODULE, module1)
+
+    module_ = p.new_module(name="Foo", path="Parent/Foo", module=module1)
+    p.Bar = p.Foo
+
+    def assert_module(m_or_s):
+        assert m_or_s.Foo.modfibo(10) == 55
+        assert m_or_s.Foo.modbar(2) == 4
+        assert m_or_s.Foo is m_or_s.Bar
+
+    assert_module(p)
+
+    p.model.get_spec(module_).path = "Parent/Foo1"
+
+    def assert_path(m_or_s, module_, nth):
+        assert m_or_s.model.get_spec(module_).path == pathlib.Path("Parent/Foo%s" % nth)
+        assert m_or_s.model.iospecs[0].path == pathlib.Path("Parent/Foo%s" % nth)
+        assert_module(m_or_s)
+
+    assert_path(p, module_, "1")
+
+    getattr(p.model, save_meth)(tmp_path / "model")
+    p.model.close()
+
+    m2 = mx.read_model(tmp_path / "model")
+    p2 = m2 if parent == "model" else m2.spaces["Parent"]
+
+    assert_path(p2, p2.Foo, "1")
+
+    m2.get_spec(p2.Foo).path = "Parent/Foo2"
+    assert_path(p2, p2.Foo, "2")
+
+    m2._impl.system._check_sanity(check_members=False)
+    m2._impl._check_sanity()
+
+    # Check saving again
+    # https://github.com/fumitoh/modelx/issues/45
+    getattr(p2.model, save_meth)(tmp_path / "model")
+    m2.close()
+
+    m3 = mx.read_model(tmp_path / "model")
+    m3._impl.system._check_sanity(check_members=False)
+    m3._impl._check_sanity()
+
+    p3 = m3 if parent == "model" else m3.spaces["Parent"]
+    assert_path(p3, p3.Foo, "2")
+    m3.get_spec(p3.Foo).path = "Parent/Foo3"
+    assert_path(p3, p3.Foo, "3")
+
+    m3.close()

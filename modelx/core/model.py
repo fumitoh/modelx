@@ -284,6 +284,13 @@ class Model(EditableParent):
     def __dir__(self):
         return self._impl.namespace.interfaces
 
+    def get_spec(self, data):
+        spec = self._impl.refmgr.get_spec(data)
+        if spec is None:
+            raise ValueError("spec not found")
+        else:
+            return spec
+
     @property
     def iospecs(self):
         """List of :class:`~modelx.io.baseio.BaseIOSpec` objects

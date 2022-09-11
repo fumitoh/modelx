@@ -1,5 +1,7 @@
 
 import itertools
+import pathlib
+
 import pandas as pd
 import numpy as np
 import modelx as mx
@@ -185,6 +187,61 @@ def test_new_pandas_mult_sheets(
     m.close()
 
 
+@pytest.mark.parametrize("pstr, is_relative, save_meth", params_mult_sheets)
+def test_update_path(tmp_path, pstr, is_relative, save_meth):
+    """Test if updating the path of SharedIO"""
+    m = mx.new_model()
+    parent = m if pstr == "model" else m.new_space()
+    parent_name = parent.name
+
+    file_path = "files/testpandas.xlsx" if is_relative else (
+            tmp_path / "testpandas.xlsx")
+
+    for obj, name in zip((S_IDX1, S_IDX2, DF_COL2_IDX2), ("s1", "s2", "df1")):
+
+        parent.new_pandas(
+            name=name, path=file_path,
+            data=obj, file_type="excel", sheet=name)
+
+    for nth in "12":
+        model_name = "model%s" % nth
+        model_loc = tmp_path / model_name
+
+        # --- Update the path of SharedIO ---
+        new_file_path = "files/testpandas%s.xlsx" % nth if is_relative else (
+            tmp_path / ("testpandas%s.xlsx" % nth) )
+
+        m.get_spec(parent.s1).path = new_file_path
+        file_loc = (model_loc / new_file_path) if is_relative else new_file_path
+
+        assert m.get_spec(parent.s1).path == pathlib.Path(new_file_path)
+        assert m.get_spec(parent.s2).path == pathlib.Path(new_file_path)
+        assert m.get_spec(parent.df1).path == pathlib.Path(new_file_path)
+        assert m.iospecs[0].path == pathlib.Path(new_file_path)
+        # ------------------------------------
+
+        # Save, close and restore
+        getattr(m, save_meth)(model_loc)
+        m.close()
+        assert ziputil.exists(file_loc)
+        m = mx.read_model(model_loc)
+
+        parent = m if pstr == "model" else m.spaces[parent_name]
+
+        m._impl.system._check_sanity(check_members=False)
+        m._impl._check_sanity()
+
+        pd.testing.assert_series_equal(parent.s1, S_IDX1)
+        pd.testing.assert_series_equal(parent.s2, S_IDX2)
+        pd.testing.assert_frame_equal(parent.df1, DF_COL2_IDX2)
+
+        pd.testing.assert_index_equal(parent.s1.index, S_IDX1.index)
+        pd.testing.assert_index_equal(parent.s2.index, S_IDX2.index)
+        pd.testing.assert_index_equal(parent.df1.index, DF_COL2_IDX2.index)
+
+    m.close()
+
+
 params_update = [
     [*p1, p2, p3] for p1, p2, p3 in
           itertools.product(
@@ -271,6 +328,8 @@ def test_update_pandas_no_spec():
     assert SpaceA.s2 is S_IDX2
     assert SpaceB.s3 is S_IDX2
 
+    m.close()
+
 
 @pytest.mark.parametrize("parent_type", ["model", "space"])
 def test_del_val_with_spec_by_change_ref(parent_type):
@@ -291,3 +350,5 @@ def test_del_val_with_spec_by_change_ref(parent_type):
 
     if parent_type == "model":
         parent._impl._check_sanity()
+
+    m.close()
