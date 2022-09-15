@@ -285,11 +285,16 @@ class Model(EditableParent):
         return self._impl.namespace.interfaces
 
     def get_spec(self, data):
+        """Get IOSpec associated with an object"""
         spec = self._impl.refmgr.get_spec(data)
         if spec is None:
             raise ValueError("spec not found")
         else:
             return spec
+
+    def del_spec(self, data):
+        """Delete IOSpec associate with an object"""
+        self._impl.refmgr._manager.del_spec(self.get_spec(data))
 
     @property
     def iospecs(self):
