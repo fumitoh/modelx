@@ -72,6 +72,9 @@ class BaseSharedIO:
     def _can_add_spec(self, spec):
         return all(c._can_add_other(spec) for c in self._specs.values())
 
+    def _can_update_spec(self, spec, kwargs):
+        return all(c._can_update_other(spec, **kwargs) for c in self._specs.values())
+
     def _check_sanity(self):
 
         key, val = next(
@@ -248,6 +251,12 @@ class IOManager:
                 "%s does not allow to replace its value" % repr(spec)
             )
 
+    def update_spec(self, spec, **kwargs):
+        if spec.io._can_update_spec(spec, kwargs):
+            spec._on_update(**kwargs)
+        else:
+            raise ValueError("cannot change spec")
+
     def update_path(self, io_, path):
         path = pathlib.Path(path)
         group, path_old = key_old = self.ios.inverse[io_]
@@ -322,6 +331,9 @@ class BaseIOSpec:
         raise NotImplementedError
 
     def _on_update_value(self, value, kwargs):
+        raise NotImplementedError
+
+    def _on_update(self, kwargs):
         raise NotImplementedError
 
     def _on_pickle(self, state):

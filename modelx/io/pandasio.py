@@ -95,7 +95,7 @@ class PandasData(BaseIOSpec):
 
     def __init__(self, data, sheet=None):
         BaseIOSpec.__init__(self)
-        self.sheet = sheet
+        self._sheet = sheet
         self._value = data
 
         # initialized in _init_spec
@@ -114,6 +114,17 @@ class PandasData(BaseIOSpec):
         self.name = None
         self._read_args.clear()
         self._init_spec()
+
+    def _can_update_other(self, other, sheet):
+        if other is self or sheet != self._sheet:
+            return True
+        else:
+            return False
+
+    def _on_update(self, sheet):
+        self._sheet = sheet
+        if "sheet_name" in self._read_args:
+            self._read_args["sheet_name"] = sheet
 
     def _init_spec(self):
         """Initialize name and _read_args"""
@@ -135,8 +146,8 @@ class PandasData(BaseIOSpec):
                 if (len(self._io.path.suffix[1:]) > 3
                         and self._io.path.suffix[1:4] == "xls"):
                     self._read_args["engine"] = "openpyxl"
-                if self.sheet:
-                    self._read_args["sheet_name"] = self.sheet
+                if self._sheet:
+                    self._read_args["sheet_name"] = self._sheet
         else:
             raise ValueError("Pandas IO type not supported")
 
@@ -146,7 +157,7 @@ class PandasData(BaseIOSpec):
             "read_args": self._read_args,
             "squeeze": self._squeeze,
             "name": self.name,
-            "sheet": self.sheet
+            "sheet": self._sheet
         })
         return state
 
@@ -165,14 +176,14 @@ class PandasData(BaseIOSpec):
         else:
             self._squeeze = False
         self.name = state["name"]
-        self.sheet = state["sheet"] if "sheet" in state else None
+        self._sheet = state["sheet"] if "sheet" in state else None
 
     def _on_serialize(self, state):
         state.update({
             "read_args": self._read_args,
             "squeeze": self._squeeze,
             "name": self.name,
-            "sheet": self.sheet
+            "sheet": self._sheet
         })
         return state
 
@@ -187,17 +198,17 @@ class PandasData(BaseIOSpec):
         else:
             self._squeeze = False
         self.name = state["name"]
-        self.sheet = state["sheet"] if "sheet" in state else None
+        self._sheet = state["sheet"] if "sheet" in state else None
         self._read_pandas()
 
     def _can_add_other(self, other):
         if self._io.file_type == "csv":
             return False
         elif self._io.file_type == "excel":
-            if self.sheet is None or other.sheet is None:
+            if self._sheet is None or other.sheet is None:
                 return False
             else:
-                return not self.sheet == other.sheet
+                return not self._sheet == other.sheet
         else:
             raise RuntimeError("must not happen")
 
@@ -222,7 +233,7 @@ class PandasData(BaseIOSpec):
 
     def _write_pandas(self, path_or_writer):
         if self._io.file_type == "excel":
-            kwargs = {"sheet_name": self.sheet} if self.sheet else {}
+            kwargs = {"sheet_name": self._sheet} if self._sheet else {}
             self._value.to_excel(path_or_writer, **kwargs)
         elif self._io.file_type == "csv":
             self._value.to_csv(path_or_writer, header=True)
@@ -234,6 +245,14 @@ class PandasData(BaseIOSpec):
         """pandas DataFrame or Series held in the object"""
         return self._value
 
+    @property
+    def sheet(self):
+        return self._sheet
+
+    @sheet.setter
+    def sheet(self, name):
+        self._manager.update_spec(self, sheet=name)
+
     def __call__(self):
         """Returns pandas DataFrame or Series held in the object"""
         return self._value
@@ -243,14 +262,14 @@ class PandasData(BaseIOSpec):
             "<PandasData" + " path=%s" + " file_type=%s"
         ) % (repr(str(self._io.path.as_posix())), repr(self._io.file_type))
 
-        if self._io.file_type == "excel" and self.sheet:
-            return res + (" sheet=%s>" % repr(self.sheet))
+        if self._io.file_type == "excel" and self._sheet:
+            return res + (" sheet=%s>" % repr(self._sheet))
         else:
             return res + ">"
 
     def _get_attrdict(self, extattrs=None, recursive=True):
         result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)
         result["filetype"] = self._io.file_type
-        result["sheet"] = self.sheet
+        result["sheet"] = self._sheet
 
         return result
