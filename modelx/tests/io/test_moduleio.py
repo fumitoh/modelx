@@ -85,9 +85,10 @@ def test_update_module(
         tmp_path, parent, save_meth, replace):
 
     if parent == "model":
-        p = mx.new_model(name="Parent")
+        p = m = mx.new_model(name="Parent")
     else:
-        p = mx.new_model().new_space(name="Parent")
+        m = mx.new_model()
+        p = m.new_space(name="Parent")
 
     module1 = tmp_path / SAMPLE_MODULE.name
     module2 = tmp_path / "testmod_updated.py"
@@ -117,7 +118,7 @@ def test_update_module(
         new_module = None
         shutil.copyfile(module2, module1)
 
-    p.update_module(old_module, new_module=new_module)
+    m.update_module(old_module, new_module=new_module)
 
     def assert_updated(m_or_s):
         assert m_or_s.Foo.modfibo(10) == 144

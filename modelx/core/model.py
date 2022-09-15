@@ -16,6 +16,7 @@ import builtins
 import itertools
 import zipfile
 import gc
+from types import ModuleType
 
 import networkx as nx
 
@@ -123,7 +124,150 @@ class ReferenceGraph(nx.DiGraph):
         return desc     # Not including ref
 
 
-class Model(EditableParent):
+class IOSpecOperation:
+
+    __slots__ = ()
+
+    def update_pandas(self, old_data, new_data=None):
+        """Update a pandas object assigned to References
+
+        Replace with ``new_data`` the value of such a Reference whose value is
+        ``old_data``. Both ``new_data`` and ``old_data`` need to be
+        `DataFrame`_ or `Series`_.
+        If ``old_data`` is assigned to multiple References in a model,
+        the values of all the References are replaced with ``new_data``,
+        even the References
+        are defined in different locations within the model.
+        The identity of pandas objects is determined by the `id()`_ function.
+        If ``new_data`` is not given, :class:`~modelx.core.cells.Cells`
+        that are dependent on the References are cleared.
+
+        If ``old_data`` has an associated
+        :class:`~modelx.io.pandasio.PandasData`,
+        this method associates the :class:`~modelx.io.pandasio.PandasData`
+        to ``new_data``.
+
+        This method is available for :class:`~modelx.core.model.Model`
+        and :class:`~modelx.core.space.UserSpace`. The method
+        performs identically regardless of the types of calling objects.
+
+        .. _id():
+           https://docs.python.org/3/library/functions.html#id
+
+        .. _Series:
+           https://pandas.pydata.org/docs/reference/api/pandas.Series.html
+
+        .. _DataFrame:
+           https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html
+
+        Args:
+            new_data: A pandas `Series`_ or `DataFrame`_ object
+            old_data(optional): A pandas `Series`_ or `DataFrame`_ object
+
+        .. versionadded:: 0.18.0
+
+        See Also:
+            * :meth:`new_pandas`
+            * :class:`~modelx.io.pandasio.PandasData`
+
+        """
+        return self._impl.model.refmgr.update_value(old_data, new_data)
+
+    def update_module(self, old_module, new_module=None):
+        """Update an user-defined module assigned to References
+
+        Update an user-defined Python module created by :meth:`new_module`.
+        The ``new_module`` parameter is a path to the source file
+        of a new user-defined module.
+        If ``new_module`` is not given, the old module is reloaded
+        from the same source file of the old module
+        and a new module module is created.
+
+        The values of References referring to the old module object
+        are replaced with the new module object.
+
+        If ``old_module`` is assigned to multiple References in a model,
+        the value of all the References are updated, even the References
+        are defined in different locations within the model.
+
+        This method associates to the new module the
+        :class:`~modelx.io.moduleio.ModuleData` object previously
+        associated to the old module.
+
+        This method is available for :class:`~modelx.core.model.Model`
+        and :class:`~modelx.core.space.UserSpace`. The method
+        performs identically regardless of the types of calling objects.
+
+        Args:
+            old_module: A user-defined Python module object.
+            new_module: The path to the source file as a :obj:`str` or
+                a path-like object.
+
+        .. versionadded:: 0.18.0
+
+        See Also:
+            * :meth:`new_module`
+            * :class:`~modelx.io.moduleio.ModuleData`
+
+        """
+        if not isinstance(old_module, ModuleType):
+            raise ValueError("not a module object")
+        return self._impl.model.refmgr.update_value(old_module, new_module)
+
+    def get_spec(self, data):
+        """Get IOSpec associated with an object"""
+        spec = self._impl.refmgr.get_spec(data)
+        if spec is None:
+            raise ValueError("spec not found")
+        else:
+            return spec
+
+    def del_spec(self, data):
+        """Delete IOSpec associate with an object"""
+        self._impl.refmgr._manager.del_spec(self.get_spec(data))
+
+    @property
+    def iospecs(self):
+        """List of :class:`~modelx.io.baseio.BaseIOSpec` objects
+
+        Returns a list of all objects of BaseIOSpec subclasses
+        defined in this Model.
+
+        :class:`~modelx.io.excelio.ExcelRange` and
+        :class:`~modelx.io.pandasio.PandasData`
+        are subclasses of :class:`~modelx.io.baseio.BaseIOSpec`.
+
+        :class:`~modelx.io.excelio.ExcelRange`
+        objects are created either by
+        :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+        or
+        :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+        method.
+        :class:`~modelx.io.pandasio.PandasData` objects are
+        created either by
+        :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
+        or
+        :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
+        method.
+
+        See Also:
+            * :class:`~modelx.io.excelio.ExcelRange`
+            * :class:`~modelx.io.pandasio.PandasData`
+            * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
+            * :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
+            * :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
+            * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
+
+        .. versionchanged:: 0.20.0 renamed to ``iospecs`` from ``dataspecs``
+        .. versionchanged:: 0.18.0 the property name is changed
+            from ``dataclients`` to ``dataspecs``
+        .. versionadded:: 0.9.0
+
+        """
+        return list(self._impl.refmgr.specs)
+
+
+class Model(IOSpecOperation, EditableParent):
     """Top-level container in modelx object hierarchy.
 
     Model instances are the top-level objects and directly contain
@@ -283,58 +427,6 @@ class Model(EditableParent):
 
     def __dir__(self):
         return self._impl.namespace.interfaces
-
-    def get_spec(self, data):
-        """Get IOSpec associated with an object"""
-        spec = self._impl.refmgr.get_spec(data)
-        if spec is None:
-            raise ValueError("spec not found")
-        else:
-            return spec
-
-    def del_spec(self, data):
-        """Delete IOSpec associate with an object"""
-        self._impl.refmgr._manager.del_spec(self.get_spec(data))
-
-    @property
-    def iospecs(self):
-        """List of :class:`~modelx.io.baseio.BaseIOSpec` objects
-
-        Returns a list of all objects of BaseIOSpec subclasses
-        defined in this Model.
-
-        :class:`~modelx.io.excelio.ExcelRange` and
-        :class:`~modelx.io.pandasio.PandasData`
-        are subclasses of :class:`~modelx.io.baseio.BaseIOSpec`.
-
-        :class:`~modelx.io.excelio.ExcelRange`
-        objects are created either by
-        :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
-        or
-        :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
-        method.
-        :class:`~modelx.io.pandasio.PandasData` objects are
-        created either by
-        :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
-        or
-        :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
-        method.
-
-        See Also:
-            * :class:`~modelx.io.excelio.ExcelRange`
-            * :class:`~modelx.io.pandasio.PandasData`
-            * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
-            * :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
-            * :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
-            * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
-
-        .. versionchanged:: 0.20.0 renamed to ``iospecs`` from ``dataspecs``
-        .. versionchanged:: 0.18.0 the property name is changed
-            from ``dataclients`` to ``dataspecs``
-        .. versionadded:: 0.9.0
-
-        """
-        return list(self._impl.refmgr.specs)
 
     @property
     def tracegraph(self):

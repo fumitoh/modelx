@@ -319,7 +319,7 @@ def test_update_pandas(
 
         pdobj = S_IDX2 if nth == "1" else DF_COL2_IDX2
 
-        parent.update_pandas(parent.pdref, pdobj)
+        m.update_pandas(parent.pdref, pdobj)
 
         if isinstance(pdobj, pd.Series):
             pd.testing.assert_series_equal(parent.pdref, pdobj)
@@ -366,7 +366,7 @@ def test_update_pandas_no_spec():
     assert SpaceA.s2 is S_IDX1
     assert SpaceB.s3 is S_IDX1
 
-    SpaceA.update_pandas(S_IDX1, S_IDX2)
+    m.update_pandas(S_IDX1, S_IDX2)
 
     assert m.s1 is S_IDX2
     assert SpaceA.s2 is S_IDX2
