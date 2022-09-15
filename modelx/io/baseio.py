@@ -286,17 +286,46 @@ class IOManager:
 
 
 class BaseIOSpec:
-    """Abstract base class for accessing data stored in files
+    """Abstract base class for storing objects in files.
 
+    .. currentmodule:: modelx.io
+
+    This base class is inherited from by *IOSpec* classes, such as
+    :class:`~pandasio.PandasData` and :class:`~moduleio.ModuleData`,
+    and defines properties shared among the child classes.
+    The :meth:`Model.get_spec<modelx.core.model.Model.get_spec>` method returns
+    the *IOSpec* object associated with a given object referenced
+    in the model.
+    :attr:`Model.iospecs<modelx.core.model.Model.iospecs>` returns a list of
+    all the *IOSpec* associated with the objects referenced
+    in the model.
+
+    Example:
+        The code below returns the :class:`~modelx.io.pandasio.PandasData` object
+        associated with a DataFrame ``df`` referenced in the model::
+
+            >>> model.get_spec(df)
+            <PandasData path='df.xlsx' file_type='excel' sheet='df1'>
+
+        The code below returns a list of all the IOSpec objects
+        associated with the objects referenced in the model::
+
+            >>> model.iospecs
+            [<PandasData path='df.xlsx' file_type='excel' sheet='df1'>,
+             <PandasData path='df.xlsx' file_type='excel' sheet='s1'>,
+             <ModuleData path='mod1.py'>]
+
+    .. versionchanged:: 0.20.0 Renamed from ``BaseDataSpec`` to :class:`~baseio.BaseIOSpec`
     .. versionchanged:: 0.18.0 The ``is_hidden`` parameter is removed.
-    .. versionchanged:: 0.18.0 the class name is changed
-        from ``BaseDataClient`` to :class:`BaseDataSpec`.
+    .. versionchanged:: 0.18.0 Renamed from ``BaseDataClient`` to ``BaseDataSpec``.
 
     See Also:
         * :class:`~modelx.io.pandasio.PandasData`
         * :class:`~modelx.io.moduleio.ModuleData`
         * :class:`~modelx.io.excelio.ExcelRange`
         * :attr:`~modelx.core.model.Model.iospecs`
+        * :meth:`~modelx.core.model.Model.get_spec`
+        * :meth:`~modelx.core.model.Model.write`
 
     """
     def __init__(self):
@@ -310,6 +339,51 @@ class BaseIOSpec:
 
     @property
     def path(self):
+        """File path that the object is written to.
+
+        This property is defined in :class:`BaseIOSpec`, and
+        returns the path to a file to which the object is written to
+        when the model is saved by
+        the :meth:`~modelx.core.model.Model.write` method.
+        The returned path is an instance of the Path class defined
+        in `pathlib`_ module in the Python standard library.
+        The `Path`_ class is either `WindowsPath`_ or `PosixPath`_,
+        depending on the platform the Python session is running on.
+
+        This property also works as a setter to set the path.
+        :obj:`str` or any path-like object can be given.
+
+        Example:
+
+            In the code below, ``df`` is a DataFrame referenced in ``model``,
+            and the IPython sessin is running on Windows.
+            The DataFrame is saved in an Excel file named
+            *df.xlsx* in the model folder::
+
+                >>> model.get_spec(df).path
+                WindowsPath('df.xlsx')
+
+            The next assignment changes the file path to *files/df2.xlsx*
+            under the model folder::
+
+                >>> model.get_spec(df).path = 'files/df2.xlsx'
+
+                >>> model.get_spec(df).path
+                WindowsPath('files/df.xlsx')
+
+        See Also:
+
+            * :meth:`~modelx.core.model.Model.write`
+            * :func:`~modelx.write_model`
+
+        .. _pathlib: https://docs.python.org/3/library/pathlib.html
+        .. _Path:
+            https://docs.python.org/3/library/pathlib.html#pathlib.Path
+        .. _WindowsPath:
+            https://docs.python.org/3/library/pathlib.html#pathlib.WindowsPath
+        .. _PosixPath:
+            https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath
+        """
         return self._io.path
 
     @path.setter

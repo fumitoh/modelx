@@ -215,7 +215,19 @@ class IOSpecOperation:
         return self._impl.model.refmgr.update_value(old_module, new_module)
 
     def get_spec(self, data):
-        """Get IOSpec associated with an object"""
+        """Get *IOSpec* associated with ``data``
+
+        Returns the *IOSpec* object associated with ``data``.
+        ``data`` should be an object referenced in the model.
+        An *IOSpec* object is an instance of a subclass of
+        :class:`~modelx.io.baseio.BaseIOSpec`.
+        If no *IOSpec* is associated with `data`, an error is raised.
+
+        See Also:
+            * :meth:`~modelx.core.model.Model.del_spec`
+            * :class:`~modelx.io.baseio.BaseIOSpec`
+            * :attr:`~modelx.core.model.Model.iospecs`
+        """
         spec = self._impl.refmgr.get_spec(data)
         if spec is None:
             raise ValueError("spec not found")
@@ -223,7 +235,18 @@ class IOSpecOperation:
             return spec
 
     def del_spec(self, data):
-        """Delete IOSpec associate with an object"""
+        """Delete *IOSpec* associate with ``data``
+
+        Deletes the *IOSpec* object associated with ``data``.
+        ``data`` should be an object referenced in the model.
+        An *IOSpec* object is an instance of a subclass of
+        :class:`~modelx.io.baseio.BaseIOSpec`.
+
+        See Also:
+            * :meth:`~modelx.core.model.Model.get_spec`
+            * :class:`~modelx.io.baseio.BaseIOSpec`
+            * :attr:`~modelx.core.model.Model.iospecs`
+        """
         self._impl.refmgr._manager.del_spec(self.get_spec(data))
 
     @property
@@ -251,6 +274,7 @@ class IOSpecOperation:
         method.
 
         See Also:
+            * :meth:`~modelx.core.model.Model.get_spec`
             * :class:`~modelx.io.excelio.ExcelRange`
             * :class:`~modelx.io.pandasio.PandasData`
             * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`

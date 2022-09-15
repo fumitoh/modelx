@@ -41,6 +41,7 @@ class PandasIO(BaseSharedIO):
     def persistent_args(self):
         return {"file_type": self.file_type}
 
+
 class PandasData(BaseIOSpec):
     """A subclass of :class:`~modelx.io.baseio.BaseIOSpec` that
     associates a `pandas`_ `DataFrame`_ or `Series`_ with a file
@@ -69,11 +70,12 @@ class PandasData(BaseIOSpec):
         * :meth:`Model.new_pandas<model.Model.new_pandas>`
         * :meth:`Model.update_pandas<model.Model.update_pandas>`
         * :meth:`UserSpace.new_pandas<space.UserSpace.new_pandas>`
-        * :meth:`UserSpace.update_pandas<space.UserSpace.update_pandas>`
         * :attr:`~model.Model.iospecs`
 
     Attributes:
-        path: A path to the associated file as a `pathlib.Path`_ object.
+        path:
+            A path to the associated file as a `pathlib.Path`_ object.
+            See :attr:`BaseIOSpec.path<modelx.io.baseio.BaseIOSpec.path>`.
         filetype(:obj:`str`): "excel" or "csv".
 
     .. versionchanged:: 0.18.0 The ``expose_data`` parameter is removed.
