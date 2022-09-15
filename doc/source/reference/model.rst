@@ -22,7 +22,7 @@ Model properties
   ~Model.properties
   ~Model.spaces
   ~Model.refs
-  ~Model.dataspecs
+  ~Model.iospecs
   ~Model.tracegraph
 
 Model operations
@@ -74,11 +74,13 @@ Reference operations
   :toctree: generated/
   :template: mxbase.rst
 
-  ~Model.new_excel_range
   ~Model.new_pandas
   ~Model.new_module
+  ~Model.new_excel_range
   ~Model.update_pandas
   ~Model.update_module
+  ~Model.get_spec
+  ~Model.del_spec
 
 
 Run operations

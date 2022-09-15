@@ -96,8 +96,7 @@ Reference operations
   ~UserSpace.new_excel_range
   ~UserSpace.new_pandas
   ~UserSpace.new_module
-  ~UserSpace.update_pandas
-  ~UserSpace.update_module
+
 
 ItemSpace operations
 ---------------------

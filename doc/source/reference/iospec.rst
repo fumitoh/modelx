@@ -1,20 +1,15 @@
-DataSpec types
+IOSpec types
 ================
 
 
-BaseDataSpec
+BaseIOSpec
 --------------
 .. currentmodule:: modelx.io.baseio
 
-.. autoclass:: BaseDataSpec
+.. autoclass:: BaseIOSpec
 
+.. autoproperty:: BaseIOSpec.path
 
-ExcelRange
-----------
-
-.. currentmodule:: modelx.io.excelio
-
-.. autoclass:: ExcelRange
 
 
 PandasData
@@ -35,3 +30,11 @@ ModuleData
 .. autoclass:: ModuleData
 
 .. autoproperty:: ModuleData.value
+
+
+ExcelRange
+----------
+
+.. currentmodule:: modelx.io.excelio
+
+.. autoclass:: ExcelRange
