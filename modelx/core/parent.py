@@ -200,6 +200,8 @@ class EditableParent(BaseParent):
     ):
         """Create a child space from an Excel range.
 
+        .. warning:: This method is deprecated.
+
         To use this method, ``openpyxl`` package must be installed.
 
         Args:
@@ -244,8 +246,10 @@ class EditableParent(BaseParent):
 
         See Also:
             :meth:`new_cells_from_excel`: Create Cells from Excel file.
-        """
 
+        .. versionchanged:: 0.20.0 this method is deprecated.
+        """
+        warnings.warn("'new_space_from_excel' is deprecated.")
         space = self._impl.new_space_from_excel(
             book,
             range_,
@@ -266,6 +270,8 @@ class EditableParent(BaseParent):
             self, obj, space=None, cells=None, param=None,
             space_params=None, cells_params=None):
         """Create child spaces from Pandas DataFrame or Series.
+
+        .. warning:: This method is deprecated.
 
         Create a space named ``space`` and optionally
         and cells in it from Pandas DataFrame or Series passed in ``obj``.
@@ -295,7 +301,10 @@ class EditableParent(BaseParent):
 
         See Also:
             :meth:`new_cells_from_pandas`: Create Cells from DataFrame or Series.
+
+        .. versionchanged:: 0.20.0 this method is deprecated.
         """
+        warnings.warn("'new_space_from_pandas' is deprecated.")
         space = self._impl.new_space_from_pandas(
             obj, space, cells, param, space_params, cells_params
         )
@@ -306,6 +315,8 @@ class EditableParent(BaseParent):
             self, filepath, space=None, cells=None, param=None,
             space_params=None, cells_params=None, *args, **kwargs):
         """Create spaces from from a comma-separated values (csv) file.
+
+        .. warning:: This method is deprecated.
 
         This method internally calls Pandas `read_csv`_ function,
         and creates cells by passing
@@ -339,7 +350,10 @@ class EditableParent(BaseParent):
 
         See Also:
             :meth:`new_cells_from_csv`: Create Cells from CSV.
+
+        .. versionchanged:: 0.20.0 this method is deprecated.
         """
+        warnings.warn("'new_space_from_csv' is deprecated.")
         space = self._impl.new_space_from_csv(
             filepath, space, cells, param,
             space_params, cells_params, args, kwargs

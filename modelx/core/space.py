@@ -746,6 +746,8 @@ class UserSpace(BaseSpace, EditableParent):
     ):
         """Create multiple cells from an Excel range.
 
+        .. warning:: This method is deprecated.
+
         This method reads values from a range in an Excel file,
         create cells and populate them with the values in the range.
         To use this method, ``openpyxl`` package must be installed.
@@ -821,6 +823,8 @@ class UserSpace(BaseSpace, EditableParent):
 
         See Also:
             :meth:`new_space_from_excel`: Create Spaces and Cells from Excel file.
+
+        .. versionchanged:: 0.20.0 this method is deprecated.
         """
         return self._impl.new_cells_from_excel(
             book,
@@ -836,6 +840,8 @@ class UserSpace(BaseSpace, EditableParent):
 
     def new_cells_from_pandas(self, obj, cells=None, param=None):
         """Create new cells from Pandas Series or DataFrame object.
+
+        .. warning:: This method is deprecated.
 
         Return new cells created from Pandas Series or DataFrame object
         passed as ``obj``.
@@ -874,12 +880,16 @@ class UserSpace(BaseSpace, EditableParent):
 
         See Also:
             :meth:`new_space_from_pandas`: Create Spaces and Cells from DataFrame or Series.
+
+        .. versionchanged:: 0.20.0 this method is deprecated.
         """
         return self._impl.new_cells_from_pandas(obj, cells, param)
 
     def new_cells_from_csv(
             self, filepath, cells=None, param=None, *args, **kwargs):
         """Create cells from a comma-separated values (csv) file.
+
+        .. warning:: This method is deprecated.
 
         This method internally calls Pandas `read_csv`_ function,
         and creates cells by passing
@@ -908,6 +918,8 @@ class UserSpace(BaseSpace, EditableParent):
 
         See Also:
             :meth:`new_space_from_csv`: Create Spaces and Cells from CSV.
+
+        .. versionchanged:: 0.20.0 this method is deprecated.
         """
 
         return self._impl.new_cells_from_csv(
