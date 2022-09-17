@@ -527,10 +527,10 @@ class EditableParent(BaseParent):
         such as ``space.x = df``, but the pandas objects
         assigned this way are saved in a binary file together with
         other Reference objects by
-        :meth:`write` or :func:`~modelx.write_model`.
+        :meth:`~modelx.core.model.Model.write` or :func:`~modelx.write_model`.
         This method allows the assigned pandas
         object to be saved in a separate file by
-        :meth:`write` or :func:`~modelx.write_model`
+        :meth:`~modelx.core.model.Model.write` or :func:`~modelx.write_model`
         using information stored in the associated
         :class:`~modelx.io.pandasio.PandasData`.
 
@@ -639,7 +639,7 @@ class EditableParent(BaseParent):
         .. versionadded:: 0.12.0
 
         See Also:
-            * :meth:`update_pandas`
+            * :meth:`~modelx.core.model.Model.update_pandas`
             * :class:`~modelx.io.pandasio.PandasData`
 
         """

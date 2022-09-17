@@ -249,6 +249,7 @@ class PandasData(BaseIOSpec):
 
     @property
     def sheet(self):
+        """The name of the sheet to which the data is written to"""
         return self._sheet
 
     @sheet.setter
