@@ -9,7 +9,7 @@ and is released as ``spymx-kernels``.
 
 
 
-spymx-kernels 0.1.4 (17 September 2022)
+spymx-kernels 0.1.5 (17 September 2022)
 ========================================
 * Supports modelx 0.20.0-
 
