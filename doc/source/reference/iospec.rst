@@ -21,6 +21,7 @@ PandasData
 
 .. autoproperty:: PandasData.value
 
+.. autoproperty:: PandasData.sheet
 
 ModuleData
 ----------
