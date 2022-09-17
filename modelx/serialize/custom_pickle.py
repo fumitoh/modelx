@@ -7,7 +7,7 @@ from modelx.core.node import BaseNode, ObjectNode, get_node, ItemNode, OBJ, KEY
 from . import ziputil
 
 
-class DataSpecPickler(pickle.Pickler):
+class IOSpecPickler(pickle.Pickler):
 
     def persistent_id(self, obj):
 
@@ -24,7 +24,7 @@ class DataSpecPickler(pickle.Pickler):
             return None
 
 
-class DataSpecUnpickler(pickle.Unpickler):
+class IOSpecUnpickler(pickle.Unpickler):
 
     def __init__(self, file, reader):
         super().__init__(file)

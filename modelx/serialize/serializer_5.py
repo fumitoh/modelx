@@ -30,8 +30,8 @@ from modelx.core.util import (
 import asttokens
 from . import ziputil
 from .custom_pickle import (
-    DataSpecUnpickler, ModelUnpickler,
-    DataSpecPickler, ModelPickler)
+    IOSpecUnpickler, ModelUnpickler,
+    IOSpecPickler, ModelPickler)
 
 
 Section = namedtuple("Section", ["id", "symbol"])
@@ -378,7 +378,7 @@ class ModelWriter:
         if self.model.iospecs:
             file = self.root / "_data/iospecs.pickle"
             ziputil.write_file_utf8(
-                lambda f: DataSpecPickler(f).dump(self.iospecs),
+                lambda f: IOSpecPickler(f).dump(self.iospecs),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel
@@ -928,7 +928,7 @@ class LiteralEncoder(BaseEncoder):
             return json.dumps(self.target.value, ensure_ascii=False)
 
 
-class DataSpecEncoder(BaseEncoder):
+class IOSpecEncoder(BaseEncoder):
 
     @classmethod
     def condition(cls, ref, writer):
@@ -941,7 +941,7 @@ class DataSpecEncoder(BaseEncoder):
     def encode(self):
         value_id = id(self.target.value)
         spec_id = self.writer.value_id_map[value_id]
-        return "(\"DataSpec\", %s, %s)" % (value_id, spec_id)
+        return "(\"IOSpec\", %s, %s)" % (value_id, spec_id)
 
     def pickle_value(self):
         key = id(self.target.value)
@@ -991,7 +991,7 @@ class EncoderSelector(BaseSelector):
     classes = [
         InterfaceRefEncoder,
         LiteralEncoder,
-        DataSpecEncoder,
+        IOSpecEncoder,
         ModuleEncoder,
         PickleEncoder
     ]
@@ -1167,7 +1167,7 @@ class ModelReader:
         for f in (file, file_old):
             if ziputil.exists(f):
                 self.iospecs = ziputil.read_file_utf8(
-                    lambda f: DataSpecUnpickler(f, self).load(), f, "b"
+                    lambda f: IOSpecUnpickler(f, self).load(), f, "b"
                 )
                 break
 
@@ -1735,6 +1735,9 @@ class TupleDecoder(ValueDecoder):
         if isinstance(node, ast.Tuple):
             if node.elts[0].s == cls.DECTYPE:
                 return True
+            elif (hasattr(cls, 'DECTYPE_COMPAT')  # for backward compatibility
+                  and node.elts[0].s == cls.DECTYPE_COMPAT):
+                return True
         return False
 
 
@@ -1753,8 +1756,9 @@ class InterfaceDecoder(TupleDecoder):
         return mxsys.get_object_from_tupleid(decoded)
 
 
-class DataSpecDecoder(TupleDecoder):
-    DECTYPE = "DataSpec"
+class IOSpecDecoder(TupleDecoder):
+    DECTYPE = "IOSpec"
+    DECTYPE_COMPAT = "DataSpec"     # for backward compatibility > mx v0.20.0
 
     def decode(self):
         return self.elm(1)
@@ -1797,7 +1801,7 @@ class LiteralDecoder(ValueDecoder):
 class DecoderSelector(BaseSelector):
     classes = [
         InterfaceDecoder,
-        DataSpecDecoder,
+        IOSpecDecoder,
         ModuleDecoder,
         PickleDecoder,
         LiteralDecoder
