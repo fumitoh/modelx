@@ -1,3 +1,4 @@
+import types
 
 import modelx as mx
 from modelx.core.errors import (
@@ -16,6 +17,7 @@ def errormodel():
 
     @mx.defcells
     def foo(x):
+        a, b = 1, 'b'
         if x > 0:
             return foo(x-1) + 1
         else:
@@ -65,11 +67,12 @@ def test_value_error(errormodel):
         ValueError
         
         Formula traceback:
-        0: ErrorModel.ErrorSpace.foo(x=1), line 3
-        1: ErrorModel.ErrorSpace.foo(x=0), line 5
+        0: ErrorModel.ErrorSpace.foo(x=1), line 4
+        1: ErrorModel.ErrorSpace.foo(x=0), line 6
         
         Formula source:
         def foo(x):
+            a, b = 1, 'b'
             if x > 0:
                 return foo(x-1) + 1
             else:
@@ -78,8 +81,9 @@ def test_value_error(errormodel):
 
     assert errinfo.value.args[0] == errmsg
     assert isinstance(mx.get_error(), ValueError)
-    assert mx.get_traceback() == [(cells.node(1), 3),
-                                  (cells.node(0), 5)]
+
+    assert mx.get_traceback() == [(cells.node(1), 4, {'x':1, 'a':1, 'b':'b'}),
+                                  (cells.node(0), 6, {'x':0, 'a':1, 'b':'b'})]
 
 
 def test_none_returned_error(errormodel):
@@ -106,8 +110,8 @@ def test_none_returned_error(errormodel):
 
     assert errinfo.value.args[0] == errmsg
     assert isinstance(mx.get_error(), NoneReturnedError)
-    assert mx.get_traceback() == [(cells.node(1), 3),
-                                  (cells.node(0), 0)]
+    assert mx.get_traceback() == [(cells.node(1), 3, {'x':1}),
+                                  (cells.node(0), 0, None)]
 
 
 def test_deep_reference_error(errormodel):
@@ -138,10 +142,10 @@ def test_deep_reference_error(errormodel):
 
     assert errinfo.value.args[0] == errmsg
     assert isinstance(mx.get_error(), DeepReferenceError)
-    assert mx.get_traceback() == [(cells.node(3), 2),
-                                  (cells.node(2), 2),
-                                  (cells.node(1), 2),
-                                  (cells.node(0), 2)]
+    assert mx.get_traceback() == [(cells.node(3), 2, {'x': 3}),
+                                  (cells.node(2), 2, {'x': 2}),
+                                  (cells.node(1), 2, {'x': 1}),
+                                  (cells.node(0), 2, {'x': 0})]
 
 
 def test_listcomp_error(errormodel):
@@ -170,8 +174,8 @@ def test_listcomp_error(errormodel):
 
     assert errinfo.value.args[0] == errmsg
     assert isinstance(mx.get_error(), ValueError)
-    assert mx.get_traceback() == [(cells.node(1), 3),
-                                  (cells.node(0), 5)]
+    assert mx.get_traceback() == [(cells.node(1), 3, {'t': 1}),
+                                  (cells.node(0), 5, {'t': 0})]
 
 
 def test_lambda_error(errormodel):
@@ -195,9 +199,9 @@ def test_lambda_error(errormodel):
 
     assert errinfo.value.args[0] == errmsg
     assert isinstance(mx.get_error(), ZeroDivisionError)
-    assert mx.get_traceback() == [(cells.node(1), 1),
-                                  (qux.node(0), 2),
-                                  (cells.node(0), 1)]
+    assert mx.get_traceback() == [(cells.node(1), 1, {'x': 1}),
+                                  (qux.node(0), 2, {'x': 0}),
+                                  (cells.node(0), 1, {'x': 0})]
 
 
 def test_nested_def_error(errormodel):
@@ -221,4 +225,6 @@ def test_nested_def_error(errormodel):
     """)
     assert errinfo.value.args[0] == errmsg
     assert isinstance(mx.get_error(), TypeError)
-    assert mx.get_traceback() == [(cells.node(1), 4)]
+    assert mx.get_traceback()[0][:-1] == (cells.node(1), 4)
+    assert mx.get_traceback()[0][-1]['t'] == 1
+    assert isinstance(mx.get_traceback()[0][-1]['my_sum'], types.FunctionType)

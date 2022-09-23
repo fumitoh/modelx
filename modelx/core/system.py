@@ -332,6 +332,7 @@ class ErrorStack(deque):
     def __init__(self, execinfo, rolledback):
         deque.__init__(self)
         tbexc = traceback.TracebackException.from_exception(execinfo[1])
+        tb = execinfo[2]
         self.on_eval_flag = False
 
         mxdir = os.path.dirname(modelx.__file__)
@@ -342,18 +343,19 @@ class ErrorStack(deque):
             elif not mxdir in frame.filename and self.on_eval_flag:
                 node = rolledback.pop()
                 self.append(
-                    (node, frame.lineno)
+                    (node, frame.lineno, tb.tb_frame.f_locals.copy())
                 )
                 self.on_eval_flag = False
+            tb = tb.tb_next
 
         while rolledback:
             node = rolledback.pop()
             self.append(
-                (node, 0)
+                (node, 0, None)
             )
 
     def get_traceback(self):
-        return [(ItemNode(frame[0]), frame[1]) for frame in self]
+        return [(ItemNode(frame[0]), frame[1], frame[2]) for frame in self]
 
     def tracemessage(self, maxlen=6):
         """
