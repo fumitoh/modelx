@@ -728,6 +728,31 @@ def get_traceback():
         return []
 
 
+def trace_locals(index=-1):
+    """Retuns the local variables of a formula execution in the last traceback.
+
+    This function is a shotcut for
+    :func:`get_traceback()[index][2]<get_traceback>`, and
+    returns a :obj:`dict` of the local variables referenced by
+    the formula execution at ``index`` in the traceback list.
+    By default, ``index`` is -1, so the local variables
+    of the last formula execution in which the error is raised, are rturned.
+
+    If the last formula execution is sucessful, i.e. the traceback list is
+    empty, then returns :obj:`None`.
+
+    Args:
+        index(optional): The position of the formula exectuion in the traceback list.
+
+    .. seealso:: :func:`get_traceback`
+
+    """
+    if _system.executor.errorstack:
+        return _system.executor.errorstack.get_traceback()[index][2]
+    else:
+        return None
+
+
 def use_formula_error(use=None):
     """Specifies whether to replace error raised during formula execution
 
