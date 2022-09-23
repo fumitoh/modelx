@@ -98,7 +98,7 @@ class NonThreadedExecutor:
         if self.excinfo:
 
             self.errorstack = ErrorStack(
-                self.excinfo[1],
+                self.excinfo,
                 self.rolledback
             )
             if self.system.formula_error:
@@ -174,7 +174,7 @@ class ThreadedExecutor(NonThreadedExecutor):
             if self.excinfo:
 
                 self.errorstack = ErrorStack(
-                    self.excinfo[1],
+                    self.excinfo,
                     self.rolledback
                 )
                 if self.system.formula_error:
@@ -329,9 +329,9 @@ class TraceableCallStack(CallStack):
 
 class ErrorStack(deque):
 
-    def __init__(self, exception, rolledback):
+    def __init__(self, execinfo, rolledback):
         deque.__init__(self)
-        tbexc = traceback.TracebackException.from_exception(exception)
+        tbexc = traceback.TracebackException.from_exception(execinfo[1])
         self.on_eval_flag = False
 
         mxdir = os.path.dirname(modelx.__file__)
