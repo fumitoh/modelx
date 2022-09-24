@@ -14,16 +14,6 @@ If you're using Anaconda, use the ``conda`` command instead::
 
     >>> conda update modelx
 
-If you're using the Spyder plugin for modelx, the
-:doc:`spymx-kernels<spymx_kernels_relnotes>` pakcage is also updated,
-so update it as well by either::
-
-    >>> pip install smymx-kernels --upgrade
-
-or on Anaconda,
-
-    >>> conda update spymx-kernels
-
 
 Enhancements
 ============
