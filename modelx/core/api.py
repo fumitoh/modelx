@@ -776,7 +776,7 @@ def trace_locals(index=-1):
     returns a :obj:`dict` of the local variables referenced by
     the formula execution at ``index`` in the traceback list.
     By default, ``index`` is -1, so the local variables
-    of the last formula execution in which the error is raised, are rturned.
+    of the last formula execution in which the error is raised, are returned.
 
     If the last formula execution is sucessful, i.e. the traceback list is
     empty, then returns :obj:`None`.

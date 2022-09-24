@@ -46,8 +46,8 @@ by the erronerous formula or its callers::
 
     >>> @mx.defcells
     ... def foo(x):
-    ... a = 1
-    ... return bar(x) + a
+    ...     a = 1
+    ...     return bar(x) + a
 
     >>> @mx.defcells
     ... def bar(y):
