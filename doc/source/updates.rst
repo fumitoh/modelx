@@ -10,8 +10,11 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *24 September 2022:*
+  modelx v0.21.0 is released. See :doc:`releases/relnotes_v0_21_0`.
+
 * *17 September 2022:*
-  modelx v0.20.0 is released.See :doc:`releases/relnotes_v0_20_0`.
+  modelx v0.20.0 is released. See :doc:`releases/relnotes_v0_20_0`.
   :doc:`spymx-kernels<releases/spymx_kernels_relnotes>` is updated to support modelx v0.20.0.
 
 * *30 July 2022:*
@@ -19,10 +22,10 @@ Updates
   spymx-kernels 0.1.4 is also released for a minor fix.
 
 * *24 April 2022:*
-  modelx v0.19.1 is released for a bug fix.See :doc:`releases/relnotes_v0_19_1`.
+  modelx v0.19.1 is released for a bug fix. See :doc:`releases/relnotes_v0_19_1`.
 
 * *16 April 2022:*
-  modelx v0.19.0 is released.See :doc:`releases/relnotes_v0_19_0`.
+  modelx v0.19.0 is released. See :doc:`releases/relnotes_v0_19_0`.
   :doc:`spymx-kernels<releases/spymx_kernels_relnotes>` is updated to support modelx v0.19.0.
 
 * *4 February 2022:*
