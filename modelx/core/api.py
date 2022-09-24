@@ -712,15 +712,55 @@ def get_error():
 
 
 def get_traceback():
-    """Returns traceback of exception raised during last formula execution
+    """Traces back the last formula error.
 
-    Returns traceback information if the last formula execution is failed.
-    Otherwise, returns an empty list.
-    The traceback is a list of tuples each of which represents a formula
+    Returns traceback information if an error is thrown during the last formula
+    execution. Otherwise, returns an empty list.
+    The traceback information is a list of tuples, each of which
+    has 3 elements.
+    The first element is a *Node* object representing a call to a formula.
+    The second element is the line number at which point, the formula
+    either called the next formula or raised the error.
+    The third elemet is a :obj:`dict` of the local variables
+    referenced by the formula execution.
     call in the formula failed execution, and contains three elements.
     The first element is the modelx object, the second in the arguments
     to the formula as a tuple, and the third is the line number
     of the formula's source.
+
+    Example:
+
+        .. code-block:: python
+
+            >>> import modelx as mx
+
+            >>> @mx.defcells
+            ... def foo(x):
+            ...     a = 1
+            ...     return bar(x) + a
+
+            >>> @mx.defcells
+            ... def bar(y):
+            ...     b = 2
+            ...     return 2 * y / 0  # raises ZeroDivisionError
+
+            >>> foo(1)
+            modelx.core.errors.FormulaError: Error raised during formula execution
+            ZeroDivisionError: division by zero
+            Formula traceback:
+            0: Model1.Space1.foo(x=1), line 3
+            1: Model1.Space1.bar(y=1), line 3
+            Formula source:
+            def bar(y):
+                b = 2
+                return 2 * y / 0 #  raise ZeroDivizion
+
+            >>> mx.get_traceback()
+            [(Model1.Space1.foo(x=1), 3, {'x': 1, 'a': 1}),
+             (Model1.Space1.bar(y=1), 3, {'y': 1, 'b': 2})]
+
+    .. versionchanged:: 0.21.0 The 3rd element is added.
+    .. seealso:: :func:`trace_locals`
     """
     if _system.executor.errorstack:
         return _system.executor.errorstack.get_traceback()
@@ -743,6 +783,41 @@ def trace_locals(index=-1):
 
     Args:
         index(optional): The position of the formula exectuion in the traceback list.
+
+    Example:
+
+        .. code-block:: python
+
+            >>> import modelx as mx
+
+            >>> @mx.defcells
+            ... def foo(x):
+            ...     a = 1
+            ...     return bar(x) + a
+
+            >>> @mx.defcells
+            ... def bar(y):
+            ...     b = 2
+            ...     return 2 * y / 0  # raises ZeroDivisionError
+
+            >>> foo(1)
+            modelx.core.errors.FormulaError: Error raised during formula execution
+            ZeroDivisionError: division by zero
+            Formula traceback:
+            0: Model1.Space1.foo(x=1), line 3
+            1: Model1.Space1.bar(y=1), line 3
+            Formula source:
+            def bar(y):
+                b = 2
+                return 2 * y / 0 #  raise ZeroDivizion
+
+            >>> mx.trace_locals()
+            {'y': 1, 'b': 2}
+
+            >>> mx.trace_locals(-2)
+            {'x': 1, 'a': 1}
+
+    .. versionadded: 0.21.0
 
     .. seealso:: :func:`get_traceback`
 
