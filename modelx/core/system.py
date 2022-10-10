@@ -354,8 +354,11 @@ class ErrorStack(deque):
                 (node, 0, None)
             )
 
-    def get_traceback(self):
-        return [(ItemNode(frame[0]), frame[1], frame[2]) for frame in self]
+    def get_traceback(self, show_locals):
+        if show_locals:
+            return [(ItemNode(frame[0]), frame[1], frame[2]) for frame in self]
+        else:
+            return [(ItemNode(frame[0]), frame[1]) for frame in self]
 
     def tracemessage(self, maxlen=6):
         """

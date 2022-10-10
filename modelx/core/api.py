@@ -711,22 +711,24 @@ def get_error():
         return None
 
 
-def get_traceback():
+def get_traceback(show_locals=False):
     """Traces back the last formula error.
 
     Returns traceback information if an error is thrown during the last formula
     execution. Otherwise, returns an empty list.
     The traceback information is a list of tuples, each of which
-    has 3 elements.
+    has 2 or 3 elements depending on ``show_locals``.
     The first element is a *Node* object representing a call to a formula.
     The second element is the line number at which point, the formula
     either called the next formula or raised the error.
-    The third elemet is a :obj:`dict` of the local variables
+    When ``show_locals`` is :obj:`True`, there exists another elemet.
+    The third element is a :obj:`dict` of the local variables
     referenced by the formula execution.
-    call in the formula failed execution, and contains three elements.
-    The first element is the modelx object, the second in the arguments
-    to the formula as a tuple, and the third is the line number
-    of the formula's source.
+
+    Args:
+        show_locals(:obj:`bool`, optional):
+            Whether to show the local variabls of each call.
+            :obj:`False` by default.
 
     Example:
 
@@ -755,15 +757,16 @@ def get_traceback():
                 b = 2
                 return 2 * y / 0 #  raise ZeroDivizion
 
-            >>> mx.get_traceback()
+            >>> mx.get_traceback(show_locals=True)
             [(Model1.Space1.foo(x=1), 3, {'x': 1, 'a': 1}),
              (Model1.Space1.bar(y=1), 3, {'y': 1, 'b': 2})]
 
+    .. versionchanged:: 0.22.0 ``show_locals`` option is added.
     .. versionchanged:: 0.21.0 The 3rd element is added.
     .. seealso:: :func:`trace_locals`
     """
     if _system.executor.errorstack:
-        return _system.executor.errorstack.get_traceback()
+        return _system.executor.errorstack.get_traceback(show_locals)
     else:
         return []
 
