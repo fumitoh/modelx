@@ -34,12 +34,19 @@ modelx allows you to:
 - Quickly build object-oriented models, utilizing inheritance and composition
 - Quickly parameterize a set of formulas and get results for different parameters
 - Trace formula dependency
-- Import and use any Python modules, such as Numpy, pandas, SciPy, scikit-learn, etc..
+- Import and use any Python modules, such as `Numpy`_, `pandas`_, `SciPy`_, `scikit-learn`_, etc..
 - See formula traceback upon error and inspect local variables
-- Save models to text files and version-control with git
+- Save models to text files and version-control with `Git`_
 - Save data such as pandas DataFrames in Excel or CSV files within models
-- Auto-document saved models by Python documentation generators, such as Git 
+- Auto-document saved models by Python documentation generators, such as `Sphinx`_
 - Use Spyder with the Spyder plugin for modelx (spyder-modelx) to interface with modelx
+
+.. _Numpy: https://numpy.org/
+.. _pandas: https://pandas.pydata.org/
+.. _SciPy: https://scipy.org/
+.. _scikit-learn: https://scikit-learn.org/
+.. _Git: https://git-scm.com/
+.. _Sphinx: https://www.sphinx-doc.org
 
 
 modelx sites
