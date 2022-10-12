@@ -24,7 +24,26 @@ Python like a spreadsheet and build object-oriented models
 by defining formulas. modelx is best suited for building models
 in such fields as actuarial science, quantitative finance and risk management.
 
-.. rubric:: modelx sites
+Feature highlights
+------------------
+**modelx** enables you to interactively
+develop, run and debug complex models in smart ways.
+modelx allows you to:
+
+- Define cached formulas by writing Python functions
+- Quickly build object-oriented models, utilizing inheritance and composition
+- Quickly parameterize a set of formulas and get results for different parameters
+- Trace formula dependency
+- Import and use any Python modules, such as Numpy, pandas, SciPy, scikit-learn, etc..
+- See formula traceback upon error and inspect local variables
+- Save models to text files and version-control with git
+- Save data such as pandas DataFrames in Excel or CSV files within models
+- Auto-document saved models by Python documentation generators, such as Git 
+- Use Spyder with the Spyder plugin for modelx (spyder-modelx) to interface with modelx
+
+
+modelx sites
+-------------
 
 ========================== ===============================================
 Home page                  https://modelx.io
@@ -35,25 +54,16 @@ Discussion Forum           https://github.com/fumitoh/modelx/discussions
 modelx on PyPI             https://pypi.org/project/modelx/
 ========================== ===============================================
 
-Feature highlights
-------------------
-**modelx** enables you to interactively
-develop, run and scrutinize complex models in smart ways:
-
-- Only basic Python knowledge required
-- Formulas defined by Python functions
-- Object-oriented, supports composition and inheritance
-- Parameterization
-- Dependency tracing
-- Reading from Excel and CSV files
-- GUI as Spyder plugin (spyder-modelx)
-- Saving to text files, enabling use of version control systems
-- Document integration enabling use of document generators
-- Pandas interface
 
 Who is modelx for?
 ------------------
-**modelx** is designed to be domain agnostic.
+**modelx** is designed to be domain agnostic, 
+so it's useful for anyone in any field.
+Especially, modelx is suited for modeling in such fields such as:
+
+- Actuarial science
+- Risk management
+- Quantitative finance
 
 The modelx was created by actuary, and its primary use is to develop
 actuarial projection models. **lifelib** (https://lifelib.io) is a
