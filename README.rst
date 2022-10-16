@@ -68,18 +68,12 @@ Who is modelx for?
 so it's useful for anyone in any field.
 Especially, modelx is suited for modeling in such fields such as:
 
-- Actuarial science
-- Risk management
 - Quantitative finance
+- Risk management
+- Actuarial science
 
-The modelx was created by actuary, and its primary use is to develop
-actuarial projection models. **lifelib** (https://lifelib.io) is a
-library of actuarial models that are built on top of modelx.
-
-However, modelx is intentionally designed to eliminate domain specific features
-so that potential audience for modelx can be wider than actuaries,
-whoever needs to develop
-complex models of any sorts that are too much to deal with by spreadsheets.
+**lifelib** (https://lifelib.io) is a library of actuarial and
+financial models that are built on top of modelx.
 
 How modelx works
 ----------------
@@ -132,25 +126,6 @@ To get a Fibonacci number for, say 10, you can do::
 Refer to **lifelib** (https://lifelib.io) fo more complex examples.
 
 
-Python and modelx
------------------
-Aside from modelx being a Python package and written entirely in Python,
-modelx utilizes Python in that it lets users define formulas by writing
-Python functions and converting it to modelx formulas.
-However, there is a critical difference between how Python functions are
-interpreted by Python and how modelx formulas are interpreted by modelx.
-
-Python employs lexical scoping, i.e. the namespace in which function code is
-executed is determined by textual context. The global namespace of a
-function is the module that the function is defined in.
-In contrast, the evaluation of modelx formulas is based on dynamic scoping.
-Each Cells belongs to a space, and the space has associated namespace (a mapping
-of names to objects). The formula associated with the cells is
-evaluated in that namespace. So, what module a formula is defined (in the
-form of a Python function) does not affect the result of formula evaluation.
-It is what space the cells belongs to that affects the result.
-
-
 License
 -------
 Copyright 2017-2022, Fumito Hamamura
@@ -164,36 +139,6 @@ Contributions, productive comments, requests and feedback from the community
 are always welcome. Information on modelx development is found at Github
 https://github.com/fumitoh/modelx
 
-
-Development State
------------------
-
-With the release of modelx version 0.1.0 in December 2019,
-the author of modelx will try to consider maintaining
-backward compatibility to a limited extent
-in developing future releases of modelx.
-Especially, he will try to make it possible to read
-models written to files by one version's ``write_model``,
-by ``read_model`` of the next version of modelx.
-However, models saved by ``Model.save`` method may not be opened by
-``open_model`` method.
-Overall, modelx is still in its early alpha-release stage,
-and its specifications may change without consideration
-on backward compatibility.
-
-.. warning::
-
-   If you have embedded modelx in actuarial production processes,
-   then it is encouraged to connect with the author
-   `on linkedin <https://www.linkedin.com/in/fumito-hamamura>`_
-   or `on github <https://github.com/fumitoh>`_ ,
-   as modelx features you rely on might change or be removed in future releases
-   without the author knowing those features are in use.
-
-History
--------
-modelx was originally conceived and written by Fumito Hamamura
-and it was first released in October 2017.
 
 .. Overview End
 
