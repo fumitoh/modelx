@@ -1,5 +1,18 @@
 .. currentmodule:: modelx
 
+===================
+spyder-modelx v0.13
+===================
+
+.. _release-mxplugin-v0.13.1:
+
+spyder-modelx v0.13.1 (16 October 2022)
+=========================================
+
+This release fix a bug that raises an error when opening the Preferences in Spyder 5.2+ (`GH10`_).
+
+.. _GH10: https://github.com/fumitoh/spyder-modelx/issues/10
+
 .. _release-mxplugin-v0.13.0:
 
 spyder-modelx v0.13.0 (30 July 2022)
