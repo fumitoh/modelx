@@ -90,6 +90,10 @@ def test_value_error(errormodel):
         (cells.node(1), 4, {'x':1, 'a':1, 'b':'b'}),
         (cells.node(0), 6, {'x':0, 'a':1, 'b':'b'})]
 
+    assert mx.trace_locals() == {'x':0, 'a':1, 'b':'b'}
+    assert mx.trace_locals(0) == {'x':1, 'a':1, 'b':'b'}
+
+
 def test_none_returned_error(errormodel):
 
     cells = errormodel.ErrorSpace.bar

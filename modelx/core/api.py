@@ -826,7 +826,7 @@ def trace_locals(index=-1):
 
     """
     if _system.executor.errorstack:
-        return _system.executor.errorstack.get_traceback()[index][2]
+        return _system.executor.errorstack.get_traceback(show_locals=True)[index][2]
     else:
         return None
 
