@@ -77,53 +77,81 @@ financial models that are built on top of modelx.
 
 How modelx works
 ----------------
-**modelx** exposes its API functions and classes such as Model, Space and Cells to
-its users, and the users build their models from those classes, by defining
-calculation formulas in the form of Python functions and associating those
-calculations with Cells objects.
 
-Below is a very simple working example in which following operations are
-demonstrated:
-
-- a new model is created,
-- and in the model, a new space is created,
-- and in the space, a new cells is created , which is associated with the
-  Fibonacci series.
+Below is an example showing how to build a simple model using modelx.
+The model uses the Monte Carlo method to
+simulate a stock price that follows a geometric Brownian motion
+and to price an European call option on the stock.
 
 .. code-block:: python
 
-    from modelx import *
+    import modelx as mx
+    import numpy as np
 
-    model, space = new_model(), new_space()
+    model = mx.new_model()                  # Create a new Model named "Model1"
+    space = model.new_space("MonteCarlo")   # Create a UserSpace named "MonteCralo"
 
-    @defcells
-    def fibo(n):
-        if n == 0 or n == 1:
-            return n
+    # Define names in MonteCarlo
+    space.np = np
+    space.M = 10000     # Number of scenarios
+    space.T = 3         # Time to maturity in years
+    space.N = 36        # Number of time steps
+    space.S0 = 100      # S(0): Stock price at t=0
+    space.r = 0.05      # Risk Free Rate
+    space.sigma = 0.2   # Volatility
+    space.K = 110       # Option Strike
+
+
+    # Define Cells objects in MonteCarlo from function definitions
+    @mx.defcells
+    def std_norm_rand():
+        gen = np.random.default_rng(1234)
+        return gen.standard_normal(size=(N, M))
+
+
+    @mx.defcells
+    def S(i):
+        """Stock price at time t_i"""
+        dt = T/N; t = dt * i
+        if i == 0:
+            return np.full(shape=M, fill_value=S0)
         else:
-            return fibo(n - 1) + fibo(n - 2)
-
-To get a Fibonacci number for, say 10, you can do::
-
-    >>> fibo(10)
-    55
-    >>> fibo.series
-    n
-    0      0
-    1      1
-    2      1
-    3      2
-    4      3
-    5      5
-    6      8
-    7     13
-    8     21
-    9     34
-    10    55
-    Name: fibo, dtype: int64
+            epsilon = std_norm_rand()[i-1]
+            return S(i-1) * np.exp((r - 0.5 * sigma**2) * dt + sigma * epsilon * dt**0.5)
 
 
-Refer to **lifelib** (https://lifelib.io) fo more complex examples.
+    @mx.defcells
+    def CallOption():
+        """Call option price by Monte Carlo"""
+        return np.average(np.maximum(S(N) - K, 0)) * np.exp(-r*T)
+
+Running the model from IPython is as simple as calling a function::
+
+    >>> S(space.N)      # Stock price at i=N i.e. t=T
+    array([ 78.58406132,  59.01504804, 115.148291  , ..., 155.39335662,
+            74.7907511 , 137.82730703])
+
+    >>> CallOption()
+    16.26919556999345
+
+Changing a parameter is as simple as assigning a value to a name::
+
+    >>> space.K = 100   # Cache is cleared by this assignment
+
+    >>> CallOption()    # New option price for the updated strike
+    20.96156962064
+
+You can even dynamically create multiple copies of *MonteCarlo*
+with different combinations of ``r`` and ``sigma``,
+by parameterizing *MonteCarlo* with ``r`` and ``sigma``::
+
+    >>> space.parameters = ("r", "sigma")   # Parameterize MonteCarlo with r and sigma
+
+    >>> space[0.03, 0.15].CallOption()      # Dynamically create a copy of MonteCarlo with r=3% and sigma=15%
+    14.812014828333284
+
+    >>> space[0.06, 0.4].CallOption()       # Dynamically create another copy with r=6% and sigma=40%
+    33.90481014639403
 
 
 License
