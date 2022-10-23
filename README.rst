@@ -19,7 +19,7 @@ modelx
 
 What is modelx?
 ---------------
-**modelx** is a numerical computing tool that enables you to use
+**modelx** is a numerical computing tool which enables you to use
 Python like a spreadsheet and build object-oriented models
 by defining formulas. modelx is best suited for building models
 in such fields as actuarial science, quantitative finance and risk management.
@@ -39,7 +39,7 @@ modelx allows you to:
 - Save models to text files and version-control with `Git`_
 - Save data such as pandas DataFrames in Excel or CSV files within models
 - Auto-document saved models by Python documentation generators, such as `Sphinx`_
-- Use Spyder with the Spyder plugin for modelx (spyder-modelx) to interface with modelx
+- Use Spyder with a plugin for modelx (spyder-modelx) to interface with modelx through GUI
 
 .. _Numpy: https://numpy.org/
 .. _pandas: https://pandas.pydata.org/
