@@ -103,6 +103,7 @@ html_theme = 'pydata_sphinx_theme'
 # documentation.
 #
 html_theme_options = {
+    "header_links_before_dropdown": 7,
     "icon_links": [
         {
             "name": "GitHub",
