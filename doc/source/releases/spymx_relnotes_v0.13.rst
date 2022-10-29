@@ -6,7 +6,7 @@ spyder-modelx v0.13
 
 .. _release-mxplugin-v0.13.2:
 
-spyder-modelx v0.13.1 (29 October 2022)
+spyder-modelx v0.13.2 (29 October 2022)
 =========================================
 
 This release supports Spyder 5.3.3.
