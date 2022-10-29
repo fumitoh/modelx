@@ -189,7 +189,10 @@ def cells_to_series(cells, args):
             if is_multidx:
                 indexes = pd.MultiIndex.from_tuples(indexes)
 
-    result = pd.Series(data=data, name=cells.name, index=indexes)
+    if data:    # Not empty
+        result = pd.Series(data=data, name=cells.name, index=indexes)
+    else:       # Avoid warning
+        result = pd.Series(data=data, name=cells.name, index=indexes, dtype='float64')
 
     if indexes is not None and any(i is not np.nan for i in indexes):
         result.index.names = list(cells.formula.parameters)
