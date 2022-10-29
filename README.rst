@@ -79,8 +79,8 @@ How modelx works
 ----------------
 
 Below is an example showing how to build a simple model using modelx.
-The model uses the Monte Carlo method to
-simulate a stock price that follows a geometric Brownian motion
+The model performs a Monte Carlo simulation to generate 10,000
+stochastic paths of a stock price that follow a geometric Brownian motion
 and to price an European call option on the stock.
 
 .. code-block:: python
@@ -125,7 +125,9 @@ and to price an European call option on the stock.
         """Call option price by Monte Carlo"""
         return np.average(np.maximum(S(N) - K, 0)) * np.exp(-r*T)
 
-Running the model from IPython is as simple as calling a function::
+Running the model from IPython is as simple as calling a function:
+
+.. code-block:: pycon
 
     >>> S(space.N)      # Stock price at i=N i.e. t=T
     array([ 78.58406132,  59.01504804, 115.148291  , ..., 155.39335662,
@@ -134,7 +136,9 @@ Running the model from IPython is as simple as calling a function::
     >>> CallOption()
     16.26919556999345
 
-Changing a parameter is as simple as assigning a value to a name::
+Changing a parameter is as simple as assigning a value to a name:
+
+.. code-block:: pycon
 
     >>> space.K = 100   # Cache is cleared by this assignment
 
@@ -143,14 +147,16 @@ Changing a parameter is as simple as assigning a value to a name::
 
 You can even dynamically create multiple copies of *MonteCarlo*
 with different combinations of ``r`` and ``sigma``,
-by parameterizing *MonteCarlo* with ``r`` and ``sigma``::
+by parameterizing *MonteCarlo* with ``r`` and ``sigma``:
+
+.. code-block:: pycon
 
     >>> space.parameters = ("r", "sigma")   # Parameterize MonteCarlo with r and sigma
 
-    >>> space[0.03, 0.15].CallOption()      # Dynamically create a copy of MonteCarlo with r=3% and sigma=15%
+    >>> space[0.03, 0.15].CallOption()  # Dynamically create a copy of MonteCarlo with r=3% and sigma=15%
     14.812014828333284
 
-    >>> space[0.06, 0.4].CallOption()       # Dynamically create another copy with r=6% and sigma=40%
+    >>> space[0.06, 0.4].CallOption()   # Dynamically create another copy with r=6% and sigma=40%
     33.90481014639403
 
 
