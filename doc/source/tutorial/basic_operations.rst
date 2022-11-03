@@ -45,7 +45,7 @@ is imported as ``mx``:
 Working with Models
 -----------------------
 
-As introduced :ref:`previously <overview-of-core-modelx-objects>`,
+As introduced :ref:`previously <overview-of-modelx-objects>`,
 Models are the top level objects that contain other types of modelx
 objects in hierarchical tree structures.
 Models are to modelx what workbooks are to a spreadsheet program.

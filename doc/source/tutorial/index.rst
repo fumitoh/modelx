@@ -25,8 +25,8 @@ except for Windows specific parts.
    :maxdepth: 3
    :caption: Contents
 
-   gettingstarted
    introduction
+   gettingstarted
    fibonacci
    mortgage
    basic_operations

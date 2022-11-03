@@ -9,6 +9,27 @@ If you prefer to use your own Python environment,
 See :doc:`/installation` page for how to install
 modelx and its relevant packages into your Python environment.
 
+
+How to interface with modelx
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+modelx is a Python package, so to use modelx we can simply
+write Python scripts and import it, as we would normally do with
+any other Python package.
+Likewise, we can also use it interactively from an IPython consoles,
+or in Jupyter notebooks.
+By convention, It is recommended to import the module as ``mx``::
+
+    >>> import modelx as mx
+
+Another way to interface with modelx is through Spyder plugin for modelx
+on Spyder IDE. The plugin installs custom widgets and custom IPython consoles
+that allow you to interface with modelx graphically.
+Using the GUI greatly helps you to understand and interact with modelx models more
+intuitively.
+The sample exercises in this tutorial assumes you use Spyder with the plugin.
+
+
 Setting up Python and modelx
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
