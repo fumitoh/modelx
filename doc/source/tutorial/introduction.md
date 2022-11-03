@@ -208,7 +208,7 @@ space.K = 110       # Option Strike
 Internally, modelx keep these names and their values as *Reference* objects. 
 
 The next part constructs the main body of our model's calculation logic.
-It creates 3 *Cells* objects, `std_norm_rand`, `S` and `call_opt` in *MonteCarlo*.
+It creates 3 *Cells* objects, `std_norm_rand`, `stock` and `call_opt` in *MonteCarlo*.
 A *Cells* object acts like a cached function. 
 It can be called like a function, and the returned value is retained until
 it needs to be updated.
@@ -223,7 +223,7 @@ the statement defines the *formula* property of the Cells object from the `std_n
 which is essentially a copy of the decorated Python function, 
 but the global names in the Formula refer to the values we just assigned above.
 
-The same goes with `S` and `call_opt`. 
+The same goes with `stock` and `call_opt`. 
 Note that within the definitions of the formulas, 
 we can refer to the other Cells defined in *MonteCarlo* as well as the names defined above.
 Also note that we can refer to the names directly, 

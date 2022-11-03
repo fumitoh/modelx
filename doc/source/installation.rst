@@ -29,9 +29,15 @@ or can be used with modelx to develop models more efficiently.
 
 * NetworkX (>=2.0) (required)
 * asttokens (required)
-* pandas (optional)
-* OpenPyXL (optional)
+* pandas (nearly required, not installed from modelx dependency)
+* OpenPyXL (nearly required, not intalled from modelx dependency)
 * Spyder (>=4.0.0) (optional)
+
+You can install and use modelx without pandas or OpenPyXL,
+but modelx would raise errors when
+features requiring those packages are requested.
+pandas and OpenPyXL are not automatically installed from modelx's dependency,
+so you should install them separately if they are missing.
 
 networkx
 ^^^^^^^^

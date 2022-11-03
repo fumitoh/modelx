@@ -110,30 +110,30 @@ and to price an European call option on the stock.
 
 
     @mx.defcells
-    def S(i):
+    def stock(i):
         """Stock price at time t_i"""
         dt = T/N; t = dt * i
         if i == 0:
             return np.full(shape=M, fill_value=S0)
         else:
             epsilon = std_norm_rand()[i-1]
-            return S(i-1) * np.exp((r - 0.5 * sigma**2) * dt + sigma * epsilon * dt**0.5)
+            return stock(i-1) * np.exp((r - 0.5 * sigma**2) * dt + sigma * epsilon * dt**0.5)
 
 
     @mx.defcells
-    def CallOption():
+    def call_opt():
         """Call option price by Monte Carlo"""
-        return np.average(np.maximum(S(N) - K, 0)) * np.exp(-r*T)
+        return np.average(np.maximum(stock(N) - K, 0)) * np.exp(-r*T)
 
 Running the model from IPython is as simple as calling a function:
 
 .. code-block:: pycon
 
-    >>> S(space.N)      # Stock price at i=N i.e. t=T
+    >>> stock(space.N)      # Stock price at i=N i.e. t=T
     array([ 78.58406132,  59.01504804, 115.148291  , ..., 155.39335662,
             74.7907511 , 137.82730703])
 
-    >>> CallOption()
+    >>> call_opt()
     16.26919556999345
 
 Changing a parameter is as simple as assigning a value to a name:
@@ -142,7 +142,7 @@ Changing a parameter is as simple as assigning a value to a name:
 
     >>> space.K = 100   # Cache is cleared by this assignment
 
-    >>> CallOption()    # New option price for the updated strike
+    >>> call_opt()    # New option price for the updated strike
     20.96156962064
 
 You can even dynamically create multiple copies of *MonteCarlo*
@@ -153,10 +153,10 @@ by parameterizing *MonteCarlo* with ``r`` and ``sigma``:
 
     >>> space.parameters = ("r", "sigma")   # Parameterize MonteCarlo with r and sigma
 
-    >>> space[0.03, 0.15].CallOption()  # Dynamically create a copy of MonteCarlo with r=3% and sigma=15%
+    >>> space[0.03, 0.15].call_opt()  # Dynamically create a copy of MonteCarlo with r=3% and sigma=15%
     14.812014828333284
 
-    >>> space[0.06, 0.4].CallOption()   # Dynamically create another copy with r=6% and sigma=40%
+    >>> space[0.06, 0.4].call_opt()   # Dynamically create another copy with r=6% and sigma=40%
     33.90481014639403
 
 

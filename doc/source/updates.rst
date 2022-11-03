@@ -12,6 +12,9 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *3 November 2022:*
+  The :doc:`tutorial/introduction` page in the tutorial is updated.
+
 * *29 October 2022:*
   A new blog post, `Why you should use modelx <https://modelx.io/blog/2022/10/29/why-you-should-use-modelx/>`_.
 

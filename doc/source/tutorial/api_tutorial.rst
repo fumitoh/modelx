@@ -1,6 +1,10 @@
 Advanced usage
 ===================
 
+.. warning::
+
+   This section is under review, and the contents may not be up-to-date.
+
 This section covers more advanced modelx concepts and techniques
 that are not covered by the earlier sections.
 
