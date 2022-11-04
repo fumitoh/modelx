@@ -846,3 +846,24 @@ def use_formula_error(use=None):
 
     return _system.formula_error
 
+
+def handle_formula_error(handle=None):
+    """Specifies whether to raise FormulaError
+
+    If :obj:`True` is given to ``handle``,
+    modelx does not raise FormulaError, but instead output the error message to stderr.
+    If :obj:`False` is given to ``handle``,
+    modelx raises FormulaError, which is the default behaviour.
+
+    If no ``handle`` is given, i.e. ``handle`` is :obj:`None`,
+    just returns, the current setting.
+
+    Args:
+        handle(:obj:`bool`, optional): Whether to handle FormulaError
+
+    .. versionadded:: 0.22.0
+    """
+    if handle is not None:
+        _system.executor.is_formula_error_handled = bool(handle)
+
+    return _system.executor.is_formula_error_handled

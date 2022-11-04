@@ -103,3 +103,4 @@ Error reporting
    ~modelx.get_traceback
    ~modelx.trace_locals
    ~modelx.use_formula_error
+   ~modelx.handle_formula_error

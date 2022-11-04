@@ -44,6 +44,7 @@ class NonThreadedExecutor:
         self.rolledback = deque()
         self.callstack = CallStack(self, maxdepth)
         self.is_executing = False
+        self.is_formula_error_handled = False
 
     def eval_node(self, node):
 
@@ -108,8 +109,12 @@ class NonThreadedExecutor:
                 )
                 errmsg = "".join(errmsg)
                 errmsg += self.errorstack.tracemessage()
-                raise FormulaError(
+                err = FormulaError(
                     "Error raised during formula execution\n" + errmsg)
+                if self.is_formula_error_handled:
+                    print(err, file=sys.stderr)
+                else:
+                    raise err
             else:
                 raise self.excinfo[1]
 
@@ -191,6 +196,12 @@ class ThreadedExecutor(NonThreadedExecutor):
 
             else:
                 return self.thread.buffer
+
+        except FormulaError as err:
+            if self.is_formula_error_handled:
+                print(str(err), file=sys.stderr)
+            else:
+                raise
 
         finally:
             self.initnode = None
