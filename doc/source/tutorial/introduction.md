@@ -430,7 +430,7 @@ modelx lets us build models composed of a few types of objects.
 *Model*, *UserSpace*, *Cells*, *Reference* are the most
 frequent types we use.
 In this section we briefly review these types of objects
-to have a of what these types of objects are.
+to have basic understanding of them.
 
 The diagram below illustrates containment
 relationships between those objects.
