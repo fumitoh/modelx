@@ -36,14 +36,14 @@ from modelx.io.baseio import IOManager, BaseSharedIO
 
 class NonThreadedExecutor:
 
-    def __init__(self, system, maxdepth=None):
+    def __init__(self, maxdepth=None):
 
-        self.system = system
         self.refstack = deque()
         self.errorstack = None
         self.rolledback = deque()
         self.callstack = CallStack(self, maxdepth)
         self.is_executing = False
+        self.is_formula_error_used = True
         self.is_formula_error_handled = False
 
     def eval_node(self, node):
@@ -102,7 +102,7 @@ class NonThreadedExecutor:
                 self.excinfo,
                 self.rolledback
             )
-            if self.system.formula_error:
+            if self.is_formula_error_used:
                 errmsg = traceback.format_exception_only(
                     self.excinfo[0],
                     self.excinfo[1]
@@ -124,12 +124,12 @@ class NonThreadedExecutor:
 
 class ThreadedExecutor(NonThreadedExecutor):
 
-    def __init__(self, system, maxdepth=None):
+    def __init__(self, maxdepth=None):
 
         # Use thread to increase stack size and deepen callstack
         # Ref: https://bugs.python.org/issue32570
 
-        NonThreadedExecutor.__init__(self, system, maxdepth)
+        NonThreadedExecutor.__init__(self, maxdepth=maxdepth)
         self.thread = ThreadedExecutor.ExecThread(self)
         self.thread.daemon = True
 
@@ -182,7 +182,7 @@ class ThreadedExecutor(NonThreadedExecutor):
                     self.excinfo,
                     self.rolledback
                 )
-                if self.system.formula_error:
+                if self.is_formula_error_used:
                     errmsg = traceback.format_exception_only(
                         self.excinfo[0],
                         self.excinfo[1]
@@ -484,11 +484,11 @@ class System:
     def __init__(self, maxdepth=None, setup_shell=False):
 
         self.configure_python()
-        self.formula_error = True
+        self.is_formula_error_used = True
         if sys.platform == "win32":
-            self.executor = ThreadedExecutor(self, maxdepth)
+            self.executor = ThreadedExecutor(maxdepth=maxdepth)
         else:
-            self.executor = NonThreadedExecutor(self, maxdepth)
+            self.executor = NonThreadedExecutor(maxdepth=maxdepth)
         self.callstack = self.executor.callstack
         self.refstack = self.executor.refstack
         self._modelnamer = AutoNamer("Model")

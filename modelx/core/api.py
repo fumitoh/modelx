@@ -842,9 +842,9 @@ def use_formula_error(use=None):
     If no argument is given, returns the current setting.
     """
     if use is not None:
-        _system.formula_error = bool(use)
+        _system.executor.is_formula_error_used = bool(use)
 
-    return _system.formula_error
+    return _system.executor.is_formula_error_used
 
 
 def handle_formula_error(handle=None):
