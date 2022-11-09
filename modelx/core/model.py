@@ -2419,6 +2419,9 @@ class ReferenceManager:
         if refs is None:
             raise ValueError("value not referenced")
 
+        if new_value is None:
+            new_value = old_value
+
         if spec is not None:
             self._manager.update_spec_value(spec, new_value, kwargs)
             new_value = spec.value

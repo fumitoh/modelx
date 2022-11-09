@@ -375,6 +375,40 @@ def test_update_pandas_no_spec():
     m.close()
 
 
+@pytest.mark.parametrize("parent_type, has_spec", [["model", "space"], [True, False]])
+def test_update_pandas_no_new_value(parent_type, has_spec):
+
+    m = mx.new_model()
+    s_base = m.new_space()
+    s_sub = m.new_space(bases=s_base)
+
+    @mx.defcells(space=s_base)
+    def foo():
+        return x['col1'][0]
+
+    parent = m if parent_type == "model" else s_base
+
+    df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+
+    if has_spec:
+        parent.new_pandas('x', 'df.xlsx', df, 'excel')
+        spec = parent.get_spec(df)
+    else:
+        parent.x = df
+
+    assert s_base.foo() == 1
+    assert s_sub.foo() == 1
+
+    df['col1'][0] = 5
+    m.update_pandas(df)
+
+    assert s_base.foo() == 5
+    assert s_sub.foo() == 5
+
+    if has_spec:
+        assert m.get_spec(df) is spec
+
+
 @pytest.mark.parametrize("parent_type", ["model", "space"])
 def test_del_val_with_spec_by_change_ref(parent_type):
 
