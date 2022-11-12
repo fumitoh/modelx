@@ -12,6 +12,9 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *12 November 2022:*
+  The :doc:`tutorial/using_pandas` page is added in the tutorial.
+
 * *3 November 2022:*
   The :doc:`tutorial/introduction` page in the tutorial is updated.
 

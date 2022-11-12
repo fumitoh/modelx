@@ -30,6 +30,7 @@ except for Windows specific parts.
    fibonacci
    mortgage
    basic_operations
+   using_pandas
    object_oriented
    api_tutorial
 

@@ -51,16 +51,26 @@ is a required package that modelx depends on.
 
 Pandas
 ^^^^^^
-Although you can install modelx without Pandas,
-it is highly recommended that you have Pandas installed, together with
-other packages Pandas depends on, such as NumPy,
-so that you can export Spaces and Cells to Pandas DataFrame and Series.
+Although pandas is not strictly required for modelx,
+you should have pandas installed, as some methods in modelx require
+pandas and errors will be raised if such methods are called
+without pandas installed.
+
+In most Python distributions, pandas is pre-installed,
+but if it's not installed,  install it by typing ``pip install pandas``
+in the console, or if you're using Anaconda, by ``conda install pandas``.
 
 Openpyxl
 ^^^^^^^^
 OpenPyXL is a package that supports reading from and writing to Excel files.
-Openpyxl is also not required, but it is desirable to hav it installed
-to enable modelx to interface with Excel files.
+OpenPyXL is also not strictly required,
+but some methods, such as :meth:`~modelx.core.model.Model.new_pandas`
+depend on it to interface with Excel files.
+So to have modelx fully function, you should have OpenPyXL installed.
+
+To install OpenPyXL from ``pip``, type ``pip install openpyxl``
+in the console, or if you're using Anaconda, type ``conda install openpyxl``.
+
 
 Spyder
 ^^^^^^
@@ -91,20 +101,20 @@ as explained below.
 
 To install the current version of ``modelx`` with ``pip``::
 
-    $ pip install modelx
+    > pip install modelx
 
 To upgrade to a newer version using the ``--upgrade`` flag::
 
-    $ pip install --upgrade modelx
+    > pip install --upgrade modelx
 
 To make ``modelx`` available only to you but others,
 install it into your user directory using the ``--user`` flag::
 
-    $ pip install --user modelx
+    > pip install --user modelx
 
 To uninstall ``modelx``::
 
-    $ pip uninstall modelx
+    > pip uninstall modelx
 
 If you prefer to install ``modelx`` from files placed locally on your machine
 instead of directly fetching from the Web,
@@ -114,7 +124,7 @@ you can manually download ``modelx`` files from
 Unpack the downloaded files and run the following command
 at the top of the source directory::
 
-    $ pip install .
+    > pip install .
 
 To install the latest development version instead of the released version,
 clone the `modelx repository`_  from github,
@@ -132,15 +142,15 @@ to install and update ``modelx``. In stead, use the ``conda`` command.
 
 To install the current version of ``modelx``::
 
-    $ conda install -c conda-forge modelx
+    > conda install -c conda-forge modelx
 
 To upgrade modelx::
 
-    $ conda update modelx
+    > conda update modelx
 
 To uninstall modelx::
 
-    $ conda remove modelx
+    > conda remove modelx
 
 Spyder integration
 ------------------
@@ -229,10 +239,10 @@ Updating packages
 To update modelx to the latest version, use ``-U`` option with ``pip install``,
 or ``conda update`` with `Anaconda`_::
 
-    $ pip install -U modelx
+    > pip install -U modelx
 
 On Anaconda::
 
-    $ conda update modelx
+    > conda update modelx
 
 
