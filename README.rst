@@ -19,9 +19,10 @@ modelx
 
 What is modelx?
 ---------------
-**modelx** is a numerical computing tool which enables you to use
-Python like a spreadsheet and build object-oriented models
-by defining formulas. modelx is best suited for building models
+**modelx** is a numerical computing tool that enables you to
+use Python like a spreadsheet by quickly defining cached functions.
+modelx is best suited for implementing mathematical models expressed
+in a large system of recursive formulas,
 in such fields as actuarial science, quantitative finance and risk management.
 
 Feature highlights
@@ -30,8 +31,8 @@ Feature highlights
 develop, run and debug complex models in smart ways.
 modelx allows you to:
 
-- Define cached formulas by writing Python functions
-- Quickly build object-oriented models, utilizing inheritance and composition
+- Define cached functions as *Cells* objects by writing Python functions
+- Quickly build object-oriented models, utilizing prototype-based inheritance and composition
 - Quickly parameterize a set of formulas and get results for different parameters
 - Trace formula dependency
 - Import and use any Python modules, such as `Numpy`_, `pandas`_, `SciPy`_, `scikit-learn`_, etc..

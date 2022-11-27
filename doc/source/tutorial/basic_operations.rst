@@ -25,7 +25,7 @@ By convention, import the module as an abbreviated name, ``mx``::
 
     >>> import modelx as mx
 
-By doing so, modelx API functions becomes accessible through ``mx``.
+By doing so, modelx API functions become accessible through ``mx``.
 The entire list of modelx API functions can be found in
 the :doc:`/reference/functions` section in the *Reference Guide*.
 All the sample scripts in this tutorial assume that the modelx module
@@ -58,9 +58,9 @@ Creating Models
 When *modelx* is imported into a Python session for the first time,
 no Model exists in the session.
 
-To create a new Model with a name, call :py:func:`~modelx.new_model`.
+To create a new Model, call :py:func:`~modelx.new_model`.
 :py:func:`~modelx.new_model` returns a new Model with
-the name passed to its ``name`` parameter.
+a name passed to its ``name`` parameter.
 For example, the statement below creates a Model named *MyModel*
 and assigns it to a global variable ``model``.
 
@@ -123,7 +123,7 @@ Deleting Models
 ^^^^^^^^^^^^^^^
 
 To delete a model, call the :py:meth:`~modelx.core.model.Model.close` method
-of the Model.
+on the Model.
 
 
 Saving and reading Models
@@ -180,6 +180,12 @@ suffixed with ``_BAKn`` where ``n`` is an integer.
 
 Backup and restore
 ^^^^^^^^^^^^^^^^^^
+
+.. warning::
+
+    The backup and restore features are deprecated since version 0.18.0.
+    Consider using :py:func:`~modelx.write_model` and :py:func:`~modelx.read_model`
+    instead.
 
 There is another way to save Models. The :meth:`~modelx.core.model.Model.backup`
 method writes the Model to a binary file.
@@ -339,6 +345,11 @@ the last operated Space for each model as the current space.
 the current model,
 and :py:meth:`~modelx.core.model.Model.cur_space` method of a model holds
 its current space.
+
+You can create a new cells even without creating a model and space.
+If no model exists, then :func:`~modelx.defcells` first creates
+a model and a space in the model, both named automatically by modelx,
+such as *Model1* and *Space1*, and creates the cells in the space.
 
 To specify the space to create a cells in, you can pass the space object as
 an argument to the :func:`~modelx.defcells` decorator. Below is the same as
