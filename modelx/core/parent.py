@@ -881,8 +881,9 @@ class EditableParentImpl(BaseParentImpl):
             self, name=name, formula=param_func, source=source)
 
         for cellsdata in cellstable.items():
-            space.new_cells(name=cellsdata.name,
-                            formula=get_param_func(cells_params))
+            space.spacemgr.new_cells(
+                space, name=cellsdata.name,
+                formula=get_param_func(cells_params))
 
         # Split for-loop to avoid clearing the preceding cells
         # each time a new cells is created in the base space.

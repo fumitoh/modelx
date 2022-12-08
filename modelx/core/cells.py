@@ -39,7 +39,8 @@ class CellsMaker:
         self.name = name
 
     def __call__(self, func):
-        return self.space.new_cells(formula=func, name=self.name).interface
+        return self.space.spacemgr.new_cells(
+            self.space, formula=func, name=self.name).interface
 
 
 ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])

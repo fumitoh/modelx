@@ -647,7 +647,8 @@ class UserSpace(BaseSpace, EditableParent):
             The new cells.
         """
         # Outside formulas only
-        return self._impl.new_cells(name, formula).interface
+        return self._impl.spacemgr.new_cells(
+            self._impl, name, formula).interface
 
     def copy(self, parent, name=None, defined_only=False):
         """Make a copy of itself
@@ -1616,15 +1617,6 @@ class UserSpaceImpl(*_user_space_impl_base):
     # ----------------------------------------------------------------------
     # Cells creation
 
-    def new_cells(self, name=None, formula=None, is_derived=False,
-                  source=None):
-
-        cells = self.spacemgr.new_cells(
-            self, name=name, formula=formula, is_derived=is_derived,
-            source=source)
-
-        return cells
-
     def new_cells_from_module(self, module, override=True):
         # Outside formulas only
 
@@ -1641,7 +1633,8 @@ class UserSpaceImpl(*_user_space_impl_base):
                             self.cells[name], func)
                         newcells[name] = self.cells[name]
                     else:
-                        newcells[name] = self.new_cells(name, func)
+                        newcells[name] = self.spacemgr.new_cells(
+                            self, name, func)
 
         return newcells
 
@@ -1715,7 +1708,9 @@ class UserSpaceImpl(*_user_space_impl_base):
         }
 
         for cellsdata in cellstable.items():
-            cells = self.new_cells(name=cellsdata.name, formula=blank_func,
+            cells = self.spacemgr.new_cells(
+                self,
+                name=cellsdata.name, formula=blank_func,
                                    source=source)
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
@@ -1851,7 +1846,8 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.cells[name].reload(module=modsrc)
 
         for name in cells_to_add:
-            self.new_cells(name=name, formula=funcs[name])
+            self.spacemgr.new_cells(
+                self, name=name, formula=funcs[name])
 
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
