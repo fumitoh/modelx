@@ -193,10 +193,10 @@ def defcells(space=None, name=None, *funcs):
         space = _system.get_curspace()
         name = func.__name__
         if _is_valid_name(name) and name in space.cells:
-            space.spacemgr.change_cells_formula(space.cells[name], func)
+            space.spmgr.change_cells_formula(space.cells[name], func)
             return space.cells[name].interface
         else:
-            return space.spacemgr.new_cells(space, formula=func).interface
+            return space.spmgr.new_cells(space, formula=func).interface
 
     elif (isinstance(space, _Space) or space is None) and (
         isinstance(name, str) or name is None

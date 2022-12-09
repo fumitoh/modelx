@@ -202,7 +202,7 @@ class Impl(BaseImpl):
         "system",
         "interface",
         "parent",
-        "spacemgr",
+        "spmgr",
         "name",
         "model",
         "allow_none",
@@ -264,18 +264,6 @@ class Impl(BaseImpl):
             else:
                 return self.name
 
-    @property
-    def namedid(self):
-        return self.get_fullname(omit_model=True)
-
-    @property
-    def evalrepr(self):
-        """Evaluable repr"""
-        if self.is_model():
-            return self.get_fullname()
-        else:
-            return self.parent.evalrepr + "." + self.name
-
     def is_model(self):
         return self.parent is None
 
@@ -309,6 +297,18 @@ class Impl(BaseImpl):
 
     # ----------------------------------------------------------------------
     # repr methods
+
+    @property
+    def idstr(self):
+        return self.get_fullname(omit_model=True)
+
+    @property
+    def evalrepr(self):
+        """Evaluable repr"""
+        if self.is_model():
+            return self.get_fullname()
+        else:
+            return self.parent.evalrepr + "." + self.name
 
     def repr_self(self, add_params=True):
         raise NotImplementedError
@@ -357,11 +357,11 @@ class Derivable:
 
     @property
     def bases(self):
-        return self.spacemgr.get_deriv_bases(self)
+        return self.spmgr.get_deriv_bases(self)
 
     @property
     def defined_bases(self):
-        return self.spacemgr.get_deriv_bases(self, defined_only=True)
+        return self.spmgr.get_deriv_bases(self, defined_only=True)
 
     @staticmethod
     def _get_members(other):
@@ -563,11 +563,11 @@ class Interface:
         model = self._impl.system.serializing.model
         if model is self.model:
             # Replace model name with empty string
-            tupleid = ("",) + self._tupleid[1:]
+            idtuple = ("",) + self._idtuple[1:]
         else:
-            tupleid = self._tupleid
+            idtuple = self._idtuple
 
-        return self._impl.system._get_object_from_tupleid_reduce, (tupleid,)
+        return self._impl.system._get_object_from_idtuple_reduce, (idtuple,)
 
     def set_property(self, name: str, value):
         """Set property ``name``
@@ -617,7 +617,7 @@ class Interface:
             "name": self.name,
             "fullname": self.fullname,
             "repr": self._get_repr(),
-            "namedid": self._namedid
+            "namedid": self._idstr
         }
 
         return result
@@ -638,7 +638,6 @@ class Interface:
 
         return result
 
-
     def _get_attrdict(self, extattrs=None, recursive=True):
         """Get attributes in a dict"""
 
@@ -648,7 +647,7 @@ class Interface:
             "name": self.name,
             "fullname": self.fullname,
             "repr": self._get_repr(),
-            "namedid": self._namedid
+            "namedid": self._idstr
         }
 
     def _get_attrdict_extra(self, attrdict, extattrs=None, recursive=True):
@@ -663,7 +662,6 @@ class Interface:
                 else:
                     attrdict[name] = attr
 
-
     def _get_repr(self, fullname=False, add_params=True):
         return self._impl.get_repr(fullname, add_params)
 
@@ -672,15 +670,15 @@ class Interface:
         return self._impl.evalrepr
 
     @property
-    def _tupleid(self):
+    def _idtuple(self):
         if self._impl.is_model():
             return (self.name,)
         else:
-            return self.parent._tupleid + (self.name,)
+            return self.parent._idtuple + (self.name,)
 
     @property
-    def _namedid(self):
-        return self._impl.namedid
+    def _idstr(self):
+        return self._impl.idstr
 
     def _is_valid(self):
         return not isinstance(self._impl, NullImpl)

@@ -698,10 +698,10 @@ class System:
         else:
             return model
 
-    def get_object_from_tupleid(self, tupleid, as_proxy=False):
+    def get_object_from_idtuple(self, idtuple, as_proxy=False):
         """Retrieve an object from tuple id."""
         obj = None
-        ids = list(tupleid)
+        ids = list(idtuple)
 
         while ids:
             key = ids.pop(0)
@@ -730,13 +730,13 @@ class System:
 
         return self.get_object(name)
 
-    def _get_object_from_tupleid_reduce(self, tupleid, as_proxy=False):
+    def _get_object_from_idtuple_reduce(self, idtuple, as_proxy=False):
 
-        if not tupleid[0]:
+        if not idtuple[0]:
             model = self.serializing.model.name
-            tupleid = (model,) + tupleid[1:]
+            idtuple = (model,) + idtuple[1:]
 
-        return self.get_object_from_tupleid(tupleid, as_proxy)
+        return self.get_object_from_idtuple(idtuple, as_proxy)
 
     # ----------------------------------------------------------------------
     # Call stack tracing

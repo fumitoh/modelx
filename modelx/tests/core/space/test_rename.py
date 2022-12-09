@@ -58,4 +58,4 @@ def test_rename():
     c2.formula = lambda:Bar.Baz.Cells1()
     assert c2() == 1
 
-    m._impl.spacemgr._check_sanity()
+    m._impl.spmgr._check_sanity()

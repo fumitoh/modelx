@@ -61,7 +61,7 @@ def test_mro_simple(simplemodel):
     B = model.new_space(name="B", bases=C)
     D = model.new_space(name="D", bases=[A, B])
 
-    assert model._impl.spacemgr._graph.get_mro("D") == ["D", "A", "B", "C"]
+    assert model._impl.spmgr._graph.get_mro("D") == ["D", "A", "B", "C"]
 
 
 def test_mro_complicated(simplemodel):
@@ -74,7 +74,7 @@ def test_mro_complicated(simplemodel):
     b = model.new_space(name="b", bases=[e, d])
     a = model.new_space(name="a", bases=[b, c])
 
-    assert model._impl.spacemgr._graph.get_mro("a") == (
+    assert model._impl.spmgr._graph.get_mro("a") == (
         ["a", "b", "e", "c", "d", "f", "o"]
     )
 

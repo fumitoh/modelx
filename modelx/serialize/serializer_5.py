@@ -492,7 +492,7 @@ class SpaceEncoder(BaseEncoder):
 
         self.refview_encoder = RefViewEncoder(
             self.writer,
-            self.space._self_refs,
+            self.space._own_refs,
             parent=self.space,
             srcpath=srcpath
         )
@@ -639,11 +639,11 @@ class SpaceEncoder(BaseEncoder):
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
 
-                tupleid = TupleID(abs_to_rel_tuple(
-                    cells._tupleid, static_parent._tupleid))
-                tupleid.pickle_args(self.writer.pickledata)
+                idtuple = TupleID(abs_to_rel_tuple(
+                    cells._idtuple, static_parent._idtuple))
+                idtuple.pickle_args(self.writer.pickledata)
                 file.write(
-                    "(%s, %s, %s)\n" % (tupleid.serialize(), keyid, valid)
+                    "(%s, %s, %s)\n" % (idtuple.serialize(), keyid, valid)
                 )
 
                 if self.writer.log_input:
@@ -888,25 +888,25 @@ class InterfaceRefEncoder(BaseEncoder):
         return isinstance(value, Interface) and value._is_valid()
 
     def encode(self):
-        tupleid = TupleID(abs_to_rel_tuple(
-            self.target.value._tupleid,
-            self.parent._tupleid
+        idtuple = TupleID(abs_to_rel_tuple(
+            self.target.value._idtuple,
+            self.parent._idtuple
         ))
         if tuple(int(i) for i in mx.__version__.split(".")[:3]) < (0, 10):
-            return "(\"Interface\", %s)" % tupleid.serialize()
+            return "(\"Interface\", %s)" % idtuple.serialize()
         else:
             return "(\"Interface\", %s, \"%s\")" % (
-                tupleid.serialize(),
+                idtuple.serialize(),
                 self.target.refmode
             )
 
     def pickle_value(self):
 
-        tupleid = TupleID(abs_to_rel_tuple(
-            self.target.value._tupleid,
-            self.parent._tupleid
+        idtuple = TupleID(abs_to_rel_tuple(
+            self.target.value._idtuple,
+            self.parent._idtuple
         ))
-        tupleid.pickle_args(self.writer.pickledata)
+        idtuple.pickle_args(self.writer.pickledata)
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -1125,11 +1125,11 @@ class ModelReader:
                 instructuions.append(inst)
             self.instructions.extend(instructuions)
 
-    def _set_dynamic_inputs(self, tupleid, keyid, valid, static_parent):
-        tupleid = TupleID.unpickle_args(tupleid, self.pickledata)
-        if tupleid[0][0] == ".":    # Backward compatibility (-0.13.0)
-            tupleid = rel_to_abs_tuple(tupleid, static_parent._tupleid)
-        cells = mxsys.get_object_from_tupleid(tupleid)
+    def _set_dynamic_inputs(self, idtuple, keyid, valid, static_parent):
+        idtuple = TupleID.unpickle_args(idtuple, self.pickledata)
+        if idtuple[0][0] == ".":    # Backward compatibility (-0.13.0)
+            idtuple = rel_to_abs_tuple(idtuple, static_parent._idtuple)
+        cells = mxsys.get_object_from_idtuple(idtuple)
         key = self.pickledata[keyid]
         value = self.pickledata[valid]
         cells._impl.set_value(key, value)
@@ -1752,8 +1752,8 @@ class InterfaceDecoder(TupleDecoder):
             TupleID.tuplize(self.atok.get_text(self.node.elts[1])),
             self.reader.pickledata
         )
-        decoded = rel_to_abs_tuple(decoded, self.obj._tupleid)
-        return mxsys.get_object_from_tupleid(decoded)
+        decoded = rel_to_abs_tuple(decoded, self.obj._idtuple)
+        return mxsys.get_object_from_idtuple(decoded)
 
 
 class IOSpecDecoder(TupleDecoder):

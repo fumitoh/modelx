@@ -815,7 +815,7 @@ class ModelImpl(*_model_impl_base):
         EditableParentImpl.__init__(self)
         TraceManager.__init__(self)
 
-        self.spacemgr = SpaceManager(self)
+        self.spmgr = SpaceManager(self)
         self.currentspace = None
         self._global_refs = RefDict(self)
         self._global_refs.set_item("__builtins__", builtins)
@@ -859,7 +859,7 @@ class ModelImpl(*_model_impl_base):
         return self._global_refs.fresh
 
     refs = global_refs
-    self_refs = global_refs
+    own_refs = global_refs
 
     @property
     def namespace(self):
@@ -893,7 +893,7 @@ class ModelImpl(*_model_impl_base):
         for gname, graph in graphs.items():
             mapping = {}
             for node in graph:
-                name = node[OBJ].namedid
+                name = node[OBJ].idstr
                 if node_has_key(node):
                     mapping[node] = (name, node[KEY])
                 else:
@@ -936,7 +936,7 @@ class ModelImpl(*_model_impl_base):
 
     @property
     def updater(self):
-        return SpaceUpdater(self.spacemgr)
+        return SpaceUpdater(self.spmgr)
 
     def del_ref(self, name):
         ref = self.global_refs[name]
@@ -1550,7 +1550,7 @@ class SharedSpaceOperations:
 
     def _get_space_bases(self, space, skip_self=True):
         idx = 1 if skip_self else 0
-        nodes = self._graph.get_mro(space.namedid)[idx:]
+        nodes = self._graph.get_mro(space.idstr)[idx:]
         return [self._graph.to_space(n) for n in nodes]
 
     def get_deriv_bases(self, deriv: Derivable, defined_only=False,
@@ -1561,7 +1561,7 @@ class SharedSpaceOperations:
         if isinstance(deriv, UserSpaceImpl):    # Not Dynamic spaces
             return self._get_space_bases(deriv, graph)
 
-        pnode = deriv.parent.namedid
+        pnode = deriv.parent.idstr
 
         bases = []
         for bspace in graph.get_mro(pnode)[1:]:
@@ -1574,13 +1574,13 @@ class SharedSpaceOperations:
         return bases
 
     def get_direct_bases(self, space):
-        node = space.namedid
+        node = space.idstr
         preds = self._inheritance.ordered_preds(node)
         return [self._inheritance.to_space(n) for n in preds]
 
     def update_subs(self, space, skip_self=True):
 
-        for attr in ("cells", "self_refs"):
+        for attr in ("cells", "own_refs"):
             for s in self._get_subs(space, skip_self):
                 b = self._get_space_bases(s, self._graph)
                 s.on_inherit(self, b, attr)
@@ -1589,16 +1589,16 @@ class SharedSpaceOperations:
         idx = 1 if skip_self else 0
         return [
             self._graph.to_space(desc) for desc in list(
-                self._graph.ordered_subs(space.namedid))[idx:]
+                self._graph.ordered_subs(space.idstr))[idx:]
         ]
 
     def get_relative_interface(self, parent, base):
 
-        basespace = base.parent.namedid
-        basevalue = base.interface._impl.namedid
+        basespace = base.parent.idstr
+        basevalue = base.interface._impl.idstr
 
         subimpl = self._graph.get_relative(
-            parent.namedid, basespace, basevalue)
+            parent.idstr, basespace, basevalue)
 
         if subimpl:
             return True, self.model.get_impl_from_name(subimpl).interface
@@ -1617,7 +1617,7 @@ class SpaceManager(SharedSpaceOperations):
             raise ValueError("Cannot rename '%s' to '%s'" % (space.name, name))
 
         # Check space is not derived or overwritten
-        for e in self._graph.in_edges(space.namedid):
+        for e in self._graph.in_edges(space.idstr):
             if self._graph.edges[e]["mode"] == "derived":
                 t, h = e
                 raise ValueError(
@@ -1626,16 +1626,16 @@ class SpaceManager(SharedSpaceOperations):
         # Derived/Overwritten spaces are renamed
         subspaces = list(
             self._graph.to_space(n) for n in self._graph.get_derived_subs(
-                space.namedid)
+                space.idstr)
         )
 
         # Create name mapping
         mapping = {}
         for s in subspaces:
-            old_id = tuple(s.namedid.split("."))
+            old_id = tuple(s.idstr.split("."))
             new_id = old_id[:-1] + (name,)
             for node in self._graph.visit_treenodes(
-                    s.namedid, include_self=True):
+                    s.idstr, include_self=True):
 
                 old_child = tuple(node.split("."))
                 assert old_id == old_child[:len(old_id)]
@@ -1673,7 +1673,7 @@ class SpaceManager(SharedSpaceOperations):
         if not self._can_add(space, name, CellsImpl, overwrite=overwrite):
             raise ValueError("Cannot create cells '%s'" % name)
 
-        self._set_defined(space.namedid)
+        self._set_defined(space.idstr)
         space.set_defined()
 
         cells = UserCellsImpl(
@@ -1712,7 +1712,7 @@ class SpaceManager(SharedSpaceOperations):
         """``space`` can be of another Model"""
 
         if space.model is not self.model:
-            return space.spacemgr.copy_cells(space, source, name)
+            return space.spmgr.copy_cells(space, source, name)
 
         if name is None:
             name = source.name
@@ -1768,18 +1768,18 @@ class SpaceManager(SharedSpaceOperations):
 
         # Check if relative ref is possible when refmode is 'relative'
         if isinstance(value, Interface) and refmode == "relative":
-            basevalue = value._impl.namedid
+            basevalue = value._impl.idstr
             for subspace in self._get_subs(space):
-                if name in subspace.self_refs:
+                if name in subspace.own_refs:
                     break
                 else:
                     subvalue = self._graph.get_relative(
-                        subspace.namedid, space.namedid,
+                        subspace.idstr, space.idstr,
                         basevalue)
                     if not subvalue:
                         raise ValueError(
                             "Cannot create relative reference for '%s' in '%s'"
-                            % (basevalue, subspace.namedid)
+                            % (basevalue, subspace.idstr)
                         )
 
     def new_ref(self, space, name, value, refmode):
@@ -1792,19 +1792,19 @@ class SpaceManager(SharedSpaceOperations):
                 raise ValueError("Cannot create reference '%s'" % name)
 
         self._check_subs_relrefs(space, name, value, refmode)
-        self._set_defined(space.namedid)
+        self._set_defined(space.idstr)
         space.set_defined()
         result = space.on_create_ref(name, value, is_derived=False,
                             refmode=refmode)
 
         for subspace in self._get_subs(space):
             is_relative = False
-            if name in subspace.self_refs:
+            if name in subspace.own_refs:
                 break
             if isinstance(value, Interface) and value._is_valid():
                 if refmode == "auto" or refmode == "relative":
                     is_relative, value = self.get_relative_interface(
-                        subspace, space.self_refs[name])
+                        subspace, space.own_refs[name])
             ref = subspace.on_create_ref(name, value, is_derived=True,
                                    refmode=refmode)
             ref.is_relative = is_relative
@@ -1815,7 +1815,7 @@ class SpaceManager(SharedSpaceOperations):
         """Assigns a new value to an existing name."""
 
         self._check_subs_relrefs(space, name, value, refmode)
-        self._set_defined(space.namedid)
+        self._set_defined(space.idstr)
         space.set_defined()
 
         is_relative = False if refmode == "absolute" else True
@@ -1825,16 +1825,16 @@ class SpaceManager(SharedSpaceOperations):
 
         for subspace in self._get_subs(space):
             is_relative = False
-            subref = subspace.self_refs[name]
+            subref = subspace.own_refs[name]
             if subref.is_defined:
                 break
-            elif subref.defined_bases[0] is not space.self_refs[name]:
+            elif subref.defined_bases[0] is not space.own_refs[name]:
                 break
             if isinstance(value, Interface) and value._is_valid():
                 if (refmode == "auto"
                         or refmode == "relative"):
                     is_relative, value = self.get_relative_interface(
-                        subspace, space.self_refs[name])
+                        subspace, space.own_refs[name])
             ref = subspace.on_change_ref(name, value,
                                          is_derived=True, refmode=refmode,
                                          is_relative=is_relative)
@@ -1852,9 +1852,9 @@ class SpaceManager(SharedSpaceOperations):
         while spaces:
             k, v = spaces.popitem()
             assert k == v.name
-            assert v.namedid in nodes
-            assert v is self._graph.nodes[v.namedid]["space"]
-            nodes.remove(v.namedid)
+            assert v.idstr in nodes
+            assert v is self._graph.nodes[v.idstr]["space"]
+            nodes.remove(v.idstr)
             spaces.update(v.named_spaces)
 
         assert not nodes # Check all nodes are reached
@@ -1873,7 +1873,7 @@ class SpaceUpdater(SharedSpaceOperations):
 
     def _init_subgraphs(self, spaces, copy_derived=False):
 
-        nodes = [s.namedid for s in spaces]
+        nodes = [s.idstr for s in spaces]
 
         self.oldsubg_inherit = self.manager._inheritance.subgraph_from_nodes(
             nodes)
@@ -1939,7 +1939,7 @@ class SpaceUpdater(SharedSpaceOperations):
     def _update_derived_refs(self, node):
         space = self._graph.to_space(node)
         bases = self._get_space_bases(space, self._graph)
-        space.on_inherit(self, bases, 'self_refs')
+        space.on_inherit(self, bases, 'own_refs')
 
     def _derive_hook(self, graph, edge):
         """Callback passed as on_edge parameter"""
@@ -2015,7 +2015,7 @@ class SpaceUpdater(SharedSpaceOperations):
         elif isinstance(bases, UserSpaceImpl):
             bases = [bases]
 
-        node = name if parent.is_model() else parent.namedid + "." + name
+        node = name if parent.is_model() else parent.idstr + "." + name
 
         spaces = [s for s in bases]
         if not parent.is_model():
@@ -2029,7 +2029,7 @@ class SpaceUpdater(SharedSpaceOperations):
                 node, mode="defined", state="defined")
 
             for b in bases:
-                base = b.namedid
+                base = b.idstr
                 g.add_edge(
                     base, node,
                     mode="defined",
@@ -2088,8 +2088,8 @@ class SpaceUpdater(SharedSpaceOperations):
     def add_bases(self, space, bases):
         """Add bases to space in graph
         """
-        node = space.namedid
-        basenodes = [base.namedid for base in bases]
+        node = space.idstr
+        basenodes = [base.idstr for base in bases]
 
         for base in [node] + basenodes:
             if base not in self.manager._inheritance:
@@ -2146,8 +2146,8 @@ class SpaceUpdater(SharedSpaceOperations):
 
     def remove_bases(self, space, bases):
 
-        node = space.namedid
-        basenodes = [base.namedid for base in bases]
+        node = space.idstr
+        basenodes = [base.idstr for base in bases]
 
         for base in [node] + basenodes:
             if base not in self.manager._inheritance:
@@ -2205,7 +2205,7 @@ class SpaceUpdater(SharedSpaceOperations):
                 "%s has derived spaces" % repr(space.interface)
             )
 
-        node = space.namedid
+        node = space.idstr
 
         if node not in self.manager._inheritance:
             raise ValueError("Space '%s' not found" % node)
@@ -2273,7 +2273,7 @@ class SpaceUpdater(SharedSpaceOperations):
             name=name,
             bases=None,
             formula=source.formula,
-            refs={k: v.interface for k, v in source.self_refs.items()},
+            refs={k: v.interface for k, v in source.own_refs.items()},
             source=source.source,
             is_derived=False,
             prefix="",
@@ -2335,7 +2335,7 @@ class ReferenceManager:
         if isinstance(impl, ModelImpl):
             ref = impl.new_ref(name, value)
         elif isinstance(impl, UserSpaceImpl):
-            ref = impl.model.spacemgr.new_ref(impl, name, value, refmode)
+            ref = impl.model.spmgr.new_ref(impl, name, value, refmode)
         else:
             raise RuntimeError("must not happen")
 
@@ -2350,7 +2350,7 @@ class ReferenceManager:
 
     def del_ref(self, impl, name):
 
-        refdict = impl.self_refs
+        refdict = impl.own_refs
         ref = refdict[name]
         valid = id(ref.interface)
         val = ref.interface
@@ -2358,7 +2358,7 @@ class ReferenceManager:
         if isinstance(impl, ModelImpl):
             impl.del_ref(name)
         elif isinstance(impl, UserSpaceImpl):
-            impl.model.spacemgr.del_ref(impl, name)
+            impl.model.spmgr.del_ref(impl, name)
         else:
             raise RuntimeError("must not happen")
 
@@ -2376,7 +2376,7 @@ class ReferenceManager:
 
     def change_ref(self, impl, name, value, refmode=None):
 
-        refdict = impl.self_refs
+        refdict = impl.own_refs
         prev_ref = refdict[name]
         prev_valid = id(prev_ref.interface)
         prev_val = prev_ref.interface
@@ -2384,7 +2384,7 @@ class ReferenceManager:
         if isinstance(impl, ModelImpl):
             impl.model.change_ref(name, value)
         elif isinstance(impl, UserSpaceImpl):
-            impl.model.spacemgr.change_ref(impl, name, value, refmode)
+            impl.model.spmgr.change_ref(impl, name, value, refmode)
         else:
             raise RuntimeError("must not happen")
 
@@ -2434,7 +2434,7 @@ class ReferenceManager:
             refmode = ref.refmode
             value = new_value
             self._impl_change_ref(impl, name, value, refmode)
-            newrefs.append(impl.self_refs[name])
+            newrefs.append(impl.own_refs[name])
 
         self._valid_to_refs.pop(prev_id)
         self._valid_to_refs[id(new_value)] = newrefs
@@ -2445,7 +2445,7 @@ class ReferenceManager:
         if isinstance(impl, ModelImpl):
             impl.model.change_ref(name, value)
         elif isinstance(impl, UserSpaceImpl):
-            impl.model.spacemgr.change_ref(impl, name, value, refmode)
+            impl.model.spmgr.change_ref(impl, name, value, refmode)
         else:
             raise RuntimeError("must not happen")
 

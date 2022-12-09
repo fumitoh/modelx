@@ -93,12 +93,12 @@ class ModelPickler(pickle.Pickler):
             model = self.writer.model
             if model is obj.obj.model:
                 # Replace model name with empty string
-                tupleid = ("",) + obj.obj._tupleid[1:]
+                idtuple = ("",) + obj.obj._idtuple[1:]
             else:
-                tupleid = obj.obj._tupleid
+                idtuple = obj.obj._idtuple
 
             if isinstance(obj, ItemNode):
-                return "Node", tupleid, obj._impl[KEY]
+                return "Node", idtuple, obj._impl[KEY]
             else:
                 raise ValueError("invalid node" + repr(obj))
 
@@ -161,8 +161,8 @@ class ModelUnpickler(pickle.Unpickler):
                 io_group=self.model, path=path, cls=cls, load_from=loadpath, **kwargs)
 
         elif pid[0] == "Node":
-            _, tupleid, key = pid
-            return mxsys._get_object_from_tupleid_reduce(tupleid).node(*key)
+            _, idtuple, key = pid
+            return mxsys._get_object_from_idtuple_reduce(idtuple).node(*key)
 
         elif pid[0] == "IOManager":
             return self.manager

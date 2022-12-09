@@ -881,7 +881,7 @@ class EditableParentImpl(BaseParentImpl):
             self, name=name, formula=param_func, source=source)
 
         for cellsdata in cellstable.items():
-            space.spacemgr.new_cells(
+            space.spmgr.new_cells(
                 space, name=cellsdata.name,
                 formula=get_param_func(cells_params))
 

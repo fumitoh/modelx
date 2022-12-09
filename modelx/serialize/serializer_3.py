@@ -132,10 +132,10 @@ class SpaceEncoder(SpaceEncoder2):
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
 
-                tupleid = TupleID(cells._tupleid)
-                tupleid.pickle_args(self.writer.pickledata)
+                idtuple = TupleID(cells._idtuple)
+                idtuple.pickle_args(self.writer.pickledata)
                 file.write(
-                    "(%s, %s, %s)\n" % (tupleid.serialize(), keyid, valid)
+                    "(%s, %s, %s)\n" % (idtuple.serialize(), keyid, valid)
                 )
 
                 if self.writer.log_input:
@@ -173,19 +173,19 @@ class InterfaceRefEncoder(BaseEncoder):
         return isinstance(target, Interface)
 
     def encode(self):
-        tupleid = TupleID(abs_to_rel_tuple(
-            self.target._tupleid,
-            self.parent._tupleid
+        idtuple = TupleID(abs_to_rel_tuple(
+            self.target._idtuple,
+            self.parent._idtuple
         ))
-        return "(\"Interface\", %s)" % tupleid.serialize()
+        return "(\"Interface\", %s)" % idtuple.serialize()
 
     def pickle_value(self):
 
-        tupleid = TupleID(abs_to_rel_tuple(
-            self.target._tupleid,
-            self.parent._tupleid
+        idtuple = TupleID(abs_to_rel_tuple(
+            self.target._idtuple,
+            self.parent._idtuple
         ))
-        tupleid.pickle_args(self.writer.pickledata)
+        idtuple.pickle_args(self.writer.pickledata)
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -245,9 +245,9 @@ class ModelReader(ModelReader2):
                 instructuions.append(inst)
             self.instructions.extend(instructuions)
 
-    def _set_dynamic_inputs(self, tupleid, keyid, valid):
-        tupleid = TupleID.unpickle_args(tupleid, self.pickledata)
-        cells = mxsys.get_object_from_tupleid(tupleid)
+    def _set_dynamic_inputs(self, idtuple, keyid, valid):
+        idtuple = TupleID.unpickle_args(idtuple, self.pickledata)
+        cells = mxsys.get_object_from_idtuple(idtuple)
         key = self.pickledata[keyid]
         value = self.pickledata[valid]
         cells._impl.set_value(key, value)
@@ -283,8 +283,8 @@ class InterfaceDecoder(TupleDecoder):
             TupleID.tuplize(self.atok.get_text(self.node.elts[1])),
             self.reader.pickledata
         )
-        decoded = rel_to_abs_tuple(decoded, self.obj._tupleid)
-        return mxsys.get_object_from_tupleid(decoded)
+        decoded = rel_to_abs_tuple(decoded, self.obj._idtuple)
+        return mxsys.get_object_from_idtuple(decoded)
 
 
 class PickleDecoder(PickleDecoder2):

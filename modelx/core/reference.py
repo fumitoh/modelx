@@ -84,7 +84,7 @@ class ReferenceImpl(Derivable, Impl):
             parent=parent,
             name=name,
             interface=value)
-        self.spacemgr = parent.spacemgr
+        self.spmgr = parent.spmgr
         Derivable.__init__(self, is_derived)
 
         self.container = container
@@ -143,7 +143,7 @@ class ReferenceImpl(Derivable, Impl):
 
     @staticmethod
     def _get_members(other):
-        return other.self_refs
+        return other.own_refs
 
     def has_interface(self):
         return (isinstance(self.interface, Interface)

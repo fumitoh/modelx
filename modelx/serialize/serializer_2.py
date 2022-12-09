@@ -399,7 +399,7 @@ class SpaceEncoder(BaseEncoder):
 
         self.refview_encoder = self.refview_encoder_class(
             self,
-            self.space._self_refs,
+            self.space._own_refs,
             parent=self.space,
             srcpath=srcpath
         )

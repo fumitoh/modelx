@@ -230,7 +230,7 @@ def _new_cells_from_series(self, series, name, param, source):
         if is_valid_name(series.name):
             name = series.name
 
-    cells = self.spacemgr.new_cells(
+    cells = self.spmgr.new_cells(
         self,
         name=name,
         formula=get_param_func(_get_param_names(series, param)),
@@ -339,7 +339,7 @@ def new_space_from_pandas(
     cells_names = _overwrite_colnames(self, obj, names=cells)
 
     for c in cells_names:
-        newspace.spacemgr.new_cells(
+        newspace.spmgr.new_cells(
             newspace, name=c, formula=get_param_func(cells_params))
 
     cells_paramidxs = [param_names.index(p) for p in cells_params

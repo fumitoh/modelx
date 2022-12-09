@@ -16,7 +16,7 @@ def testmodel():
 
 def test_get_object_from_tuple(testmodel):
     testmodel.SpaceA.formula = lambda x: None
-    s = mxsys.get_object_from_tupleid(("ModelA", "SpaceA", (1,)))
+    s = mxsys.get_object_from_idtuple(("ModelA", "SpaceA", (1,)))
     assert s is testmodel.SpaceA[1]
 
 

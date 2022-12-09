@@ -39,7 +39,7 @@ class CellsMaker:
         self.name = name
 
     def __call__(self, func):
-        return self.space.spacemgr.new_cells(
+        return self.space.spmgr.new_cells(
             self.space, formula=func, name=self.name).interface
 
 
@@ -75,7 +75,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         """
         if isinstance(self._impl, DynamicCellsImpl):
             raise ValueError("'%s' is dynamic" % self.name)
-        self._impl.spacemgr.rename_cells(self._impl, name)
+        self._impl.spmgr.rename_cells(self._impl, name)
 
     def copy(self, parent, name=None):
         """Make a copy of itself
@@ -89,7 +89,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
                 of the copied cells
             name(:obj:`str`, optional): New name to replace the original name
         """
-        return self._impl.spacemgr.copy_cells(
+        return self._impl.spmgr.copy_cells(
             parent._impl, self._impl, name).interface
 
     def __contains__(self, key):
@@ -314,13 +314,13 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
     def formula(self, formula):
         if isinstance(self._impl, DynamicCellsImpl):
             raise ValueError("'%s' is dynamic" % self.name)
-        self._impl.spacemgr.change_cells_formula(self._impl, formula)
+        self._impl.spmgr.change_cells_formula(self._impl, formula)
 
     @formula.deleter
     def formula(self):
         if isinstance(self._impl, DynamicCellsImpl):
             raise ValueError("'%s' is dynamic" % self.name)
-        self._impl.spacemgr.del_cells_formula(self._impl)
+        self._impl.spmgr.del_cells_formula(self._impl)
 
     @property
     def parameters(self):
@@ -331,13 +331,13 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         """Set formula from a function.
         Deprecated since version 0.0.5. Use formula property instead.
         """
-        self._impl.spacemgr.change_cells_formula(self._impl, func)
+        self._impl.spmgr.change_cells_formula(self._impl, func)
 
     def clear_formula(self):
         """Clear the formula.
         Deprecated since version 0.0.5. Use formula property instead.
         """
-        self._impl.spacemgr.change_cells_formula(self._impl)
+        self._impl.spmgr.change_cells_formula(self._impl)
 
     @property
     def value(self):
@@ -510,7 +510,7 @@ class CellsImpl(*_cells_impl_base):
             parent=space,
             name=name
         )
-        self.spacemgr = space.spacemgr
+        self.spmgr = space.spmgr
         Derivable.__init__(self, is_derived)
         self.source = source
 
@@ -763,7 +763,7 @@ class UserCellsImpl(CellsImpl):
             self._doc = doc
             funcdef = oldsrc
 
-        self.spacemgr.change_cells_formula(self, funcdef)
+        self.spmgr.change_cells_formula(self, funcdef)
 
     def on_rename(self, name):
         """Renames the Cells name

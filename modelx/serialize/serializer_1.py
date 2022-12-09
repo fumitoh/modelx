@@ -294,7 +294,7 @@ class ModelWriter:
                     owner=space,
                     ensure_ascii=False,
                     indent=4
-                ).encode(space._self_refs)
+                ).encode(space._own_refs)
             )
             f.write("\n\n")
 
