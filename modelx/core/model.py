@@ -1568,7 +1568,7 @@ class SharedSpaceOperations:
             base_members = deriv._get_members(graph.to_space(bspace))
             if deriv.name in base_members:
                 b = base_members[deriv.name]
-                if not defined_only or b.is_defined:
+                if not defined_only or b.is_defined():
                     bases.append(b)
 
         return bases
@@ -1656,7 +1656,7 @@ class SpaceManager(SharedSpaceOperations):
 
     def del_cells(self, space, name):
         cells = space.cells[name]
-        if cells.is_derived:
+        if cells.is_derived():
             raise ValueError("cannot delete derived")
         space.on_del_cells(name)
         self.update_subs(space, skip_self=False)
@@ -1755,7 +1755,7 @@ class SpaceManager(SharedSpaceOperations):
         define = True
         for space in self._get_subs(cells.parent, skip_self=False):
             c = space.cells[cells.name]
-            if c is not cells and c.is_defined:
+            if c is not cells and c.is_defined():
                 break   # Stop when sub cells is defined
             space.clear_subs_rootitems()
             space.cells[cells.name].on_change_formula(func, define)
@@ -1826,7 +1826,7 @@ class SpaceManager(SharedSpaceOperations):
         for subspace in self._get_subs(space):
             is_relative = False
             subref = subspace.own_refs[name]
-            if subref.is_defined:
+            if subref.is_defined():
                 break
             elif subref.defined_bases[0] is not space.own_refs[name]:
                 break
@@ -2200,7 +2200,7 @@ class SpaceUpdater(SharedSpaceOperations):
 
     def del_defined_space(self, space):
 
-        if space.is_derived:
+        if space.is_derived():
             raise ValueError(
                 "%s has derived spaces" % repr(space.interface)
             )
@@ -2265,7 +2265,7 @@ class SpaceUpdater(SharedSpaceOperations):
     def _copy_space_recursively(
             self, parent, source, name, defined_only):
 
-        if source.is_derived:
+        if source.is_derived():
             return
 
         space = self.new_space(
@@ -2282,7 +2282,7 @@ class SpaceUpdater(SharedSpaceOperations):
         )
 
         for cells in source.cells.values():
-            if cells.is_defined:
+            if cells.is_defined():
                 self.manager.copy_cells(space, cells)
 
         for child in source.named_spaces.values():

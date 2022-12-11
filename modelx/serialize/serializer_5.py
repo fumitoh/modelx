@@ -669,7 +669,7 @@ class RefViewEncoder(BaseEncoder):
         for key, val in self.target.items():
             if key[0] != "_":
                 ref = parent._get_object(key, as_proxy=True)
-                if (is_model or not ref.is_derived):
+                if (is_model or not ref.is_derived()):
                     datafile = self.datapath / key
                     self.encoders.append(EncoderSelector.select(ref, writer)(
                         writer,

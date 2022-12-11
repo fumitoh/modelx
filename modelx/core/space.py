@@ -145,7 +145,7 @@ class DynBaseRefDict(RefDict):
                         impl[rootlen+1:]) # +1 to remove preceding dot
                 else:
                     if value.refmode == "auto":
-                        if value.is_defined:
+                        if value.is_defined():
                             return value
                         else:
                             return value.direct_bases[0]
@@ -351,11 +351,11 @@ class BaseSpace(BaseParent, ItemFactory):
 
     def _is_derived(self):
         """True if the space is a derived space, False otherwise."""
-        return self._impl.is_derived
+        return self._impl.is_derived()
 
     def _is_defined(self):
         """True if the space is a defined space, False otherwise."""
-        return self._impl.is_defined
+        return self._impl.is_defined()
 
     def _is_root(self):
         """True if ths space is a dynamic space, False otherwise."""
@@ -1813,7 +1813,7 @@ class UserSpaceImpl(*_user_space_impl_base):
 
         if name in self.own_refs:
             self.model.refmgr.del_ref(self, name)
-        elif name in self.is_derived:
+        elif name in self.is_derived():
             raise KeyError("Derived ref '%s' cannot be deleted" % name)
         elif name in self.arguments:
             raise ValueError("Argument cannot be deleted")
@@ -1859,7 +1859,7 @@ class UserSpaceImpl(*_user_space_impl_base):
 
     def on_inherit(self, updater, bases, attr):
 
-        if bases and self.is_derived:
+        if bases and self.is_derived():
             self.set_formula(bases[0].formula)
 
         attrs = {
@@ -1874,7 +1874,7 @@ class UserSpaceImpl(*_user_space_impl_base):
         for name in basedict: # ChainMap iterates from the last map
 
             bs = [bm[name] for bm in basedict.maps
-                  if name in bm and bm[name].is_defined]
+                  if name in bm and bm[name].is_defined()]
 
             if name not in selfdict:
 
@@ -1898,11 +1898,11 @@ class UserSpaceImpl(*_user_space_impl_base):
                 selfdict[name] = selfdict.pop(name)
                 selfkeys.remove(name)
 
-            if selfdict[name].is_derived:
+            if selfdict[name].is_derived():
                 selfdict[name].on_inherit(updater, bs)
 
         for name in selfkeys:
-            if selfdict[name].is_derived:
+            if selfdict[name].is_derived():
                 attrs[attr](name)
             else:   # defined
                 selfdict[name] = selfdict.pop(name)
@@ -2107,7 +2107,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         else:
             return []
 
-    @property
     def is_derived(self):
         return True
 

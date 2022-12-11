@@ -394,10 +394,10 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         return result
 
     def _is_derived(self):
-        return self._impl.is_derived
+        return self._impl.is_derived()
 
     def _is_defined(self):
-        return not self._impl.is_derived
+        return not self._impl.is_derived()
 
     @Interface.doc.setter
     def doc(self, doc):
@@ -780,7 +780,7 @@ class UserCellsImpl(CellsImpl):
 
         # Change function name
         if not self.formula._is_lambda:
-            if self.is_derived:
+            if self.is_derived():
                 base = self.bases[0]
                 self.formula = base.formula
             else:
@@ -794,8 +794,8 @@ class UserCellsImpl(CellsImpl):
 
         self.model.clear_obj(self)
 
-        if self.is_derived and define:
-            self.is_derived = False
+        if self.is_derived() and define:
+            self.set_defined()
 
         if isinstance(func, NullFormula):
             self.formula = NULL_FORMULA

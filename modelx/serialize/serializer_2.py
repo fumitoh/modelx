@@ -539,7 +539,7 @@ class RefViewEncoder(BaseEncoder):
         for key, val in self.target.items():
             if key[0] != "_":
                 # TODO: Refactor
-                if (is_model or not parent._impl.refs[key].is_derived):
+                if (is_model or not parent._impl.refs[key].is_derived()):
                     datapath = datadir / key
                     self.encoders.append(self.selector_class.select(val)(
                         writer,

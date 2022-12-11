@@ -247,9 +247,8 @@ class ReferenceProxy:
         """
         return self._impl.refmode
 
-    @property
     def is_derived(self):   # TODO: Rename this to _is_derived
-        return self._impl.is_derived
+        return self._impl.is_derived()
 
     @property
     def _baseattrs(self):
