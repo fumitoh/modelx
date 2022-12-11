@@ -1340,7 +1340,7 @@ class SpaceGraph(nx.DiGraph):
         parents = self.get_parent_nodes(node)
         return next((n for n in parents if self._is_endpoint(n, edge)), node)
 
-    def visit_treenodes_levels(self, node, include_self=True):
+    def _visit_treenodes_levels(self, node, include_self=True):
         que = [node]
         level = 0
         while que:
@@ -1354,7 +1354,7 @@ class SpaceGraph(nx.DiGraph):
             level += 1
 
     def visit_treenodes(self, node, include_self=True):
-        for _, n in self.visit_treenodes_levels(
+        for _, n in self._visit_treenodes_levels(
                 node,include_self=include_self):
             yield n
 
