@@ -158,7 +158,7 @@ class EditableParent(BaseParent):
             module, recursive=recursive, **params
         )
         self._impl.system.currentmodel = space.model
-        return get_interfaces(space)
+        return space.interface
 
     def new_space_from_module(self, module, recursive=False, **params):
         """Create a child space from an module.
@@ -182,7 +182,7 @@ class EditableParent(BaseParent):
             module, recursive=recursive, **params
         )
         self._impl.system.currentmodel = space.model
-        return get_interfaces(space)
+        return space.interface
 
     def new_space_from_excel(
         self,
@@ -264,7 +264,7 @@ class EditableParent(BaseParent):
             param_rows,
         )
         self._impl.system.currentmodel = space.model
-        return get_interfaces(space)
+        return space.interface
 
     def new_space_from_pandas(
             self, obj, space=None, cells=None, param=None,

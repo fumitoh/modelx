@@ -67,7 +67,7 @@ def get_interfaces(impls):
         return [impl.interface for impl in impls]
 
     else:
-        return impls.interface
+        raise RuntimeError("must not happen")
 
 
 def get_impls(interfaces):
@@ -986,7 +986,7 @@ class InterfaceMixin:
 
     def _update_item(self, name):
         if name in self:
-            self._interfaces[name] = get_interfaces(self[name])
+            self._interfaces[name] = self[name].interface
         else:
             del self._interfaces[name]
 

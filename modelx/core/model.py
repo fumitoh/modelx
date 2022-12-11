@@ -959,7 +959,7 @@ class ModelImpl(*_model_impl_base):
         if name in self.spaces:
             return self.spaces[name].interface
         elif name in self.global_refs:
-            return get_interfaces(self.global_refs[name])
+            return self.global_refs[name].interface
         else:
             raise AttributeError(
                 "Model '{0}' does not have '{1}'".format(self.name, name)
