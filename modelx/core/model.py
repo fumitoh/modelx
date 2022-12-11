@@ -1101,7 +1101,7 @@ class SpaceGraph(nx.DiGraph):
 
     def max_index(self, node):
         return max(
-            [self.edges[e]["index"] + 1 for e in self.in_edges(node)],
+            [self.edges[e]["index"] for e in self.in_edges(node)],
             default=0
         )
 
@@ -1234,7 +1234,7 @@ class SpaceGraph(nx.DiGraph):
                         t, h,
                         mode="derived",
                         level=level,
-                        index=self.max_index(t)
+                        index=self.max_index(t) + 1
                     )
             if on_edge:
                 on_edge(self, e)
@@ -2034,7 +2034,7 @@ class SpaceUpdater(SharedSpaceOperations):
                     base, node,
                     mode="defined",
                     level=0,
-                    index=g.max_index(node)
+                    index=g.max_index(node) + 1
                 )
 
             for pnode in g.get_parent_nodes(node):
@@ -2103,7 +2103,7 @@ class SpaceUpdater(SharedSpaceOperations):
                 node,
                 mode="defined",
                 level=0,
-                index=self._inheritance.max_index(node)
+                index=self._inheritance.max_index(node) + 1
             )
 
         for p in self._inheritance.get_parent_nodes(node):
