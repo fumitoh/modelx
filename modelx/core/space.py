@@ -827,6 +827,8 @@ class UserSpace(BaseSpace, EditableParent):
 
         .. versionchanged:: 0.20.0 this method is deprecated.
         """
+        warnings.warn("'new_cells_from_excel' is deprecated and will be"
+                      "removed in future release.")
         return self._impl.new_cells_from_excel(
             book,
             range_,
@@ -884,6 +886,8 @@ class UserSpace(BaseSpace, EditableParent):
 
         .. versionchanged:: 0.20.0 this method is deprecated.
         """
+        warnings.warn("'new_cells_from_pandas' is deprecated and will be"
+                      "removed in future release.")
         return self._impl.new_cells_from_pandas(obj, cells, param)
 
     def new_cells_from_csv(
@@ -922,7 +926,8 @@ class UserSpace(BaseSpace, EditableParent):
 
         .. versionchanged:: 0.20.0 this method is deprecated.
         """
-
+        warnings.warn("'new_cells_from_csv' is deprecated and will be"
+                      "removed in future release.")
         return self._impl.new_cells_from_csv(
             filepath,
             cells=cells,
