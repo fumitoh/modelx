@@ -26,8 +26,9 @@ def testmodel():
     
     bar(5)
 
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_space_preds(testmodel):
 

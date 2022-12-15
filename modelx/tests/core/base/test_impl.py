@@ -2,13 +2,14 @@ import modelx as mx
 import pytest
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sample():
     m, s = mx.new_model(), mx.new_space()
     c = s.new_cells()
 
-    return m, s, c
-
+    yield m, s, c
+    m._impl._check_sanity()
+    m.close()
 
 def test_has_ascendant(sample):
     m, s, c = sample

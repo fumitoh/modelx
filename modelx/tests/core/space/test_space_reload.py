@@ -20,6 +20,9 @@ def reloadtest(tmp_path):
     model = mx.new_model()
     yield model, sample, tmp_path
 
+    model._impl._check_sanity()
+    model.close()
+
     if sys.path[0] == str(tmp_path):
         del sys.path[0]
 

@@ -42,7 +42,9 @@ def pickletest():
     f.seek(0)
     unpickled = SystemUnpickler(f, mxsys).load()
 
-    return [model._impl, unpickled]
+    yield [model._impl, unpickled]
+    model._impl._check_sanity()
+    model.close()
 
 
 def test_unpickled_model(pickletest):
@@ -91,7 +93,9 @@ def pickletest_dynamicspace():
     unpickled.restore_state()
     model = unpickled.interface
 
-    return (model, check)
+    yield (model, check)
+    model._impl._check_sanity()
+    model.close()
 
 
 def test_pickle_dynamicspace(pickletest_dynamicspace):
@@ -126,11 +130,13 @@ def test_pickle_module(tmp_path):
     m, s = new_model(), new_space("TestModule")
     m.np = numpy
     m.save(tmp_path / "pickle_module.mx")
+    m.close()
     m = restore_model(tmp_path / "pickle_module.mx")
     assert m.np is numpy
     assert m.TestModule.np is numpy
     assert m.__builtins__ is builtins
     assert m.TestModule.__builtins__ is builtins
+    m.close()
 
 
 def test_null_object(tmp_path):
@@ -157,3 +163,6 @@ def test_null_object(tmp_path):
     assert not m2.C.b._is_valid()
 
     testutil.compare_model(m, m2)
+
+    m._impl._check_sanity()
+    m.close()

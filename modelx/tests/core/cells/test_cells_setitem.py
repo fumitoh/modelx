@@ -7,7 +7,8 @@ from modelx.testing.testutil import SuppressFormulaError
 @pytest.fixture
 def setitemsample():
 
-    space = new_model(name="samplemodel").new_space(name="samplespace")
+    model = mx.new_model(name="samplemodel")
+    space = model.new_space(name="samplespace")
 
     funcdef = """def func(x): return 2 * x"""
 
@@ -36,7 +37,9 @@ def setitemsample():
     def flow(x):
         return 10
 
-    return space
+    yield space
+    model._impl._check_sanity()
+    model.close()
 
 
 def test_setitem(setitemsample):

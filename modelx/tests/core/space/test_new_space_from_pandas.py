@@ -6,9 +6,12 @@ import numpy as np
 import modelx as mx
 from modelx.core.util import is_valid_name
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sample_model():
-    return mx.new_model()
+    m = mx.new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_new_space_from_pandas_no_dynamic(sample_model, sample_frame):

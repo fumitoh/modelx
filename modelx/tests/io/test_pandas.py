@@ -23,8 +23,9 @@ def testspace():
 
     f0, f1, f2 = mx.defcells(f0, f1, f2)
 
-    return space
-
+    yield space
+    model._impl._check_sanity()
+    model.close()
 
 @pytest.fixture
 def space_with_string_index():
@@ -41,7 +42,8 @@ def space_with_string_index():
     mx.defcells(f0, f1)
 
     return space
-
+    model._impl._check_sanity()
+    model.close()
 
 # -------------------------------------------------------------------------
 # Test Conversion from Cells to DataFrame and Series

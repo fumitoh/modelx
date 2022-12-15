@@ -36,6 +36,9 @@ def test_max_recursion():
 
     assert foo(maxdepth) == maxdepth
 
+    m._impl._check_sanity()
+    m.close()
+
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS shallow stack")
 def test_maxout_recursion():
@@ -52,3 +55,6 @@ def test_maxout_recursion():
     with SuppressFormulaError(maxdepth):
         with pytest.raises(DeepReferenceError):
             foo(maxdepth+1)
+
+    m._impl._check_sanity()
+    m.close()

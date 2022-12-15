@@ -25,7 +25,10 @@ def testmodel():
     space.new_cells(formula=foo)
     space.bar = 3
     space.new_cells(formula=baz)
-    return model
+    yield model
+    if model in mx.models.values():
+        model._impl._check_sanity()
+        model.close()
 
 
 @pytest.fixture(params=["save", "backup"])
@@ -130,6 +133,7 @@ def test_restore_model_close_old(savetestmodel, name, newname):
     model.close()
     newmodel = mx.restore_model(file, name)
     assert newmodel.name == newname
+    newmodel.close()
 
 
 @pytest.mark.parametrize(
@@ -154,6 +158,7 @@ def test_restore_model_leave_old(savetestmodel, name, newname, renamed):
     assert newmodel.name == newname
     assert model.name[: len(oldname)] == oldname
     assert renamed != (len(model.name) == len(oldname))
+    newmodel.close()
 
 
 def test_save_again(tmpdir_factory):
@@ -167,3 +172,5 @@ def test_save_again(tmpdir_factory):
     m.save(file)
     m2 = mx.restore_model(file)
     m2.save(file)
+    m.close()
+    m2.close()

@@ -11,8 +11,9 @@ import pytest
 @pytest.fixture
 def testmodel():
     m, s = new_model("ModelA"), new_space("SpaceA")
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_get_object_from_tuple(testmodel):
     testmodel.SpaceA.formula = lambda x: None

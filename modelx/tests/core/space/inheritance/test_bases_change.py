@@ -37,6 +37,9 @@ def test_add_remove_bases_lv2ly2(new_member):
         assert "C" in B
         assert "C" not in A
 
+    model._impl._check_sanity()
+    model.close()
+
 
 @pytest.mark.parametrize("new_member", ["cells", "space"])
 def test_new_del_basemember_lv2ly2(new_member):
@@ -67,6 +70,8 @@ def test_new_del_basemember_lv2ly2(new_member):
         assert "C" not in B
         assert "C" not in A
 
+    model._impl._check_sanity()
+    model.close()
 
 @pytest.mark.parametrize("atavistic", [True, False])
 def test_add_remove_bases_lv4ly2(atavistic):
@@ -107,6 +112,8 @@ def test_add_remove_bases_lv4ly2(atavistic):
     else:
         assert "C" not in A.spaces
 
+    model._impl._check_sanity()
+    model.close()
 
 @pytest.mark.parametrize("atavistic", [True, False])
 def test_new_del_basemember_lv4ly2(atavistic):
@@ -131,6 +138,8 @@ def test_new_del_basemember_lv4ly2(atavistic):
     del B.spaces["C"].spaces["D"].spaces["E"]
     assert "E" not in A.spaces["C"].spaces["D"].spaces
 
+    model._impl._check_sanity()
+    model.close()
 
 @pytest.mark.parametrize("new_member", ["cells", "space"])
 def test_add_remove_bases(new_member):
@@ -180,6 +189,8 @@ def test_add_remove_bases(new_member):
         assert not "D" in A.spaces
         assert not "D" in B.spaces
 
+    model._impl._check_sanity()
+    model.close()
 
 @pytest.mark.parametrize("new_member", ["cells", "space"])
 def test_new_del_basemember_lv3ly3(new_member):
@@ -231,6 +242,8 @@ def test_new_del_basemember_lv3ly3(new_member):
         assert "D" not in B.spaces
         assert "D" not in A.spaces
 
+    model._impl._check_sanity()
+    model.close()
 
 @pytest.mark.parametrize("new_member", ["cells", "space"])
 def test_new_del_basemember_lv32ly3(new_member):
@@ -265,6 +278,8 @@ def test_new_del_basemember_lv32ly3(new_member):
         assert "E" not in getattr(D, new_members)
         assert "E" not in getattr(G.spaces["D"], new_members)
 
+    model._impl._check_sanity()
+    model.close()
 
 def test_base_parent_child():
     """
@@ -284,6 +299,8 @@ def test_base_parent_child():
     B.add_bases(D)
     assert C.bases == [B, D, A]
 
+    model._impl._check_sanity()
+    model.close()
 
 def test_sub_parent_child():
     """
@@ -301,6 +318,8 @@ def test_sub_parent_child():
     D.add_bases(C)
     assert D.bases == [C]
 
+    model._impl._check_sanity()
+    model.close()
 
 def test_pararell_inheritance():
     """
@@ -318,6 +337,8 @@ def test_pararell_inheritance():
     assert "C" in A.spaces
     assert "D" in A.spaces
 
+    model._impl._check_sanity()
+    model.close()
 
 def test_circler_nonerror():
     """
@@ -341,6 +362,8 @@ def test_circler_nonerror():
     assert A.bases == [D]
     assert E.bases == [B]
 
+    model._impl._check_sanity()
+    model.close()
 
 def test_add_bases_to_defined():
     """
@@ -371,6 +394,8 @@ def test_add_bases_to_defined():
     assert B.foo() == "base"
     assert A.foo() == "sub"
 
+    m._impl._check_sanity()
+    m.close()
 
 def test_remove_bases_shared_subs():
     """
@@ -397,6 +422,8 @@ def test_remove_bases_shared_subs():
     assert not hasattr(B.X, "M")
     print(hasattr(B.X, "N"))
 
+    m._impl._check_sanity()
+    m.close()
 
 def test_update_base_cells():
 
@@ -417,3 +444,6 @@ def test_update_base_cells():
 
     assert sub.foo() == 2
     assert sub.foo._is_derived()
+
+    m._impl._check_sanity()
+    m.close()

@@ -39,7 +39,9 @@ def make_testmodel_for_clear():
     assert m.Parent.Foo.is_input(2)
     assert m.Parent.Child.Bar.is_input(2)
 
-    return m
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def make_sample1(columns, idx_names):

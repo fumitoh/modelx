@@ -7,9 +7,12 @@ from modelx import *
 from modelx.tests.testdata import XL_TESTDATA
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def testmodel():
-    return new_model()
+    m = new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 @pytest.mark.parametrize(

@@ -45,9 +45,12 @@ param_sample2 = list(product([make_sample2],
                              [['a', 'b'], None]))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def sample_model():
-    return mx.new_model()
+    m = mx.new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 @pytest.fixture(params=param_sample1 + param_sample2)

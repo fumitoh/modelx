@@ -22,8 +22,9 @@ def basic_relref():
     BaseChildB.A = BaseChildA
     BaseChildB.f = foo
 
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_relative_reference(basic_relref):
     """Sub->Base"""
@@ -77,8 +78,9 @@ def derived_relref():
     SubGChild.add_bases(m.Base.Child.GChild)
     GSubChild.add_bases(m.Sub.SubChild)
 
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_ref_assign(derived_relref):
     m = derived_relref
@@ -112,8 +114,9 @@ def derived_relref2():
     m.new_space('GSub')
     m.GSub.add_bases(m.Sub)
 
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_ref_assign2(derived_relref2):
 
@@ -154,7 +157,8 @@ def test_derived_relref3():
 
     assert GSub.Ref is GGChild.Ref
     assert SubChild.GChild.GGChild.Ref is SubChild.GChild
-
+    m._impl._check_sanity()
+    m.close()
 
 def test_inherit_mutual_reference():
     """
@@ -170,3 +174,5 @@ def test_inherit_mutual_reference():
     C.bar = B
 
     D = m.new_space('D', bases=A)
+    m._impl._check_sanity()
+    m.close()

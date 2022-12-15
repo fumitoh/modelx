@@ -34,6 +34,8 @@ def test_new_cells_in_dynbase():
     # Check new cells in base is reflected
     assert parent[1].Cells2(1) == 2
 
+    m._impl._check_sanity()
+    m.close()
 
 def test_new_cells_order():
     """Test a new cells in base sapce is inserted in subspace
@@ -58,3 +60,6 @@ def test_new_cells_order():
 
     assert list(s2.cells) == ['bbb', 'aaa', 'ccc', 'aba',
                               'fff', 'ddd', 'eee']
+
+    m._impl._check_sanity()
+    m.close()

@@ -27,10 +27,14 @@ def test_del_formula(itemspacetest):
 
 def test_set_parameters():
 
-    s = mx.new_space()
+    m = mx.new_model()
+    s = m.new_space()
     s.parameters = ('x', 'y=1')
     assert s[1].x == 1
     assert s[2].y == 1
     assert s[2, 3].x == 2
     assert s[2, 3].y == 3
+
+    m._impl._check_sanity()
+    m.close()
 

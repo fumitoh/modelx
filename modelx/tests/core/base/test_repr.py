@@ -25,7 +25,9 @@ def repr_test():
 
     model.new_space("DynSpace", bases=space, formula=params)
 
-    return model
+    yield model
+    model._impl._check_sanity()
+    model.close()
 
 
 def test_repr_model(repr_test):

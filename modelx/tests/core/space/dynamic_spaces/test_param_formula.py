@@ -27,7 +27,9 @@ def param_formula_sample():
     def foo():
         return y * z
 
-    return A
+    yield A
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_change_ref_in_param_formula(

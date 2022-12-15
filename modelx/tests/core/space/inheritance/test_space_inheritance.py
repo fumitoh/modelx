@@ -49,6 +49,7 @@ def unpickled_model(request, testmodel, tmpdir_factory):
         model = mx.restore_model(file)
 
     yield model
+    model._impl._check_sanity()
     model.close()
 
 

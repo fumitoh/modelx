@@ -24,6 +24,8 @@ def test_with_sapce_allow_none_true(model_param, space_param, cells_param, op):
     else:
         cells[0] = None  # Check no error is raised
 
+    model._impl._check_sanity()
+    model.close()
 
 paramx = [[False, False, False], [False, False, None], [False, None, None]]
 paramy = ["get", "set"]
@@ -48,3 +50,5 @@ def test_with_sapce_allow_none_false(
             else:
                 cells[1] = None
 
+    model._impl._check_sanity()
+    model.close()

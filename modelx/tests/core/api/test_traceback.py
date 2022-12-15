@@ -53,7 +53,10 @@ def errormodel():
             return sum(args)
         return my_sum('a')
 
-    return m
+    yield m
+    m._impl._check_sanity()
+    m.close()
+
 
 @pytest.fixture(params=[True, False])
 def formula_error_handle_state(request):

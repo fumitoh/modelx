@@ -5,7 +5,10 @@ from modelx import *
 
 @pytest.fixture
 def testmodel():
-    return new_model()
+    m = new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_set_formula_base(testmodel):
@@ -17,8 +20,7 @@ def test_set_formula_base(testmodel):
            f1*         f1
 
     """
-
-    base = new_space("base")
+    base = testmodel.new_space("base")
 
     @defcells
     def f1(x):

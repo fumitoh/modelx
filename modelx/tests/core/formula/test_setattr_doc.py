@@ -86,10 +86,12 @@ def test_replace_docstring_indent(func, docstrs):
 
 @pytest.fixture(scope="module")
 def testspace():
-    s = mx.new_model().new_space()
+    m = mx.new_model()
+    s = m.new_space()
     mx.defcells(foo, bar, baz, qux, quux)
-    return s
-
+    yield s
+    m._impl._check_sanity()
+    m.close()
 
 @pytest.mark.parametrize(
     "func, docstr",

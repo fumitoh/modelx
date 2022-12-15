@@ -1,13 +1,12 @@
 from textwrap import dedent
-
 import pytest
-
-from modelx import *
+import modelx as mx
 
 
 def test_cells_mutual():
 
-    space = new_model().new_space()
+    m = mx.new_model()
+    space = m.new_space()
 
     func1 = dedent(
         """\
@@ -27,3 +26,6 @@ def test_cells_mutual():
     f2 = space.new_cells(formula=func2)
 
     assert f2(5) == 50
+
+    m._impl._check_sanity()
+    m.close()

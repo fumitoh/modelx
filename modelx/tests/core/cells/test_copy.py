@@ -15,8 +15,9 @@ def samplecells(request):
     foo[0] = 1
     s.new_cells("bar", lambda x: 2 * x)
     s.bar[0] = 1
-    return s.cells[request.param]
-
+    yield s.cells[request.param]
+    m._impl._check_sanity()
+    m.close()
 
 @pytest.mark.parametrize(
     "to_another_model, name",

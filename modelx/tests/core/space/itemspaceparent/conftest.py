@@ -25,5 +25,7 @@ def itemspacetest(request):
     for i in range(10):
         assert s(*((i,) * paramlen)).foo(i) == i
 
-    return paramlen, s
+    yield paramlen, s
+    m._impl._check_sanity()
+    m.close()
 

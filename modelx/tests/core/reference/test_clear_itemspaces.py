@@ -13,14 +13,17 @@ def itemspaces():
         refs = {"baz": qux}
         return {"refs": refs}
 
-    A = mx.new_model().new_space("SpaceA", formula=param)
+    m = mx.new_model()
+    A = m.new_space("SpaceA", formula=param)
     B = A.new_space("SpaceB", formula=param2)
 
     A.foo = 3
     B.qux = 5
 
     assert A[1] is A._named_itemspaces["__Space1"]
-    return A
+    yield A
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_clear_itemspaces_on_del_ref(itemspaces):

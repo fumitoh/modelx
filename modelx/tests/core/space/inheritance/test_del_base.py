@@ -37,6 +37,9 @@ def test_del_defined_base():
     assert hasattr(m.C.X, "M")
     assert not hasattr(m.C.X, "N")
 
+    m._impl._check_sanity()
+    m.close()
+
 
 def test_del_base_in_model():
     """
@@ -58,3 +61,6 @@ def test_del_base_in_model():
 
     assert not m.Sub.cells
     assert not m.Sub.spaces
+
+    m._impl._check_sanity()
+    m.close()

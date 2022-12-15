@@ -23,6 +23,9 @@ def test_update_global_in_space_formula():
     assert not s.itemspaces
     assert s[1].x3 == 4
 
+    m._impl._check_sanity()
+    m.close()
+
 
 def test_update_cells_in_space_formula():
     """
@@ -49,6 +52,9 @@ def test_update_cells_in_space_formula():
     assert not s.itemspaces
     assert s[1].x3 == 4
 
+    m._impl._check_sanity()
+    m.close()
+
 
 @pytest.mark.parametrize("op", ["add", "change", "delete"])
 def test_dynamic_space_not_flushed(op):
@@ -71,5 +77,8 @@ def test_dynamic_space_not_flushed(op):
         del m.x0
 
     assert len(A.itemspaces)
+
+    m._impl._check_sanity()
+    m.close()
 
 

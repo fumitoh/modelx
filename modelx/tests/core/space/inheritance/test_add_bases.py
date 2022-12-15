@@ -21,8 +21,9 @@ def duplicate_inheritance_model():
     m.new_space("Base3").new_cells(
         "foo", formula=lambda: "Under Base3")
 
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_nearest_first(duplicate_inheritance_model):
     m = duplicate_inheritance_model

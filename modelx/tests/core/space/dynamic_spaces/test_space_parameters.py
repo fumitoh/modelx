@@ -26,8 +26,9 @@ def samplemodel():
 
     base_space.set_formula(formula)
 
-    return model
-
+    yield model
+    model._impl._check_sanity()
+    model.close()
 
 def test_space_getitem(samplemodel):
 

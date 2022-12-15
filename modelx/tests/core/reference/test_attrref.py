@@ -29,6 +29,9 @@ def test_change_attrref():
     s2.x = "baz"
     assert foo(3) == qux(3) == "baz"
 
+    m._impl._check_sanity()
+    m.close()
+
 
 # https://github.com/fumitoh/modelx/issues/43
 def test_change_attrref2():
@@ -59,6 +62,9 @@ def test_change_attrref2():
     model.Inputs.a = 5
     assert model.Pythagoras.pythagoras() == (5 ** 2 + (5+3) ** 2) ** .5
 
+    model._impl._check_sanity()
+    model.close()
+
 
 def test_change_ref_on_reassinged_formula():
 
@@ -79,6 +85,9 @@ def test_change_ref_on_reassinged_formula():
 
     s.baz = 5
     assert foo() == 5
+
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_del_global_attrref():
@@ -104,6 +113,9 @@ def test_del_global_attrref():
         with pytest.raises(AttributeError):
             foo(3)
 
+    m._impl._check_sanity()
+    m.close()
+
 
 def test_del_attrref():
     """
@@ -111,7 +123,6 @@ def test_del_attrref():
        |     +----foo
        +--SpaceC(SpaceA)
     """
-
     m = mx.new_model()
     A = m.new_space("SpaceA")
     B = A.new_space("SpaceB")
@@ -134,3 +145,6 @@ def test_del_attrref():
 
         with pytest.raises(AttributeError):
             C.foo()
+
+    m._impl._check_sanity()
+    m.close()

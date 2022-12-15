@@ -3,7 +3,7 @@ import pytest
 
 def test_is_derived():
 
-    s = mx.new_model().new_space()
+    m, s = mx.new_model(), mx.new_space()
     c = s.new_space(name='ChildSpace')
     c.new_cells('foo')
 
@@ -14,3 +14,6 @@ def test_is_derived():
     assert space1._is_derived()
     assert space1.ChildSpace._is_derived()
     assert space1.ChildSpace.foo._is_derived()
+
+    m._impl._check_sanity()
+    m.close()

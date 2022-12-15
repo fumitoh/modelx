@@ -15,3 +15,6 @@ def test_circler_error():
 
     with pytest.raises(ValueError):
         D = B.new_space("D", bases=C)
+
+    model._impl._check_sanity()
+    model.close()

@@ -5,13 +5,15 @@ import modelx as mx
 foo = lambda n: foo(n - 1) if n > 1 else n
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def testspace():
     m = mx.new_model(name="TestTraceModel")
-    return m.new_space(
+    yield m.new_space(
         name="TestTraceSpace",
         formula=lambda i: None
     )
+    m._impl._check_sanity()
+    m.close()
 
 
 @pytest.fixture(scope="module")

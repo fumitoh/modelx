@@ -4,11 +4,14 @@ import pytest
 
 @pytest.fixture(scope="module")
 def testspaces():
-    parent = mx.new_space("Parent", formula=lambda i: None)
+    m = mx.new_model()
+    parent = m.new_space("Parent", formula=lambda i: None)
     child = parent.new_space("Child")
     item = parent[1]
 
-    return parent, child, item
+    yield parent, child, item
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_spaces(testspaces):

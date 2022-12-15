@@ -17,7 +17,8 @@ def test_none_returned_error():
             return None"""
     )
 
-    space = mx.new_model(name="ErrModel").new_space(name="ErrSpace")
+    m = mx.new_model(name="ErrModel")
+    space = m.new_space(name="ErrSpace")
     cells = space.new_cells(formula=errfunc)
     cells.allow_none = False
 
@@ -44,6 +45,8 @@ def test_none_returned_error():
         """)
 
     assert errinfo.value.args[0] == errmsg
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_zerodiv():
@@ -57,13 +60,16 @@ def test_zerodiv():
                 return zerodiv(x + 1)"""
     )
 
-    space = mx.new_model().new_space(name="ZeroDiv")
+    m = mx.new_model()
+    space = m.new_space(name="ZeroDiv")
     cells = space.new_cells(formula=zerodiv)
 
     with SuppressFormulaError():
         with pytest.raises(ZeroDivisionError):
             cells(0)
 
+    m._impl._check_sanity()
+    m.close()
 
 # --------------------------------------------------------------------------
 # Test graph clean-up upon error
@@ -83,6 +89,10 @@ def test_trace_cleanup_value_error():
     assert foo._impl.check_sanity()
     assert len(foo) == 12
 
+    m = foo.model
+    m._impl._check_sanity()
+    m.close()
+
 
 def test_trace_cleanup_type_error():
 
@@ -100,6 +110,8 @@ def test_trace_cleanup_type_error():
     assert foo._impl.check_sanity()
     assert len(foo) == 2
 
-
+    m = foo.model
+    m._impl._check_sanity()
+    m.close()
 
 

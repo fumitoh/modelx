@@ -23,8 +23,9 @@ def precedstest():
         return foo(t) + x + Child.y + Child.GrandChild.z
 
     space.bar(3)
-    return space
-
+    yield space
+    m._impl._check_sanity()
+    m.close()
 
 def test_precedents(precedstest):
 
@@ -59,7 +60,8 @@ def test_nested_globals():
             return gvar
         return inner()
 
-    s = mx.new_model().new_space()
+    m = mx.new_model()
+    s = m.new_space()
     s.gvar = 1
     s.new_cells(formula=foo)
     s.new_cells(formula=bar)
@@ -69,4 +71,7 @@ def test_nested_globals():
         node = cells.precedents()[0]
         assert node.obj.name == 'gvar'
         assert node.obj.value == 1
+
+    m._impl._check_sanity()
+    m.close()
 

@@ -49,3 +49,6 @@ def test_sort():
 
     s2.sort_cells()
     assert list(s2.cells) == ['aaa', 'bbb', 'ccc', 'ddd', 'eee', 'fff']
+
+    m._impl._check_sanity()
+    m.close()

@@ -6,7 +6,10 @@ from modelx.testing.testutil import SuppressFormulaError
 
 @pytest.fixture
 def testmodel():
-    return mx.new_model()
+    m = mx.new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_delattr_cells(testmodel):

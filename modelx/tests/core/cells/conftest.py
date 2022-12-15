@@ -7,7 +7,8 @@ import pytest
 @pytest.fixture
 def sample_space():
 
-    space = new_model(name="samplemodel").new_space(name="samplespace")
+    m = mx.new_model(name="samplemodel")
+    space = m.new_space(name="samplespace")
 
     funcdef = """def func(x): return 2 * x"""
 
@@ -55,7 +56,9 @@ def sample_space():
     matchtest[None, None, 3] = 3
     matchtest[None, None, None] = 0
 
-    return space
+    yield space
+    m._impl._check_sanity()
+    m.close()
 
 
 @pytest.fixture
@@ -95,4 +98,6 @@ def sample_for_rename_and_formula():
     assert len(sub1.Child1.Foo) == 1
     assert tuple(sub2.itemspaces) == (1, 2)
 
-    return model
+    yield model
+    model._impl._check_sanity()
+    model.close()

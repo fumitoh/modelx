@@ -49,3 +49,6 @@ def test_rename_funcname():
 
     for c in (s1.bar, s2.bar):
         assert c.formula.source.split("\n")[0][:7] == "def bar"
+
+    m._impl._check_sanity()
+    m.close()

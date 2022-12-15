@@ -8,9 +8,12 @@ from modelx.tests.testdata import (
     CSV_IRIS)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture #(scope="module")
 def testmodel():
-    return new_model()
+    m = new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 @pytest.mark.parametrize(

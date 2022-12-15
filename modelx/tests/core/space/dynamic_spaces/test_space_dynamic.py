@@ -6,7 +6,7 @@ def test_named_itemspaces():
     def params(x, y):
         return {"bases": _self}
 
-    space = new_model().new_space(name="base", formula=params)
+    m, space = new_model(), new_space(name="base", formula=params)
 
     @defcells
     def distance():
@@ -15,3 +15,6 @@ def test_named_itemspaces():
     space[3, 4].distance()
 
     assert space._named_itemspaces == {"__Space1": space[3, 4]}
+
+    m._impl._check_sanity()
+    m.close()

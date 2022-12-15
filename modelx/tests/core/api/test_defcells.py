@@ -20,7 +20,8 @@ def test_defcells_update_formula():
     def existing_cells(x):
         return existing_cells(x-1) if x > 0 else 0
 
-    cells = mx.new_model().new_space().new_cells(formula=existing_cells)
+    m = mx.new_model()
+    cells = m.new_space().new_cells(formula=existing_cells)
     assert cells[10] == 0
 
     @mx.defcells
@@ -29,3 +30,6 @@ def test_defcells_update_formula():
 
     assert existing_cells[10] == 1
     assert existing_cells is cells
+
+    m._impl._check_sanity()
+    m.close()

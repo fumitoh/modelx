@@ -933,6 +933,7 @@ class ModelImpl(*_model_impl_base):
                 assert id(r.interface) in self.refmgr._valid_to_refs
 
         self.refmgr._check_sanity()
+        self.spmgr._check_sanity()
 
     @property
     def updater(self):
@@ -2080,7 +2081,12 @@ class SpaceUpdater(SharedSpaceOperations):
         self._graph.nodes[node]["space"] = space
         self._graph.nodes[node]["state"] = "created"
 
-        self._instructions.execute()
+        try:
+            self._instructions.execute()
+        except BaseException:
+            container.del_item(name)
+            raise
+
         self._update_manager()
 
         return space

@@ -3,7 +3,7 @@ import modelx as mx
 
 def test_del_cells():
 
-    s = mx.new_model().new_space()
+    m, s = mx.new_model(), mx.new_space()
 
     @mx.defcells
     def foo(x):
@@ -18,3 +18,6 @@ def test_del_cells():
     del s.foo
     assert "foo" not in s.cells
     assert not len(bar)
+
+    m._impl._check_sanity()
+    m.close()

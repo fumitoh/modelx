@@ -4,8 +4,10 @@ import pytest
 
 @pytest.fixture
 def sample_objects():
-    return mx.new_model(), mx.new_space(), mx.cur_space().new_cells()
-
+    m, s, c = mx.new_model(), mx.new_space(), mx.cur_space().new_cells()
+    yield m, s, c
+    m._impl._check_sanity()
+    m.close()
 
 @pytest.fixture(params=range(3))
 def model_obj_pair(request, sample_objects):

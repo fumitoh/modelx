@@ -15,8 +15,9 @@ def testmodel():
     m.new_space('NoArgs').new_cells('foo')
     m.NoArgs.formula = lambda: None
 
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 params_static = [
     [True, True, "Model.Parent.Child.foo(i)"],

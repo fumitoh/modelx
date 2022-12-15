@@ -18,7 +18,9 @@ def viewtest():
     def baz(z):
         return bar(z) * 3
 
-    return s
+    yield s
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_view(viewtest):

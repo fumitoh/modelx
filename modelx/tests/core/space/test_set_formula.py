@@ -7,8 +7,10 @@ def param(x):
 
 @pytest.fixture
 def testmodel():
-    return mx.new_model()
-
+    m = mx.new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_formula_setter(testmodel):
 

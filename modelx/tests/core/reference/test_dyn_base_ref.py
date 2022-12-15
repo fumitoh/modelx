@@ -19,6 +19,9 @@ def test_dyn_change_ref():
     assert s[1].a == 3
     assert s[1].Child[2].b == 4
 
+    m._impl._check_sanity()
+    m.close()
+
 
 def test_dyn_add_base_ref_after():
     # https://github.com/fumitoh/modelx/issues/37
@@ -28,3 +31,6 @@ def test_dyn_add_base_ref_after():
     a1 = m.SpaceA(1)
     m.SpaceA.x = 1
     assert a1 is m.SpaceA(1)
+
+    m._impl._check_sanity()
+    m.close()

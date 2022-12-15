@@ -6,7 +6,8 @@ import pytest
 @pytest.fixture
 def testspace():
 
-    s = mx.new_space()
+    m = mx.new_model()
+    s = m.new_space()
 
     def foo(x):
         return foo(x-1) + 1 if x > 0 else 0
@@ -15,7 +16,9 @@ def testspace():
 
     foo[10]
 
-    return s
+    yield s
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_node(testspace):

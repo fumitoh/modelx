@@ -1,10 +1,10 @@
 import pytest
 import itertools
+import modelx as mx
 
-
-@pytest.fixture
-def samplemodel():
-    pass
+# @pytest.fixture
+# def samplemodel():
+#     pass
 
 
 def test_clear_all(make_testmodel_for_clear):

@@ -25,6 +25,7 @@ def no_values():
     space.formula = lambda i: None
 
     yield space
+    model._impl._check_sanity()
     model.close()
 
 
@@ -76,7 +77,9 @@ def str_values():
     def b(name):
         return a(name)
 
-    return m
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_node_repr_str_values(str_values):

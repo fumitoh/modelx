@@ -23,8 +23,9 @@ def constcells():
     def baz():
         return 4
 
-    return space
-
+    yield space
+    model._impl._check_sanity()
+    model.close()
 
 def test_lt(constcells):
     assert constcells.bar < constcells.baz

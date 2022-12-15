@@ -22,7 +22,9 @@ def dynref_model():
     D = m.new_space('D')
     D.add_bases(B)
     D.parameters = ('a',)
-    return m
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_dynref(dynref_model):
@@ -58,8 +60,9 @@ def dynautoref_model():
     D = m.new_space('D', bases=m.A.B)
     D.parameters = ('a',)
 
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 @pytest.mark.parametrize("refmode", ["auto", "absolute"])
 def test_dynref_absolute(dynautoref_model, refmode):
@@ -89,3 +92,5 @@ def test_change_dynbase_ref():
     A.bar = foo
 
     assert A[1].bar.parent is A[1]
+    m._impl._check_sanity()
+    m.close()

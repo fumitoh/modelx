@@ -13,7 +13,8 @@ def test_duplicate_model_ref():
     del m.x
     with pytest.raises(AttributeError):
         s.x
-
+    m._impl._check_sanity()
+    m.close()
 
 def test_duplicate_space_ref():
     m, s = mx.new_model(), mx.new_space()
@@ -26,7 +27,8 @@ def test_duplicate_space_ref():
     del m.x
     with pytest.raises(AttributeError):
         s.x
-
+    m._impl._check_sanity()
+    m.close()
 
 def test_overriding_dynamic_ref():
     m = mx.new_model()
@@ -34,7 +36,8 @@ def test_overriding_dynamic_ref():
     s.x = "space x"
     m.x = "model x"
     assert s[1].x == "dynspace x"
-
+    m._impl._check_sanity()
+    m.close()
 
 def test_overriding_parameter():
     m = mx.new_model()
@@ -42,3 +45,5 @@ def test_overriding_parameter():
     s.x = "space x"
     m.x = "model x"
     assert s["param x"].x == "param x"
+    m._impl._check_sanity()
+    m.close()

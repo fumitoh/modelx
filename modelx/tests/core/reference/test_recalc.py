@@ -19,7 +19,9 @@ def refmodel():
     s.new_cells(formula=foo)
     s.bar = 3
     assert s.foo() == 3
-    return m
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 @pytest.fixture(params=[True, False])
@@ -33,7 +35,6 @@ def refspace(request, refmodel, tmpdir_factory):
         model = mx.restore_model(file)
 
     yield model.SpaceA
-    model.close()
 
 
 def test_update_ref(refspace):

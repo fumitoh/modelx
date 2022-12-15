@@ -16,7 +16,8 @@ def test_copy(name):
          |          |
         foo        foo*
     """
-    base = mx.new_model().new_space("Base")
+    model = mx.new_model()
+    base = model.new_space("Base")
     sub = mx.new_space(bases=base)
 
     source = mx.new_space("Source")
@@ -42,6 +43,9 @@ def test_copy(name):
     assert base.spaces[name][2].foo[1] == 2
     assert sub.spaces[name][2].foo[1] == 2
 
+    model._impl._check_sanity()
+    model.close()
+
 
 def test_copy_error_name_conflict():
     """
@@ -59,6 +63,8 @@ def test_copy_error_name_conflict():
     with pytest.raises(ValueError):
         source.copy(base, "SpaceA")
 
+    m._impl._check_sanity()
+    m.close()
 
 @pytest.mark.parametrize("parent", ["model", "space"])
 def test_copy_defined(parent):
@@ -96,4 +102,6 @@ def test_copy_defined(parent):
     assert "Child" not in sc.spaces
     assert "bar" in sc.cells
 
+    m._impl._check_sanity()
+    m.close()
 

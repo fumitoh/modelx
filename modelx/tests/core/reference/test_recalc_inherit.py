@@ -27,7 +27,8 @@ def test_overriden_refs():
     del base.bar                # Del base ref
     assert sub.foo(1) == 2      # Global ref
 
-
+    m._impl._check_sanity()
+    m.close()
 
 
 

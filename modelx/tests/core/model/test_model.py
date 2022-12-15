@@ -21,7 +21,9 @@ def simplemodel():
 
     model.bar = 3
 
-    return model
+    yield model
+    model._impl._check_sanity()
+    model.close()
 
 
 def test_clear_all(make_testmodel_for_clear):
@@ -118,6 +120,9 @@ def test_tracegraph_standalone():
     nodes = model.tracegraph.nodes()
     assert get_node(foo._impl, (1,), {}) in nodes
 
+    model._impl._check_sanity()
+    model.close()
+
 
 def test_tracegraph_informula_assignment():
     model, space = new_model(), new_space()
@@ -129,6 +134,9 @@ def test_tracegraph_informula_assignment():
     bar(1)
     nodes = model.tracegraph.nodes()
     assert get_node(bar._impl, (1,), {}) in nodes
+
+    model._impl._check_sanity()
+    model.close()
 
 
 def test_refs(simplemodel):
@@ -162,6 +170,9 @@ def test_global_ref_delattr():
         with pytest.raises(NameError):
             func1(4)
 
+    model._impl._check_sanity()
+    model.close()
+
 
 def test_rename():
 
@@ -170,6 +181,9 @@ def test_rename():
 
     assert get_models()["newname"] == model
     assert model.name == "newname"
+
+    model._impl._check_sanity()
+    model.close()
 
 
 # ---- Test impl ----

@@ -21,7 +21,9 @@ def testmodel():
 
     space.bar = 3
 
-    return model
+    yield model
+    model._impl._check_sanity()
+    model.close()
 
 
 def test_refs(testmodel):
@@ -167,8 +169,9 @@ def spacemap_model():
     model, parent = new_model(), new_space("Parent")
     for name in space_names:
         parent.new_space(name)
-    return model
-
+    yield model
+    model._impl._check_sanity()
+    model.close()
 
 if sys.version_info >= (3, 6, 0):
 

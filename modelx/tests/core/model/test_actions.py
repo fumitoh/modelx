@@ -42,6 +42,7 @@ def test_action():
     assert dict(s.Cells3)
     assert s.Cells3.is_input(2)
 
+    m._impl._check_sanity()
     m.close()
 
     

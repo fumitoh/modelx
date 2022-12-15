@@ -9,7 +9,9 @@ def testmodel():
     base = m.new_space("Base")
     m.new_space("Sub", bases=base)
     base.new_cells("Foo")
-    return m
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_del_defined(testmodel):

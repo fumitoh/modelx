@@ -38,3 +38,6 @@ def test_recalc_dynamic():
     assert sub[3].child.qux == 40
     assert sub[3].child[2].qux == 40
     assert sub[3].child[2].baz(4) == 40
+
+    m._impl._check_sanity()
+    m.close()

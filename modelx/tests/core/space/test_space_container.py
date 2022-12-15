@@ -39,8 +39,9 @@ def samplemodel():
     base_space2.new_cells(formula=bar_def)
     model.new_space(name="derived_space2", bases=[base_space, base_space2])
 
-    return model
-
+    yield model
+    model._impl._check_sanity()
+    model.close()
 
 def test_change_cur_model(samplemodel):
     space = samplemodel.cur_space("base_space2")

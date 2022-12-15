@@ -22,8 +22,9 @@ def refmode_model():
 
     D = m.new_space('D')
     D.add_bases(B)
-    return m
-
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 def test_refmode_change(refmode_model):
 
@@ -64,7 +65,8 @@ def test_refer_sibling(mode):
     D = m.new_space('D', bases=B)
 
     assert D.bar is D.foo
-
+    m._impl._check_sanity()
+    m.close()
 
 @pytest.mark.parametrize("mode", ["absolute", "auto"])
 def test_refer_parent(mode):
@@ -89,6 +91,8 @@ def test_refer_parent(mode):
 
     assert D.bar is A
 
+    m._impl._check_sanity()
+    m.close()
 
 def test_refer_parent_error():
     """
@@ -100,7 +104,7 @@ def test_refer_parent_error():
     import modelx as mx
 
     m = mx.new_model()
-    A = mx.new_space('A')
+    A = m.new_space('A')
     B = A.new_space('B')
 
     @mx.defcells
@@ -111,3 +115,6 @@ def test_refer_parent_error():
 
     with pytest.raises(ValueError):
         D = m.new_space('D', bases=B)
+
+    m._impl._check_sanity()
+    m.close()

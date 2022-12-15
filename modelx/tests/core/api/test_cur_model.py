@@ -4,9 +4,12 @@ import pytest
 
 @pytest.fixture
 def curmodel():
-    m = mx.new_model()
+    m = mx.new_model('curmodel')
     assert m is mx.cur_model()
-    return m
+    yield m
+    if m in mx.models.values():
+        m._impl._check_sanity()
+        m.close()
 
 
 @pytest.fixture
@@ -21,6 +24,7 @@ def test_cur_model_on_new_model(curmodel):
     assert mx.cur_model() is m2
     m = mx.cur_model(curmodel.name)
     assert m is mx.cur_model() is curmodel
+    m2.close()
 
 
 def test_cur_model_on_del_model(curmodel):
@@ -46,6 +50,7 @@ def test_cur_model_change_after_new_space(curmodel):
     c1 = m1.new_space()
     assert mx.cur_model() is m1
     assert mx.cur_space() is c1
+    m2.close()
 
 
 def test_cur_model_change_after_cur_space(curmodel):
@@ -55,3 +60,4 @@ def test_cur_model_change_after_cur_space(curmodel):
     mx.cur_space(c1)
     assert mx.cur_model() is m1
     assert mx.cur_space() is c1
+    m2.close()

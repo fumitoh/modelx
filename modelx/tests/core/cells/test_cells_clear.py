@@ -18,7 +18,9 @@ def clearsample():
     def no_param():
         return 5
 
-    return s
+    yield s
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_clear_at_arg(clearsample):

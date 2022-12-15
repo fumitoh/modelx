@@ -13,13 +13,15 @@ def bar(x):
     return bar(x-1) + 1 if x > 0 else 0
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def testspace():
     m = mx.new_model(name="TestTraceSummary")
-    return m.new_space(
+    yield m.new_space(
         name="TestTraceSpace",
         formula=lambda i: None
     )
+    m._impl._check_sanity()
+    m.close()
 
 
 @pytest.fixture(scope="module")

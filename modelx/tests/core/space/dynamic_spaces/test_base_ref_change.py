@@ -24,7 +24,9 @@ def testmodel():
 
     gsub.x = 3      # defined
 
-    return m
+    yield m
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_change_baseref(testmodel):
@@ -55,6 +57,8 @@ def test_multinherit_change_baseref():
     del base1.x
     assert sub.x == 3
 
+    m._impl._check_sanity()
+    m.close()
 
 def test_dynamic_space_created_before_base_ref_assignment():
     # https://github.com/fumitoh/modelx/issues/25
@@ -63,3 +67,6 @@ def test_dynamic_space_created_before_base_ref_assignment():
     s2(0)   # Create dynamic space before ref assignment
     s2.a = 1
     assert s2(0).a == 1
+
+    m._impl._check_sanity()
+    m.close()

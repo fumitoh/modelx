@@ -31,6 +31,7 @@ def cells_signatures():
         return sum([x, y, z])
 
     yield space
+    model._impl._check_sanity()
     model.close()
 
 

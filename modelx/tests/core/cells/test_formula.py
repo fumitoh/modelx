@@ -23,7 +23,9 @@ def testspace():
                 formula=lambda x: 3 * x)
     s.new_cells(name="lambda1_src", formula="lambda x: 3 * x")
 
-    return s
+    yield s
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_formula_source(testspace):
