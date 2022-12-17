@@ -2,9 +2,15 @@ import modelx as mx
 from modelx.core.reference import ReferenceNode
 import pytest
 
+
 @pytest.fixture(scope='module')
 def precedstest():
-
+    """
+        Preceds---Space1---Child---GrandChild
+                     +---x   +---y     +---z
+                     +---foo
+                     +---bar
+    """
     m = mx.new_model('Preceds')
     space = m.new_space('Space1')
     space.new_space('Child')
@@ -27,6 +33,7 @@ def precedstest():
     m._impl._check_sanity()
     m.close()
 
+
 def test_precedents(precedstest):
 
     bar = precedstest.bar
@@ -46,7 +53,6 @@ def test_precedents(precedstest):
     assert repr(preceds[1]) == "Preceds.Space1.x=1"
     assert repr(preceds[2]) == "Preceds.Space1.Child.GrandChild.z=3"
     assert repr(preceds[3]) == "Preceds.Space1.Child.y=2"
-
 
 
 def test_nested_globals():
