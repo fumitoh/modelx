@@ -196,7 +196,8 @@ def defcells(space=None, name=None, *funcs):
             space.spmgr.change_cells_formula(space.cells[name], func)
             return space.cells[name].interface
         else:
-            return space.spmgr.new_cells(space, formula=func).interface
+            return space.spmgr.new_cells(
+                space, name=name, formula=func).interface
 
     elif (isinstance(space, _Space) or space is None) and (
         isinstance(name, str) or name is None
