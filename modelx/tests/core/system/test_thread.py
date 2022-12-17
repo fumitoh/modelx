@@ -5,11 +5,15 @@ from modelx.testing.testutil import SuppressFormulaError
 import pytest
 import psutil
 
-if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
-    if psutil.virtual_memory().total < 8 * 1024**3:
-        maxdepth = 20000
+if sys.platform == "win32":
+    if sys.version_info[:2] > (3, 10):  # Python 3.11 or newer
+        maxdepth = 100_000
     else:
-        maxdepth = 50000
+        if psutil.virtual_memory().total < 8 * 1024**3:
+            maxdepth = 20000
+        else:
+            maxdepth = 50000
+
 elif sys.platform == "darwin":
     # https://bugs.python.org/issue18075
     # https://bugs.python.org/issue34602
@@ -34,7 +38,14 @@ def test_max_recursion():
         else:
             return foo(x-1) + 1
 
-    assert foo(maxdepth) == maxdepth
+    maxdepth_saved = mx.get_recursion()
+    try:
+        if maxdepth_saved < maxdepth:
+            mx.set_recursion(maxdepth)
+        assert foo(maxdepth) == maxdepth
+    finally:
+        if maxdepth_saved < maxdepth:
+            mx.set_recursion(maxdepth_saved)
 
     m._impl._check_sanity()
     m.close()
