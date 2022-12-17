@@ -7,7 +7,7 @@ import psutil
 
 if sys.platform == "win32": # and sys.version_info[:2] == (3, 8):
     if psutil.virtual_memory().total < 8 * 1024**3:
-        maxdepth = 25000
+        maxdepth = 20000
     else:
         maxdepth = 50000
 elif sys.platform == "darwin":
