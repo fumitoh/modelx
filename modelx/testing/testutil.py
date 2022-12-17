@@ -1,4 +1,4 @@
-import modelx
+import modelx as mx
 from modelx.core.base import Interface, null_impl
 
 
@@ -66,18 +66,17 @@ class SuppressFormulaError:
     def __init__(self, maxdepth=None):
         self.maxdepth = maxdepth
         if maxdepth is not None:
-            callstack = modelx.core.system.mxsys.callstack
-            self.maxdepth_saved = callstack.maxdepth
+            self.maxdepth_saved = mx.get_recursion()
 
     def __enter__(self):
         if self.maxdepth is not None:
-            modelx.core.system.mxsys.callstack.maxdepth = self.maxdepth
+            mx.set_recursion(self.maxdepth)
         
-        self.saved = modelx.use_formula_error()
-        modelx.use_formula_error(False)
+        self.saved = mx.use_formula_error()
+        mx.use_formula_error(False)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.maxdepth is not None:
-            modelx.core.system.mxsys.callstack.maxdepth = self.maxdepth_saved        
+            mx.set_recursion(self.maxdepth_saved)
         
-        modelx.use_formula_error(self.saved)
+        mx.use_formula_error(self.saved)
