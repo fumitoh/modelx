@@ -827,9 +827,9 @@ def _sort_partial(self, sorted_keys):
 
 class LazyEvalDict(LazyEval, dict):
 
-    __slots__ = ("_repr",) + get_mixin_slots(LazyEval, dict)
+    __slots__ = ("name", "_repr") + get_mixin_slots(LazyEval, dict)
 
-    def __init__(self, data=None, observers=None):
+    def __init__(self, name, data=None, observers=None):
 
         if data is None:
             data = {}
@@ -838,6 +838,7 @@ class LazyEvalDict(LazyEval, dict):
 
         dict.__init__(self, data)
         LazyEval.__init__(self, observers)
+        self.name = name
         self._repr = ""
 
     def _refresh_data(self):
@@ -900,9 +901,9 @@ assert issubclass(LazyEvalDict, Mapping)
 @add_statemethod
 class LazyEvalChainMap(LazyEval, CustomChainMap):
 
-    __slots__ = ("_repr",) + get_mixin_slots(LazyEval, CustomChainMap)
+    __slots__ = ("name", "_repr") + get_mixin_slots(LazyEval, CustomChainMap)
 
-    def __init__(self, maps=None, observers=None):
+    def __init__(self, name, maps=None, observers=None):
 
         if maps is None:
             maps = []
@@ -911,11 +912,11 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
 
         CustomChainMap.__init__(self, *maps)
         LazyEval.__init__(self, observers)
+        self.name = name
         self._repr = ""
 
         for other in maps:
-            if isinstance(other, LazyEval):
-                other.append_observer(self)
+            other.append_observer(self)
 
     def _refresh_data(self):
         pass
@@ -992,6 +993,7 @@ class InterfaceMixin:
         else:
             _sort_partial(self._interfaces, sorted_keys)
 
+
 bases = InterfaceMixin, LazyEvalDict
 
 
@@ -1000,10 +1002,10 @@ class ImplDict(*bases):
 
     __slots__ = ("owner",) + get_mixin_slots(*bases)
 
-    def __init__(self, owner, ifclass, data=None, observers=None):
+    def __init__(self, name, owner, ifclass, data=None, observers=None):
         self.owner = owner
         InterfaceMixin.__init__(self, ifclass)
-        LazyEvalDict.__init__(self, data, observers)
+        LazyEvalDict.__init__(self, name, data, observers)
 
     def _refresh_data(self):
         LazyEvalDict._refresh_data(self)
@@ -1035,13 +1037,13 @@ class ImplChainMap(*bases):
     __slots__ = ("owner", "map_ids") + get_mixin_slots(*bases)
 
     def __init__(
-        self, owner, ifclass, maps=None, observers=None,
+        self, name, owner, ifclass, maps=None, observers=None,
             map_ids=None
     ):
         self.owner = owner
         self.map_ids = map_ids
         InterfaceMixin.__init__(self, ifclass)
-        LazyEvalChainMap.__init__(self, maps, observers)
+        LazyEvalChainMap.__init__(self, name, maps, observers)
 
     def _refresh_data(self):
         LazyEvalChainMap._refresh_data(self)
@@ -1080,8 +1082,8 @@ class ImplChainMap(*bases):
 
 class RefChainMap(ImplChainMap):
 
-    def __init__(self, owner, ifclass, maps=None, observers=None):
-        ImplChainMap.__init__(self, owner, ifclass,
+    def __init__(self, name, owner, ifclass, maps=None, observers=None):
+        ImplChainMap.__init__(self, name, owner, ifclass,
             maps=maps, observers=observers)
 
 

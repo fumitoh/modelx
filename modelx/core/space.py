@@ -32,6 +32,7 @@ from modelx.core.base import (
     Impl,
     set_null_impl,
     Derivable,
+    LazyEvalDict,
     ImplDict,
     ImplChainMap,
     RefChainMap,
@@ -78,24 +79,24 @@ class SpaceDict(ImplDict):
 
     __slots__ = get_mixin_slots(ImplDict)
 
-    def __init__(self, space, data=None, observers=None):
-        ImplDict.__init__(self, space, SpaceView, data, observers)
+    def __init__(self, name, space, data=None, observers=None):
+        ImplDict.__init__(self, name, space, SpaceView, data, observers)
 
 
 class CellsDict(ImplDict):
 
     __slots__ = get_mixin_slots(ImplDict)
 
-    def __init__(self, space, data=None, observers=None):
-        ImplDict.__init__(self, space, CellsView, data, observers)
+    def __init__(self, name, space, data=None, observers=None):
+        ImplDict.__init__(self, name, space, CellsView, data, observers)
 
 
 class RefDict(ImplDict):
 
     __slots__ = get_mixin_slots(ImplDict)
 
-    def __init__(self, parent, data=None, observers=None):
-        ImplDict.__init__(self, parent, RefView, None, observers)
+    def __init__(self, name, parent, data=None, observers=None):
+        ImplDict.__init__(self, name, parent, RefView, None, observers)
         if data is not None:
             for name, value in data.items():
                 self.set_item(name, value)
@@ -1170,7 +1171,8 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
     )
 
     def __init__(self, formula):
-        self._named_itemspaces = ImplDict(self, SpaceView)
+        BaseNamespaceReferrer.__init__(self, self)
+        self._named_itemspaces = ImplDict('named_itemspaces', self, SpaceView)
         self.itemspacenamer = AutoNamer("__Space")
 
         # ------------------------------------------------------------------
@@ -1376,14 +1378,14 @@ class BaseSpaceImpl(*_base_space_impl_base):
         # Construct member containers
 
         self._own_refs = self._init_own_refs()
-        self._cells = CellsDict(self)
-        self._named_spaces = SpaceDict(self)
-        self._sys_refs = {"_self": self, "_space": self}
+        self._cells = CellsDict("cells", self)
+        self._named_spaces = SpaceDict("named_spaces", self)
+        self._sys_refs = LazyEvalDict("sys_refs", {"_self": self, "_space": self})
         self._refs = self._init_refs(arguments)
 
         NamespaceServer.__init__(
             self,
-            ImplChainMap(
+            ImplChainMap("namespace",
                 self, None, [self._cells, self._refs, self._named_spaces],
                 map_ids=("cells", "refs", "spaces")
             )
@@ -1392,7 +1394,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
         self.lazy_evals = self._namespace
         ItemSpaceParent.__init__(self, formula)
-        self._all_spaces = ImplChainMap(
+        self._all_spaces = ImplChainMap("all_spaces",
             self, SpaceView, [self._named_spaces, self._named_itemspaces]
         )
         container.set_item(name, self)
@@ -1533,7 +1535,6 @@ class DynamicBase(BaseSpaceImpl):
     __slots__ = ("_dynamic_subs",) + get_mixin_slots(BaseSpaceImpl)
 
     def __init__(self):
-        BaseNamespaceReferrer.__init__(self, self)
         self._dynamic_subs = []
 
     def on_namespace_change(self, is_all, names):
@@ -1606,10 +1607,10 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.source = source
 
     def _init_own_refs(self):
-        return RefDict(self)
+        return RefDict("own_refs", self)
 
     def _init_refs(self, arguments=None):
-        return RefChainMap(
+        return RefChainMap("refs",
             self,
             RefView,
             [self._own_refs, self._sys_refs, self.model._global_refs]
@@ -2034,11 +2035,11 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             DynamicCellsImpl(space=self, base=base, is_derived=True)
 
     def _init_own_refs(self):
-        return RefDict(self)
+        return RefDict("own_refs", self)
 
     def _init_refs(self, arguments=None):
         self._allargs = self._init_allargs()
-        self._dynbase_refs = DynBaseRefDict(self)
+        self._dynbase_refs = DynBaseRefDict("dynbase_refs", self)
         self._dynbase_refs.observe(self._dynbase.own_refs)
         # _dynbase_refs are populated from self._dynbase.own_refs
         # later by _init_dynbaserefs called last
@@ -2049,7 +2050,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         # _dynbase_refs.is_fresh must always True
         self._dynbase_refs.fresh
 
-        return ImplChainMap(
+        return ImplChainMap("refs",
             self,
             RefView,
             [
@@ -2079,7 +2080,7 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         else:
             allargs = [*self.parent._allargs.maps]
 
-        return ImplChainMap(self, None, allargs)
+        return ImplChainMap("allargs", self, None, allargs)
 
     def on_delete(self):
         for space in list(self.named_spaces.values()):
@@ -2184,7 +2185,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             self._init_child_spaces(child)
 
     def _init_refs(self, arguments=None):
-        self._arguments = RefDict(self, data=arguments)
+        self._arguments = RefDict("arguments", self, data=arguments)
         refs = DynamicSpaceImpl._init_refs(self)
         refs.observe(self._arguments)
         return refs

@@ -817,16 +817,16 @@ class ModelImpl(*_model_impl_base):
 
         self.spmgr = SpaceManager(self)
         self.currentspace = None
-        self._global_refs = RefDict(self)
+        self._global_refs = RefDict("global_refs", self)
         self._global_refs.set_item("__builtins__", builtins)
-        self._named_spaces = SpaceDict(self)
-        self._dynamic_bases = SpaceDict(self)
-        self._all_spaces = ImplChainMap(
+        self._named_spaces = SpaceDict("named_spaces", self)
+        self._dynamic_bases = SpaceDict("dynamic_bases", self)
+        self._all_spaces = ImplChainMap("all_spaces",
             self, SpaceView, [self._named_spaces, self._dynamic_bases]
         )
         self._dynamic_bases_inverse = {}
         self._dynamic_base_namer = AutoNamer("__Space")
-        self._namespace = ImplChainMap(
+        self._namespace = ImplChainMap("namespace",
             self, BaseView, [self._named_spaces, self._global_refs]
         )
         self.allow_none = False
