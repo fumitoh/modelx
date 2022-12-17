@@ -165,7 +165,7 @@ def get_mixin_slots(*mixins):
 
     bases = bases[:count_concrete_or_mixin]     # Cut off built-in classes
 
-    assert all(is_concrete(c) or is_mixin(c) for c in bases)
+    assert all(is_concrete(c) != is_mixin(c) for c in bases)    # XOR
 
     mixin_slots = []
     concrete_bases = []
@@ -695,7 +695,7 @@ class LazyEval:
     __mixin_slots = ("is_fresh", "observers", "observing")
     __no_state = ("is_fresh",)
 
-    UpdateMethods = None
+    update_methods = None
 
     def __init__(self, observers):
         self.is_fresh = True  # must be read only
@@ -746,10 +746,8 @@ class LazyEval:
         self.is_fresh = False
 
     def on_update(self, method, args=()):
-        """
-        Must self.is_fresh == True before calling this
-        """
-        args = self.UpdateMethods[method](self, *args)
+        self.fresh
+        args = self.update_methods[method](self, *args)
         for observer in self.observers:
             if observer.is_fresh:
                 observer.on_update(method, args)
@@ -904,7 +902,7 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
 
     __slots__ = ("_repr",) + get_mixin_slots(LazyEval, CustomChainMap)
 
-    def __init__(self, maps=None, observers=None, observe_maps=True):
+    def __init__(self, maps=None, observers=None):
 
         if maps is None:
             maps = []
@@ -915,15 +913,12 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
         LazyEval.__init__(self, observers)
         self._repr = ""
 
-        if observe_maps:
-            for other in maps:
-                if isinstance(other, LazyEval):
-                    other.append_observer(self)
+        for other in maps:
+            if isinstance(other, LazyEval):
+                other.append_observer(self)
 
     def _refresh_data(self):
-        for map_ in self.maps:
-            if isinstance(map_, LazyEval):
-                map_.fresh
+        pass
 
     def on_add_item(self, sender, name, value):
         if self.is_fresh:
@@ -1025,7 +1020,7 @@ class ImplDict(*bases):
         # Return self to pass it as argt to LazyEvalChainMap observers
         return (self, sorted_keys)
 
-    UpdateMethods = {
+    update_methods = {
         "rename": _rename_item,
         "sort": _sort
     }
@@ -1040,13 +1035,13 @@ class ImplChainMap(*bases):
     __slots__ = ("owner", "map_ids") + get_mixin_slots(*bases)
 
     def __init__(
-        self, owner, ifclass, maps=None, observers=None, observe_maps=True,
+        self, owner, ifclass, maps=None, observers=None,
             map_ids=None
     ):
         self.owner = owner
         self.map_ids = map_ids
         InterfaceMixin.__init__(self, ifclass)
-        LazyEvalChainMap.__init__(self, maps, observers, observe_maps)
+        LazyEvalChainMap.__init__(self, maps, observers)
 
     def _refresh_data(self):
         LazyEvalChainMap._refresh_data(self)
@@ -1077,7 +1072,7 @@ class ImplChainMap(*bases):
         InterfaceMixin._sort(self, keys)
         return (self, keys)
 
-    UpdateMethods = {
+    update_methods = {
         "rename": _rename_item,
         "sort": _sort
     }
@@ -1085,13 +1080,9 @@ class ImplChainMap(*bases):
 
 class RefChainMap(ImplChainMap):
 
-    def __init__(
-        self, owner, ifclass, maps=None, observers=None, observe_maps=True
-    ):
-        ImplChainMap.__init__(
-            self, owner, ifclass,
-            maps=maps, observers=observers, observe_maps=observe_maps
-        )
+    def __init__(self, owner, ifclass, maps=None, observers=None):
+        ImplChainMap.__init__(self, owner, ifclass,
+            maps=maps, observers=observers)
 
 
 # The code below is modified from UserDict in Python's standard library.
