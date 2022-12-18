@@ -746,11 +746,14 @@ class LazyEval:
         self.is_fresh = False
 
     def on_update(self, method, args=()):
-        self.fresh
+        is_fresh = self.is_fresh
+        if not is_fresh:
+            self.fresh
         args = self.update_methods[method](self, *args)
-        for observer in self.observers:
-            if observer.is_fresh:
-                observer.on_update(method, args)
+        if is_fresh:    # if not fresh, all observers are not fresh too
+            for observer in self.observers:
+                if observer.is_fresh:
+                    observer.on_update(method, args)
 
 
 def _rename_item(self, old_name, new_name):
