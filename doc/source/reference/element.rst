@@ -13,7 +13,7 @@ and Space objects such as :class:`~space.UserSpace`.
 An *element* of a :class:`~cells.Cells` object is identified
 by arguments to the :class:`~cells.Cells`.
 If the :class:`~cells.Cells` has a value for the arguments,
-whether it's calculted or input, the :meth:`~node.ItemNode.has_value`
+whether it's calculated or input, the :meth:`~node.ItemNode.has_value`
 returns :obj:`True` and :attr:`~node.ItemNode.value` returns the value.
 Similarly to the :class:`~cells.Cells` element,
 an element of a Space is identified by arguments to the Space.

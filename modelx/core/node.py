@@ -208,7 +208,7 @@ class ItemNode(BaseNode):
     An *element* of a :class:`~modelx.core.cells.Cells` object is identified
     by arguments to the :class:`~modelx.core.cells.Cells`.
     If the :class:`~modelx.core.cells.Cells` has a value for the arguments,
-    whether it's calculted or input, the :meth:`has_value`
+    whether it's calculated or input, the :meth:`has_value`
     returns :obj:`True` and :attr:`value` returns the value.
     Similarly to the :class:`~modelx.core.cells.Cells` element,
     an element of a Space is identified by arguments to the Space.

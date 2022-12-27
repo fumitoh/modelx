@@ -39,7 +39,7 @@ Namespaces for Formulas
 --------------------------
 
 Most Formulas need to reference values of other Cells
-and References to calculte their own values.
+and References to calculate their own values.
 Unlike Python functions,
 the name binding for modelx Formulas is independent from
 Python modules.
