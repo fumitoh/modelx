@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [{py: "3.7", nx: "2.1"},
-                         {py: "3.8", nx: "2.3"},
+                         {py: "3.8", nx: "2.4"},
                          {py: "3.9", nx: "2.5"},
                          {py: "3.10", nx: "2.6"},
                          {py: "3.11", nx: "2.7"}]
