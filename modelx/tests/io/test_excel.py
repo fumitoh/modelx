@@ -31,7 +31,7 @@ def test_get_xlrange_booklevel(range_expr, sheet):
 
 @pytest.mark.parametrize("range_expr", ["NamedRange1", "C3:E5"])
 def test_get_xlrange_sheetlevel(range_expr):
-    result = xl.read_range(sample_book, range_expr, "SHEET 2")
+    result = xl.read_range(sample_book, range_expr, "Sheet 2")
 
     keys = ((r, c) for r in range(3) for c in range(3))
 

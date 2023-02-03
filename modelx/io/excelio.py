@@ -126,25 +126,34 @@ def _get_namedrange(book, rangename, sheetname=None):
         Range object specified by the name.
 
     """
+    opxlver = tuple(int(i) for i in opxl.__version__.split('.')[:2])
 
-    def cond(namedef):
+    if opxlver > (3, 0):
 
-        if namedef.type.upper() == "RANGE":
-            if namedef.name.upper() == rangename.upper():
+        def cond(namedef):
+            if namedef.type.upper() == "RANGE" and namedef.name.upper() == rangename.upper():
+                return True
+            else:
+                return False
+    else:
+        def cond(namedef):
 
-                if sheetname is None:
-                    if not namedef.localSheetId:
-                        return True
+            if namedef.type.upper() == "RANGE":
+                if namedef.name.upper() == rangename.upper():
 
-                else:  # sheet local name
-                    sheet_id = [sht.upper() for sht in book.sheetnames].index(
-                        sheetname.upper()
-                    )
+                    if sheetname is None:
+                        if not namedef.localSheetId:
+                            return True
 
-                    if namedef.localSheetId == sheet_id:
-                        return True
+                    else:  # sheet local name
+                        sheet_id = [sht.upper() for sht in book.sheetnames].index(
+                            sheetname.upper()
+                        )
 
-        return False
+                        if namedef.localSheetId == sheet_id:
+                            return True
+
+            return False
 
     def get_destinations(name_def):
         """Workaround for the bug in DefinedName.destinations"""
@@ -164,9 +173,18 @@ def _get_namedrange(book, rangename, sheetname=None):
 
                     yield sheet_name, m.group("cells")
 
-    namedef = next(
-        (item for item in book.defined_names.definedName if cond(item)), None
-    )
+
+    if opxlver > (3, 0):
+        # Workbook.defined_names returns DefinedNameDict since openpyxl 3.1.x
+        defnamesdict = book[sheetname].defined_names if sheetname else book.defined_names
+        namedef = next(
+            (item for item in defnamesdict.values() if cond(item)), None
+        )
+    else:
+        # Workbook.defined_names returns DefinedNameList till openpyxl 3.0.x
+        namedef = next(
+            (item for item in book.defined_names.definedName if cond(item)), None
+        )
 
     if namedef is None:
         return None
