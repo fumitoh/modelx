@@ -12,6 +12,13 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *4 February 2023:*
+  spyder-modelx v0.13.3 is released to support Spyder 5.4.0 - 5.4.2. See :ref:`release-mxplugin-v0.13.3`.
+
+* *4 February 2023:*
+  modelx is now listed on `awesome-quant <https://github.com/wilsonfreitas/awesome-quant#numerical-libraries--data-structures>`_,
+  a curated list of awesome libraries, packages and resources for Quants.
+
 * *12 November 2022:*
   The :doc:`tutorial/using_pandas` page is added in the tutorial.
 
