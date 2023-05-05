@@ -4,3 +4,4 @@ pandas
 pydata_sphinx_theme
 networkx < 2.8  # To not import functools.cached_property not upported in Python 3.7
 myst_parser
+urllib3~=1.0
