@@ -12,6 +12,9 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *5 May 2023:*
+  spyder-modelx v0.13.4 is released to support Spyder 5.4.3. See :ref:`release-mxplugin-v0.13.4`.
+
 * *4 February 2023:*
   spyder-modelx v0.13.3 is released to support Spyder 5.4.0 - 5.4.2. See :ref:`release-mxplugin-v0.13.3`.
 
