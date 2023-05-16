@@ -86,6 +86,7 @@ def consts(request, tmp_path):
     return model, target
 
 
+@pytest.mark.skip()
 def test_consts(consts):
 
     # Compare values

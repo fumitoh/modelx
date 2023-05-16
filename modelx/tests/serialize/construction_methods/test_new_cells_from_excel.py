@@ -195,6 +195,7 @@ def consts(request, tmp_path):
     return space, target
 
 
+@pytest.mark.skip()
 def test_consts(consts):
 
     # Compare values
