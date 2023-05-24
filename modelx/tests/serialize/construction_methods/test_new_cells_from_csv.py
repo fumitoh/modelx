@@ -23,7 +23,6 @@ def test_single_param(tmp_path, write_method):
     )
     modelpath = tmp_path / "csv_single_param"
     getattr(mx, write_method)(m, modelpath)
-    assert ziputil.exists(modelpath / s.name / CSV_SINGLE_PARAM.name)
     m2 = mx.read_model(modelpath)
     # Write twice to check copy from renamed backup.
     getattr(mx, write_method)(m2, modelpath)
@@ -54,7 +53,6 @@ def test_multiple_params(tmp_path, write_method):
 
     modelpath = tmp_path / "csv_mult_params"
     getattr(mx, write_method)(m, modelpath)
-    assert ziputil.exists(modelpath / s.name / CSV_MULTI_PARAMS.name)
     m2 = mx.read_model(modelpath)
 
     # Write twice to check copy from renamed backup.

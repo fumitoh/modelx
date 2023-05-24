@@ -12,7 +12,8 @@ _MX_TO_FORMAT = {
     (0, 1, 0): 2,
     (0, 2, 0): 3,
     (0, 9, 0): 4,
-    (0, 18, 0): 5
+    (0, 18, 0): 5,
+    (0, 22, 0): 6
 }
 
 HIGHEST_VERSION = list(_MX_TO_FORMAT.values())[-1]
@@ -22,36 +23,6 @@ DEFAULT_MAX_BACKUPS = 3
 def _get_serializer(version):
     return importlib.import_module(
         ".serializer_%s" % version, "modelx.serialize")
-
-
-def _rename_path(path, new_path, obj):
-    """Replace ``path`` written in obj._impl.source with ``new_path``"""
-
-    from .serializer_2 import FROM_FILE_METHODS
-
-    def from_file(obj):
-        src = obj._impl.source
-        return src and "method" in src and src["method"] in FROM_FILE_METHODS
-
-    def repalce_path(path, new_path, obj):
-        path = path.resolve().absolute()
-        new_path = new_path.resolve().absolute()
-        pathstr = obj._impl.source["args"][0]
-        filepath = pathlib.Path(pathstr)
-        if path in filepath.parents:
-            new_filepath = new_path.joinpath(filepath.relative_to(path))
-            obj._impl.source["args"][0] = str(new_filepath)
-
-    for space in obj.spaces.values():
-        if from_file(space):
-            repalce_path(path, new_path, space)
-        else:
-            _rename_path(path, new_path, space)
-
-    if hasattr(obj, "cells"):
-        for cells in obj.cells.values():
-            if from_file(cells):
-                repalce_path(path, new_path, cells)
 
 
 def _increment_backups(
@@ -72,7 +43,6 @@ def _increment_backups(
             _increment_backups(model, base_path, max_backups, nth + 1)
             next_backup = pathlib.Path(str(base_path) + "_BAK" + str(nth + 1))
             backup_path.rename(next_backup)
-            _rename_path(backup_path, next_backup, model)
 
 
 def _get_model_metadata(model_path):

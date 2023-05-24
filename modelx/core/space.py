@@ -1654,8 +1654,7 @@ class UserSpaceImpl(*_user_space_impl_base):
         param_order=None,
         transpose=False,
         names_col=None,
-        param_rows=None,
-        call_id=None
+        param_rows=None
     ):
         """Create multiple cells from an Excel range.
 
@@ -1698,63 +1697,24 @@ class UserSpaceImpl(*_user_space_impl_base):
 
         blank_func = "def _blank_func(" + sig + "): pass"
 
-        source = {
-            "method": "new_cells_from_excel",
-            "args": [str(pathlib.Path(book).absolute()), range_],
-            "kwargs": {
-                "sheet": sheet,
-                "names_row": names_row,
-                "param_cols": param_cols,
-                "param_order": param_order,
-                "transpose": transpose,
-                "names_col": names_col,
-                "param_rows": param_rows,
-                "call_id": call_id or str(uuid.uuid4())
-            }
-        }
-
         for cellsdata in cellstable.items():
             cells = self.spmgr.new_cells(
                 self,
-                name=cellsdata.name, formula=blank_func,
-                                   source=source)
+                name=cellsdata.name, formula=blank_func)
             for args, value in cellsdata.items():
                 cells.set_value(args, value)
 
-    def new_cells_from_pandas(self, obj, cells, param, call_id=None):
+    def new_cells_from_pandas(self, obj, cells, param):
         from modelx.io.pandas import new_cells_from_pandas
-
-        source = {
-            "method": "new_cells_from_pandas",
-            "args": [obj],
-            "kwargs": {
-                "cells": cells,
-                "param": param,
-                "call_id": call_id or str(uuid.uuid4())
-            }
-        }
-
-        return new_cells_from_pandas(self, obj, cells, param, source)
+        return new_cells_from_pandas(self, obj, cells, param)
 
     def new_cells_from_csv(
-            self, filepath, cells, param, args, kwargs, call_id=None):
+            self, filepath, cells, param, args, kwargs):
         import pandas as pd
         from modelx.io.pandas import new_cells_from_pandas
 
-        source = {
-            "method": "new_cells_from_csv",
-            "args": [filepath],
-            "kwargs": {
-                "cells": cells,
-                "param": param,
-                "args": args,
-                "kwargs": kwargs,
-                "call_id": call_id or str(uuid.uuid4())
-            }
-        }
-
         return new_cells_from_pandas(
-            self, pd.read_csv(filepath, *args, **kwargs), cells, param, source)
+            self, pd.read_csv(filepath, *args, **kwargs), cells, param)
 
     # ----------------------------------------------------------------------
     # Attribute access

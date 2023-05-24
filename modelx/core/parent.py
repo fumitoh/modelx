@@ -829,8 +829,7 @@ class EditableParentImpl(BaseParentImpl):
         cells_param_order=None,
         transpose=False,
         names_col=None,
-        param_rows=None,
-        call_id=None
+        param_rows=None
     ):
 
         import modelx.io.excel_legacy as xl
@@ -861,24 +860,8 @@ class EditableParentImpl(BaseParentImpl):
             cells_params = cellstable.param_names[len(space_param_order):]
             param_func = get_param_func(space_params)
 
-        source = {
-            "method": "new_space_from_excel",
-            "args": [str(pathlib.Path(book).absolute()), range_],
-            "kwargs": {
-                "sheet": sheet,
-                "name": name,
-                "names_row": names_row,
-                "param_cols": param_cols,
-                "space_param_order": space_param_order,
-                "cells_param_order": cells_param_order,
-                "transpose": transpose,
-                "names_col": names_col,
-                "param_rows": param_rows,
-                "call_id": call_id or str(uuid.uuid4()),
-            }
-        }
         space = self.model.updater.new_space(
-            self, name=name, formula=param_func, source=source)
+            self, name=name, formula=param_func)
 
         for cellsdata in cellstable.items():
             space.spmgr.new_cells(
@@ -905,48 +888,21 @@ class EditableParentImpl(BaseParentImpl):
         return space
 
     def new_space_from_pandas(self, obj, space, cells, param,
-                              space_params, cells_params, call_id=None):
+                              space_params, cells_params):
         from modelx.io.pandas import new_space_from_pandas
 
-        source = {
-            "method": "new_space_from_pandas",
-            "args": [obj],
-            "kwargs": {
-                "space": space,
-                "cells": cells,
-                "param": param,
-                "space_params": space_params,
-                "cells_params": cells_params,
-                "call_id": call_id or str(uuid.uuid4())
-            }
-        }
-
         return new_space_from_pandas(self, obj, space, cells, param,
-                                     space_params, cells_params, source)
+                                     space_params, cells_params)
 
     def new_space_from_csv(self, filepath, space, cells, param,
-            space_params, cells_params, args, kwargs, call_id=None):
+            space_params, cells_params, args, kwargs):
         from modelx.io.pandas import new_space_from_pandas
         import pandas as pd
 
-        source = {
-            "method": "new_space_from_csv",
-            "args": [filepath],
-            "kwargs": {
-                "space": space,
-                "cells": cells,
-                "param": param,
-                "space_params": space_params,
-                "cells_params": cells_params,
-                "args": args,
-                "kwargs": kwargs,
-                "call_id": call_id or str(uuid.uuid4())
-            }
-        }
         return new_space_from_pandas(
             self, pd.read_csv(filepath, *args, **kwargs),
             space, cells, param,
-            space_params, cells_params, source)
+            space_params, cells_params)
 
     def new_excel_range(self, name, path, range_, sheet, keyids, loadpath):
 

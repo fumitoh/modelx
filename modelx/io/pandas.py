@@ -13,7 +13,6 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import itertools
-import uuid
 
 import pandas as pd
 import numpy as np
@@ -222,7 +221,7 @@ def _get_param_names(obj, param):
     return param_names
 
 
-def _new_cells_from_series(self, series, name, param, source):
+def _new_cells_from_series(self, series, name, param):
 
     if is_valid_name(name):
         pass
@@ -233,8 +232,7 @@ def _new_cells_from_series(self, series, name, param, source):
     cells = self.spmgr.new_cells(
         self,
         name=name,
-        formula=get_param_func(_get_param_names(series, param)),
-        source=source
+        formula=get_param_func(_get_param_names(series, param))
     )
 
     for i, v in series.items():
@@ -272,11 +270,11 @@ def _overwrite_colnames(self, frame, names):
     return cells_names
 
 
-def new_cells_from_pandas(self, obj, cells, param, source):
+def new_cells_from_pandas(self, obj, cells, param):
 
     if isinstance(obj, pd.Series):
         return _new_cells_from_series(
-            self, obj, cells, param, source).interface
+            self, obj, cells, param).interface
 
     else:
         cells_names = _overwrite_colnames(self, obj, cells)
@@ -286,15 +284,14 @@ def new_cells_from_pandas(self, obj, cells, param, source):
                 self,
                 obj[c],
                 name=cells_names[i],
-                param=param,
-                source=source
+                param=param
             )
 
         return self.interface.cells[cells_names]
 
 
 def new_space_from_pandas(
-        self, obj, space, cells, param, space_params, cells_params, source):
+        self, obj, space, cells, param, space_params, cells_params):
 
     param_names = _get_param_names(obj, param)
 
@@ -331,7 +328,7 @@ def new_space_from_pandas(
         space_func = get_param_func(space_params)
 
     newspace = self.model.updater.new_space(
-        self, name=space, formula=space_func, source=source)
+        self, name=space, formula=space_func)
 
     if isinstance(obj, pd.Series):
         obj = obj.to_frame()

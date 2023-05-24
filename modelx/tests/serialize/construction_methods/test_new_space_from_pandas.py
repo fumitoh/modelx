@@ -34,5 +34,7 @@ def test_write_space_from_pandas(tmp_path, write_method):
 
     compare_model(m, m2)
 
-    for first, second in testdf.index:
-        assert s[first].frame.equals(s2[first].frame)
+    for first, _ in testdf.index:
+        # Row order does not match
+        pd.testing.assert_frame_equal(s[first].frame, s2[first].frame, check_like=True)
+

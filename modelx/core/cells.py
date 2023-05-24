@@ -482,13 +482,12 @@ class CellsImpl(*_cells_impl_base):
         "data",
         "_namespace",
         "altfunc",
-        "source",
         "input_keys"
     ) + get_mixin_slots(*_cells_impl_base)
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
-        source=None, is_derived=False, add_to_space=True
+        is_derived=False, add_to_space=True
     ):
         # Determine name
         if base:
@@ -512,7 +511,6 @@ class CellsImpl(*_cells_impl_base):
         )
         self.spmgr = space.spmgr
         Derivable.__init__(self, is_derived)
-        self.source = source
 
         if add_to_space:
             space._cells.set_item(name, self)
@@ -734,12 +732,11 @@ class UserCellsImpl(CellsImpl):
 
     def __init__(
         self, space, name=None, formula=None, data=None, base=None,
-        source=None, is_derived=False, add_to_space=True
+        is_derived=False, add_to_space=True
     ):
         CellsImpl.__init__(
             self, space=space, name=name, formula=formula, data=data,
-            base=base,
-            source=source, is_derived=is_derived, add_to_space=add_to_space
+            base=base, is_derived=is_derived, add_to_space=add_to_space
         )
 
     # ----------------------------------------------------------------------
