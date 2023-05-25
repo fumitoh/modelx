@@ -27,13 +27,14 @@ def extra_params(request, tmp_path):
         cells_param_order=[2, 0],
         transpose=orientation,
     )
+    model_path = tmp_path / 'model'
 
-    getattr(mx, write_method)(model, tmp_path)
+    getattr(mx, write_method)(model, model_path)
     # Write twice to check copy from renamed backup.
-    m2 = mx.read_model(tmp_path)
-    getattr(mx, write_method)(m2, tmp_path)
+    m2 = mx.read_model(model_path)
+    getattr(mx, write_method)(m2, model_path)
 
-    target = mx.read_model(tmp_path)
+    target = mx.read_model(model_path)
 
     return model, target
 
@@ -77,11 +78,13 @@ def consts(request, tmp_path):
         transpose=orientation,
     )
 
-    getattr(mx, write_method)(model, tmp_path)
+    model_path = tmp_path / 'model'
+
+    getattr(mx, write_method)(model, model_path)
     # Write twice to check copy from renamed backup.
-    m2 = mx.read_model(tmp_path)
-    getattr(mx, write_method)(m2, tmp_path)
-    target = mx.read_model(tmp_path)
+    m2 = mx.read_model(model_path)
+    getattr(mx, write_method)(m2, model_path)
+    target = mx.read_model(model_path)
 
     return model, target
 

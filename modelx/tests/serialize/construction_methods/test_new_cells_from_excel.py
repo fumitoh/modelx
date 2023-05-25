@@ -22,13 +22,14 @@ def single_param(request, tmp_path):
         param_order=[0],
         transpose=orientation,
     )
+    model_path = tmp_path / 'model'
 
-    getattr(mx, write_method)(model, tmp_path)
-    m2 = mx.read_model(tmp_path)
+    getattr(mx, write_method)(model, model_path)
+    m2 = mx.read_model(model_path)
 
     # Write twice to check copy from renamed backup.
-    getattr(mx, write_method)(m2, tmp_path)
-    target = mx.read_model(tmp_path).spaces[space.name]
+    getattr(mx, write_method)(m2, model_path)
+    target = mx.read_model(model_path).spaces[space.name]
 
     return space, target
 
@@ -61,12 +62,13 @@ def multiple_prams(request, tmp_path):
         param_order=[0, 1],
         transpose=orientation,
     )
-    getattr(mx, write_method)(model, tmp_path)
-    m2 = mx.read_model(tmp_path)
+    model_path = tmp_path / 'model'
+    getattr(mx, write_method)(model, model_path)
+    m2 = mx.read_model(model_path)
 
     # Write twice to check copy from renamed backup.
-    getattr(mx, write_method)(m2, tmp_path)
-    target = mx.read_model(tmp_path).spaces[space.name]
+    getattr(mx, write_method)(m2, model_path)
+    target = mx.read_model(model_path).spaces[space.name]
 
     return space, target
 
@@ -102,12 +104,13 @@ def extra_params(request, tmp_path):
         param_order=[1, 0],
         transpose=orientation,
     )
-    getattr(mx, write_method)(model, tmp_path)
-    m2 = mx.read_model(tmp_path)
+    model_path = tmp_path / 'model'
+    getattr(mx, write_method)(model, model_path)
+    m2 = mx.read_model(model_path)
 
     # Write twice to check copy from renamed backup.
-    getattr(mx, write_method)(m2, tmp_path)
-    target = mx.read_model(tmp_path).spaces[space.name]
+    getattr(mx, write_method)(m2, model_path)
+    target = mx.read_model(model_path).spaces[space.name]
     return space, target
 
 
@@ -128,7 +131,7 @@ def test_extra_params(extra_params):
 
 @pytest.fixture(params=[("U8:Z29", False, "write_model"),
                         ("C57:X62", True, "zip_model")])
-def extra_multiple_prams(request, tmp_path):
+def extra_multiple_params(request, tmp_path):
 
     range_, orientation, write_method = request.param
     model, space = mx.new_model(), mx.new_space()
@@ -143,19 +146,20 @@ def extra_multiple_prams(request, tmp_path):
         param_order=[1, 2, 0],
         transpose=orientation,
     )
-    getattr(mx, write_method)(model, tmp_path)
-    m2 = mx.read_model(tmp_path)
+    model_path = tmp_path / 'model'
+    getattr(mx, write_method)(model, model_path)
+    m2 = mx.read_model(model_path)
 
     # Write twice to check copy from renamed backup.
-    getattr(mx, write_method)(m2, tmp_path)
-    target = mx.read_model(tmp_path).spaces[space.name]
+    getattr(mx, write_method)(m2, model_path)
+    target = mx.read_model(model_path).spaces[space.name]
     return space, target
 
 
-def test_extra_multiple_prams(extra_multiple_prams):
+def test_extra_multiple_params(extra_multiple_params):
 
     # Compare values
-    src, trg = extra_multiple_prams
+    src, trg = extra_multiple_params
 
     for cells, offset1 in zip(["Cells1", "Cells2"], [1000, 2000]):
         assert trg.cells[cells].parameters == ("Product", "Sex", "Year")
@@ -186,12 +190,13 @@ def consts(request, tmp_path):
         param_order=[],
         transpose=orientation,
     )
-    getattr(mx, write_method)(model, tmp_path)
-    m2 = mx.read_model(tmp_path)
+    model_path = tmp_path / 'model'
+    getattr(mx, write_method)(model, model_path)
+    m2 = mx.read_model(model_path)
 
     # Write twice to check copy from renamed backup.
-    getattr(mx, write_method)(m2, tmp_path)
-    target = mx.read_model(tmp_path).spaces[space.name]
+    getattr(mx, write_method)(m2, model_path)
+    target = mx.read_model(model_path).spaces[space.name]
     return space, target
 
 
@@ -221,12 +226,13 @@ def empty_params(request, tmp_path):
         param_order=[0, 1],
         transpose=orientation,
     )
-    getattr(mx, write_method)(model, tmp_path)
-    m2 = mx.read_model(tmp_path)
+    model_path = tmp_path / 'model'
+    getattr(mx, write_method)(model, model_path)
+    m2 = mx.read_model(model_path)
 
     # Write twice to check copy from renamed backup.
-    getattr(mx, write_method)(m2, tmp_path)
-    target = mx.read_model(tmp_path).spaces[space.name]
+    getattr(mx, write_method)(m2, model_path)
+    target = mx.read_model(model_path).spaces[space.name]
     return space, target
 
 
