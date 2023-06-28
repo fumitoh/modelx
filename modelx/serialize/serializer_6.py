@@ -282,7 +282,7 @@ def output_input(obj, key):
 
 class ModelWriter:
 
-    version = 5
+    version = 6
 
     def __init__(self, system, model: Model, path: pathlib.Path,
                  log_input: bool,
@@ -690,15 +690,12 @@ def write_pandas(obj, path_: pathlib.Path, filename=None,
                              compresslevel=compresslevel)
 
 
-
 class BaseSelector:
     classes = []
 
     @classmethod
     def select(cls, *args) -> type:
         return next((e for e in cls.classes if e.condition(*args)), None)
-
-
 
 
 class InterfaceRefEncoder(BaseEncoder):

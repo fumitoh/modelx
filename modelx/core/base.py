@@ -533,7 +533,7 @@ class Interface:
 
             if self._impl.system.serializing.version == 2:
                 return self._reduce_serialize_2()
-            elif self._impl.system.serializing.version in (3, 4, 5):
+            elif self._impl.system.serializing.version in (3, 4, 5, 6):
                 return self._reduce_serialize_3()
             else:
                 raise ValueError("invalid serializer version")
