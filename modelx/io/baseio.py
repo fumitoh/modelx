@@ -271,9 +271,10 @@ class IOManager:
                 io_._on_update_path(path)
                 self.ios[key] = io_
 
-    def write_ios(self, root):
-        for a_io in self.ios.values():
-            self.write_io(a_io, root)
+    def write_ios(self, io_group, root):
+        for (group, path), a_io in self.ios.items():
+            if not group or group == io_group:  # group is None if absolute path
+                self.write_io(a_io, root)
 
     def write_io(self, io_, root):
         if not io_.path.is_absolute():
