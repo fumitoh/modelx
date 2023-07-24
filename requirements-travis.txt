@@ -6,3 +6,4 @@ openpyxl < 3.1  # To avoid a bug in 3.1.0
 -e git+https://github.com/fumitoh/lifelib.git#egg=lifelib
 pytest-benchmark
 psutil
+libcst
