@@ -440,6 +440,20 @@ class Model(IOSpecOperation, EditableParent):
                     backup=backup, log_input=log_input,
                     compression=compression, compresslevel=compresslevel)
 
+    def export(self, path):
+        """Export the model as a Python package.
+
+        .. warning:: This feature is experimental.
+            See the limitaions section in :py:func:`~modelx.export_model`.
+
+        This method performs the :py:func:`~modelx.export_model`
+        on self. See :py:func:`~modelx.export_model` section for the details.
+
+        .. versionadded:: 0.22.0
+        """
+        from ..export.exporter import Exporter
+        Exporter(self, path).export()
+
     # ----------------------------------------------------------------------
     # Getting and setting attributes
 

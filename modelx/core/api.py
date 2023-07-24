@@ -868,3 +868,65 @@ def handle_formula_error(handle=None):
         _system.executor.is_formula_error_handled = bool(handle)
 
     return _system.executor.is_formula_error_handled
+
+
+def export_model(model, path):
+    """Export a given model as a self-contained Python package.
+
+    .. warning:: This function is currently experimental
+            and subject to limitations detailed below.
+
+    This function exports the provided ``model`` as a Python package.
+    The resulting package is self-contained, meaning it does not require modelx.
+
+    In the resulting package,
+    classes are defined to represent the original model and its spaces.
+    The cells from the original model are exported
+    as methods within these space classes.
+
+    Upon importing the generated package,
+    an instance of the model class is created.
+    This model can be accessed as ``mx_model``,
+    or under the name of the original model within the package's namespace.
+
+    Values of types :obj:`int`, :obj:`str`, and :obj:`float` that are assigned
+    to references are output as literals within the package's modules.
+
+    Values associated with PandasData objects are saved in files within the package.
+    The metadata from these PandasData objects are output
+    as dictionary literals in the *_mx_io.py* module of the package.
+
+    Values not associated with any IOSpec objects
+    (except for those of the types listed above) are serialized (pickled)
+    and stored in the *_mx_pickled* file within the package.
+
+    **Limitations**
+
+    As this function is currently experimental,
+    not all modelx models can be exported. Current limitations include:
+
+    * Relative references in ItemSpaces are not supported.
+      All references within an ItemSpace are bound
+      to the same objects their base references point to.
+
+    * Objects associated with IOSpec other than PandasData,
+      such as ExcelRange and ModuleData, are not supported.
+
+    * modelx coerces a Cells object without parameters to its value
+      when used as an operand of arithmetic operators
+      (e.g., ``+``, ``-``, ``*``, ``/``).
+      This coercion does not occur in the exported models
+      and will be deprecated in future modelx releases.
+      Users should ensure that such Cells are called using ``()``
+      in the original model's formulas.
+
+    Args:
+        model: The Model object to be exported.
+        path: The path where the generated Python package will be located.
+
+    .. seealso:: :meth:`~modelx.core.model.Model.export`
+    .. versionadded:: 0.22.0
+    """
+    from ..export.exporter import Exporter
+    Exporter(model, path).export()
+
