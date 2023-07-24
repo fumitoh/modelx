@@ -4,7 +4,11 @@ import sys
 import textwrap
 import types
 import pprint
-from functools import cached_property
+try:
+    from functools import cached_property
+except ImportError:     # - Python 3.7
+    def cached_property(f):
+        return f
 import pickle
 
 from modelx.core import mxsys
