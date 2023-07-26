@@ -69,12 +69,13 @@ class Exporter:
             cur_dir = self.path / "/".join(
                 SPACE_PKG_PREFIX + n for n in parent.fullname.split(".")[1:])
 
-            write_str_utf8(init_line, cur_dir / '__init__.py')
+            if parent is self.model or parent.spaces:
+                write_str_utf8(init_line, cur_dir / '__init__.py')
 
-            # Write space modules
-            write_str_utf8(
-                SpaceTranslator(parent, io_manager).code,
-                cur_dir / (SPACE_MODULE + '.py'))
+                # Write space modules
+                write_str_utf8(
+                    SpaceTranslator(parent, io_manager).code,
+                    cur_dir / (SPACE_MODULE + '.py'))
 
         # Write IO metadata
         ios = io_manager.get_literal_ios()

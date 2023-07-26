@@ -1,4 +1,5 @@
 import sys
+import os
 import pathlib
 
 import pandas as pd
@@ -8,6 +9,15 @@ from modelx.export.exporter import Exporter
 
 
 sample_dir = pathlib.Path(__file__).parent / 'samples'
+
+
+def test_check_contents(tmp_path):
+    nomx_path = tmp_path / 'model'
+    m = mx.read_model(sample_dir / 'Options')
+    mx.export_model(m, nomx_path / 'Options')
+    assert set(os.listdir(nomx_path / 'Options')) == {
+        '__init__.py', '_mx_sys.py', '_mx_classes.py', '_mx_model.py'}
+    m.close()
 
 
 @pytest.fixture(scope='module')
