@@ -2,7 +2,7 @@ import builtins
 import textwrap
 from collections import namedtuple
 import symtable
-from typing import Optional
+from typing import Optional, Set
 
 
 # from symtable import symtable, SymbolTable
@@ -106,7 +106,7 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
     METADATA_DEPENDENCIES = (ParentNodeProvider,)
     matchers_compstats = m.If() | m.Try() | m.With() | m.For() | m.While()
 
-    def __init__(self, source: str, cells: set[str]):
+    def __init__(self, source: str, cells: Set[str]):
         super().__init__()
         self.source = source
         self.cells = cells
