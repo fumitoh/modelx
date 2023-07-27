@@ -52,7 +52,8 @@ def assert_scope_table_mapping(scope, table):
         elif isinstance(s, ComprehensionScope):
             assert t.get_type() == 'function'
             # listcomp, dictcomp, setcomp, genexpr
-            assert (name := t.get_name())[-4:] == 'comp' or name == 'genexpr'
+            name = t.get_name()
+            assert name[-4:] == 'comp' or name == 'genexpr'
 
         else:
             raise RuntimeError("must not happen")
@@ -139,17 +140,21 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
         # Name nodes in import statements are not in the keys of self.node_to_scope
         # For such names, their parents' scopes are looked for
         n = node
-        while not (scope := self.node_to_scope.get(n, None)):
+        scope = self.node_to_scope.get(n, None)
+        while not scope:
             prev = n
             n = self.get_metadata(ParentNodeProvider, n)
             if n == prev:
                 raise RuntimeError(f"scope not found for {n.value}")
+            scope = self.node_to_scope.get(n, None)
 
         i = next(i for i, v in enumerate(self.scopes) if scope == v)
 
-        if symbol := self.name_to_symbol[i].get(node.value, None):
+        symbol = self.name_to_symbol[i].get(node.value, None)
+        if symbol:
             if symbol.is_global():
-                if symbol_top := self.name_to_symbol[0].get(node.value, None):
+                symbol_top = self.name_to_symbol[0].get(node.value, None)
+                if symbol_top:
                     return symbol_top.is_global() and symbol_top.is_assigned()
                 elif node.value in self.builtins:
                     return False
