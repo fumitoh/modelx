@@ -667,29 +667,6 @@ class CellsEncoder(BaseEncoder):
         return Instruction(self.pickle_value)
 
 
-def copy_file(obj, path_: pathlib.Path, compression, compresslevel):
-    src = obj._impl.source
-    srcpath = pathlib.Path(src["args"][0])
-    ziputil.copy_file(
-        srcpath,
-        path_.joinpath(srcpath.name),
-        compression=compression,
-        compresslevel=compresslevel
-    )
-
-
-def write_pandas(obj, path_: pathlib.Path, filename=None,
-                 compression=zipfile.ZIP_DEFLATED,
-                 compresslevel=None):
-    src = obj._impl.source
-    data = src["args"][0]
-    if not filename:
-        filename = obj.name + ".pandas"
-    ziputil.pandas_to_pickle(data, path_.joinpath(filename),
-                             compression=compression,
-                             compresslevel=compresslevel)
-
-
 class BaseSelector:
     classes = []
 
@@ -816,20 +793,6 @@ class EncoderSelector(BaseSelector):
 
 # --------------------------------------------------------------------------
 # Model Reading
-
-def _replace_saved_path(space, temppath: str, path: str):
-
-    if not space.is_model():
-        if space.source and "args" in space.source:
-            if space.source["args"][0] == temppath:
-                space.source["args"][0] = path
-
-        for cells in space.cells.values():
-            if cells.source and cells.source["args"][0] == temppath:
-                cells.source["args"][0] = path
-
-    for child in space.spaces.values():
-        _replace_saved_path(child, temppath, path)
 
 
 def node_from_token(ast_, index):
@@ -1086,20 +1049,6 @@ class RenameParser(BaseAssignParser):
                 method=method,
                 args=(val,),
                 kwargs=kwargs)
-
-
-def filehook(inst):     # Not in use
-    args, kwargs = inst.args, inst.kwargs
-    args[0] = str(inst.kwargs["path_"].with_name(args[0]))
-    return args, kwargs
-
-
-def pandashook(inst):
-    import pandas as pd
-    args, kwargs = inst.args, inst.kwargs
-    args[0] = pd.read_pickle(args[0])
-    return args, kwargs
-
 
 class AttrAssignParser(BaseAssignParser):
 
