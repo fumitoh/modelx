@@ -21,6 +21,7 @@ import shutil
 import locale
 import os
 import warnings
+import time
 
 
 def get_archive_path(path: pathlib.Path, root: pathlib.Path):
@@ -289,14 +290,28 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path,
     elif not root_src and root_dst:
 
         arc_dst = get_archive_path(dst, root_dst)
-        with zipfile.ZipFile(root_dst, mode="a",
-                             **_compress_kwargs(compression, compresslevel)
-                             ) as zip_dst:
-            if not _archive_exists(arc_dst, zip_dst):
-                if is_valid_archive_path(arc_dst, zip_dst):
-                    zip_dst.write(src, arc_dst)
+
+        # workaround to prevent permission error when writing to zip on network
+        # https://github.com/fumitoh/modelx/issues/82
+        retries = 3
+        for i in range(retries):
+            try:
+                with zipfile.ZipFile(root_dst, mode="a",
+                                     **_compress_kwargs(compression, compresslevel)
+                                     ) as zip_dst:
+                    if not _archive_exists(arc_dst, zip_dst):
+                        if is_valid_archive_path(arc_dst, zip_dst):
+                            zip_dst.write(src, arc_dst)
+                        else:
+                            raise ValueError("invalid archive '%s'" % arc_dst)
+            except PermissionError:
+                if i < retries - 1:
+                    warnings.warn("writing to '%s' failed, retrying...")
+                    time.sleep(1)
+                    continue
                 else:
-                    raise ValueError("invalid archive '%s'" % arc_dst)
+                    raise
+            break
 
     elif not root_src and not root_dst:
         shutil.copyfile(str(src), str(dst))
