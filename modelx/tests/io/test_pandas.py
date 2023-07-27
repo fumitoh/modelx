@@ -119,7 +119,7 @@ if _pd_ver >= (0, 20):
             args = args[0]
         for arg in args:
             dfx = df.xs(arg[0], level="x")
-            assert int(dfx.loc[dfx.index.isnull(), "f1"]) == testspace.f1(
+            assert int(dfx.loc[dfx.index.isnull(), "f1"].iloc[0]) == testspace.f1(
                 arg[0]
             )
             assert df.loc[arg, "f2"] == testspace.f2(*arg)
@@ -179,7 +179,7 @@ if _pd_ver >= (0, 20):
             args = args[0]
         for arg in args:
             dfx = df.xs(arg[0], level="x")
-            assert int(dfx.loc[dfx.index.isnull(), "f1"]) == testspace.f1(
+            assert int(dfx.loc[dfx.index.isnull(), "f1"].iloc[0]) == testspace.f1(
                 arg[0]
             )
             assert df.loc[arg, "f2"] == testspace.f2(*arg)
