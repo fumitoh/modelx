@@ -2,6 +2,7 @@ import collections
 import pickle
 from importlib import import_module
 import pathlib
+from typing import Dict
 try:
     has_io = True
     from . import _mx_io
@@ -15,7 +16,7 @@ class BaseMxObject:
 
 class BaseParent(BaseMxObject):
 
-    _mx_spaces: dict[str, 'BaseSpace']
+    _mx_spaces: Dict[str, 'BaseSpace']
 
     def _mx_walk(self, skip_self: bool = False):
         """Generator yielding spaces in breadth-first order"""
