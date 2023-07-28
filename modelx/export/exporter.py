@@ -137,14 +137,20 @@ class DataManager:
                 **v.persistent_args
             }
             for v in self.ios.values()}
-        return pprint.pformat(ios, sort_dicts=False)
+        if sys.version_info < (3, 8):
+            return str(ios)
+        else:
+            return pprint.pformat(ios, sort_dicts=False)
 
     def get_literal_specs(self):
         specs = {k: {'type': v.__class__.__name__,
                      'io': pathlib.PurePath(v.io.path).as_posix(),
                      'kwargs': v._on_serialize({})}
                  for k, v in self.iospecs.items()}
-        return pprint.pformat(specs, sort_dicts=False)
+        if sys.version_info < (3, 8):
+            return str(specs)
+        else:
+            return pprint.pformat(specs, sort_dicts=False)
 
     def write_ios(self, root):
         mxsys.iomanager.write_ios(self.model, root)
