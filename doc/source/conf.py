@@ -58,7 +58,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'modelx'
-copyright = '2017-2022, Fumito Hamamura'
+copyright = '2017-2023, Fumito Hamamura'
 author = 'Fumito Hamamura'
 
 # The version info for the project you're documenting, acts as replacement for

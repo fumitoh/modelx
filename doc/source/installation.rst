@@ -29,6 +29,7 @@ or can be used with modelx to develop models more efficiently.
 
 * NetworkX (>=2.0) (required)
 * asttokens (required)
+* LibCST (required)
 * pandas (nearly required, not installed from modelx dependency)
 * OpenPyXL (nearly required, not intalled from modelx dependency)
 * Spyder (>=4.0.0) (optional)
@@ -47,6 +48,11 @@ depends on. Version 2.0 or newer is required.
 asttokens
 ^^^^^^^^^
 `asttokens <https://asttokens.readthedocs.io/en/latest/>`_
+is a required package that modelx depends on.
+
+LibCST
+^^^^^^
+`LibCST <https://libcst.readthedocs.io/en/latest/>`_
 is a required package that modelx depends on.
 
 Pandas
