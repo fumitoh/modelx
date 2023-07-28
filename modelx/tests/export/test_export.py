@@ -77,8 +77,17 @@ def test_pandasio(tmp_path):
 
 
 def test_pickle(tmp_path):
+
+    m = mx.new_model('PickleSample')
+    s = m.new_space('Space1')
+
+    s.df = pd.DataFrame({
+        'Name': ['John', 'Anna', 'Peter', 'Linda'],
+        'Age': [28, 22, 35, 58],
+        'City': ['New York', 'Los Angeles', 'Berlin', 'London']
+    })
+
     nomx_path = tmp_path / 'model'
-    m = mx.read_model(sample_dir / 'PickleSample')
     Exporter(m, nomx_path / 'PickleSample').export()
 
     try:

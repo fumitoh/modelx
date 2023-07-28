@@ -21,8 +21,7 @@ import pprint
 try:
     from functools import cached_property
 except ImportError:     # - Python 3.7
-    def cached_property(f):
-        return f
+    cached_property = property
 import pickle
 
 from modelx.core import mxsys
