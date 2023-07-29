@@ -10,7 +10,7 @@ if sys.platform == "win32":
         maxdepth = 100_000
     else:
         if psutil.virtual_memory().total < 8 * 1024**3:
-            maxdepth = 20000
+            maxdepth = 10000
         else:
             maxdepth = 50000
 
