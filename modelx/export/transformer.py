@@ -133,6 +133,7 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
         self.symtables = list_symtable(source)
         assert_scope_table_mapping(self.scopes, self.symtables)
 
+        # A list each of whose element is a name-to-symbol map
         self.name_to_symbol = [
             {s.get_name(): s for s in table.get_symbols()} for table in self.symtables
         ]
@@ -169,7 +170,12 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
             if symbol.is_global():
                 symbol_top = self.name_to_symbol[0].get(node.value, None)
                 if symbol_top:
-                    return symbol_top.is_global() and symbol_top.is_assigned()
+                    # Due to a bug in old versions,
+                    # for globals at the top level, is_global and is_local are both checked.
+                    # https://github.com/python/cpython/issues/86006 fixes
+                    # from Python 3.10+, 3.9.1+, 3.8.7+
+                    return ((symbol_top.is_global() or symbol_top.is_local())
+                            and symbol_top.is_assigned())
                 elif node.value in self.builtins:
                     return False
                 else:
