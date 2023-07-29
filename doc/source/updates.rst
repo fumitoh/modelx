@@ -14,7 +14,7 @@ Updates
 
 * *29 July 2023:*
   modelx v0.21.0 is released. See :doc:`releases/relnotes_v0_22_0`.
-  A blog post, `New Feature: Export Models as Self-contained Python Packages <https://modelx.io/blog/2023/07/27/export-feature-intro/>`_
+  A blog post, `New Feature: Export Models as Self-contained Python Packages <https://modelx.io/blog/2023/07/29/export-feature-intro/>`_
   on https://modelx.io explains the export feature in more details.
 
 * *5 May 2023:*

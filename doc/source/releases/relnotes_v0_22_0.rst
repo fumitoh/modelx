@@ -31,7 +31,7 @@ The feature is available as an API function or a method on the Model class:
 
 They both function the same.
 
-.. seealso:: `New Feature: Export Models as Self-contained Python Packages <https://modelx.io/blog/2023/07/27/export-feature-intro/>`_ , a blog post on https://modelx.io
+.. seealso:: `New Feature: Export Models as Self-contained Python Packages <https://modelx.io/blog/2023/07/29/export-feature-intro/>`_ , a blog post on https://modelx.io
 
 An option to report local variables in error trace
 -----------------------------------------------------
@@ -45,6 +45,7 @@ Bug Fixes
 ============
 
 * Fix error when writing multiple models with the same files (`GH81 <https://github.com/fumitoh/modelx/issues/81>`_)
+* Retries writing to a zip archive on a network location (`GH82 <https://github.com/fumitoh/modelx/issues/82>`_)
 * Fix error with OpenPyXL 3.1+
 * Fix error in trace_locals
 
