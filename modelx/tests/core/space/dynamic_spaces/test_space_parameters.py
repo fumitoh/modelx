@@ -70,8 +70,8 @@ def test_formula(samplemodel):
 
     for idx, x, n in data:
         assert space[idx].name == "TestSpace" + str(idx)
-        assert space[idx].x == x
-        assert space[idx].n == n
+        assert space[idx].x() == x
+        assert space[idx].n() == n
 
 
 def test_parameters(samplemodel):

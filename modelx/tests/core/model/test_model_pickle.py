@@ -166,3 +166,4 @@ def test_null_object(tmp_path):
 
     m._impl._check_sanity()
     m.close()
+    m2.close()

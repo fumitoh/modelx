@@ -64,7 +64,8 @@ def testmodel():
     an = m.new_space(name="Another")
     s.s = an
 
-    return m
+    yield m
+    m.close()
 
 
 @pytest.mark.parametrize(

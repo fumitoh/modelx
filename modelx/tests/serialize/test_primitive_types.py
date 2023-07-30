@@ -22,7 +22,8 @@ def test_serialize_primitive(parent_type, name, obj, literal, tmp_path):
     m = mx.new_model()
     parent = m if parent_type == 'model' else m.new_space('Space1')
     setattr(parent, name, obj)
-    m.write(tmp_path / 'model',)
+    m.write(tmp_path / 'model')
+    m.close()
 
     line = name + " = " + literal
     file = tmp_path / 'model' / ('__init__.py' if parent_type == 'model' else 'Space1/__init__.py')

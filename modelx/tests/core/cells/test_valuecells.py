@@ -28,31 +28,47 @@ def constcells():
     model.close()
 
 def test_lt(constcells):
-    assert constcells.bar < constcells.baz
-    assert not constcells.baz < constcells.bar
-    assert 3 < constcells.baz
-    assert constcells.bar < 4
+    with pytest.warns(UserWarning):
+        assert constcells.bar < constcells.baz
+    with pytest.warns(UserWarning):
+        assert not constcells.baz < constcells.bar
+    with pytest.warns(UserWarning):
+        assert 3 < constcells.baz
+    with pytest.warns(UserWarning):
+        assert constcells.bar < 4
 
 
 def test_le(constcells):
-    assert constcells.bar <= constcells.baz
-    assert not constcells.baz <= constcells.bar
-    assert 3 <= constcells.baz
-    assert constcells.bar <= 4
+    with pytest.warns(UserWarning):
+        assert constcells.bar <= constcells.baz
+    with pytest.warns(UserWarning):
+        assert not constcells.baz <= constcells.bar
+    with pytest.warns(UserWarning):
+        assert 3 <= constcells.baz
+    with pytest.warns(UserWarning):
+        assert constcells.bar <= 4
 
 
 def test_gt(constcells):
-    assert not constcells.bar > constcells.baz
-    assert constcells.baz > constcells.bar
-    assert not 3 > constcells.baz
-    assert not constcells.bar > 4
+    with pytest.warns(UserWarning):
+        assert not constcells.bar > constcells.baz
+    with pytest.warns(UserWarning):
+        assert constcells.baz > constcells.bar
+    with pytest.warns(UserWarning):
+        assert not 3 > constcells.baz
+    with pytest.warns(UserWarning):
+        assert not constcells.bar > 4
 
 
 def test_ge(constcells):
-    assert not constcells.bar >= constcells.baz
-    assert constcells.baz >= constcells.bar
-    assert not 3 >= constcells.baz
-    assert not constcells.bar >= 4
+    with pytest.warns(UserWarning):
+        assert not constcells.bar >= constcells.baz
+    with pytest.warns(UserWarning):
+        assert constcells.baz >= constcells.bar
+    with pytest.warns(UserWarning):
+        assert not 3 >= constcells.baz
+    with pytest.warns(UserWarning):
+        assert not constcells.bar >= 4
 
 
 # --------------------------------------------------------------------------
@@ -63,8 +79,10 @@ def test_call(constcells):
 
 
 def test_eq(constcells):
-    assert constcells.foo == 2
-    assert 2 == constcells.foo
+    with pytest.warns(UserWarning):
+        assert constcells.foo == 2
+    with pytest.warns(UserWarning):
+        assert 2 == constcells.foo
 
 
 def test_setattr_value(constcells):
@@ -87,4 +105,5 @@ def test_delattr_value(constcells):
 
 
 def test_bool(constcells):
-    assert bool(constcells.bar)
+    with pytest.warns(UserWarning):
+        assert bool(constcells.bar)

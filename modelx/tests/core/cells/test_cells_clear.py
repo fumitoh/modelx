@@ -71,7 +71,7 @@ def test_clear_no_param(clearsample, method, input, expected):
     if input:
         clearsample.no_param = 5
         assert clearsample.no_param.is_input()
-    assert clearsample.no_param == 5
+    assert clearsample.no_param() == 5
     getattr(clearsample.no_param, method)()
     assert set(clearsample.no_param) == expected
 

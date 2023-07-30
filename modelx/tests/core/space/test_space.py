@@ -101,7 +101,7 @@ def test_formula(testmodel):
 
     base.new_cells(formula=distance_def)
 
-    assert base[3, 4].distance == 5
+    assert base[3, 4].distance() == 5
 
 
 def test_named_itemspaces(testmodel):
@@ -146,10 +146,10 @@ def test_setref_derived(testmodel):
         return x
 
     base.x = 3
-    assert derived.foo == 3
+    assert derived.foo() == 3
     derived.x = 5
-    assert base.foo == 3
-    assert derived.foo == 5
+    assert base.foo() == 3
+    assert derived.foo() == 5
 
 
 def test_named_spaces(testmodel):

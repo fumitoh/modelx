@@ -11,7 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-
+import warnings
 from collections import namedtuple
 from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
@@ -178,60 +178,88 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         return self._impl.clear_value_at(node[KEY])
 
     # ----------------------------------------------------------------------
-    # Coercion to single value
+    # Coercion to single value: Deprecated
+
+    def _depr_msg(self):
+        if not self._impl.system.callstack.is_empty():
+            calling = ' in ' + get_node_repr(self._impl.system.callstack.last())
+        else:
+            calling = ''
+
+        msg = ("{cells} is coerced to its value{calling}."
+               + " The auto-coercion is deprecated and will be removed."
+               + " Call it explicitly with '()'.")
+
+        warnings.warn(msg.format(
+            cells=self._evalrepr,
+            calling=calling
+        ))
 
     def __bool__(self):
         """True if self != 0. Called for bool(self)."""
+        self._depr_msg()
         return self._impl.single_value != 0
 
     def __add__(self, other):
         """self + other"""
+        self._depr_msg()
         return self._impl.single_value + other
 
     def __radd__(self, other):
         """other + self"""
+        self._depr_msg()
         return self.__add__(other)
 
     def __neg__(self):
         """-self"""
+        self._depr_msg()
         return -self._impl.single_value
 
     def __pos__(self):
         """+self"""
+        self._depr_msg()
         return +self._impl.single_value
 
     def __sub__(self, other):
         """self - other"""
+        self._depr_msg()
         return self + -other
 
     def __rsub__(self, other):
         """other - self"""
+        self._depr_msg()
         return -self + other
 
     def __mul__(self, other):
         """self * other"""
+        self._depr_msg()
         return self._impl.single_value * other
 
     def __rmul__(self, other):
         """other * self"""
+        self._depr_msg()
         return self.__mul__(other)
 
     def __truediv__(self, other):
         """self / other: Should promote to float when necessary."""
+        self._depr_msg()
         return self._impl.single_value / other
 
     def __rtruediv__(self, other):
         """other / self"""
+        self._depr_msg()
         return other / self._impl.single_value
 
     def __pow__(self, exponent):
         """self ** exponent
         should promote to float or complex when necessary.
         """
+        self._depr_msg()
         return self._impl.single_value ** exponent
 
     def __rpow__(self, base):
         """base ** self"""
+        self._depr_msg()
         return base ** self._impl.single_value
 
     def __abs__(self):
@@ -243,6 +271,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     def __eq__(self, other):
         """self == other"""
+        self._depr_msg()
         if self._impl.is_scalar():
             return self._impl.single_value == other
         elif isinstance(other, Cells):
@@ -252,18 +281,22 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     def __lt__(self, other):
         """self < other"""
+        self._depr_msg()
         return self._impl.single_value < other
 
     def __le__(self, other):
         """self <= other"""
+        self._depr_msg()
         return self.__eq__(other) or self.__lt__(other)
 
     def __gt__(self, other):
         """self > other"""
+        self._depr_msg()
         return self._impl.single_value > other
 
     def __ge__(self, other):
         """self >= other"""
+        self._depr_msg()
         return self.__eq__(other) or self.__gt__(other)
 
     # ----------------------------------------------------------------------
