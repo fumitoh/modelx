@@ -31,3 +31,5 @@ Principal = 100000
 Term = 30
 
 Rate = 0.03
+
+SampleString = "Date 2053-01-01"

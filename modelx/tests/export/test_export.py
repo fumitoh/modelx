@@ -134,6 +134,7 @@ def test_literal_ref(mortgage_model):
     assert source.Fixed.Principal == target.Fixed.Principal == 100_000
     assert source.Fixed.Term == target.Fixed.Term == 30
     assert source.Fixed.Rate == target.Fixed.Rate == 0.03
+    assert source.Fixed.SampleString == target.Fixed.SampleString
 
 
 def test_module_ref(mortgage_model):

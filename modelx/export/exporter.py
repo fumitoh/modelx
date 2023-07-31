@@ -227,7 +227,7 @@ class ParentTranslator:
             else:
                 return 'None'
         elif any(type(value) is t for t in literal_types):
-            return str(value)
+            return pprint.pformat(value)
         elif (isinstance(value, types.ModuleType)
               and value in sys.modules.values()):
             # Module
