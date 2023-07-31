@@ -184,7 +184,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         if not self._impl.system.callstack.is_empty():
             calling = ' in ' + get_node_repr(self._impl.system.callstack.last())
         else:
-            calling = ''
+            return  # Do not show warnings outside modelx
 
         msg = ("{cells} is coerced to its value{calling}."
                + " The auto-coercion is deprecated and will be removed."
