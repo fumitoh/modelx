@@ -331,6 +331,8 @@ class SpaceTranslator(ParentTranslator):
     {cache_methods}
 
     {itemspace_methods}
+    
+    {getitem}
     """)
 
     cache_method_noparam = textwrap.dedent("""\
@@ -370,8 +372,24 @@ class SpaceTranslator(ParentTranslator):
             self._mx_itemspaces[_mx_key] = _mx_space
             return _mx_space
 
+    """)
+
+    getitem_asis = textwrap.dedent("""\
+    def __getitem__(self, item):
+        return self.__call__(item)
+    """)
+
+    getitem_unpack = textwrap.dedent("""\
     def __getitem__(self, item):
         return self.__call__(*item)
+    """)
+
+    getitem_select = textwrap.dedent("""\
+    def __getitem__(self, item):
+        if item.__class__ is tuple:
+            return self.__call__(*item)
+        else:
+            return self.__call__(item)
     """)
 
     @cached_property
@@ -412,7 +430,7 @@ class SpaceTranslator(ParentTranslator):
         cache_vars = []
         cache_methods = []
         for func in trans.func_attrs.values():
-            if func.param_len > 0:
+            if len(func.params) > 0:
                 cache_vars.append(
                     "self._v_" + func.name + " = {}")
                 cache_methods.append(self.cache_method.format(
@@ -438,6 +456,15 @@ class SpaceTranslator(ParentTranslator):
             if is_lambda_expr(src):
                 src = lambda_to_func(src, '_formula')
             attrs = get_func_attrs(src)
+
+            # How to pass args from __getitem__ to __call__
+            if len(attrs.params) == len(attrs.required_params) == 1:
+                getitem = self.getitem_asis
+            elif len(attrs.required_params) > 1:
+                getitem = self.getitem_unpack
+            else:
+                getitem = self.getitem_select
+
             itemspace_methods = self.itemspace_methods.format(
                 args=attrs.arg_str,
                 params=attrs.param_str,
@@ -450,6 +477,7 @@ class SpaceTranslator(ParentTranslator):
         else:
             itemspace_dict = ''
             itemspace_methods = ''
+            getitem = ''
 
         return self.class_template.format(
             name=space.name,
@@ -460,7 +488,8 @@ class SpaceTranslator(ParentTranslator):
             ref_assigns=textwrap.indent(self.ref_assigns(space), ' ' * 8),
             methods=textwrap.indent(trans.transformed.code, ' ' * 4),
             cache_methods=textwrap.indent(''.join(cache_methods), ' ' * 4),
-            itemspace_methods=textwrap.indent(itemspace_methods, ' ' * 4)
+            itemspace_methods=textwrap.indent(itemspace_methods, ' ' * 4),
+            getitem=textwrap.indent(getitem, ' ' * 4)
         )
 
     def space_assigns(self, parent):

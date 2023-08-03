@@ -146,3 +146,24 @@ def test_itemspace(mortgage_model):
     source, target = mortgage_model
     assert source.Summary.Payments() == target.Summary.Payments()
 
+
+def test_itemspace_params(tmp_path_factory):
+    nomx_path = tmp_path_factory.mktemp('model')
+    m = mx.read_model(sample_dir / "Params")
+    m.export(nomx_path / 'Params_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from Params_nomx import mx_model
+        assert mx_model.SingleParam(1).foo() == 1
+        assert mx_model.SingleParam[2].foo() == 2
+        assert mx_model.MultipleParams(3, 4).bar() == 7
+        assert mx_model.MultipleParams[5, 6].bar() == 11
+        assert mx_model.MultParamWithDefault(2).baz() == 4
+        assert mx_model.MultParamWithDefault[2].baz() == 4
+        assert mx_model.MultParamWithDefault(3, 4).baz() == 7
+        assert mx_model.MultParamWithDefault[3, 4].baz() == 7
+
+    finally:
+        sys.path.pop(0)
+        m.close()

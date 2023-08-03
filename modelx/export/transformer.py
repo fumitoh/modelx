@@ -75,7 +75,7 @@ def assert_scope_table_mapping(scope, table):
 
 FuncAttrs = namedtuple("FuncAttrs",
                        ["name", "params", "param_str",
-                        "param_len", "arg_str",
+                        "required_params", "arg_str",
                         "tuplized_arg_str", "key_str"])
 
 # Example:
@@ -84,8 +84,9 @@ FuncAttrs = namedtuple("FuncAttrs",
 #     pass
 #
 #     name: 'foo'
+#     params: ['x', 'y']
 #     param_str: 'x, y=1'
-#     param_len: 2
+#     required_params: ['x']
 #     arg_str: x, y
 #     tuplized_arg_str: '(x, y)'
 #     key_str: '(x, y)'  in case of a single parameter, no parenthesis (such as 'x')
@@ -94,6 +95,7 @@ FuncAttrs = namedtuple("FuncAttrs",
 def funcdef_to_attrs(func: FunctionDef, module: Module) -> FuncAttrs:
 
     params = [p.name.value for p in func.params.params]
+    required_params = [p.name.value for p in func.params.params if p.default is None]
     argstr = ", ".join(params)
     t_args = "(" + params[0] + ",)" if len(params) == 1 else "(" + ", ".join(params) + ")"
 
@@ -101,7 +103,7 @@ def funcdef_to_attrs(func: FunctionDef, module: Module) -> FuncAttrs:
         name=func.name.value,
         params=params,
         param_str=module.code_for_node(func.params),
-        param_len=len(params),
+        required_params=required_params,
         arg_str=argstr,
         tuplized_arg_str=t_args,
         key_str=argstr if len(params) == 1 else t_args
