@@ -167,3 +167,23 @@ def test_itemspace_params(tmp_path_factory):
     finally:
         sys.path.pop(0)
         m.close()
+
+
+def test_itemspace_nested_params(tmp_path_factory):
+    nomx_path = tmp_path_factory.mktemp('model')
+    m = mx.read_model(sample_dir / "NestedParams")
+    m.export(nomx_path / 'NestedParams_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from NestedParams_nomx import mx_model
+        assert mx_model.Parent[1].x == 1
+        assert mx_model.Parent[1].Child.x == 1
+        assert mx_model.Parent[1].Child[2].x == 1
+        assert mx_model.Parent[1].Child[2].y == 2
+        assert mx_model.Parent[2].Child[3].x == 2
+        assert mx_model.Parent[2].Child[3].y == 3
+
+    finally:
+        sys.path.pop(0)
+        m.close()

@@ -201,16 +201,20 @@ class ParentTranslator:
     def class_defs(self):
         raise NotImplementedError
 
-    def ref_assigns(self, parent):
+    def ref_assigns(self, parent, copy=False, add_pass=True):
         result = []
         for k, v in parent.refs.items():
             if k[0] != "_":
-                result.append('self.' + k + ' = ' + self.ref_value(parent, v))
+                if copy:
+                    result.append('self.' + k + ' = other.' + k)
+                else:
+                    result.append('self.' + k + ' = ' + self.ref_value(parent, v))
 
         if result:
             result.insert(0, "# Reference assignment")
         else:
-            result.append('pass')
+            if add_pass:
+                result.append('pass')
 
         return "\n".join(result)
 
@@ -319,8 +323,15 @@ class SpaceTranslator(ParentTranslator):
     {space_assigns}
     {space_dict}
     {itemspace_dict}
+            self._mx_roots = []     # Dynamic Space only
 
     {cache_vars}
+
+        @classmethod
+        def _mx_copy_from(cls, other, parent):
+            self = cls(parent)
+    {ref_copies}
+            return self
 
         def _mx_assign_refs(self, io_data, pickle_data):
 
@@ -358,17 +369,27 @@ class SpaceTranslator(ParentTranslator):
     """)
 
     itemspace_methods = textwrap.dedent("""\
-    def _mx_assign_refs_itemspace(self, _mx_base, {args}):
-    {itemspace_ref_assigns}
+    def _mx_copy_params(self, other):
+    {param_copies}
+
+    @staticmethod
+    def _mx_assign_params(_mx_space, {args}):
+    {param_assigns}
 
     def __call__(self, {params}):
         _mx_key = {idx_args}
         if _mx_key in self._mx_itemspaces:
             return self._mx_itemspaces[_mx_key]
         else:
-            _mx_space = self.__class__(self._parent)
-            _mx_space._mx_assign_refs_itemspace(self, {args})
-            _mx_space._mx_walk(skip_self=True)
+            _mx_space = self.__class__._mx_copy_from(self, self)
+            for _mx_s in _mx_space._mx_walk(skip_self=False):
+                for _mx_r in self._mx_roots:
+                    _mx_r._mx_copy_params(_mx_s)
+
+                self._mx_assign_params(_mx_s, {args})
+                _mx_s._mx_roots.extend(self._mx_roots)
+                _mx_s._mx_roots.append(_mx_space)
+
             self._mx_itemspaces[_mx_key] = _mx_space
             return _mx_space
 
@@ -469,10 +490,10 @@ class SpaceTranslator(ParentTranslator):
                 args=attrs.arg_str,
                 params=attrs.param_str,
                 idx_args=attrs.key_str,
-                itemspace_ref_assigns=textwrap.indent(
-                    self.itemspace_ref_assigns(
-                    space,
-                    attrs.params), ' ' * 4)
+                param_copies=textwrap.indent(
+                    self.param_assigns(attrs.params, copy=True), ' ' * 4),
+                param_assigns=textwrap.indent(
+                    self.param_assigns(attrs.params), ' ' * 4)
             )
         else:
             itemspace_dict = ''
@@ -485,6 +506,8 @@ class SpaceTranslator(ParentTranslator):
             space_dict=textwrap.indent(self.space_dict(space), ' ' * 8),
             itemspace_dict=textwrap.indent(itemspace_dict, ' ' * 8),
             cache_vars=textwrap.indent("\n".join(cache_vars), ' ' * 8),
+            ref_copies=textwrap.indent(
+                self.ref_assigns(space, copy=True, add_pass=False), ' ' * 8),
             ref_assigns=textwrap.indent(self.ref_assigns(space), ' ' * 8),
             methods=textwrap.indent(trans.transformed.code, ' ' * 4),
             cache_methods=textwrap.indent(''.join(cache_methods), ' ' * 4),
@@ -504,21 +527,17 @@ class SpaceTranslator(ParentTranslator):
 
         return "\n".join(result)
 
-    def itemspace_ref_assigns(self, parent, params):
+    def param_assigns(self, params, copy=False):
         params = list(params)
         result = []
-        for k, v in parent.refs.items():
-            if k[0] != "_":
-                if k in params:
-                    result.append('self.' + k + ' = ' + k)
-                    params.remove(k)
-                else:
-                    result.append('self.' + k + ' = _mx_base.' + k)
         for k in params:
-            result.append('self.' + k + ' = ' + k)
+            if copy:
+                result.append('other.' + k + ' = self.' + k)
+            else:
+                result.append('_mx_space.' + k + ' = ' + k)
 
         if result:
-            result.insert(0, "# Reference assignment")
+            result.insert(0, "# Parameter assignment")
         else:
             result.append('pass')
 
