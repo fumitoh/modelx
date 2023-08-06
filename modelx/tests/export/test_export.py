@@ -183,6 +183,7 @@ def test_itemspace_nested_params(tmp_path_factory):
         assert mx_model.Parent[1].Child[2].y == 2
         assert mx_model.Parent[2].Child[3].x == 2
         assert mx_model.Parent[2].Child[3].y == 3
+        assert mx_model.Parent[2].Child[3].SubChild.baz == 1
 
     finally:
         sys.path.pop(0)

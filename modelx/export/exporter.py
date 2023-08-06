@@ -201,7 +201,7 @@ class ParentTranslator:
     def class_defs(self):
         raise NotImplementedError
 
-    def ref_assigns(self, parent, copy=False, add_pass=True):
+    def ref_assigns(self, parent, copy=False):
         result = []
         for k, v in parent.refs.items():
             if k[0] != "_":
@@ -213,8 +213,7 @@ class ParentTranslator:
         if result:
             result.insert(0, "# Reference assignment")
         else:
-            if add_pass:
-                result.append('pass')
+            result.append('pass')
 
         return "\n".join(result)
 
@@ -327,15 +326,13 @@ class SpaceTranslator(ParentTranslator):
 
     {cache_vars}
 
-        @classmethod
-        def _mx_copy_from(cls, other, parent):
-            self = cls(parent)
-    {ref_copies}
-            return self
-
         def _mx_assign_refs(self, io_data, pickle_data):
 
     {ref_assigns}
+
+        def _mx_copy_refs(self, other):
+
+    {ref_copies}
 
     {methods}
 
@@ -381,8 +378,10 @@ class SpaceTranslator(ParentTranslator):
         if _mx_key in self._mx_itemspaces:
             return self._mx_itemspaces[_mx_key]
         else:
-            _mx_space = self.__class__._mx_copy_from(self, self)
-            for _mx_s in _mx_space._mx_walk(skip_self=False):
+            _mx_base = self
+            _mx_space = self.__class__(_mx_base)
+            for _mx_s, _mx_b in zip(_mx_space._mx_walk(), _mx_base._mx_walk()):
+                _mx_s._mx_copy_refs(_mx_b)
                 for _mx_r in self._mx_roots:
                     _mx_r._mx_copy_params(_mx_s)
 
@@ -507,7 +506,7 @@ class SpaceTranslator(ParentTranslator):
             itemspace_dict=textwrap.indent(itemspace_dict, ' ' * 8),
             cache_vars=textwrap.indent("\n".join(cache_vars), ' ' * 8),
             ref_copies=textwrap.indent(
-                self.ref_assigns(space, copy=True, add_pass=False), ' ' * 8),
+                self.ref_assigns(space, copy=True), ' ' * 8),
             ref_assigns=textwrap.indent(self.ref_assigns(space), ' ' * 8),
             methods=textwrap.indent(trans.transformed.code, ' ' * 4),
             cache_methods=textwrap.indent(''.join(cache_methods), ' ' * 4),
