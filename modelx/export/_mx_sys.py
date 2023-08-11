@@ -17,6 +17,8 @@ class BaseMxObject:
 class BaseParent(BaseMxObject):
 
     _mx_spaces: Dict[str, 'BaseSpace']
+    _parent: 'BaseParent'
+    _model: 'BaseModel'
 
     def _mx_walk(self, skip_self: bool = False):
         """Generator yielding spaces in breadth-first order"""
@@ -62,6 +64,18 @@ class BaseModel(BaseParent):
 
 
 class BaseSpace(BaseParent):
+
+
+    def _mx_is_in(self, parent: BaseParent):
+        p = self
+        while True:
+            if p is parent:
+                return True
+            elif p is None:
+                return False
+            else:
+                p = p._parent
+
 
     def _mx_get_object(self, keys):
         obj = self

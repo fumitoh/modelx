@@ -217,6 +217,35 @@ class ParentTranslator:
 
         return "\n".join(result)
 
+    def ref_copies(self, parent):
+        result = []
+        for k, v in parent.refs.items():
+            if k[0] == "_":
+                continue
+
+            base_k = 'base.' + k
+            self_k = 'self.' + k
+
+            if isinstance(v, (Cells, BaseSpace)):
+
+                refmode = parent._get_object(k, as_proxy=True).refmode
+                if refmode == 'auto' or refmode == 'relative':
+                    if_clause = 'if ' + (base_k + '.__self__' if isinstance(v, Cells) else base_k) + '._mx_is_in(base_root) else ' + base_k
+                    result.append(self_k + ' = ' + self.ref_value(parent, v) + ' ' + if_clause)
+                elif refmode == 'absolute':
+                    result.append(self_k + ' = ' + base_k)
+                else:
+                    raise RuntimeError('must not happen')
+            else:
+                result.append(self_k + ' = ' + base_k)
+
+        if result:
+            result.insert(0, "# Reference assignment")
+        else:
+            result.append('pass')
+
+        return "\n".join(result)
+
     def ref_value(self, parent, value):
 
         literal_types = [bool, int, float, str, type(None)]
@@ -330,7 +359,7 @@ class SpaceTranslator(ParentTranslator):
 
     {ref_assigns}
 
-        def _mx_copy_refs(self, other):
+        def _mx_copy_refs(self, base, base_root):
 
     {ref_copies}
 
@@ -379,18 +408,18 @@ class SpaceTranslator(ParentTranslator):
             return self._mx_itemspaces[_mx_key]
         else:
             _mx_base = self
-            _mx_space = self.__class__(_mx_base)
-            for _mx_s, _mx_b in zip(_mx_space._mx_walk(), _mx_base._mx_walk()):
-                _mx_s._mx_copy_refs(_mx_b)
+            _mx_root = _mx_base.__class__(self)
+            for _mx_s, _mx_b in zip(_mx_root._mx_walk(), _mx_base._mx_walk()):
+                _mx_s._mx_copy_refs(_mx_b, _mx_base)
                 for _mx_r in self._mx_roots:
                     _mx_r._mx_copy_params(_mx_s)
 
                 self._mx_assign_params(_mx_s, {args})
                 _mx_s._mx_roots.extend(self._mx_roots)
-                _mx_s._mx_roots.append(_mx_space)
+                _mx_s._mx_roots.append(_mx_root)
 
-            self._mx_itemspaces[_mx_key] = _mx_space
-            return _mx_space
+            self._mx_itemspaces[_mx_key] = _mx_root
+            return _mx_root
 
     """)
 
@@ -506,7 +535,7 @@ class SpaceTranslator(ParentTranslator):
             itemspace_dict=textwrap.indent(itemspace_dict, ' ' * 8),
             cache_vars=textwrap.indent("\n".join(cache_vars), ' ' * 8),
             ref_copies=textwrap.indent(
-                self.ref_assigns(space, copy=True), ' ' * 8),
+                self.ref_copies(space), ' ' * 8),
             ref_assigns=textwrap.indent(self.ref_assigns(space), ' ' * 8),
             methods=textwrap.indent(trans.transformed.code, ' ' * 4),
             cache_methods=textwrap.indent(''.join(cache_methods), ' ' * 4),

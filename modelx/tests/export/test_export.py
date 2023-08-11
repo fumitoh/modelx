@@ -188,3 +188,39 @@ def test_itemspace_nested_params(tmp_path_factory):
     finally:
         sys.path.pop(0)
         m.close()
+
+
+def test_relative_refs(tmp_path_factory):
+    nomx_path = tmp_path_factory.mktemp('model')
+    m = mx.read_model(sample_dir / "RelativeRefs")
+    m.export(nomx_path / 'RelativeRefs_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from RelativeRefs_nomx import mx_model
+        assert mx_model.Parent[1].Child2.c1 is mx_model.Parent[1].Child1
+        assert mx_model.Parent[2].Child2.foo() == 2
+        assert mx_model.Parent[3].Child2.c1abs is mx_model.Parent.Child1
+
+    finally:
+        sys.path.pop(0)
+        m.close()
+
+
+def test_relative_refs2(tmp_path_factory):
+    nomx_path = tmp_path_factory.mktemp('model')
+    m = mx.read_model(sample_dir / "RelativeRefs2")
+    m.export(nomx_path / 'RelativeRefs2_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from RelativeRefs2_nomx import mx_model
+        assert mx_model.Parent.Child.foo_ref() == 0
+        assert mx_model.Parent[1].Child.foo_ref() == 1
+        assert mx_model.Parent.Child[2].foo_ref() == 0
+        assert mx_model.Parent[1].Child[2].foo_ref() == 1
+        assert mx_model.Parent[1].Child[2].foo_ref.__self__ is mx_model.Parent[1].foo.__self__
+
+    finally:
+        sys.path.pop(0)
+        m.close()
