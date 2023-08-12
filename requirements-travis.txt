@@ -8,3 +8,4 @@ pytest-benchmark
 psutil
 libcst
 scipy
+QuantLib
