@@ -16,6 +16,7 @@ import sys
 import json, types, importlib, pathlib
 import ast
 import enum
+import shutil
 from collections import namedtuple
 import tokenize
 import token
@@ -298,13 +299,18 @@ class ModelWriter:
     version = 4
 
     def __init__(self, system, model: Model, path: pathlib.Path,
+                 is_zip: bool,
                  log_input: bool,
                  compression,
                  compresslevel):
 
         self.system = system
         self.model = model
+        self.value_id_map = {}
         self.root = path
+        self.temp_root = path   # Put zip in temp dir and copy later (GH82)
+        self.work_dir = path    # Sub dir in temp to put IO files before archiving
+        self.is_zip = is_zip
         self.call_ids = []
         self.pickledata = {}
         self.method_encoders = []
@@ -316,38 +322,55 @@ class ModelWriter:
     def write_model(self):
 
         try:
+            if self.is_zip:
+                tempdir = tempfile.TemporaryDirectory()
+                self.temp_root = pathlib.Path(tempdir.name) / self.root.name
+                self.work_dir = pathlib.Path(tempdir.name) / (self.root.stem + '_temp')
+                self.work_dir.mkdir(parents=True, exist_ok=True)
+
             self.system.serializing = self
             self.system.iomanager.serializing = True
 
+            ziputil.make_root(self.temp_root, self.is_zip, self.compression, self.compresslevel)
+            ziputil.write_str(json.dumps(
+                {"modelx_version": mx.VERSION[:3],
+                 "serializer_version": self.version}),
+                self.temp_root / "_system.json",
+                compression=self.compression,
+                compresslevel=self.compresslevel)
+
             encoder = ModelEncoder(
                 self, self.model,
-                self.root / "__init__.py",
-                self.root / "_data")
+                self.temp_root / "__init__.py",
+                self.temp_root / "_data")
 
             self._write_recursive(encoder)
             self.write_pickledata()
-            if zipfile.is_zipfile(self.root):
-                with tempfile.TemporaryDirectory() as tempdir:
-                    temproot = pathlib.Path(tempdir)
-                    self.system.iomanager.write_ios(root=temproot)
-                    ziputil.copy_dir_to_zip(temproot, self.root,
-                                            compression=self.compression,
-                                            compresslevel=self.compresslevel)
-            else:
-                self.system.iomanager.write_ios(root=self.root)
+            self.system.iomanager.write_ios(self.model, root=self.work_dir)
 
             if self.log_input:
                 ziputil.write_str_utf8(
                     "\n".join(self.input_log),
-                    self.root / "_input_log.txt",
+                    self.temp_root / "_input_log.txt",
                     compression=self.compression,
                     compresslevel=self.compresslevel
                 )
+
+            if self.is_zip:
+                ziputil.archive_dir(self.work_dir, self.temp_root,
+                                    compression=self.compression,
+                                    compresslevel=self.compresslevel)
+                if self.root.exists() and self.root.is_dir():
+                    raise IOError("'%s' is an existing directory" % self.root.name)
+                else:
+                    shutil.move(self.temp_root, self.root)
 
         finally:
             self.system.serializing = None
             self.system.iomanager.serializing = None
             self.call_ids.clear()
+            if self.is_zip:
+                tempdir.cleanup()
 
     def _write_recursive(self, encoder):
 
@@ -372,9 +395,9 @@ class ModelWriter:
 
     def write_pickledata(self):
         if self.pickledata:
-            file = self.root / "_data/data.pickle"
+            file = self.temp_root / "_data/data.pickle"
             ziputil.write_file_utf8(
-                lambda f: ModelPickler(f).dump(self.pickledata),
+                lambda f: ModelPickler(f, writer=self).dump(self.pickledata),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel

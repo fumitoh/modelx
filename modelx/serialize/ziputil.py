@@ -320,7 +320,7 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path,
         raise RuntimeError("must not happen")
 
 
-def copy_dir_to_zip(src: pathlib.Path, dest: pathlib.Path,
+def archive_dir(src: pathlib.Path, dest: pathlib.Path,
                     compression, compresslevel):
     """Copy directory tree into a zip file
 

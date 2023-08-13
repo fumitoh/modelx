@@ -73,16 +73,10 @@ def write_model(system, model, model_path,
     root = pathlib.Path(model_path)
     _increment_backups(model, root, max_backups)
 
-    ziputil.make_root(root, is_zip, compression, compresslevel)
-    ziputil.write_str(json.dumps(
-        {"modelx_version": modelx.VERSION[:3],
-         "serializer_version": version}),
-                      root / "_system.json",
-                      compression=compression,
-                      compresslevel=compresslevel)
-
     serializer = _get_serializer(version)
-    serializer.ModelWriter(system, model, root, log_input=log_input,
+    serializer.ModelWriter(system, model, root,
+                           is_zip=is_zip,
+                           log_input=log_input,
                            compression=compression,
                            compresslevel=compresslevel
                            ).write_model()

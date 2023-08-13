@@ -227,6 +227,7 @@ class ModelWriter:
     space_encoder = None
 
     def __init__(self, system, model: Model, path: pathlib.Path,
+                 is_zip: bool,
                  log_input: bool,
                  compression=None, compresslevel=None
                  ):
