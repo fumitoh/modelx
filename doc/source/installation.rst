@@ -16,9 +16,9 @@ Installation
 Python version
 --------------
 
-modelx requires Python 3.6 or newer.
-However, Python 3.6 reached its `end of life <https://devguide.python.org/devcycle/#end-of-life-branches>`_
-so if you're still using Python 3.6, you should upgrade it.
+modelx requires Python 3.7 or newer.
+However, Python 3.7 reached its `end of life <https://devguide.python.org/devcycle/#end-of-life-branches>`_
+so if you're still using Python 3.7, you should upgrade it.
 The newer the version of Python is, the faster it performs.
 
 

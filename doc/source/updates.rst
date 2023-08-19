@@ -12,8 +12,16 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+
+* *19 August 2023:*
+  A new blog post, `Enhanced Speed for Exported lifelib Models <https://modelx.io/blog/2023/08/19/enhanced-speed-for-exported-lifelib-models>`_
+  on https://modelx.io has been published.
+
+* *19 August 2023:*
+  modelx v0.23.0 is released. See :doc:`releases/relnotes_v0_23_0`.
+
 * *29 July 2023:*
-  modelx v0.21.0 is released. See :doc:`releases/relnotes_v0_22_0`.
+  modelx v0.22.0 is released. See :doc:`releases/relnotes_v0_22_0`.
   A blog post, `New Feature: Export Models as Self-contained Python Packages <https://modelx.io/blog/2023/07/29/export-feature-intro/>`_
   on https://modelx.io explains the export feature in more details.
 
@@ -26,6 +34,8 @@ Updates
 * *4 February 2023:*
   modelx is now listed on `awesome-quant <https://github.com/wilsonfreitas/awesome-quant#numerical-libraries--data-structures>`_,
   a curated list of awesome libraries, packages and resources for Quants.
+
+.. Latest Updates End
 
 * *12 November 2022:*
   The :doc:`tutorial/using_pandas` page is added in the tutorial.
@@ -48,8 +58,6 @@ Updates
 * *17 September 2022:*
   modelx v0.20.0 is released. See :doc:`releases/relnotes_v0_20_0`.
   :doc:`spymx-kernels<releases/spymx_kernels_relnotes>` is updated to support modelx v0.20.0.
-
-.. Latest Updates End
 
 * *30 July 2022:*
   spyder-modelx v0.13.0 is released. See :doc:`releases/spymx_relnotes_v0.13`.
