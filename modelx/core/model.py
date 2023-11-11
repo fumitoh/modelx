@@ -1140,7 +1140,7 @@ class SpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def _visit_treenodes_levels(self, node, include_self=True):
+    def _visit_tree_inner(self, node, include_self=True):
         que = [node]
         level = 0
         while que:
@@ -1153,8 +1153,8 @@ class SpaceGraph(nx.DiGraph):
             que += childs
             level += 1
 
-    def visit_treenodes(self, node, include_self=True):
-        for _, n in self._visit_treenodes_levels(
+    def visit_tree(self, node, include_self=True):
+        for _, n in self._visit_tree_inner(
                 node,include_self=include_self):
             yield n
 
@@ -1343,7 +1343,7 @@ class SpaceManager(SharedSpaceOperations):
         mapping = {}
         old_id = tuple(space.idstr.split("."))
         new_id = old_id[:-1] + (name,)
-        for node in self._graph.visit_treenodes(
+        for node in self._graph.visit_tree(
                 space.idstr, include_self=True):
 
             old_child = tuple(node.split("."))
@@ -1648,14 +1648,13 @@ class SpaceUpdater(SharedSpaceOperations):
         if not parent.is_model():
             spaces.insert(0, parent)
 
-        self._graph.add_node(
-            node, mode="defined", state="defined")
+        self._graph.add_node(node)
 
         for b in bases:
             base = b.idstr
             self._graph.add_edge(
-                base, node,
-                mode="defined",
+                base,
+                node,
                 level=0,
                 index=self._graph.max_index(node) + 1
             )
@@ -1676,7 +1675,6 @@ class SpaceUpdater(SharedSpaceOperations):
             parent,
             name,
             container,
-            is_derived,
             formula=formula,
             refs=refs,
             source=source,
@@ -1715,7 +1713,6 @@ class SpaceUpdater(SharedSpaceOperations):
             self._graph.add_edge(
                 b,
                 node,
-                mode="defined",
                 level=0,
                 index=self._graph.max_index(node) + 1
             )
@@ -1787,7 +1784,7 @@ class SpaceUpdater(SharedSpaceOperations):
 
         # Remove node and its child tree
         nodes_removed = list()
-        for child in self._graph.visit_treenodes(node):
+        for child in self._graph.visit_tree(node):
             nodes_removed.append(child)
             self._remove_hook(self._graph, child)
 
@@ -1831,9 +1828,6 @@ class SpaceUpdater(SharedSpaceOperations):
 
     def _copy_space_recursively(
             self, parent, source, name, defined_only):
-
-        if source.is_derived():
-            return
 
         space = self.new_space(
             parent,

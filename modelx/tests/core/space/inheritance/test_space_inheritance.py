@@ -131,12 +131,6 @@ def test_properties(testspaces):
     assert not source._is_root()
     assert not target._is_root()
 
-    assert source._is_defined()
-    assert not source._is_derived()
-
-    assert target._is_defined()
-    assert not target._is_derived()
-
 
 def test_cellsmapproxy_contains(testspaces):
     """Test creation of cells in derived nested spaces."""

@@ -350,14 +350,6 @@ class BaseSpace(BaseParent, ItemFactory):
         """True if the space is a static space, False if dynamic."""
         return isinstance(self._impl, UserSpaceImpl)
 
-    def _is_derived(self):
-        """True if the space is a derived space, False otherwise."""
-        return self._impl.is_derived()
-
-    def _is_defined(self):
-        """True if the space is a defined space, False otherwise."""
-        return self._impl.is_defined()
-
     def _is_root(self):
         """True if ths space is a dynamic space, False otherwise."""
         return isinstance(self._impl, ItemSpaceImpl)
@@ -1559,8 +1551,7 @@ class DynamicBase(BaseSpaceImpl):
 
 _user_space_impl_base = (
     DynamicBase,
-    EditableParentImpl,
-    Derivable
+    EditableParentImpl
 )
 
 @add_stateattrs
@@ -1583,7 +1574,6 @@ class UserSpaceImpl(*_user_space_impl_base):
         parent,
         name,
         container,
-        is_derived,
         formula=None,
         refs=None,
         source=None,
@@ -1600,7 +1590,6 @@ class UserSpaceImpl(*_user_space_impl_base):
         )
         DynamicBase.__init__(self)
         EditableParentImpl.__init__(self)
-        Derivable.__init__(self, is_derived)
 
         self.cellsnamer = AutoNamer("Cells")
 
@@ -1822,9 +1811,6 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.cells[name].reload(module=modsrc)
 
     def on_inherit(self, updater, bases, attr):
-
-        if bases and self.is_derived():
-            self.set_formula(bases[0].formula)
 
         attrs = {
             "cells": self.on_del_cells,

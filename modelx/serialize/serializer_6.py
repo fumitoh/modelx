@@ -365,15 +365,14 @@ class ModelWriter:
 
         for space in encoder.target.spaces.values():
 
-            if space._is_defined():
-                srcpath = (encoder.srcpath.parent / space.name / "__init__.py")
+            srcpath = (encoder.srcpath.parent / space.name / "__init__.py")
 
-                e = SpaceEncoder(
-                    self,
-                    space,
-                    srcpath=srcpath
-                    )
-                self._write_recursive(e)
+            e = SpaceEncoder(
+                self,
+                space,
+                srcpath=srcpath
+                )
+            self._write_recursive(e)
 
         encoder.instruct().execute()
 
@@ -527,8 +526,6 @@ class SpaceEncoder(BaseEncoder):
         spaces = []
         for name, space in self.space.spaces.items():
             if name[0] == "_":
-                pass
-            elif space._is_derived():
                 pass
             else:
                 spaces.append(name)

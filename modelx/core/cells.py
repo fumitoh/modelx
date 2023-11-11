@@ -598,10 +598,9 @@ class CellsImpl(*_cells_impl_base):
             raise ValueError("%s not a scalar" % self.name)
 
     def on_inherit(self, updater, bases):
-
-            self.model.clear_obj(self)
-            self.formula = bases[0].formula
-            self.altfunc.set_refresh()
+        self.model.clear_obj(self)
+        self.formula = bases[0].formula
+        self.altfunc.set_refresh()
 
     @property
     def namespace(self):
