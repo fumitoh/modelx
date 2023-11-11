@@ -2359,13 +2359,9 @@ class ReferenceManager:
             raise RuntimeError("must not happen")
 
         if not isinstance(value, Interface):
-            id_ = id(value)
-            if id_ in self._valid_to_refs:
-                refs = self._valid_to_refs[id_]
-                assert all(ref is not r for r in refs)
-                refs.append(ref)
-            else:
-                self._valid_to_refs[id_] = [ref]
+            refs = self._valid_to_refs.setdefault(id(value), [])
+            assert all(ref is not r for r in refs)
+            refs.append(ref)
 
     def del_ref(self, impl, name):
 
@@ -2418,11 +2414,7 @@ class ReferenceManager:
                     self._manager.del_spec(spec)
 
         if not isinstance(value, Interface):
-            valid = id(value)
-            if valid in self._valid_to_refs:
-                self._valid_to_refs[valid].append(refdict[name])
-            else:
-                self._valid_to_refs[id(value)] = [refdict[name]]
+            self._valid_to_refs.setdefault(id(value), []).append(refdict[name])
 
     def del_all_spec(self):
         specs = self.specs.copy()
