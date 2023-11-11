@@ -115,7 +115,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['networkx>=2.0', 'asttokens', 'libcst'],
+    install_requires=['networkx>=2.2', 'asttokens', 'libcst'],
 
     # If your project only runs on certain Python versions,
     # setting the python_requires argument to the appropriate PEP 440 version

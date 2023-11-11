@@ -1491,14 +1491,17 @@ class BaseSpaceImpl(*_base_space_impl_base):
         child = parts.pop(0)
 
         if parts:
-            return self.all_spaces[child].get_impl_from_namelist(parts)
+            if child in self.all_spaces:
+                return self.all_spaces[child].get_impl_from_namelist(parts)
+            else:
+                return None
         else:
             if child in self.namespace:
                 return self._namespace[child]
             elif child in self.named_itemspaces:
                 return self._named_itemspaces[child]
             else:
-                raise RuntimeError("name '%s' not found" % child)
+                return None
 
     # ----------------------------------------------------------------------
     # repr methods

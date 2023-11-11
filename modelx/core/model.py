@@ -28,7 +28,8 @@ from modelx.core.base import (
     ImplChainMap,
     BaseView,
     Derivable,
-    get_mixin_slots
+    get_mixin_slots,
+    null_impl
 )
 from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.cells import CellsImpl, UserCellsImpl
@@ -1077,19 +1078,7 @@ def has_parent(node, parent):
 
 
 class SpaceGraph(nx.DiGraph):
-    """New implementation of inheritance graph
-
-    Node state:
-        copied: Copied into sub graph
-        defined: Node created but space yet to create
-        created: Space created
-        updated: Existing space updated -- Not Used
-        unchanged: Existing space confirmed unchanged -- Not Used
-    """
-
-    def fresh_copy(self):   # Only for networkx -2.1
-        """Overriding Graph.fresh_copy"""
-        return SpaceGraph()
+    """New implementation of inheritance graph"""
 
     def ordered_preds(self, node):
         edges = [(self.edges[e]["index"], e) for e in self.in_edges(node)]
@@ -1099,19 +1088,6 @@ class SpaceGraph(nx.DiGraph):
         g = nx.descendants(self, node)
         g.add(node)
         return nx.topological_sort(self.subgraph(g))
-
-    def get_derived_subs(self, node):
-        """Get node and all subs that can be reached only by derived edges"""
-        que = [node]
-        accum = [node]
-        while que:
-            n = que.pop(0)
-            for e in self.out_edges(n):
-                if self.edges[e]["mode"] == "derived":
-                    t, h = e
-                    que.append(h)
-                    accum.append(h)
-        return accum
 
     def max_index(self, node):
         return max(
@@ -1164,196 +1140,6 @@ class SpaceGraph(nx.DiGraph):
                 if seq[0] == candidate:
                     del seq[0]
 
-    def get_derived_graph(self, on_edge=None, on_remove=None, start=()):
-        g = self.copy_as_spacegraph(self)
-        for e in self._visit_edges(*start):
-            g._derive_tree(e, on_edge, on_remove)
-        return g
-
-    def get_absbases(self):
-        """Get edges from absolute base nodes"""
-        result = list(self.edges)
-        for e in self.edges:
-            tail, head = e
-            if self.get_endpoints(
-                    self.visit_treenodes(
-                        self._get_topnode(tail)), edge="in"):
-                result.remove(e)
-
-        return result
-
-    def _visit_edges(self, *start):
-        """Generator yielding edges in breadth-first order"""
-        if not start:
-            start = self.get_absbases()
-
-        que = list(start)
-        visited = set()
-        while que:
-            e = que.pop(0)
-            if e not in visited:
-                yield e
-                visited.add(e)
-            _, head = e
-            edges = []
-            for n in self.visit_treenodes(self._get_topnode(head, edge="out")):
-                if self._is_endpoint(n, edge="out"):
-                    edges.extend(oe for oe in self.out_edges(n)
-                                 if oe not in visited)
-            que += edges
-
-    def check_cyclic(self, start, node):
-        """True if no cyclic"""
-
-        succs = self._get_otherends(
-            self.visit_treenodes(self._get_topnode(node, edge="out")),
-            edge="out")
-
-        for n in succs:
-            if self._is_linealrel(start, n):
-                return False
-            else:
-                if not self.check_cyclic(start, n):
-                    return False
-
-        return True
-
-    def _derive_tree(self, edge, on_edge=None, on_remove=None):
-        """Create derived node under the head of edge from the tail of edge"""
-        tail, head = edge
-        tlen, hlen = len_node(tail), len_node(head)
-
-        if tail:
-            bases = list(trim_left(n, tlen)
-                    for n in self.visit_treenodes(tail, include_self=False))
-        else:
-            bases = []
-
-        subs = list(trim_left(n, hlen)
-                   for n in self.visit_treenodes(head, include_self=False))
-
-        # missing = bases - subs
-        derived = list((tail + "." + n, head + "." + n) for n in bases)
-        derived.insert(0, (tail, head))
-
-        for e in derived:
-            if e not in self.edges:
-                t, h = e
-                if h not in self.nodes:
-                    self.add_node(h, mode="derived", state="defined")
-
-                if t:   # t can be ""
-                    level = len_node(t) - tlen
-                    self.add_edge(
-                        t, h,
-                        mode="derived",
-                        level=level,
-                        index=self.max_index(t) + 1
-                    )
-            if on_edge:
-                on_edge(self, e)
-
-        for n in reversed(subs):
-            if n not in bases:
-                n = head + "." + n
-                if self.nodes[n]["mode"] == "derived":
-                    if not list(self.predecessors(n)):
-                        if on_remove:
-                            on_remove(self, n)
-                        self.remove_node(n)
-
-    def subgraph_from_nodes(self, nodes):
-        """Get sub graph with nodes reachable form ``node``"""
-        result = set()
-        for node in nodes:
-            if node in self.nodes:
-                nodeset, _ = self._get_nodeset(node, set())
-                result.update(nodeset)
-
-        subg = self.copy_as_spacegraph(self.subgraph(result))
-
-        for n in subg.nodes:
-            subg.nodes[n]["state"] = "copied"
-
-        return subg
-
-    def subgraph_from_state(self, state):
-        """Get sub graph with nodes with ``state``"""
-        nodes = set(n for n in self if self.nodes[n]["state"] == state)
-        return self.copy_as_spacegraph(self.subgraph(nodes))
-
-    def get_updated(self, subgraph, nodeset=None, keep_self=True,
-                    on_restore=None):
-        """Return a new space graph with nodeset removed and subgraph added
-
-        subgraph's state attribute is removed.
-        """
-        if nodeset is None:
-            nodeset = subgraph.nodes
-
-        if keep_self:
-            src = self.copy_as_spacegraph(self)
-        else:
-            src = self
-
-        for n in subgraph.nodes:
-            del subgraph.nodes[n]["state"]
-
-        src.remove_nodes_from(nodeset)
-
-        if on_restore:
-            for n in self.nodes:
-                on_restore(subgraph, n)
-
-        return nx.compose(src, subgraph)
-
-    def _get_nodeset(self, node, processed):
-        """Get a subset of self.
-
-        Get a subset of self such that the subset contains
-        nodes connected to ``node`` either through inheritance or composition.
-
-        0. Prepare an emptly node set
-        1. Get the top endopoint in the tree that ``node`` is in, or ``node``
-           if none.
-        2. Add to the node set all the child nodes of the top endpoint.
-        3. Find node sets.
-        4. For each endpoint in the child nodes, repeat from 1.
-        """
-        top = self._get_topnode(node)
-        tree = set(self.visit_treenodes(top))
-        ends = self.get_endpoints(tree)
-
-        neighbors = self._get_otherends(ends) - processed
-        processed.update(ends)
-        result = tree.copy()
-        for n in neighbors:
-            ret_res, _ = self._get_nodeset(n, processed)
-            result.update(ret_res)
-
-        return result, processed
-
-    def get_parent_nodes(self, node: str, include_self=True):
-        """Get ancestors of ``node`` in order"""
-
-        maxlen = len_node(node) if include_self else len_node(node) - 1
-        result = []
-
-        for i in range(maxlen, 0, -1):
-            n = trim_right(node, len_node(node)-i)
-            if n in self.nodes:
-                result.insert(0, n)
-            else:
-                break
-        return result
-
-    def _get_topnode(self, node, edge="any"):
-        """Get the highest node that is an ancestor of the ``node``.
-        If none exits, return ``node``.
-        """
-        parents = self.get_parent_nodes(node)
-        return next((n for n in parents if self._is_endpoint(n, edge)), node)
-
     def _visit_treenodes_levels(self, node, include_self=True):
         que = [node]
         level = 0
@@ -1372,82 +1158,8 @@ class SpaceGraph(nx.DiGraph):
                 node,include_self=include_self):
             yield n
 
-    def get_endpoints(self, nodes, edge="any"):
-        return set(n for n in nodes if self._is_endpoint(n, edge))
-
-    def _get_otherends(self, nodes, edge="any"):
-        otherends = [set(self._get_neighbors(n, edge)) for n in nodes]
-        return set().union(*otherends)
-
-    def _get_neighbors(self, node, edge):
-        if edge == "in":
-            return self.predecessors(node)
-        elif edge == "out":
-            return self.successors(node)
-        else:
-            return itertools.chain(
-                self.predecessors(node), self.successors(node))
-
-    def _is_endpoint(self, node, edge="any"):
-        if edge == "out":
-            return bool(self.out_edges(node))
-        elif edge == "in":
-            return bool(self.in_edges(node))
-        elif edge == "any":
-            return bool(self.out_edges(node) or
-                        self.in_edges(node))
-        else:
-            raise ValueError
-
-    def _has_child(self, node, child):
-        node_len = len_node(node)
-        if node_len >= len_node(child):
-            return False
-        elif node == trim_right(child, len_node(child) - node_len):
-            return True
-        else:
-            return False
-
-    def _is_linealrel(self, node, other):
-        return (
-                node == other
-                or self._has_child(node, other)
-                or has_parent(node, other)
-        )
-
     def to_space(self, node):
         return self.nodes[node]["space"]
-
-    def get_mode(self, node):
-        return self.nodes[node]["mode"]
-
-    def copy_as_spacegraph(self, g):
-        """Copy g as SpaceGraph.
-
-        This method is only for compatibility with networkx 2.1 or older.
-        Overriding fresh_copy method is also needed.
-        G can be a sub graph view.
-        """
-        if _nxver < (2, 2):
-            # modified from https://github.com/networkx/networkx/blob/networkx-2.1/networkx/classes/digraph.py#L1080-L1167
-            # See LICENSES/NETWORKX_LICENSE.txt
-
-            def copy(klass, graph, as_view=False):
-
-                if as_view is True:
-                    return nx.graphviews.DiGraphView(graph)
-                G = klass()
-                G.graph.update(graph.graph)
-                G.add_nodes_from((n, d.copy()) for n, d in graph._node.items())
-                G.add_edges_from((u, v, datadict.copy())
-                                 for u, nbrs in graph._adj.items()
-                                 for v, datadict in nbrs.items())
-                return G
-
-            return copy(type(self), g)
-
-        else:
-            return type(self).copy(g)
 
     def get_relative(self, subspace, basespace, basevalue):
 
@@ -1525,7 +1237,6 @@ class SharedSpaceOperations:
 
     def __init__(self, model):
         self.model = model
-        self._inheritance = SpaceGraph()
         self._graph = SpaceGraph()
 
     def _can_add(self, parent, name, klass, overwrite=True):
@@ -1556,12 +1267,6 @@ class SharedSpaceOperations:
                 return subspace._namespace.fresh[name]
         return None
 
-    def _set_defined(self, node):
-
-        for graph in (self._inheritance, self._graph):
-            for parent in graph.get_parent_nodes(node):
-                graph.nodes[parent]["mode"] = "defined"
-
     def _get_space_bases(self, space, skip_self=True):
         idx = 1 if skip_self else 0
         nodes = self._graph.get_mro(space.idstr)[idx:]
@@ -1589,8 +1294,8 @@ class SharedSpaceOperations:
 
     def get_direct_bases(self, space):
         node = space.idstr
-        preds = self._inheritance.ordered_preds(node)
-        return [self._inheritance.to_space(n) for n in preds]
+        preds = self._graph.ordered_preds(node)
+        return [self._graph.to_space(n) for n in preds]
 
     def update_subs(self, space, skip_self=True):
 
@@ -1615,7 +1320,11 @@ class SharedSpaceOperations:
             parent.idstr, basespace, basevalue)
 
         if subimpl:
-            return True, self.model.get_impl_from_name(subimpl).interface
+            impl = self.model.get_impl_from_name(subimpl)
+            if impl:
+                return True, impl.interface
+            else:
+                return True, base.interface._impl.interface_cls(null_impl)
         else:
             return False, base.interface
 
@@ -1630,42 +1339,25 @@ class SpaceManager(SharedSpaceOperations):
                 parent, name, UserSpaceImpl, overwrite=False):
             raise ValueError("Cannot rename '%s' to '%s'" % (space.name, name))
 
-        # Check space is not derived or overwritten
-        for e in self._graph.in_edges(space.idstr):
-            if self._graph.edges[e]["mode"] == "derived":
-                t, h = e
-                raise ValueError(
-                    "'%s' has derived base '%s'" % (h, t))
-
-        # Derived/Overwritten spaces are renamed
-        subspaces = list(
-            self._graph.to_space(n) for n in self._graph.get_derived_subs(
-                space.idstr)
-        )
-
         # Create name mapping
         mapping = {}
-        for s in subspaces:
-            old_id = tuple(s.idstr.split("."))
-            new_id = old_id[:-1] + (name,)
-            for node in self._graph.visit_treenodes(
-                    s.idstr, include_self=True):
+        old_id = tuple(space.idstr.split("."))
+        new_id = old_id[:-1] + (name,)
+        for node in self._graph.visit_treenodes(
+                space.idstr, include_self=True):
 
-                old_child = tuple(node.split("."))
-                assert old_id == old_child[:len(old_id)]
-                mapping[node] = ".".join(new_id + old_child[len(new_id):])
+            old_child = tuple(node.split("."))
+            assert old_id == old_child[:len(old_id)]
+            mapping[node] = ".".join(new_id + old_child[len(new_id):])
 
-        for s in subspaces:
+        if not space.parent.is_model():
+            # Clear parent's dynsub, not s's
+            space.parent.clear_subs_rootitems()
 
-            if not s.parent.is_model():
-                # Clear parent's dynsub, not s's
-                s.parent.clear_subs_rootitems()
-
-            # Call on_rename callbacks
-            s.on_rename(name)
+        # Call on_rename callbacks
+        space.on_rename(name)
 
         # Rename nodes
-        nx.relabel_nodes(self._inheritance, mapping, copy=False)
         nx.relabel_nodes(self._graph, mapping, copy=False)
 
     def del_cells(self, space, name):
@@ -1686,9 +1378,6 @@ class SpaceManager(SharedSpaceOperations):
 
         if not self._can_add(space, name, CellsImpl, overwrite=overwrite):
             raise ValueError("Cannot create cells '%s'" % name)
-
-        self._set_defined(space.idstr)
-        space.set_defined()
 
         cells = UserCellsImpl(
             space=space, name=name, formula=formula,
@@ -1805,8 +1494,6 @@ class SpaceManager(SharedSpaceOperations):
                 raise ValueError("Cannot create reference '%s'" % name)
 
         self._check_subs_relrefs(space, name, value, refmode)
-        self._set_defined(space.idstr)
-        space.set_defined()
         result = space.on_create_ref(name, value, is_derived=False,
                             refmode=refmode)
 
@@ -1828,8 +1515,8 @@ class SpaceManager(SharedSpaceOperations):
         """Assigns a new value to an existing name."""
 
         self._check_subs_relrefs(space, name, value, refmode)
-        self._set_defined(space.idstr)
-        space.set_defined()
+        # self._set_defined(space.idstr)
+        # space.set_defined()
 
         is_relative = False if refmode == "absolute" else True
 
@@ -1855,9 +1542,6 @@ class SpaceManager(SharedSpaceOperations):
 
     def _check_sanity(self):
 
-        # both graph must have the same nodes
-        assert self._inheritance.nodes == self._graph.nodes
-
         nodes = set(self._graph.nodes)
         spaces = dict(self.model._all_spaces)
 
@@ -1879,67 +1563,12 @@ class SpaceUpdater(SharedSpaceOperations):
         self.manager = manager
         super().__init__(manager.model)
 
-        self.oldsubg_inherit = None
-        self.oldsubg = None
-
         self._instructions = InstructionList()
-
-    def _init_subgraphs(self, spaces, copy_derived=False):
-
-        nodes = [s.idstr for s in spaces]
-
-        self.oldsubg_inherit = self.manager._inheritance.subgraph_from_nodes(
-            nodes)
-        self.oldsubg = self.oldsubg_inherit.get_derived_graph()
-        self._inheritance = self.oldsubg_inherit.copy_as_spacegraph(
-            self.oldsubg_inherit)
-
-        if copy_derived:
-            self._graph = self.oldsubg.copy_as_spacegraph(self.oldsubg)
+        self._graph = self.manager._graph.copy()
 
     def _update_manager(self):
 
-        self._inheritance.remove_nodes_from(
-            set(n for n in self._inheritance if n not in self._graph))
-
-        # Add derived spaces back to self._inheritance
-        created = self._graph.subgraph_from_state("created")
-        if created:
-            created.remove_edges_from(list(created.edges))
-        self._inheritance = nx.compose(self._inheritance, created)
-
-        self.manager._inheritance = self.manager._inheritance.get_updated(
-            self._inheritance,
-            nodeset=self.oldsubg_inherit,
-            keep_self=False
-        )
-        self.manager._graph = self.manager._graph.get_updated(
-            self._graph,
-            nodeset=self.oldsubg,
-            keep_self=False
-        )
-
-    def _new_derived_space(self, node):
-
-        parent_node, name = split_node(node)
-
-        if parent_node:
-            parent = self._graph.to_space(parent_node)
-        else:
-            parent =self.model
-
-        space = UserSpaceImpl(
-            parent,
-            name,
-            container=parent._named_spaces,
-            is_derived=True
-            # formula=formula,
-            # refs=refs,
-            # source=source,
-            # doc=doc
-        )
-        self._graph.nodes[node]["space"] = space
-        self._graph.nodes[node]["state"] = "created"
+        self.manager._graph = self._graph
 
     def _update_derived_space(self, node):
         space = self._graph.to_space(node)
@@ -1953,21 +1582,6 @@ class SpaceUpdater(SharedSpaceOperations):
         space = self._graph.to_space(node)
         bases = self._get_space_bases(space, self._graph)
         space.on_inherit(self, bases, 'own_refs')
-
-    def _derive_hook(self, graph, edge):
-        """Callback passed as on_edge parameter"""
-        _, head = edge
-        mode = graph.nodes[head]["mode"]
-        state = graph.nodes[head]["state"]
-
-        if mode == "derived" and state == "defined":
-            self._instructions.append(
-                Instruction(self._new_derived_space, (head,))
-            )
-
-        self._instructions.append(
-            Instruction(self._update_derived_space, (head,))
-        )
 
     def _remove_hook(self, graph, node):
 
@@ -2034,48 +1648,26 @@ class SpaceUpdater(SharedSpaceOperations):
         if not parent.is_model():
             spaces.insert(0, parent)
 
-        self._init_subgraphs(spaces, copy_derived=True)
+        self._graph.add_node(
+            node, mode="defined", state="defined")
 
-        for g in (self._inheritance, self._graph):
-
-            g.add_node(
-                node, mode="defined", state="defined")
-
-            for b in bases:
-                base = b.idstr
-                g.add_edge(
-                    base, node,
-                    mode="defined",
-                    level=0,
-                    index=g.max_index(node) + 1
-                )
-
-            for pnode in g.get_parent_nodes(node):
-                g.nodes[pnode]["mode"] = "defined"
-
-        if not nx.is_directed_acyclic_graph(self._inheritance):
-            raise ValueError("cyclic inheritance")
-
-        if not self._inheritance.check_cyclic(node, node):
-            raise ValueError("cyclic inheritance through composition")
-
-        self._inheritance.get_mro(node)  # Check if MRO is possible
-
-        start = [
-            (tail, node) for tail in self._inheritance.ordered_preds(node)]
-
-        self._graph = self._graph.get_derived_graph(
-            on_edge=self._derive_hook, start=start)
+        for b in bases:
+            base = b.idstr
+            self._graph.add_edge(
+                base, node,
+                mode="defined",
+                level=0,
+                index=self._graph.max_index(node) + 1
+            )
 
         if not nx.is_directed_acyclic_graph(self._graph):
             raise ValueError("cyclic inheritance")
 
+        self._graph.get_mro(node)  # Check if MRO is possible
+
         # Check if MRO is possible for each node in sub graph
         for n in nx.descendants(self._graph, node):
             self._graph.get_mro(n)
-
-        if not parent.is_model():
-            parent.set_defined()
 
         if container is None:
             container = parent._named_spaces
@@ -2092,6 +1684,12 @@ class SpaceUpdater(SharedSpaceOperations):
         )
         self._graph.nodes[node]["space"] = space
         self._graph.nodes[node]["state"] = "created"
+
+        self._instructions.append(
+            Instruction(self._update_derived_space, (node,)))
+        for _,  v in nx.edge_dfs(self._graph, node):
+            self._instructions.append(
+                Instruction(self._update_derived_space, (v,)))
 
         try:
             self._instructions.execute()
@@ -2110,35 +1708,24 @@ class SpaceUpdater(SharedSpaceOperations):
         basenodes = [base.idstr for base in bases]
 
         for base in [node] + basenodes:
-            if base not in self.manager._inheritance:
+            if base not in self.manager._graph:
                 raise ValueError("Space '%s' not found" % base)
 
-        self._init_subgraphs([space] + bases)
-
         for b in basenodes:
-            self._inheritance.add_edge(
+            self._graph.add_edge(
                 b,
                 node,
                 mode="defined",
                 level=0,
-                index=self._inheritance.max_index(node) + 1
+                index=self._graph.max_index(node) + 1
             )
-
-        for p in self._inheritance.get_parent_nodes(node):
-            self._inheritance.nodes[p]["mode"] = "defined"
-
-        if not nx.is_directed_acyclic_graph(self._inheritance):
-            raise ValueError("cyclic inheritance")
-
-        for n in itertools.chain({node}, nx.descendants(
-                self._inheritance, node)):
-            self._inheritance.get_mro(n)
-
-        self._graph = self._inheritance.get_derived_graph(
-            on_edge=self._derive_hook)
 
         if not nx.is_directed_acyclic_graph(self._graph):
             raise ValueError("cyclic inheritance")
+
+        for n in itertools.chain({node}, nx.descendants(
+                self._graph, node)):
+            self._graph.get_mro(n)
 
         for desc in itertools.chain(
                 {node},
@@ -2158,6 +1745,12 @@ class SpaceUpdater(SharedSpaceOperations):
             conflict = set().intersection(*[n for n in members.values()])
             if conflict:
                 raise NameError("name conflict: %s" % conflict)
+
+        self._instructions.append(
+            Instruction(self._update_derived_space, (node,)))
+        for _,  v in nx.edge_dfs(self._graph, node):
+            self._instructions.append(
+                Instruction(self._update_derived_space, (v,)))
 
         self._instructions.execute()
         self._update_manager()
@@ -2168,86 +1761,42 @@ class SpaceUpdater(SharedSpaceOperations):
         basenodes = [base.idstr for base in bases]
 
         for base in [node] + basenodes:
-            if base not in self.manager._inheritance:
+            if base not in self.manager._graph:
                 raise ValueError("Space '%s' not found" % base)
 
-        self._init_subgraphs([space] + bases)
-
         for b in basenodes:
-            self._inheritance.remove_edge(b, node)
+            self._graph.remove_edge(b, node)
 
-        if not nx.is_directed_acyclic_graph(self._inheritance):
-            raise ValueError("cyclic inheritance")
-
-        for n in itertools.chain({node}, nx.descendants(
-                self._inheritance, node)):
-            self._inheritance.get_mro(n)
-
-        start = self._inheritance.get_absbases()
-        start.insert(0, ("", node))
-        self._graph = self._inheritance.get_derived_graph(
-            on_edge=self._derive_hook,
-            on_remove=self._remove_hook,
-            start=start
+        self._instructions.append(
+            Instruction(self._update_derived_space, (node,))
         )
-
-        if not nx.is_directed_acyclic_graph(self._graph):
-            raise ValueError("cyclic inheritance")
-
-        for desc in itertools.chain(
-                {node},
-                nx.descendants(self._graph, node)):
-
-            mro = self._graph.get_mro(desc)
-
-            # Check name conflict between spaces, cells, refs
-            members = {}
-            for attr in ["spaces", "cells", "refs"]:
-                namechain = []
-                for sname in mro:
-                    space = self._graph.to_space(sname)
-                    namechain.append(set(getattr(space, attr).keys()))
-                members[attr] = set().union(*namechain)
-
-            conflict = set().intersection(*[n for n in members.values()])
-            if conflict:
-                raise NameError("name conflict: %s" % conflict)
+        for _, v in nx.edge_bfs(self.manager._graph, node):
+            self._instructions.append(
+                Instruction(self._update_derived_space, (v,))
+            )
 
         self._instructions.execute()
         self._update_manager()
 
     def del_defined_space(self, space):
 
-        if space.is_derived():
-            raise ValueError(
-                "%s has derived spaces" % repr(space.interface)
-            )
-
         node = space.idstr
 
-        if node not in self.manager._inheritance:
+        if node not in self.manager._graph:
             raise ValueError("Space '%s' not found" % node)
-        elif self.manager._inheritance.nodes[node]["mode"] == "derived":
-            raise ValueError("cannot delete derived space")
-
-        self._init_subgraphs([space])
-        succs = list(self._inheritance.successors(node))
 
         # Remove node and its child tree
         nodes_removed = list()
-        for child in self._inheritance.visit_treenodes(node):
+        for child in self._graph.visit_treenodes(node):
             nodes_removed.append(child)
-            self._remove_hook(self._inheritance, child)
+            self._remove_hook(self._graph, child)
 
-        self._inheritance.remove_nodes_from(nodes_removed)
-        self._graph = self._inheritance.get_derived_graph(
-            on_edge=self._derive_hook,
-            on_remove=self._remove_hook,
-            start=[("", node) for node in succs]
-        )
-        for n in set(self._inheritance.nodes):
-            if n not in self._graph:
-                self._inheritance.remove_node(n)
+        for _, v in nx.edge_bfs(self.manager._graph, node):
+            self._instructions.append(
+                Instruction(self._update_derived_space, (v,))
+            )
+
+        self._graph.remove_nodes_from(nodes_removed)
 
         self._instructions.execute()
         self._update_manager()
