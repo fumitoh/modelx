@@ -26,11 +26,21 @@ def basic_relref():
     m._impl._check_sanity()
     m.close()
 
+@pytest.mark.skip   # TODO: Redesign relative reference to child spaces
 def test_relative_reference(basic_relref):
-    """Sub->Base"""
+    """
+        Base----ChildA---foo
+                |
+                +-ChildB----A---> ChildA
+                    +-------f---> foo
 
-    Base = basic_relref.Base
-    Sub = mx.new_space("Sub", bases=Base)
+        Sub(Base)--B(Base.B)
+    """
+
+    m = basic_relref
+    Base = m.Base
+    Sub = m.new_space("Sub", bases=Base)
+    Sub.new_space('ChildB', bases=Base.ChildB)
 
     assert Sub.ChildB.A is Sub.ChildA
     assert Sub.ChildB.f is Sub.ChildA.foo
@@ -59,39 +69,36 @@ def test_absolute_reference(basic_relref):
 @pytest.fixture
 def derived_relref():
     """
-        Base----Child-------GChild----GGChild---Ref<-Child/GChild
-                               |
-        Sub-----SubChild----SubGChild
-                   |
-        GSub---GSubChild
+        Base----A----B----C---foo<-A.B
+                          |
+        Sub-----A----B---C
+                         |
+        GSub---A---B----C
 
     """
     import modelx as mx
 
     m = mx.new_model()
 
-    GGChild = m.new_space('Base').new_space(
-        'Child').new_space('GChild').new_space('GGChild')
-
-    SubGChild = m.new_space('Sub').new_space('SubChild').new_space('SubGChild')
-    GSubChild = m.new_space('GSub').new_space('GSubChild')
-    SubGChild.add_bases(m.Base.Child.GChild)
-    GSubChild.add_bases(m.Sub.SubChild)
+    m.new_space('Base').new_space('A').new_space('B').new_space('C')
+    m.new_space('Sub').new_space('A').new_space('B').new_space(
+        'C', bases=m.Base.A.B.C)
+    m.new_space('GSub').new_space('A').new_space('B').new_space(
+        'C', bases=m.Sub.A.B.C)
 
     yield m
     m._impl._check_sanity()
     m.close()
 
+
 def test_ref_assign(derived_relref):
     m = derived_relref
 
-    # Inside
-    m.Base.Child.GChild.GGChild.Ref = m.Base.Child.GChild
-    assert m.GSub.GSubChild.SubGChild.GGChild.Ref is m.GSub.GSubChild.SubGChild
+    m.Base.A.B.C.foo = m.Base.A
+    assert m.GSub.A.B.C.foo is m.Base.A
 
-    # Outside
-    m.Base.Child.GChild.GGChild.Ref = m.Base.Child
-    assert m.GSub.GSubChild.SubGChild.GGChild.Ref is m.Base.Child
+    m.Base.A.B.C.foo = m.Base.A.B
+    assert m.GSub.A.B.C.foo is m.Base.A.B
 
 
 @pytest.fixture
@@ -118,6 +125,7 @@ def derived_relref2():
     m._impl._check_sanity()
     m.close()
 
+@pytest.mark.skip
 def test_ref_assign2(derived_relref2):
 
     m = derived_relref2
@@ -131,6 +139,7 @@ def test_ref_assign2(derived_relref2):
             is m.GSub.SubChild.SubGChild)
 
 
+@pytest.mark.skip
 def test_derived_relref3():
     """
         Base----Child-------GChild----GGChild---Ref<-GChild

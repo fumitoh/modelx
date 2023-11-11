@@ -142,9 +142,9 @@ def test_pickle_module(tmp_path):
 def test_null_object(tmp_path):
     """
         m---A---B
-            +---b <- B
-            |
-            C(A)
+        |   +---b <- B
+        |
+        +---C(A)
     """
     m = mx.new_model()
     A = m.new_space('A')

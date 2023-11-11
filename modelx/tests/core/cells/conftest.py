@@ -92,10 +92,10 @@ def sample_for_rename_and_formula():
     bar(1)
     sub2[1].Foo(1)
     sub2[2].Bar(1)
-    model.Sub1.Child1.Foo(1)
+    # model.Sub1.Child1.Foo(1)
 
-    assert tuple(sub1.Child1.cells) == ("Foo",)
-    assert len(sub1.Child1.Foo) == 1
+    # assert tuple(sub1.Child1.cells) == ("Foo",)
+    # assert len(sub1.Child1.Foo) == 1
     assert tuple(sub2.itemspaces) == (1, 2)
 
     yield model

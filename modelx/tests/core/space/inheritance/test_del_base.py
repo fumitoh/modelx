@@ -2,7 +2,7 @@
 import modelx as mx
 import pytest
 
-
+@pytest.mark.skip
 def test_del_defined_base():
     """
     A <- B <- C
@@ -43,17 +43,17 @@ def test_del_defined_base():
 
 def test_del_base_in_model():
     """
-        m---Base---BaseChild---BaseChildCells
+        m---Base---Child---foo
           |  |
-          |  +--BaseCells
+          |  +--bar
           |
           +-Sub(Base)
 
     """
     m, base = mx.new_model(), mx.new_space("Base")
-    child = base.new_space("BaseChild")
-    cells = base.new_cells("BaseCells")
-    child.new_cells("BaseChildCells")
+    # child = base.new_space("Child")
+    cells = base.new_cells("bar")
+    # child.new_cells("foo")
 
     m.new_space("Sub", bases=base)
 

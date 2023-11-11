@@ -7,7 +7,7 @@ def refmode_model():
         A---B---C---foo <-+
             |   |         |
             |   +---bar --+
-            D
+            D--C(A.B.C)
     """
     import modelx as mx
 
@@ -21,6 +21,7 @@ def refmode_model():
         return x
 
     D = m.new_space('D')
+    D.new_space('C', bases=C)
     D.add_bases(B)
     yield m
     m._impl._check_sanity()

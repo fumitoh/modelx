@@ -8,7 +8,7 @@ def dynref_model():
             |   |         |
             |   +---bar --+
             |
-            D[a]--baz <- D.C
+            D(B)[a]--baz <- D.C
     """
     m = mx.new_model()
     A = mx.new_space('A')
@@ -21,6 +21,7 @@ def dynref_model():
 
     D = m.new_space('D')
     D.add_bases(B)
+    D.new_space('C', bases=C)
     D.parameters = ('a',)
     yield m
     m._impl._check_sanity()
@@ -54,10 +55,12 @@ def dynautoref_model():
         A---B---C---bar <- A
             |
             D[a]--baz <- A
+                +-C(A.B.C)
     """
     m = mx.new_model()
     C = m.new_space('A').new_space('B').new_space('C')
     D = m.new_space('D', bases=m.A.B)
+    D.new_space('C', bases=C)
     D.parameters = ('a',)
 
     yield m

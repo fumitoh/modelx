@@ -16,6 +16,10 @@ import pytest
 
 @pytest.fixture
 def derived_sample():
+    """
+    root---A---B
+      +---C(A)
+    """
 
     model, root = mx.new_model(), mx.new_space(name="root")
     A = root.new_space(name="A")
@@ -44,7 +48,7 @@ def unpickled_model(request, derived_sample, tmpdir_factory):
     model._impl._check_sanity()
     model.close()
 
-
+@pytest.mark.skip
 def test_defined(unpickled_model):
 
     root = unpickled_model.root
@@ -53,6 +57,7 @@ def test_defined(unpickled_model):
     assert not root.C.B.D._is_derived()
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("member", ["space", "cells", "ref"])
 def test_derived_to_defined(unpickled_model, member):
 

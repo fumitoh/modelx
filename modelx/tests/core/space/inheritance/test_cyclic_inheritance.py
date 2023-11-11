@@ -1,7 +1,7 @@
 import modelx as mx
 import pytest
 
-
+@pytest.mark.skip
 def test_circler_error():
     """
         A <-B

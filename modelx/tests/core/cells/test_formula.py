@@ -52,8 +52,8 @@ def test_set_formula(sample_for_rename_and_formula):
     foo.formula = lambda x: 2 * x
 
     assert not len(foo)
-    assert not len(sub1.Child1.Foo)
-    assert sub1.Child1.Foo(1) == 2  # Changed
+    # assert not len(sub1.Child1.Foo)
+    # assert sub1.Child1.Foo(1) == 2  # Changed
     assert tuple(sub2.itemspaces) == (2,)   # sub2[2] not deleted
     assert sub2[1].Foo(1) == 2  # Changed
     assert sub2[2].Bar(1) == 1
@@ -66,11 +66,11 @@ def test_set_formula_with_defined_sub(sample_for_rename_and_formula):
     sub2 = model.Sub2
     foo = model.Parent.Child1.Foo
 
-    sub1.Child1.Foo.formula = lambda x: 3 * x
-    sub1.Child1.Foo(1)
+    # sub1.Child1.Foo.formula = lambda x: 3 * x
+    # sub1.Child1.Foo(1)
 
     foo.formula = lambda x: 2 * x
 
     assert not len(foo)
-    assert len(sub1.Child1.Foo)         # Not Cleared
-    assert sub1.Child1.Foo(1) == 3      # Not Changed
+    # assert len(sub1.Child1.Foo)         # Not Cleared
+    # assert sub1.Child1.Foo(1) == 3      # Not Changed

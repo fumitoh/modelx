@@ -119,23 +119,26 @@ def test_del_global_attrref():
 
 def test_del_attrref():
     """
-    m-----SpaceA-----SpaceB---x
+    m-----A-----B---x
        |     +----foo
-       +--SpaceC(SpaceA)
+       +--C(A)
     """
     m = mx.new_model()
-    A = m.new_space("SpaceA")
-    B = A.new_space("SpaceB")
+    A = m.new_space("A")
+    B = A.new_space("B")
     B.x = 3
 
     def foo():
-        return SpaceB.x
+        return B.x
 
     A.new_cells(formula=foo)
-    C = m.new_space("SpaceC", bases=A)
+    C = m.new_space("C", bases=A)
 
     assert A.foo() == 3
-    assert C.foo() == 3
+
+    with SuppressFormulaError():
+        with pytest.raises(NameError):
+            C.foo() == 3
 
     del B.x
 
@@ -143,7 +146,7 @@ def test_del_attrref():
         with pytest.raises(AttributeError):
             A.foo()
 
-        with pytest.raises(AttributeError):
+        with pytest.raises(NameError):
             C.foo()
 
     m._impl._check_sanity()
