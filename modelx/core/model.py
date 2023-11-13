@@ -464,7 +464,7 @@ class Model(IOSpecOperation, EditableParent):
         self._impl.del_attr(name)
 
     def __dir__(self):
-        return self._impl.namespace.interfaces
+        return list(self._impl.namespace.interfaces)
 
     @property
     def tracegraph(self):

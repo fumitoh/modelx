@@ -307,7 +307,7 @@ class BaseSpace(BaseParent, ItemFactory):
             raise AttributeError  # Must return AttributeError for hasattr
 
     def __dir__(self):
-        return self._impl.namespace.interfaces
+        return list(self._impl.namespace.interfaces)
 
     def _get_object(self, name, as_proxy=False):
         parts = name.split(".")
