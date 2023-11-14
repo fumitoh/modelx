@@ -540,9 +540,9 @@ class CellsImpl(*_cells_impl_base):
             self,
             system=space.system,
             parent=space,
-            name=name
+            name=name,
+            spmgr=space.spmgr
         )
-        self.spmgr = space.spmgr
         Derivable.__init__(self, is_derived)
 
         if add_to_space:

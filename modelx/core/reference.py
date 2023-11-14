@@ -83,8 +83,9 @@ class ReferenceImpl(Derivable, Impl):
             system=parent.system,
             parent=parent,
             name=name,
-            interface=value)
-        self.spmgr = parent.spmgr
+            spmgr=parent.spmgr,
+            interface=value
+        )
         Derivable.__init__(self, is_derived)
 
         self.container = container

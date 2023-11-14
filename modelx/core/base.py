@@ -202,8 +202,8 @@ class Impl(BaseImpl):
         "system",
         "interface",
         "parent",
-        "spmgr",
         "name",
+        "spmgr",
         "model",
         "allow_none",
         "lazy_evals",
@@ -212,7 +212,7 @@ class Impl(BaseImpl):
 
     interface_cls = None  # Override in sub classes if interface class exists
 
-    def __init__(self, system, parent, name, interface=None, doc=None):
+    def __init__(self, system, parent, name, spmgr, interface=None, doc=None):
 
         if self.interface_cls:
             self.interface = self.interface_cls(self)
@@ -223,6 +223,7 @@ class Impl(BaseImpl):
         self.parent = parent
         self.model = parent.model if parent else self
         self.name = name
+        self.spmgr = spmgr
         self.allow_none = None
         self.lazy_evals = None
         self._doc = doc

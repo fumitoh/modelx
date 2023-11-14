@@ -1370,9 +1370,9 @@ class BaseSpaceImpl(*_base_space_impl_base):
             system=parent.system,
             parent=parent,
             name=name,
+            spmgr=parent.spmgr,
             doc=doc
         )
-        self.spmgr = parent.spmgr
 
         # ------------------------------------------------------------------
         # Construct member containers

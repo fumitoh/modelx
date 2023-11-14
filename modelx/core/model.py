@@ -825,11 +825,10 @@ class ModelImpl(*_model_impl_base):
         elif not is_valid_name(name):
             raise ValueError("Invalid name '%s'." % name)
 
-        Impl.__init__(self, system=system, parent=None, name=name)
+        Impl.__init__(self, system=system, parent=None, name=name, spmgr=SpaceManager(self))
         EditableParentImpl.__init__(self)
         TraceManager.__init__(self)
 
-        self.spmgr = SpaceManager(self)
         self.currentspace = None
         self._global_refs = RefDict("global_refs", self)
         self._global_refs.set_item("__builtins__", builtins)

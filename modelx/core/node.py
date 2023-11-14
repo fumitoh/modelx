@@ -17,24 +17,6 @@ from collections.abc import Sequence
 OBJ = 0
 KEY = 1
 
-# class HasFormula:
-#
-#     self.data
-#     self.formula
-#
-#     @property
-#     def is_scalar(self):
-#         return len(self.parameters) == 0
-#
-#     @property
-#     def parameters(self):
-#         return self.signature.paramters
-#
-#     @property
-#     def signature(self):
-#         return self.formula.signature
-#
-
 
 def node_has_key(node):
     return len(node) > 1
