@@ -1331,9 +1331,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
     * Implement Derivable
     """
 
-    # ----------------------------------------------------------------------
-    # Serialization by pickle
-
     __slots__ = (
         "_cells",
         "_sys_refs",
@@ -1377,8 +1374,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
             )
         )
         BaseNamespaceReferrer.__init__(self, server=self)
-
-        self.lazy_evals = self._namespace
         ItemSpaceParent.__init__(self, formula)
         self._all_spaces = ImplChainMap("all_spaces",
             self, SpaceView, [self._named_spaces, self._named_itemspaces]
@@ -2081,11 +2076,6 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         "argvalues_if"
     ) + get_mixin_slots(DynamicSpaceImpl)
 
-    __no_state = (
-        "boundargs",
-        "argvalues",
-        "argvalues_if"
-    )
 
     def __init__(
         self,

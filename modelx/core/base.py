@@ -165,7 +165,6 @@ class Impl(BaseImpl):
         "spmgr",
         "model",
         "allow_none",
-        "lazy_evals",
         "_doc"
     )
 
@@ -184,7 +183,6 @@ class Impl(BaseImpl):
         self.name = name
         self.spmgr = spmgr
         self.allow_none = None
-        self.lazy_evals = None
         self._doc = doc
 
     def get_property(self, name):
@@ -194,19 +192,6 @@ class Impl(BaseImpl):
         else:
             return prop
 
-    def update_lazyevals(self):
-        """Update all LazyEvals in self
-
-        self.lzy_evals must be set to LazyEval object(s) enough to
-        update all owned LazyEval objects.
-        """
-        if self.lazy_evals is None:
-            return
-        elif isinstance(self.lazy_evals, LazyEval):
-            self.lazy_evals.fresh
-        else:
-            for lz in self.lazy_evals:
-                lz.fresh
 
     def get_fullname(self, omit_model=False):
 
@@ -634,7 +619,6 @@ class LazyEval:
     """
     __slots__ = ()
     __mixin_slots = ("is_fresh", "observers", "observing")
-    __no_state = ("is_fresh",)
 
     update_methods = None
 
@@ -898,7 +882,6 @@ class InterfaceMixin:
     """
     __slots__ = ()
     __mixin_slots = ("_interfaces", "map_class", "interfaces")
-    __no_state = ("_interfaces", "interfaces")
 
     def __init__(self, map_class):
         self._interfaces = dict()

@@ -807,7 +807,6 @@ class ModelImpl(*_model_impl_base):
             self, BaseView, [self._named_spaces, self._global_refs]
         )
         self.allow_none = False
-        self.lazy_evals = self._namespace
         self.refmgr = ReferenceManager(self, system.iomanager)
 
     def rename(self, name):
