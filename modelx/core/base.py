@@ -667,9 +667,6 @@ class LazyEval:
     def unobserve(self, other):
         other.remove_observer(self)
 
-    def __setstate(self, state):
-        self.is_fresh = False
-
     def on_update(self, method, args=()):
         is_fresh = self.is_fresh
         if not is_fresh:
@@ -905,10 +902,6 @@ class InterfaceMixin:
             self._interfaces[name] = self[name].interface
         else:
             del self._interfaces[name]
-
-    def __setstate(self, state):
-        self._interfaces = dict()
-        self._set_interfaces(self.map_class)
 
     def _rename_item(self, old_name, new_name):
         _rename_item(self._interfaces, old_name, new_name)
