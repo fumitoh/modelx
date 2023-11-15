@@ -50,7 +50,7 @@ params = [[*p1, p2, p3] for p1, p2, p3 in
         [("model", True),
          ("space", False)],
         (True, False),
-        ("write", "zip", "backup")
+        ("write", "zip")
     )
 ]
 
@@ -103,11 +103,8 @@ def test_new_excel_range(tmp_path, pstr, is_relative, edit_value, save_meth):
         getattr(m, save_meth)(tmp_path / model_name)
         m.close()
 
-        if save_meth == "backup":
-            m = mx.restore_model(tmp_path / model_name)
-        else:
-            assert exists(file_loc)
-            m = mx.read_model(tmp_path / model_name)
+        assert exists(file_loc)
+        m = mx.read_model(tmp_path / model_name)
 
         parent = m if pstr == "model" else m.spaces[parent_name]
 

@@ -85,47 +85,6 @@ def get_impls(interfaces):
         return interfaces._impl
 
 
-def add_stateattrs(cls):
-
-    slots = [attr for c in cls.__mro__ if hasattr(c, "__slots__")
-             for attr in c.__slots__]
-
-    no_state = []
-    for c in cls.__mro__:
-        attr = "_" + c.__name__ + "__no_state"
-        if hasattr(c, attr):
-            no_state.extend(getattr(c, attr))
-
-    stateattrs = tuple(attr for attr in slots if attr not in no_state)
-    assert len(stateattrs) == len(set(stateattrs))
-    cls.stateattrs = stateattrs
-    return cls
-
-
-def add_statemethod(cls):
-    """Decorator to add state method
-
-    Only cls.stateattrs returned by _get_stateattrs are pickled.
-    When unpickling, ``__setstate`` in base classes are called.
-    """
-    def __getstate__(self):
-        return {key: getattr(self, key) for key in self.stateattrs}
-
-    def __setstate__(self, state):
-        for key, value in state.items():
-            setattr(self, key, value)
-        for base in self.__class__.mro():
-            name = "_" + base.__name__ + "__setstate"
-            if hasattr(cls, name):
-                getattr(cls, name)(self, state)
-
-    add_stateattrs(cls)
-    cls.__getstate__ = __getstate__
-    cls.__setstate__ = __setstate__
-
-    return cls
-
-
 def is_mixin(cls):
     return hasattr(cls, "_" + cls.__name__ + "__mixin_slots")
 
@@ -518,9 +477,6 @@ class Interface:
                                 self._impl.get_repr(
                                     fullname=True, add_params=True))
 
-    def __getnewargs__(self):
-        return (self._impl,)
-
     def __getstate__(self):
         return self._impl
 
@@ -530,26 +486,12 @@ class Interface:
     def __reduce__(self):
         if self._is_valid() and self._impl.system.serializing:
 
-            if self._impl.system.serializing.version == 2:
-                return self._reduce_serialize_2()
-            elif self._impl.system.serializing.version in (3, 4, 5, 6):
+            if self._impl.system.serializing.version in (3, 4, 5, 6):
                 return self._reduce_serialize_3()
             else:
                 raise ValueError("invalid serializer version")
         else:
             return object.__reduce__(self)
-
-    def _reduce_serialize_2(self):
-
-        model = self._impl.system.serializing.model
-        if model is self.model:
-            parts = self.fullname.split(".")
-            parts[0] = ""  # Replace model name with empty string
-            name = ".".join(parts)
-        else:
-            name = self.fullname
-
-        return self._impl.system._get_object_reduce, (name,)
 
     def _reduce_serialize_3(self):
 
@@ -900,7 +842,6 @@ class LazyEvalDict(LazyEval, dict):
 assert issubclass(LazyEvalDict, Mapping)
 
 
-@add_statemethod
 class LazyEvalChainMap(LazyEval, CustomChainMap):
 
     __slots__ = ("name", "_repr") + get_mixin_slots(LazyEval, CustomChainMap)
@@ -999,7 +940,6 @@ class InterfaceMixin:
 bases = InterfaceMixin, LazyEvalDict
 
 
-@add_statemethod
 class ImplDict(*bases):
 
     __slots__ = ("owner",) + get_mixin_slots(*bases)
@@ -1033,7 +973,6 @@ class ImplDict(*bases):
 bases = InterfaceMixin, LazyEvalChainMap
 
 
-@add_statemethod
 class ImplChainMap(*bases):
 
     __slots__ = ("owner", "map_ids") + get_mixin_slots(*bases)

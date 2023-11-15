@@ -434,42 +434,6 @@ def is_ipython():
         return False
 
 
-class SystemPickler(pickle.Pickler):
-
-    def __init__(self, file, datapath=None, **kwargs):
-        super().__init__(file, **kwargs)
-        self.datapath = pathlib.Path(datapath) if datapath else None
-
-    def persistent_id(self, obj):
-
-        if isinstance(obj, System):
-            return "System", None
-        elif isinstance(obj, IOManager):
-            return "IOManager", None
-        elif isinstance(obj, NullImpl):
-            return "NullImpl", None
-        else:
-            return None
-
-
-class SystemUnpickler(pickle.Unpickler):
-
-    def __init__(self, file, system):
-        super().__init__(file)
-        self.system = system
-
-    def persistent_load(self, pid):
-
-        if pid[0] == "System":
-            return self.system
-        elif pid[0] == "IOManager":
-            return self.system.iomanager
-        elif pid[0] == "NullImpl":
-            return null_impl
-        else:
-            raise pickle.UnpicklingError("unsupported persistent object")
-
-
 class System:
 
     orig_settings = {
@@ -641,43 +605,6 @@ class System:
             m.currentspace = m.updater.new_space(m)
             return m.currentspace
 
-    def backup_model(self, model, filepath, datapath):
-        model._impl.update_lazyevals()
-        with open(filepath, "wb") as file:
-            try:
-                self.iomanager.serializing = False
-                SystemPickler(file, datapath, protocol=4).dump(model)
-            finally:
-                self.iomanager.serializing = None
-
-    def restore_model(self, path, name, datapath):
-        with open(path, "rb") as file:
-            try:
-                self.iomanager.serializing = False
-                model = SystemUnpickler(file, self).load()
-            finally:
-                self.iomanager.serializing = None
-
-        model._impl.restore_state(datapath)
-
-        if name is not None:
-            if not is_valid_name(name):
-                raise ValueError("Invalid name '%s'." % name)
-
-        newname = name or model.name
-
-        if newname in self.models:
-            self._rename_samename(newname)
-
-        if name is not None:
-            if not model._impl.rename(name):
-                raise RuntimeError("must not happen")
-
-        self.models[newname] = model._impl
-        self.currentmodel = model._impl
-
-        return model
-
     def close_model(self, model):
         model.refmgr.del_all_spec()
         del self.models[model.name]
@@ -720,15 +647,6 @@ class System:
                 raise ValueError
 
         return obj
-
-    def _get_object_reduce(self, name):
-
-        parts = name.split(".")
-        if not parts[0]:
-            parts[0] = self.serializing.model.name
-            name = ".".join(parts)
-
-        return self.get_object(name)
 
     def _get_object_from_idtuple_reduce(self, idtuple, as_proxy=False):
 

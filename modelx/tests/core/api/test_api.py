@@ -30,14 +30,13 @@ def testmodel():
         model._impl._check_sanity()
         model.close()
 
-
-@pytest.fixture(params=["save", "backup"])
+@pytest.fixture
 def savetestmodel(request, testmodel, tmpdir_factory):
 
     model = testmodel
     old_name = testmodel.name
-    file = str(tmpdir_factory.mktemp("data").join("test_restore_model.mx"))
-    getattr(model, request.param)(file)    #model.save(file)
+    file = str(tmpdir_factory.mktemp("data").join("test_restore_model.zip"))
+    model.zip(file)    #model.save(file)
     return model, file
 
 
@@ -117,7 +116,6 @@ def test_get_node(testmodel, name, argstr, args):
 
     assert _get_node(name, argstr).args == args
 
-
 @pytest.mark.parametrize(
     "name, newname",
     [
@@ -131,10 +129,9 @@ def test_restore_model_close_old(savetestmodel, name, newname):
 
     model, file = savetestmodel
     model.close()
-    newmodel = mx.restore_model(file, name)
+    newmodel = mx.read_model(file, name)
     assert newmodel.name == newname
     newmodel.close()
-
 
 @pytest.mark.parametrize(
     "name, newname, renamed",
@@ -154,7 +151,7 @@ def test_restore_model_leave_old(savetestmodel, name, newname, renamed):
     """
     model, file = savetestmodel
     oldname = model.name
-    newmodel = mx.restore_model(file, name)
+    newmodel = mx.read_model(file, name)
     assert newmodel.name == newname
     assert model.name[: len(oldname)] == oldname
     assert renamed != (len(model.name) == len(oldname))
@@ -168,9 +165,9 @@ def test_save_again(tmpdir_factory):
     @mx.defcells
     def a():
         return 1
-    file = str(tmpdir_factory.mktemp("data").join("test_save_again.mx"))
-    m.save(file)
-    m2 = mx.restore_model(file)
-    m2.save(file)
+    file = str(tmpdir_factory.mktemp("data").join("test_save_again"))
+    m.write(file)
+    m2 = mx.read_model(file)
+    m2.write(file)
     m.close()
     m2.close()

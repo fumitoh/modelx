@@ -19,7 +19,7 @@ from types import ModuleType, FunctionType
 import functools
 
 from modelx.core.base import (
-    add_stateattrs, Derivable, Impl, Interface, get_mixin_slots)
+    Derivable, Impl, Interface, get_mixin_slots)
 from modelx.io.baseio import BaseIOSpec
 from modelx.core.node import ObjectNode, get_node, OBJ
 
@@ -65,7 +65,6 @@ class _ModulePickler(_BasePickler):
         return importlib.import_module(self.value)
 
 
-@add_stateattrs
 class ReferenceImpl(Derivable, Impl):
 
     picklers = [_ModulePickler]    # List of _BasePickler sub classes

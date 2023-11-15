@@ -21,7 +21,6 @@ from types import ModuleType
 import networkx as nx
 
 from modelx.core.base import (
-    add_stateattrs,
     Interface,
     Impl,
     get_interfaces,
@@ -331,41 +330,6 @@ class Model(IOSpecOperation, EditableParent):
                 recursive=True,
                 del_items=True
             )
-
-    def save(self, filepath, datapath=None):
-        """Back up the model to a file.
-
-        .. deprecated:: 0.9.0 Use :meth:`backup` instead.
-
-        Alias for :meth:`backup`. See :meth:`backup` for details.
-        """
-        self._impl.system.backup_model(self, filepath, datapath)
-
-    def backup(self, filepath, datapath=None):
-        """Back up the model to a file.
-
-        Backup the model to a single binary file. This method internally
-        utilizes Python's standard library,
-        `pickle <https://docs.python.org/3/library/pickle.html>`_.
-        This method should only be used for saving the model temporarily,
-        as the saved model may not be restored by different
-        versions of modelx, or when the Python environment changes,
-        for example, due to package upgrade.
-        Saving the model by :meth:`write` method is more robust.
-
-        .. deprecated:: 0.18.0 Use :meth:`write` or :meth:`zip` instead.
-        .. versionchanged:: 0.9.0 ``datapath`` parameter is added.
-        .. versionadded:: 0.7.0
-
-        Args:
-            filepath(str): file path
-            datapath(optional): Path to a folder to store internal files.
-
-        See Also:
-            :meth:`write`
-            :func:`~modelx.restore_model`
-        """
-        self._impl.system.backup_model(self, filepath, datapath)
 
     def close(self):
         """Close the model."""
@@ -804,7 +768,6 @@ _model_impl_base = (
 )
 
 
-@add_stateattrs
 class ModelImpl(*_model_impl_base):
 
     interface_cls = Model
@@ -890,55 +853,6 @@ class ModelImpl(*_model_impl_base):
             return space.get_impl_from_namelist(parts)
         else:
             return space
-
-    # ----------------------------------------------------------------------
-    # Serialization by pickle
-
-    def __getstate__(self):
-
-        state = {key: getattr(self, key) for key in self.stateattrs}
-
-        graphs = {
-            name: graph
-            for name, graph in state.items()
-            if isinstance(graph, TraceGraph)
-        }
-
-        for gname, graph in graphs.items():
-            mapping = {}
-            for node in graph:
-                name = node[OBJ].idstr
-                if node_has_key(node):
-                    mapping[node] = (name, node[KEY])
-                else:
-                    mapping[node] = name
-            state[gname] = nx.relabel_nodes(graph, mapping)
-
-        state["ios"] = list(spec.io for spec in self.refmgr.specs)
-        return state
-
-    def __setstate__(self, state):
-        ios = state.pop("ios")
-        for attr in state:
-            setattr(self, attr, state[attr])
-        for io_ in ios:
-            self.system.iomanager.restore_io(self.interface, io_)
-
-    def restore_state(self, datapath=None):
-        """Called after unpickling to restore some attributes manually."""
-        BaseParentImpl.restore_state(self)
-        mapping = {}
-        for node in self.tracegraph:
-            if isinstance(node, tuple):
-                name, key = node
-            else:
-                name, key = node, None
-            cells = self.get_impl_from_name(name)
-            mapping[node] = get_node(cells, key, None)
-
-        self.tracegraph = nx.relabel_nodes(self.tracegraph, mapping)
-
-        self._global_refs.restore_state()
 
     def _check_sanity(self):
 
@@ -2001,17 +1915,3 @@ class ReferenceManager:
             impl.model.spmgr.change_ref(impl, name, value, refmode)
         else:
             raise RuntimeError("must not happen")
-
-    def __getstate__(self):
-        return {
-            "model": self._model,
-            "manager": self._manager,
-            "refs": list(self._valid_to_refs.values())
-        }
-
-    def __setstate__(self, state):
-        self._model = state["model"]
-        self._manager = state["manager"]
-        self._valid_to_refs = {
-            id(refs[0].interface): refs for refs in state["refs"]
-        }

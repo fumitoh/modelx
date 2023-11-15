@@ -16,7 +16,7 @@ import warnings
 import pathlib
 import uuid
 from modelx.core.base import (
-    add_stateattrs, get_impls, get_interfaces, Interface
+    get_impls, get_interfaces, Interface
 )
 from modelx.core.util import AutoNamer, get_module, get_param_func
 
@@ -746,22 +746,6 @@ class BaseParentImpl:
         "_named_spaces",
         "_all_spaces"
     )
-
-    # ----------------------------------------------------------------------
-    # Serialization by pickle
-
-    def __getstate__(self):
-        return {key: getattr(self, key) for key in self.stateattrs}
-
-    def __setstate__(self, state):
-        for attr in state:
-            setattr(self, attr, state[attr])
-
-    def restore_state(self):
-        """Called after unpickling to restore some attributes manually."""
-
-        for space in self._all_spaces.values():
-            space.restore_state()
 
     # ----------------------------------------------------------------------
     # Properties

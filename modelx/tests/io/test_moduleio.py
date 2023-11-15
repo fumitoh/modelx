@@ -11,7 +11,7 @@ SAMPLE_MODULE = pathlib.Path(testmod.__file__)
 
 params = list(itertools.product(
     ["model", "space"],
-    ["write", "zip", "backup"],
+    ["write", "zip"],
     [testmod, SAMPLE_MODULE, str(SAMPLE_MODULE)]
 ))
 

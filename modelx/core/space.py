@@ -23,8 +23,6 @@ from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
 from modelx.core.chainmap import CustomChainMap
 
 from modelx.core.base import (
-    add_stateattrs,
-    add_statemethod,
     get_impls,
     get_interfaces,
     get_mixin_slots,
@@ -118,9 +116,6 @@ class RefDict(ImplDict):
             raise RuntimeError("must not happen")
         else:
             return ReferenceImpl(parent, name, value, container=self)
-
-    def restore_state(self):
-        pass
 
 
 class DynBaseRefDict(RefDict):
@@ -1326,7 +1321,6 @@ _base_space_impl_base = (
 )
 
 
-@add_statemethod
 class BaseSpaceImpl(*_base_space_impl_base):
     """Read-only base Space class
 
@@ -1507,11 +1501,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
         else:
             return self.parent.repr_self()
 
-    def restore_state(self):
-        """Called after unpickling to restore some attributes manually."""
-        BaseParentImpl.restore_state(self)
-        self._own_refs.restore_state()
-
     # ----------------------------------------------------------------------
     # Pandas, Module, Excel I/O
 
@@ -1554,7 +1543,6 @@ _user_space_impl_base = (
     EditableParentImpl
 )
 
-@add_stateattrs
 class UserSpaceImpl(*_user_space_impl_base):
     """Editable base Space class
 
@@ -1939,7 +1927,6 @@ class DynamicSpace(BaseSpace):
     __slots__ = ()
 
 
-@add_stateattrs
 class DynamicSpaceImpl(BaseSpaceImpl):
     """The implementation of Dynamic Space class."""
 
@@ -2083,7 +2070,6 @@ class ItemSpace(DynamicSpace):
         return self._impl.argvalues_if
 
 
-@add_stateattrs
 class ItemSpaceImpl(DynamicSpaceImpl):
 
     interface_cls = ItemSpace
@@ -2143,14 +2129,6 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         self.boundargs = self.parent.formula.signature.bind(**args)
         self.argvalues = tuple(self.boundargs.arguments.values())
         self.argvalues_if = tuple(get_interfaces(self.argvalues))
-
-    def restore_state(self):
-
-        super().restore_state()
-
-        # From Python 3.5, signature is pickable,
-        # pickling logic involving signature may be simplified.
-        self._bind_args(self._arguments)
 
     # ----------------------------------------------------------------------
     # repr methods

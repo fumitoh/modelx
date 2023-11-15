@@ -47,9 +47,9 @@ def unpickled_model(request, testmodel, tmpdir_factory):
     model = testmodel
     if request.param:
         file = str(tmpdir_factory.mktemp("data").join("testmodel.mx"))
-        model.save(file)
+        model.write(file)
         model.close()
-        model = mx.restore_model(file)
+        model = mx.read_model(file)
 
     yield model
     model._impl._check_sanity()
@@ -75,24 +75,21 @@ def test_model_delitem_basespace(unpickled_model):
     del model.spaces["base"]
     assert "base" not in model.spaces
 
-@pytest.mark.skip
 def test_space_delattr_space(unpickled_model):
     """Test deletion of a space in a derived nested space."""
     model = unpickled_model
     assert "nested" in model.derived.child.spaces
     del model.base.child.nested
     assert "nested" not in model.base.child.spaces
-    assert "nested" not in model.derived.child.spaces
+    assert "nested" in model.derived.child.spaces
 
-@pytest.mark.skip
 def test_space_delitem_space(unpickled_model):
     model = unpickled_model
     assert "nested" in model.derived.child.spaces
     del model.base.child.spaces["nested"]
     assert "nested" not in model.base.child.spaces
-    assert "nested" not in model.derived.child.spaces
+    assert "nested" in model.derived.child.spaces
 
-@pytest.mark.skip
 def test_spacemapproxy_contains(unpickled_model):
     """Test spaces, self_spaces, derived_spaces """
     model = unpickled_model

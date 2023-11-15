@@ -17,7 +17,7 @@ from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import (
-    add_statemethod, Impl, Derivable, Interface, get_mixin_slots,
+    Impl, Derivable, Interface, get_mixin_slots,
 )
 from modelx.core.node import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node,
@@ -504,7 +504,6 @@ class CellsNamespaceReferrer(BaseNamespaceReferrer):
 _cells_impl_base = (CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
                     HasFormula, Impl)
 
-@add_statemethod
 class CellsImpl(*_cells_impl_base):
     """Cells implementation"""
 

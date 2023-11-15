@@ -22,7 +22,7 @@ import tokenize
 import io
 import dis
 from modelx.core.base import (
-    LazyEval, get_mixin_slots, add_statemethod, null_impl, Interface)
+    LazyEval, get_mixin_slots, null_impl, Interface)
 
 import asttokens
 
@@ -569,7 +569,6 @@ class NullFormula(Formula):
 NULL_FORMULA = NullFormula("lambda: None")
 
 
-@add_statemethod
 class BoundFunction(LazyEval):
     """Hold function with updated namespace"""
 
@@ -666,10 +665,6 @@ class BoundFunction(LazyEval):
 
     def on_update(self, operation, args=()):
         self.global_names = self._init_names()
-
-    def __setstate(self, state):
-        self.global_names = None
-        self.altfunc = None
 
 
 class BoundFormula:     # Not Used

@@ -1,4 +1,4 @@
-from modelx.core.base import get_mixin_slots, add_stateattrs
+from modelx.core.base import get_mixin_slots
 import pytest
 
 
@@ -25,7 +25,5 @@ class Sub2(Base, Mixin):
 
 @pytest.mark.parametrize("klass", [Sub, Sub2])
 def test_add_stateattrs(klass):
-    add_stateattrs(klass)
     assert klass.__slots__ == ('sub', 'no_sub', 'mixin', 'no_mixin')
-    assert Sub.stateattrs == ('sub', 'mixin', 'base')
 

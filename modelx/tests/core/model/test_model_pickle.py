@@ -7,13 +7,12 @@ import modelx as mx
 from modelx.testing import testutil
 from modelx.core.api import *
 from modelx.core import mxsys
-from modelx.core.system import SystemPickler, SystemUnpickler
 
 # ---- Test impl ----
 
 
 @pytest.fixture
-def pickletest():
+def pickletest(tmpdir_factory):
 
     model = new_model("TestModel")
     space = model.new_space()
@@ -37,10 +36,9 @@ def pickletest():
 
     func2(5)
 
-    f = io.BytesIO()
-    SystemPickler(f).dump(model._impl)
-    f.seek(0)
-    unpickled = SystemUnpickler(f, mxsys).load()
+    file = str(tmpdir_factory.mktemp("data").join("pickletest"))
+    model.write(file)
+    unpickled = mx.read_model(file)
 
     yield [model._impl, unpickled]
     model._impl._check_sanity()
@@ -53,9 +51,6 @@ def test_unpickled_model(pickletest):
 
     errors = []
 
-    if not model.name == unpickeld.name:
-        errors.append("name did not match")
-
     if not hasattr(model, "interface"):
         errors.append("no interface")
 
@@ -66,7 +61,7 @@ def test_unpickled_model(pickletest):
 
 
 @pytest.fixture(scope="module")
-def pickletest_dynamicspace():
+def pickletest_dynamicspace(tmpdir_factory):
 
     param = dedent(
         """\
@@ -86,12 +81,10 @@ def pickletest_dynamicspace():
 
     check = space[2].fibo(3)
 
-    f = io.BytesIO()
-    SystemPickler(f).dump(model._impl)
-    f.seek(0)
-    unpickled = SystemUnpickler(f, mxsys).load()
-    unpickled.restore_state()
-    model = unpickled.interface
+    file = str(tmpdir_factory.mktemp("model").join(model.name))
+    model.write(file)
+    model.close()
+    model = mx.read_model(file)
 
     yield (model, check)
     model._impl._check_sanity()
@@ -129,9 +122,9 @@ def test_pickle_module(tmp_path):
     import numpy
     m, s = new_model(), new_space("TestModule")
     m.np = numpy
-    m.save(tmp_path / "pickle_module.mx")
+    m.write(tmp_path / "pickle_module")
     m.close()
-    m = restore_model(tmp_path / "pickle_module.mx")
+    m = read_model(tmp_path / "pickle_module")
     assert m.np is numpy
     assert m.TestModule.np is numpy
     assert m.__builtins__ is builtins
@@ -156,8 +149,8 @@ def test_null_object(tmp_path):
     assert not A.b._is_valid()
     assert not C.b._is_valid()
 
-    m.backup(tmp_path / "model")
-    m2 = mx.restore_model(tmp_path / "model")
+    m.write(tmp_path / "model")
+    m2 = mx.read_model(tmp_path / "model")
 
     assert not m2.A.b._is_valid()
     assert not m2.C.b._is_valid()

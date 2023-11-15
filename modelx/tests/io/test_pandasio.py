@@ -30,7 +30,7 @@ params = [[p1, *p2, p3, p4] for p1, p2, p3, p4 in
           itertools.product(
               [S_IDX1, S_IDX2, DF_COL2_IDX2],
               [("model", True), ("space", False)],
-              ("write", "zip", "backup"),
+              ("write", "zip"),
               ("excel", "csv")
             )
           ]
