@@ -17,7 +17,7 @@ class LazyEvalDict2(LazyEvalDict):
         self.org_data = data.copy()
         LazyEvalDict.__init__(self, data, observers)
 
-    def _refresh_data(self):
+    def _refresh(self):
         self.clear()
         self.update(self.org_data)
         self.update(self.source)

@@ -615,7 +615,7 @@ class LazyEval:
     to flag the object's observers.
     When the observers get_updated methods are called later, their data
     contents are updated depending on their update states.
-    The updating operation can be customized by overwriting _refresh_data method.
+    The updating operation can be customized by overwriting _refresh method.
     """
     __slots__ = ()
     __mixin_slots = ("is_fresh", "observers", "observing")
@@ -640,11 +640,11 @@ class LazyEval:
         if not self.is_fresh:
             for other in self.observing:
                 other.fresh
-            self._refresh_data()
+            self._refresh()
             self.is_fresh = True
         return self
 
-    def _refresh_data(self):
+    def _refresh(self):
         raise NotImplementedError  # To be overwritten in derived classes
 
     def append_observer(self, observer):
@@ -764,7 +764,7 @@ class LazyEvalDict(LazyEval, dict):
         self.name = name
         self._repr = ""
 
-    def _refresh_data(self):
+    def _refresh(self):
         pass
 
     def _update_item(self, name):
@@ -840,7 +840,7 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
         for other in maps:
             other.append_observer(self)
 
-    def _refresh_data(self):
+    def _refresh(self):
         pass
 
     def on_add_item(self, sender, name, value):
@@ -873,7 +873,7 @@ assert issubclass(LazyEvalChainMap, Mapping)
 class InterfaceMixin:
     """Mixin to LazyEval to update interface with impl
 
-    _update_interfaces needs to be manually called from _refresh_data.
+    _update_interfaces needs to be manually called from _refresh.
     """
     __slots__ = ()
     __mixin_slots = ("_interfaces", "map_class", "interfaces")
@@ -923,8 +923,8 @@ class ImplDict(*bases):
         InterfaceMixin.__init__(self, ifclass)
         LazyEvalDict.__init__(self, name, data, observers)
 
-    def _refresh_data(self):
-        LazyEvalDict._refresh_data(self)
+    def _refresh(self):
+        LazyEvalDict._refresh(self)
         self._update_interfaces()
 
     def _rename_item(self, old_name, new_name):
@@ -960,8 +960,8 @@ class ImplChainMap(*bases):
         InterfaceMixin.__init__(self, ifclass)
         LazyEvalChainMap.__init__(self, name, maps, observers)
 
-    def _refresh_data(self):
-        LazyEvalChainMap._refresh_data(self)
+    def _refresh(self):
+        LazyEvalChainMap._refresh(self)
         self._update_interfaces()
 
     def _rename_item(self, old_name, new_name):

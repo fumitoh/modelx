@@ -611,7 +611,7 @@ class BoundFunction(LazyEval):
 
         return names
 
-    def _refresh_data(self):
+    def _refresh(self):
         """Update altfunc"""
         if self.global_names is None:
             self.global_names = self._init_names()
