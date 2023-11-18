@@ -99,14 +99,14 @@ class RefDict(ImplDict):
             for name, value in data.items():
                 self.set_item(name, value)
 
-    def set_item(self, name, value, skip_self=False):
+    def set_item(self, name, value):
         ImplDict.set_item(self, name,
-                          self.wrap_impl(self.owner, name, value), skip_self)
+                          self.wrap_impl(self.owner, name, value))
 
-    def del_item(self, name, skip_self=False):
+    def del_item(self, name):
         # TODO: Better way to get TraceManager
         self.owner.model.clear_attr_referrers(self.fresh[name])
-        ImplDict.del_item(self, name, skip_self=skip_self)
+        ImplDict.del_item(self, name)
 
     def wrap_impl(self, parent, name, value):
 

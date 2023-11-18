@@ -629,10 +629,8 @@ class LazyEval:
         for observer in observers:
             self.append_observer(observer)
 
-    def set_refresh(self, skip_self=False):
-
-        if not skip_self:
-            self.is_fresh = False
+    def set_refresh(self):
+        self.is_fresh = False
         for observer in self.observers:
             if observer.is_fresh:
                 observer.set_refresh()
@@ -782,13 +780,13 @@ class LazyEvalDict(LazyEval, dict):
         else:
             _sort_partial(self, sorted_keys)
 
-    def set_item(self, name, value, skip_self=False):
+    def set_item(self, name, value):
         dict.__setitem__(self, name, value)
-        self.set_refresh(skip_self)
+        self.set_refresh()
 
-    def del_item(self, name, skip_self=False):
+    def del_item(self, name):
         dict.__delitem__(self, name)
-        self.set_refresh(skip_self)
+        self.set_refresh()
 
     def add_item(self, name, value):
         """Adding new item"""
