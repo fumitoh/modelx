@@ -172,7 +172,9 @@ class Impl(BaseImpl):
 
     def __init__(self, system, parent, name, spmgr, interface=None, doc=None):
 
-        if self.interface_cls:
+        if hasattr(self, "interface"):
+            pass
+        elif self.interface_cls:
             self.interface = self.interface_cls(self)
         else:
             self.interface = interface
@@ -333,7 +335,7 @@ class Interface:
     Space and Cells objects.
     """
 
-    __slots__ = ("_impl",)
+    __slots__ = ("_impl", "__weakref__")
     properties = ["allow_none"]
 
     def __new__(cls, _impl):

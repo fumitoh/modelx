@@ -16,6 +16,7 @@ import sys
 import importlib
 import pathlib
 import uuid
+import weakref
 import warnings
 from collections.abc import Sequence
 from types import FunctionType, ModuleType, MappingProxyType
@@ -1152,6 +1153,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
     __mixin_slots = (
         "_named_itemspaces",
         "itemspacenamer",
+        "dynamic_cache",
         "param_spaces",
         "formula",
         "altfunc"
@@ -1161,6 +1163,12 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         BaseNamespaceReferrer.__init__(self, self)
         self._named_itemspaces = ImplDict('named_itemspaces', self, SpaceView)
         self.itemspacenamer = AutoNamer("__Space")
+
+        if self.is_dynamic():
+            self.dynamic_cache = self.parent.dynamic_cache
+        else:
+            # Cache interfaces for reuse after deletion
+            self.dynamic_cache = weakref.WeakValueDictionary()
 
         # ------------------------------------------------------------------
         # Construct altfunc after space members are crated
@@ -1243,7 +1251,8 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         bases,
         name=None,
         refs=None,
-        arguments=None
+        arguments=None,
+        cache=None
     ):
         """Create a new dynamic root space."""
         space = ItemSpaceImpl(
@@ -1252,6 +1261,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
             name=name,
             refs=refs,
             arguments=arguments,
+            cache=cache
         )
         return space
 
@@ -1299,8 +1309,12 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
                 params["bases"] = [self]
 
         params["arguments"] = node_get_args(key_to_node(self, key))
+        dkey = (self.dynamic_key if self.is_dynamic() else ()) + (key,)
+        params["cache"] = self.dynamic_cache.get(dkey, None)
+
         space = self._new_itemspace(**params)
         self.param_spaces[key] = space
+        self.dynamic_cache[dkey] = space.interface
         return space
 
     # ----------------------------------------------------------------------
@@ -1942,10 +1956,14 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         base,
         refs=None,
         arguments=None,
+        cache=None
     ):
         self._dynbase = base
         base._dynamic_subs.append(self)
         self._init_root(parent)
+        if cache:
+            cache._impl = self
+            self.interface = cache # must be set before Impl.__init__
         BaseSpaceImpl.__init__(
             self,
             parent,
@@ -2033,14 +2051,16 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         return True
 
     @property
+    def dynamic_key(self):
+        # Non-ItemSpace
+        return self.parent.dynamic_key + (self.name,)
+
+    @property
     def bases(self):
         if self._dynbase:
             return [self._dynbase]
         else:
             return []
-
-    def is_derived(self):
-        return True
 
 
 class ItemSpace(DynamicSpace):
@@ -2081,9 +2101,10 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         self,
         parent,
         base,
-        name=None,
-        refs=None,
-        arguments=None,
+        name,
+        refs,
+        arguments,
+        cache
     ):
         if name is None:
             name = parent.itemspacenamer.get_next(base.named_itemspaces)
@@ -2095,7 +2116,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             raise ValueError("invalid name")
 
         DynamicSpaceImpl.__init__(
-            self, parent, name, parent._named_itemspaces, base, refs, arguments
+            self, parent, name, parent._named_itemspaces, base, refs, arguments, cache
         )
         self._bind_args(self.arguments)
         self._init_child_spaces(self)
@@ -2106,8 +2127,11 @@ class ItemSpaceImpl(DynamicSpaceImpl):
 
     def _init_child_spaces(self, space):
         for name, base in space._dynbase.named_spaces.items():
-            child = DynamicSpaceImpl(space, name, space._named_spaces, base)
+            dkey = space.dynamic_key + (name,)
+            cache = self.dynamic_cache.get(dkey, None)
+            child = DynamicSpaceImpl(space, name, space._named_spaces, base, cache=cache)
             self._init_child_spaces(child)
+            self.parent.dynamic_cache[dkey] = child.interface
 
     def _init_refs(self, arguments=None):
         self._arguments = RefDict("arguments", self, data=arguments)
@@ -2141,3 +2165,10 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         args = [repr(arg) for arg in get_interfaces(self.argvalues)]
         param = ", ".join(args)
         return "%s(%s)" % (self.parent.evalrepr, param)
+
+    @property
+    def dynamic_key(self):
+        if self.parent.is_dynamic():
+            return self.parent.dynamic_key + (self.argvalues_if,)
+        else:
+            return (self.argvalues_if,)
