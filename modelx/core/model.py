@@ -870,7 +870,7 @@ class ModelImpl(*_model_impl_base):
         ref = self.global_refs[name]
         self.model.clear_attr_referrers(ref)
         ref.on_delete()
-        self.global_refs.delete_item(name)
+        self.global_refs.del_item(name)
 
     def change_ref(self, name, value):
         self.del_ref(name)
@@ -880,7 +880,7 @@ class ModelImpl(*_model_impl_base):
         ref = ReferenceImpl(
             self, name, value, container=self._global_refs,
             set_item=False)
-        self._global_refs.add_item(name, ref)
+        self._global_refs.set_item(name, ref)
         return ref
 
     def get_attr(self, name):

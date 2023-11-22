@@ -1402,6 +1402,18 @@ class BaseSpaceImpl(*_base_space_impl_base):
                 ReferenceImpl(self, key, value, container=self._own_refs,
                               refmode="auto")
 
+    def __getstate__(self):
+        d = {attr: getattr(self, attr)
+                for c in type(self).mro()[:-1]
+                for attr in c.__slots__ if attr != "dynamic_cache"}   # exclude object type
+        return d
+
+    def __setstate__(self, state):
+        for k, v in state.items():
+            setattr(self, k, v)
+        self.dynamic_cache = weakref.WeakValueDictionary()
+
+
     def _init_own_refs(self):
         raise NotImplementedError
 
@@ -1908,7 +1920,7 @@ class UserSpaceImpl(*_user_space_impl_base):
                             is_derived=is_derived,
                             refmode=refmode,
                             set_item=False)
-        self._own_refs.add_item(name, ref)
+        self._own_refs.set_item(name, ref)
         return ref
 
     def on_del_ref(self, name):

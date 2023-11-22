@@ -656,15 +656,6 @@ class BoundFunction(LazyEval):
 
         return result
 
-    def on_add_item(self, namespace, name, value):
-        self.global_names = self._init_names()
-
-    def on_delete_item(self, namespace, name):
-        self.global_names = self._init_names()
-
-    def on_update(self, operation, args=()):
-        self.global_names = self._init_names()
-
 
 class HasFormula:
 

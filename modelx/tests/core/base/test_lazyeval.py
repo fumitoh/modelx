@@ -11,6 +11,16 @@ ledict2 = LazyEvalDict("ledict", data2, [])
 ledict1 = LazyEvalDict("ledict", data1, [ledict2])
 
 
+class MyLazyEvalDict(LazyEvalDict):
+
+    def _refresh(self):
+        pass
+
+class MyLazyEvalChainMap(LazyEvalChainMap):
+
+    def _refresh(self):
+        pass
+
 class LazyEvalDict2(LazyEvalDict):
     def __init__(self, source, data, observers):
         self.source = source
@@ -25,10 +35,10 @@ class LazyEvalDict2(LazyEvalDict):
 
 class SampleLazyEval:
     def __init__(self):
-        self._lazy_eval_dict1 = LazyEvalDict("dict1", data1, [])
+        self._lazy_eval_dict1 = MyLazyEvalDict("dict1", data1, [])
         self._lazy_eval_dict2 = LazyEvalDict2(self._lazy_eval_dict1, data2, [])
         self._lazy_eval_dict1.append_observer(self._lazy_eval_dict2)
-        self._lazy_eval_chmap = LazyEvalChainMap("chmap", [self._lazy_eval_dict2], [])
+        self._lazy_eval_chmap = MyLazyEvalChainMap("chmap", [self._lazy_eval_dict2], [])
         # self._lazy_eval_dict2.append_observer(self._lazy_eval_chmap)
 
     @property

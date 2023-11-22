@@ -767,9 +767,6 @@ class LazyEvalDict(LazyEval, dict):
         self._repr = ""
 
     def _refresh(self):
-        pass
-
-    def _update_item(self, name):
         raise NotImplementedError
 
     def _rename_item(self, old_name, new_name):
@@ -790,34 +787,13 @@ class LazyEvalDict(LazyEval, dict):
         dict.__delitem__(self, name)
         self.set_refresh()
 
-    def add_item(self, name, value):
-        """Adding new item"""
-        self.on_add_item(None, name, value)
-
-    def on_add_item(self, sender, name, value):
-        dict.__setitem__(self, name, value)
-        if self.is_fresh:
-            self._update_item(name)
-            for observer in self.observers:
-                if observer.is_fresh:
-                    observer.on_add_item(self, name, value)
-
-    def delete_item(self, name):
-        self.on_delete_item(None, name)
-
-    def on_delete_item(self, sender, name):
-        dict.__delitem__(self, name)
-        if self.is_fresh:
-            self._update_item(name)
-            for observer in self.observers:
-                if observer.is_fresh:
-                    observer.on_delete_item(self, name)
-
     def rename_item(self, old_name, new_name):
-        self.on_update("rename", (old_name, new_name))
+        self._rename_item(old_name, new_name)
+        self.set_refresh()
 
     def sort_items(self, sort_keys):
-        self.on_update("sort", (self, sort_keys))
+        self._sort(sort_keys)
+        self.set_refresh()
 
 
 assert issubclass(LazyEvalDict, Mapping)
@@ -843,24 +819,7 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
             other.append_observer(self)
 
     def _refresh(self):
-        pass
-
-    def on_add_item(self, sender, name, value):
-        if self.is_fresh:
-            self._update_item(name)
-            map_ = next((m for m in self.maps if name in m), None)
-            if map_ is sender:
-                for observer in self.observers:
-                    if observer.is_fresh:
-                        observer.on_add_item(self, name, value)
-
-    def on_delete_item(self, sender, name):
-        if self.is_fresh:
-            self._update_item(name)
-            # map_ = next((m for m in self.maps if name in m), None)
-            for observer in self.observers:
-                if observer.is_fresh:
-                    observer.on_delete_item(self, name)
+        raise NotImplementedError
 
     def __setitem__(self, name, value):
         raise NotImplementedError
@@ -894,24 +853,8 @@ class InterfaceMixin:
             self.interfaces = map_class(self._interfaces, self)
 
     def _update_interfaces(self):
-        self._interfaces.clear()
-        self._interfaces.update(get_interfaces(self))
-
-    def _update_item(self, name):
-        if name in self:
-            self._interfaces[name] = self[name].interface
-        else:
-            del self._interfaces[name]
-
-    def _rename_item(self, old_name, new_name):
-        _rename_item(self._interfaces, old_name, new_name)
-
-    def _sort(self, sorted_keys=None):
-        if sorted_keys is None:
-            _sort_all(self._interfaces)
-        else:
-            _sort_partial(self._interfaces, sorted_keys)
-
+        self._interfaces = {k: v.interface for k, v in self.items()}
+        self._set_interfaces(self.map_class)
 
 bases = InterfaceMixin, LazyEvalDict
 
@@ -926,24 +869,7 @@ class ImplDict(*bases):
         LazyEvalDict.__init__(self, name, data, observers)
 
     def _refresh(self):
-        LazyEvalDict._refresh(self)
         self._update_interfaces()
-
-    def _rename_item(self, old_name, new_name):
-        LazyEvalDict._rename_item(self, old_name, new_name)
-        InterfaceMixin._rename_item(self, old_name, new_name)
-        return old_name, new_name
-
-    def _sort(self, map_, sorted_keys):
-        LazyEvalDict._sort(self, sorted_keys)
-        InterfaceMixin._sort(self, sorted_keys)
-        # Return self to pass it as argt to LazyEvalChainMap observers
-        return (self, sorted_keys)
-
-    update_methods = {
-        "rename": _rename_item,
-        "sort": _sort
-    }
 
 
 bases = InterfaceMixin, LazyEvalChainMap
@@ -963,38 +889,7 @@ class ImplChainMap(*bases):
         LazyEvalChainMap.__init__(self, name, maps, observers)
 
     def _refresh(self):
-        LazyEvalChainMap._refresh(self)
         self._update_interfaces()
-
-    def _rename_item(self, old_name, new_name):
-        InterfaceMixin._rename_item(self, old_name, new_name)
-        return old_name, new_name
-
-    def _sort(self, map_, sorted_keys):
-        if isinstance(map_, (LazyEvalDict, LazyEvalChainMap)):
-            assert any(map_ is m for m in self.maps)
-
-            if sorted_keys is None:
-                prev_keys = map_.keys()
-            else:
-                prev_keys = sorted_keys
-
-            # Filter out overwritten items
-            keys = []
-            for name in prev_keys:
-                m = next(m for m in self.maps if name in m)
-                if m is map_:
-                    keys.append(name)
-        else:
-            raise RuntimeError("must not happen")
-
-        InterfaceMixin._sort(self, keys)
-        return (self, keys)
-
-    update_methods = {
-        "rename": _rename_item,
-        "sort": _sort
-    }
 
 
 class RefChainMap(ImplChainMap):

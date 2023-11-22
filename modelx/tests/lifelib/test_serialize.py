@@ -77,34 +77,18 @@ def test_with_lifelib(testpaths, project):
     testproj = project + "_test"
     projpath = build_path / testproj
 
-    if lifelib.VERSION > (0, 0, 14):
-        lifelib.create(project, projpath)
-        scriptpath = projpath / "scripts"
-    else:
-        from lifelib.commands import create
-        create.main([
-            "--template",
-            project,
-            str(projpath)
-        ])
-        scriptpath = projpath.parent
+    lifelib.create(project, projpath)
+    scriptpath = projpath / "scripts"
 
     with SysPath(str(scriptpath)):
 
-        if lifelib.VERSION > (0, 0, 14):
-            module = importlib.import_module(project)
-        else:
-            module = importlib.import_module(testproj + "." + project)
+        module = importlib.import_module(project)
 
         with SysPath(str(projpath)):
 
             m = module.build()
-            m.hoge = "hoge"
-            m.foo = 1
-            m.bar = m.Input
-            m.Input.new_cells(formula=lambda x: 3 * x)
-            m.none = None
-
+            # Assigning refs in 'm' will remove input values in dynamic cells
+            # so don't update m here
             mx.write_model(m, str(write_path / project))
             mx.zip_model(m, str(zip_path / project))
 

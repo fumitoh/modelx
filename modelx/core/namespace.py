@@ -46,19 +46,6 @@ class NamespaceServer:
         for referrer in self._referrers:
             referrer.on_namespace_change(is_all, names)
 
-    def on_add_item(self, sender, name, value):
-        self.notify_referrers(is_all=False, names=[name])
-
-    def on_delete_item(self, sender, name):
-        self.notify_referrers(is_all=False, names=[name])
-
-    def on_update(self, method, args=()):
-        if method in ("rename", "sort"):
-            # _namespace must be updated directly
-            self.notify_referrers(is_all=False, names=args)
-        else:
-            raise ValueError("invalid method")
-
     @property
     def namespace(self):
         return self._namespace.fresh
