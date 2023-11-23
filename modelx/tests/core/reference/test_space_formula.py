@@ -55,7 +55,6 @@ def test_update_cells_in_space_formula():
     m._impl._check_sanity()
     m.close()
 
-@pytest.mark.skip
 @pytest.mark.parametrize("op", ["add", "change", "delete"])
 def test_dynamic_space_not_flushed(op):
     """Test input in dynamic cells"""
@@ -72,11 +71,13 @@ def test_dynamic_space_not_flushed(op):
 
     m.x0 = 1
     if op == "change":
+        A[1].foo[1] = 1
         m.x0 = 2
     elif op == "delete":
+        A[1].foo[1] = 1
         del m.x0
 
-    assert len(A.itemspaces)
+    assert not len(A.itemspaces)
 
     m._impl._check_sanity()
     m.close()
