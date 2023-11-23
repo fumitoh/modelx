@@ -23,7 +23,6 @@ import networkx as nx
 from modelx.core.base import (
     Interface,
     Impl,
-    get_interfaces,
     ImplChainMap,
     BaseView,
     Derivable,

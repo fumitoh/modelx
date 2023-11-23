@@ -18,57 +18,17 @@ from inspect import BoundArguments
 from modelx.core.chainmap import CustomChainMap
 from modelx.core.errors import DeletedObjectError
 
-# To add new method apply_defaults to BoundArguments.
-if sys.version_info < (3, 5, 0):
+def get_interface_dict(impls):
+    return {name: impls[name].interface for name in impls}
 
-    def _apply_defaults(self):
-        """Set default values for missing arguments.
+def get_interface_list(impls):
+    return [impl.interface for impl in impls]
 
-        For variable-positional arguments (*args) the default is an
-        empty tuple.
+def get_impl_dict(interfaces):
+    return {name: interfaces[name]._impl for name in interfaces}
 
-        For variable-keyword arguments (**kwargs) the default is an
-        empty dict.
-        """
-        from collections import OrderedDict
-        from inspect import _empty, _VAR_KEYWORD, _VAR_POSITIONAL
-
-        arguments = self.arguments
-        new_arguments = []
-        for name, param in self._signature.parameters.items():
-            try:
-                new_arguments.append((name, arguments[name]))
-            except KeyError:
-                if param.default is not _empty:
-                    val = param.default
-                elif param.kind is _VAR_POSITIONAL:
-                    val = ()
-                elif param.kind is _VAR_KEYWORD:
-                    val = {}
-                else:
-                    # This BoundArguments was likely produced by
-                    # Signature.bind_partial().
-                    continue
-                new_arguments.append((name, val))
-        self.arguments = OrderedDict(new_arguments)
-
-    BoundArguments.apply_defaults = _apply_defaults
-
-
-def get_interfaces(impls):
-    """Get interfaces from their implementations."""
-    if impls is None:
-        return None
-
-    if isinstance(impls, Mapping):  # LazyEvalDict and LazyEvalChainMap
-        return {name: impls[name].interface for name in impls}
-
-    elif isinstance(impls, Sequence):
-        return [impl.interface for impl in impls]
-
-    else:
-        raise RuntimeError("must not happen")
-
+def get_impl_list(interfaces):
+    return [interfaces._impl for interfaces in interfaces]
 
 def get_impls(interfaces):
     """Get impls from their interfaces."""
@@ -622,8 +582,6 @@ class LazyEval:
     __slots__ = ()
     __mixin_slots = ("is_fresh", "observers", "observing")
 
-    update_methods = None
-
     def __init__(self, observers):
         self.is_fresh = True  # must be read only
         self.observers = []
@@ -666,16 +624,6 @@ class LazyEval:
 
     def unobserve(self, other):
         other.remove_observer(self)
-
-    def on_update(self, method, args=()):
-        is_fresh = self.is_fresh
-        if not is_fresh:
-            self.fresh
-        args = self.update_methods[method](self, *args)
-        if is_fresh:    # if not fresh, all observers are not fresh too
-            for observer in self.observers:
-                if observer.is_fresh:
-                    observer.on_update(method, args)
 
 
 def _rename_item(self, old_name, new_name):

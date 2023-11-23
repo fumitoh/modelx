@@ -16,7 +16,7 @@ import warnings
 import pathlib
 import uuid
 from modelx.core.base import (
-    get_impls, get_interfaces, Interface
+    get_impls, Interface
 )
 from modelx.core.util import AutoNamer, get_module, get_param_func
 

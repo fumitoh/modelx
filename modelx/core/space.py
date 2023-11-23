@@ -24,8 +24,11 @@ from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
 from modelx.core.chainmap import CustomChainMap
 
 from modelx.core.base import (
+    get_impl_dict,
+    get_impl_list,
     get_impls,
-    get_interfaces,
+    get_interface_dict,
+    get_interface_list,
     get_mixin_slots,
     Interface,
     Impl,
@@ -250,7 +253,7 @@ class CellsView(SelectedView):
             for name, obj in self.items():
                 impls[name] = obj._impl
         else:
-            impls = get_impls(self)
+            impls = get_impl_dict(self)
 
         return _to_frame_inner(impls, args)
 
@@ -326,12 +329,12 @@ class BaseSpace(BaseParent, ItemFactory):
     @property
     def bases(self):
         """List of base classes."""
-        return get_interfaces(self._impl.bases)
+        return get_interface_list(self._impl.bases)
 
     @property
     def _direct_bases(self):
         """Directly inherited base classes"""
-        return get_interfaces(
+        return get_interface_list(
             self._impl.spmgr.get_direct_bases(self._impl))
 
     def _is_base(self, other):
@@ -675,18 +678,18 @@ class UserSpace(BaseSpace, EditableParent):
 
     def add_bases(self, *bases):
         """Add base spaces."""
-        return self._impl.model.updater.add_bases(self._impl, get_impls(bases))
+        return self._impl.model.updater.add_bases(self._impl, get_impl_list(bases))
 
     def remove_bases(self, *bases):
         """Remove base spaces."""
         return self._impl.model.updater.remove_bases(
-            self._impl, get_impls(bases))
+            self._impl, get_impl_list(bases))
 
     def import_funcs(self, module):
         """Create a cells from a module."""
         # Outside formulas only
         newcells = self._impl.new_cells_from_module(module)
-        return get_interfaces(newcells)
+        return get_interface_dict(newcells)
 
     def new_cells_from_module(self, module):
         """Create a cells from a module.
@@ -695,7 +698,7 @@ class UserSpace(BaseSpace, EditableParent):
         """
         # Outside formulas only
         newcells = self._impl.new_cells_from_module(module)
-        return get_interfaces(newcells)
+        return get_interface_dict(newcells)
 
     def reload(self):
         """Reload the source module and update the formulas.
@@ -1298,13 +1301,13 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
             params = {"bases": [self]}  # Default
         else:
             if "bases" in params:
-                bases = get_impls(params["bases"])
-                if isinstance(bases, UserSpaceImpl):
-                    params["bases"] = [bases]
+                bases = params.get("bases", None)
+                if isinstance(bases, UserSpace):
+                    params["bases"] = [bases._impl]
                 elif bases is None:
                     params["bases"] = [self]  # Default
                 else:
-                    params["bases"] = bases
+                    params["bases"] = get_impl_list(bases)
             else:
                 params["bases"] = [self]
 
@@ -2154,7 +2157,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
     def _bind_args(self, args):
         self.boundargs = self.parent.formula.signature.bind(**args)
         self.argvalues = tuple(self.boundargs.arguments.values())
-        self.argvalues_if = tuple(get_interfaces(self.argvalues))
+        self.argvalues_if = tuple(get_interface_list(self.argvalues))
 
     # ----------------------------------------------------------------------
     # repr methods
@@ -2165,7 +2168,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
     def repr_self(self, add_params=True):
 
         if add_params:
-            args = [repr(arg) for arg in get_interfaces(self.argvalues)]
+            args = [repr(arg) for arg in get_interface_list(self.argvalues)]
             param = ", ".join(args)
             return "%s[%s]" % (self.parent.name, param)
         else:
@@ -2174,7 +2177,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
     @property
     def evalrepr(self):
         """Evaluable repr"""
-        args = [repr(arg) for arg in get_interfaces(self.argvalues)]
+        args = [repr(arg) for arg in get_interface_list(self.argvalues)]
         param = ", ".join(args)
         return "%s(%s)" % (self.parent.evalrepr, param)
 
