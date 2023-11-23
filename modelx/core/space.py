@@ -1163,7 +1163,6 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
     )
 
     def __init__(self, formula):
-        BaseNamespaceReferrer.__init__(self, self)
         self._named_itemspaces = ImplDict('named_itemspaces', self, SpaceView)
         self.itemspacenamer = AutoNamer("__Space")
 
@@ -1184,12 +1183,8 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
     # ----------------------------------------------------------------------
     # BaseNamespaceReferrer Implementation
 
-    def on_namespace_change(self, is_all, names):
-        if is_all:
-            self.del_all_itemspaces()
-        elif self.formula and self.altfunc.global_names:
-            if any(n for n in names if n in self.altfunc.global_names):
-                self.del_all_itemspaces()
+    def on_namespace_change(self):
+        self.del_all_itemspaces()
 
     # ----------------------------------------------------------------------
     # Dynamic Space Operation
@@ -1214,7 +1209,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
                 else:
                     self.formula = ParamFunc(formula, name="_formula")
                 self.altfunc = BoundFunction(self)
-                self.altfunc.set_refresh()
+                self.altfunc.notify()
             else:
                 self.del_formula()
                 self.set_formula(formula)
@@ -1390,8 +1385,8 @@ class BaseSpaceImpl(*_base_space_impl_base):
                 map_ids=("cells", "refs", "spaces")
             )
         )
-        BaseNamespaceReferrer.__init__(self, server=self)
         ItemSpaceParent.__init__(self, formula)
+        BaseNamespaceReferrer.__init__(self, self._namespace)
         self._all_spaces = ImplChainMap("all_spaces",
             self, SpaceView, [self._named_spaces, self._named_itemspaces]
         )
@@ -1545,10 +1540,11 @@ class DynamicBase(BaseSpaceImpl):
     def __init__(self):
         self._dynamic_subs = []
 
-    def on_namespace_change(self, is_all, names):
-        ItemSpaceParent.on_namespace_change(self, is_all, names)
-        for dyns in self._dynamic_subs:
-            dyns.notify_referrers(is_all, names)
+    def on_namespace_change(self):
+        ItemSpaceParent.on_namespace_change(self)
+        # Use dict instead of list to avoid duplicates
+        for r in {s.rootspace: True for s in self._dynamic_subs}:
+            r.del_all_itemspaces()
 
     def change_dynsub_refs(self, name):
 

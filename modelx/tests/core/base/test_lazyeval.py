@@ -63,7 +63,7 @@ def test_lazy_eval_dict_update():
     sample = SampleLazyEval()
     del sample.lazy_eval_dict1["A"]
     sample.lazy_eval_dict1["E"] = 5
-    sample.lazy_eval_dict1.set_refresh()
+    sample.lazy_eval_dict1.notify()
 
     assert sample.lazy_eval_dict2 == check
 
@@ -78,6 +78,6 @@ def test_lazy_eval_chmap_update():
     sample = SampleLazyEval()
     del sample.lazy_eval_dict1["A"]
     sample.lazy_eval_dict1["E"] = 5
-    sample.lazy_eval_dict1.set_refresh()
+    sample.lazy_eval_dict1.notify()
 
     assert sample.lazy_eval_chmap == check

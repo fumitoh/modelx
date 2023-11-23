@@ -590,7 +590,7 @@ class BoundFunction(LazyEval):
             self.global_names = None
         else:
             self.global_names = base.global_names
-        self.set_refresh()
+        self.notify()
 
     def _init_names(self):
         return tuple(self._extract_globals(self.owner.formula.func.__code__))

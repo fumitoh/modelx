@@ -177,7 +177,7 @@ class ReferenceImpl(Derivable, Impl):
                     raise ValueError("must not happen")
         else:
             self.interface = bases[0].interface
-        self.container.set_refresh()
+        self.container.notify()
 
 
 class ReferenceProxy:

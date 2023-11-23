@@ -568,32 +568,58 @@ class Interface:
 
 null_interface = Interface(null_impl)
 
+class ChainObserver:
+    __slots__ = ()
+    __mixin_slots = ("is_fresh", "observers", "observing")
 
-class LazyEval:
+    def __init__(self, observers=None):
+        self.is_fresh = True    # Define here so that LazyEval can notify this
+        self.observers = []
+        self.observing = []
+        if observers:
+            for observer in observers:
+                self.append_observer(observer)
+    def notify(self):
+        raise NotImplementedError
+
+    def append_observer(self, observer, notify=True):
+        # Speed deteriorates by a lot if below
+        # if observer not in self.observers:
+        if all(observer is not other for other in self.observers):
+            self.observers.append(observer)
+            observer.observing.append(self)
+            if notify:
+                observer.notify()
+
+    def remove_observer(self, observer):
+        self.observers.remove(observer)
+        observer.observing.remove(self)
+
+    def observe(self, other, notify=True):
+        other.append_observer(self, notify)
+
+    def unobserve(self, other):
+        other.remove_observer(self)
+
+
+class LazyEval(ChainObserver):
     """Base class for flagging observers so that they update themselves later.
 
     An object of a class inherited from LazyEvaluation can have its observers.
-    When the data of the object is updated, the users call set_refresh method,
+    When the data of the object is updated, the users call notify method,
     to flag the object's observers.
     When the observers get_updated methods are called later, their data
     contents are updated depending on their update states.
     The updating operation can be customized by overwriting _refresh method.
     """
     __slots__ = ()
-    __mixin_slots = ("is_fresh", "observers", "observing")
+    __mixin_slots = ()
 
-    def __init__(self, observers):
-        self.is_fresh = True  # must be read only
-        self.observers = []
-        self.observing = []
-        for observer in observers:
-            self.append_observer(observer)
-
-    def set_refresh(self):
+    def notify(self):
         self.is_fresh = False
         for observer in self.observers:
             if observer.is_fresh:
-                observer.set_refresh()
+                observer.notify()
 
     @property
     def fresh(self):
@@ -606,24 +632,6 @@ class LazyEval:
 
     def _refresh(self):
         raise NotImplementedError  # To be overwritten in derived classes
-
-    def append_observer(self, observer):
-        # Speed deteriorates by a lot if below
-        # if observer not in self.observers:
-        if all(observer is not other for other in self.observers):
-            self.observers.append(observer)
-            observer.observing.append(self)
-            observer.set_refresh()
-
-    def observe(self, other):
-        other.append_observer(self)
-
-    def remove_observer(self, observer):
-        self.observers.remove(observer)
-        observer.observing.remove(self)
-
-    def unobserve(self, other):
-        other.remove_observer(self)
 
 
 def _rename_item(self, old_name, new_name):
@@ -729,19 +737,19 @@ class LazyEvalDict(LazyEval, dict):
 
     def set_item(self, name, value):
         dict.__setitem__(self, name, value)
-        self.set_refresh()
+        self.notify()
 
     def del_item(self, name):
         dict.__delitem__(self, name)
-        self.set_refresh()
+        self.notify()
 
     def rename_item(self, old_name, new_name):
         self._rename_item(old_name, new_name)
-        self.set_refresh()
+        self.notify()
 
     def sort_items(self, sort_keys):
         self._sort(sort_keys)
-        self.set_refresh()
+        self.notify()
 
 
 assert issubclass(LazyEvalDict, Mapping)

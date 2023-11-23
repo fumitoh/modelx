@@ -492,16 +492,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         self._impl.set_doc(doc, insert_indents=insert_indents)
 
 
-class CellsNamespaceReferrer(BaseNamespaceReferrer):
-
-    __slots__ = ()
-    __mixin_slots = ()
-
-    def on_namespace_change(self, is_all, names):
-        self.clear_all_values(clear_input=False)
-
-
-_cells_impl_base = (CellsNamespaceReferrer, Derivable, ItemFactoryImpl,
+_cells_impl_base = (BaseNamespaceReferrer, Derivable, ItemFactoryImpl,
                     HasFormula, Impl)
 
 class CellsImpl(*_cells_impl_base):
@@ -564,12 +555,15 @@ class CellsImpl(*_cells_impl_base):
         self.data.update(data)
         self.input_keys = set(data.keys())
 
-        CellsNamespaceReferrer.__init__(self, space)
+        BaseNamespaceReferrer.__init__(self, space._namespace)
         self._namespace = self.parent._namespace
         if base:
             self.altfunc = BoundFunction(self, base.altfunc.fresh)
         else:
             self.altfunc = BoundFunction(self)
+
+    def on_namespace_change(self):
+        self.clear_all_values(clear_input=False)
 
     # ----------------------------------------------------------------------
     # repr methods
@@ -599,7 +593,7 @@ class CellsImpl(*_cells_impl_base):
     def on_inherit(self, updater, bases):
         self.model.clear_obj(self)
         self.formula = bases[0].formula
-        self.altfunc.set_refresh()
+        self.altfunc.notify()
 
     @property
     def namespace(self):
