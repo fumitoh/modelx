@@ -572,7 +572,11 @@ NULL_FORMULA = NullFormula("lambda: None")
 class BoundFunction(LazyEval):
     """Hold function with updated namespace"""
 
-    __slots__ = ("owner", "global_names", "altfunc") + get_mixin_slots(LazyEval)
+    __slots__ = (
+        "owner",
+        "_global_names",
+        "_is_names_updated",
+        "altfunc") + get_mixin_slots(LazyEval)
 
     def __init__(self, owner, base=None):
         """Create altered function from owner's formula.
@@ -586,14 +590,15 @@ class BoundFunction(LazyEval):
         # Must not update owner's namespace to avoid circular updates.
         self.observe(owner._namespace)
         self.altfunc = None
-        if base is None:
-            self.global_names = None
-        else:
-            self.global_names = base.global_names
         self.notify()
 
-    def _init_names(self):
-        return tuple(self._extract_globals(self.owner.formula.func.__code__))
+    @property
+    def global_names(self):
+        if self._is_names_updated:
+            return self._global_names
+        else:
+            self._global_names = tuple(self._extract_globals(self.owner.formula.func.__code__))
+            return self._global_names
 
     def _extract_globals(self, codeobj):
 
@@ -613,8 +618,7 @@ class BoundFunction(LazyEval):
 
     def _refresh(self):
         """Update altfunc"""
-        if self.global_names is None:
-            self.global_names = self._init_names()
+        self._is_names_updated = False
 
         func = self.owner.formula.func
         codeobj = func.__code__
@@ -630,8 +634,6 @@ class BoundFunction(LazyEval):
 
     def get_referents(self):
         ns = self.owner.namespace
-        names = (self._init_names()
-                 if self.global_names is None else self.global_names)
 
         result = {}
         for mid in ns.map_ids:
@@ -640,7 +642,7 @@ class BoundFunction(LazyEval):
         result["missing"] = {}
         result["builtins"] = {}
 
-        for n in names:
+        for n in self.global_names:
             idx = ns.get_map_index_from_key(n)
             if idx is None:
                 if '__builtins__' in ns:

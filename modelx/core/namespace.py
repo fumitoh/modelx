@@ -31,7 +31,7 @@ class NamespaceServer:
 class BaseNamespaceReferrer(ChainObserver):
 
     __slots__ = ()
-    __mixin_slots = get_mixin_slots(ChainObserver)
+    __mixin_slots = ()
 
     def __init__(self, namespace):
         ChainObserver.__init__(self)
