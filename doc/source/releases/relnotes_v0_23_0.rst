@@ -17,6 +17,8 @@ If you're using Anaconda, use the ``conda`` command instead::
 Enhancements
 ============
 
+.. py:currentmodule:: modelx
+
 * Pure-Python models exported via :func:`export_model` or :meth:`Model.export<core.model.Model.export>`,
   now accurately differentiate among the 'auto', 'relative' and 'absolute' reference modes.
 

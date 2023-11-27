@@ -4,6 +4,28 @@
 spyder-modelx v0.13
 ===================
 
+To update spyder-modelx, run the following command::
+
+    >>> pip install spyder-modelx --upgrade
+
+If you're using Anaconda, use the ``conda`` command instead::
+
+    >>> conda update spyder-modelx
+
+
+.. _release-mxplugin-v0.13.5:
+
+spyder-modelx v0.13.5 (26 November 2023)
+=========================================
+
+This release reflects the following changes and bug fixes.
+
+- Formula Editor now shows line numbers.
+- Fixes the cursor line in Formula Editor being black initially.
+- Fixes Formula List
+- Supports pandas 2.0+
+
+
 .. _release-mxplugin-v0.13.4:
 
 spyder-modelx v0.13.4 (5 May 2023)
@@ -41,14 +63,6 @@ spyder-modelx v0.13.0 (30 July 2022)
 =========================================
 
 This release introduces enhanced MxDataView and supports Spyder 5.3.0 - 5.3.2.
-
-To update spyder-modelx, run the following command::
-
-    >>> pip install spyder-modelx --upgrade
-
-If you're using Anaconda, use the ``conda`` command instead::
-
-    >>> conda update spyder-modelx
 
 
 Enhanced MxDataView

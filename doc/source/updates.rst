@@ -12,6 +12,8 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *26 November 2023:*
+  spyder-modelx v0.13.5 is released. See :ref:`release-mxplugin-v0.13.5`.
 
 * *19 August 2023:*
   A new blog post, `Enhanced Speed for Exported lifelib Models <https://modelx.io/blog/2023/08/19/enhanced-speed-for-exported-lifelib-models>`_
