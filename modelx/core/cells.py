@@ -39,8 +39,18 @@ class CellsMaker:
         self.name = name
 
     def __call__(self, func):
-        return self.space.spmgr.new_cells(
-            self.space, formula=func, name=self.name).interface
+        return self._create_or_change_cells(self.space, self.name, func)
+
+    @staticmethod
+    def _create_or_change_cells(space, name, func):
+
+        name = func.__name__ if name is None else name
+        if is_valid_name(name) and name in space.cells:
+            space.spmgr.change_cells_formula(space.cells[name], func)
+            return space.cells[name].interface
+        else:
+            return space.spmgr.new_cells(
+                space, name=name, formula=func).interface
 
 
 ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])

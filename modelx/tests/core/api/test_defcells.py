@@ -33,3 +33,32 @@ def test_defcells_update_formula():
 
     m._impl._check_sanity()
     m.close()
+
+
+def test_base_formula_change():
+
+    m = mx.new_model()
+    A = m.new_space('A')
+    C = m.new_space('C', bases=A)
+
+    def foo():
+        return 1
+
+    def bar():
+        return 2
+
+    A.new_cells(formula=foo)
+    A.new_cells(formula=bar)
+
+    m.cur_space('A')
+
+    @mx.defcells    # No params
+    def foo(x):
+        return x
+
+    @mx.defcells(A)  # With params
+    def bar(y):
+        return y
+
+    assert C.foo(3) == 3
+    assert C.bar(4) == 4
