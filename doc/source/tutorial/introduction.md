@@ -435,7 +435,7 @@ to have basic understanding of them.
 The diagram below illustrates containment
 relationships between those objects.
 
-```{figure} /images/tutorial/Introduction/MonteCarloInSpyder.png
+```{figure} /images/tutorial/Introduction/ModelStructure.png
 :align: center
 
 Models, Spaces and Cells
