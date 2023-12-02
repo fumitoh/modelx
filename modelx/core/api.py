@@ -303,46 +303,6 @@ def cur_space(space=None):
         return cur_space()
 
 
-def restore_model(path, name=None, datapath=None):
-    """Restore a model and return it.
-
-    Restore a model saved by the :meth:`~modelx.core.model.Model.backup` method
-    from ``path``.
-
-    Args:
-        path (:obj:`str`): Path to the file to restore the model from.
-        name (optional): If specified, the model is renamed to this name.
-
-    Returns:
-        A new model created from the file.
-
-    See Also:
-        :py:meth:`~modelx.core.model.Model.backup`
-
-    .. deprecated:: 0.18.0 Use :func:`read_model` for reading
-        and :func:`write_model` or :func:`zip_model` for writing.
-
-    """
-    return _system.restore_model(path, name, datapath)
-
-
-def open_model(path, name=None, datapath=None):
-    """Load a model saved from a file and return it.
-
-    Args:
-        path (:obj:`str`): Path to the file to load the model from.
-        name (optional): If specified, the model is renamed to this name.
-
-    Returns:
-        A new model created from the file.
-
-    .. deprecated:: 0.5.0 Use :func:`restore_model` instead.
-    """
-    warnings.warn(
-        "'open_model' function is deprecated. Use 'restore_model' instead.")
-    return _system.restore_model(path, name, datapath)
-
-
 def start_stacktrace(maxlen=10000):
     """Activate stack tracing.
 

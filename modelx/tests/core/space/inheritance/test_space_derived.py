@@ -31,19 +31,10 @@ def derived_sample():
     return model
 
 
-pickleparam = [False, True]
-
-
-@pytest.fixture(params=pickleparam)
-def unpickled_model(request, derived_sample, tmpdir_factory):
+@pytest.fixture
+def unpickled_model(derived_sample, tmpdir_factory):
 
     model = derived_sample
-    if request.param:
-        file = str(tmpdir_factory.mktemp("data").join("testmodel.mx"))
-        model.save(file)
-        model.close()
-        model = mx.restore_model(file)
-
     yield model
     model._impl._check_sanity()
     model.close()

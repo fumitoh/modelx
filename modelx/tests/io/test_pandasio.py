@@ -65,15 +65,10 @@ def test_new_pandas(
         file_loc = (model_loc / file_path) if is_relative else file_path
 
         # Save, close and restore
-        if save_meth == "backup":
-            getattr(m, save_meth)(model_loc)
-            m.close()
-            m = mx.restore_model(model_loc)
-        else:
-            getattr(m, save_meth)(model_loc)
-            m.close()
-            assert ziputil.exists(file_loc)
-            m = mx.read_model(model_loc)
+        getattr(m, save_meth)(model_loc)
+        m.close()
+        assert ziputil.exists(file_loc)
+        m = mx.read_model(model_loc)
 
         parent = m if pstr == "model" else m.spaces[parent_name]
 

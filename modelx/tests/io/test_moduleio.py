@@ -32,10 +32,7 @@ def test_new_module(tmp_path, parent, save_meth, module):
     getattr(p.model, save_meth)(tmp_path / "model")
     p.model.close()
 
-    if save_meth == "backup":
-        m2 = mx.restore_model(tmp_path / "model")
-    else:
-        m2 = mx.read_model(tmp_path / "model")
+    m2 = mx.read_model(tmp_path / "model")
 
     p2 = m2 if parent == "model" else m2.spaces["Parent"]
 
