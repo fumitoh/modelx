@@ -41,7 +41,6 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
-              'sphinxcontrib.blockdiag',
               'myst_parser']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -196,7 +195,6 @@ autoclass_content = 'class'
 
 autodoc_member_order = 'bysource'
 
-blockdiag_html_image_format = 'SVG'
 
 # -- Options for Auto doc -----------------------------------------------
 # If true, the current module name will be prepended to all description

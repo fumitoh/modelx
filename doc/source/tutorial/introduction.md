@@ -435,22 +435,10 @@ to have basic understanding of them.
 The diagram below illustrates containment
 relationships between those objects.
 
-```{blockdiag}
-:caption: Models, Spaces and Cells
+```{figure} /images/tutorial/Introduction/MonteCarloInSpyder.png
 :align: center
 
-blockdiag {
- orientation = portrait
- default_node_color="#D5E8D4";
- default_linecolor="#628E47";
- node_width=70;
- Model1<- Space1[hstyle=composition];
- Model1<- Space2[hstyle=composition];
- Model1<- Ref1[hstyle=composition];
- Space1<- Cells1[hstyle=composition];
- Space1<- Space3[hstyle=composition];
- Space1<- Ref2[hstyle=composition];
-}
+Models, Spaces and Cells
 ```
 
 Models are the top level container objects.
