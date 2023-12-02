@@ -1,15 +1,21 @@
 import sys
+import os
 import modelx as mx
 from modelx.core.errors import DeepReferenceError
 from modelx.testing.testutil import SuppressFormulaError
 import pytest
-import psutil
+
+
+def is_github_actions():
+    """Check if the test is running on GitHub Actions."""
+    return os.getenv('GITHUB_ACTIONS') == 'true'
+
 
 if sys.platform == "win32":
     if sys.version_info[:2] > (3, 10):  # Python 3.11 or newer
         maxdepth = 100_000
     else:
-        if psutil.virtual_memory().total < 8 * 1024**3:
+        if is_github_actions():
             maxdepth = 10000
         else:
             maxdepth = 50000
