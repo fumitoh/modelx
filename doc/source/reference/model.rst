@@ -47,8 +47,6 @@ Saving operations
   ~Model.write
   ~Model.zip
   ~Model.export
-  ~Model.backup
-  ~Model.save
 
 
 Child Space operations
