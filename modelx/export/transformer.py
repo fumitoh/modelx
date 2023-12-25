@@ -13,12 +13,13 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import builtins
+import sys
 import textwrap
 from collections import namedtuple
 import symtable
 from typing import Optional, Set
 
-
+import libcst
 # from symtable import symtable, SymbolTable
 import libcst as cst
 from libcst import FunctionDef, Module
@@ -41,7 +42,18 @@ def _list_symtable_inner(table: symtable.SymbolTable, result: list):
     return result
 
 
-def assert_scope_table_mapping(scope, table):
+def adjust_scope_table_mapping(scope, table):
+
+    # symtable in Python 3.12+ will not produce child symbol tables for comprehensions due to PEP709
+    # libCST continues to produce ComprehensionScope.
+    # To maintain the correct order mapping between scope and table, None is inserted in table
+    # where ComprehensionScope exists.
+    # https://docs.python.org/3/whatsnew/3.12.html#pep-709-comprehension-inlining
+
+    if sys.version_info >= (3, 12):
+        for i in range(len(scope)):
+            if isinstance(scope[i], ComprehensionScope) and not isinstance(scope[i].node, libcst.GeneratorExp):
+                table.insert(i, None)
 
     assert len(scope) == len(table)
 
@@ -64,10 +76,17 @@ def assert_scope_table_mapping(scope, table):
                 assert t.get_name() == 'lambda'
 
         elif isinstance(s, ComprehensionScope):
-            assert t.get_type() == 'function'
-            # listcomp, dictcomp, setcomp, genexpr
-            name = t.get_name()
-            assert name[-4:] == 'comp' or name == 'genexpr'
+            if sys.version_info >= (3, 12):
+                if t is not None:
+                    assert t.get_type() == 'function'
+                    # genexpr
+                    name = t.get_name()
+                    assert name == 'genexpr'
+            else:
+                assert t.get_type() == 'function'
+                # listcomp, dictcomp, setcomp, genexpr
+                name = t.get_name()
+                assert name[-4:] == 'comp' or name == 'genexpr'
 
         else:
             raise RuntimeError("must not happen")
@@ -133,11 +152,11 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
         self.node_to_scope = n_to_s = self.wrapper.resolve(cst.metadata.ScopeProvider)
         self.scopes = list(dict.fromkeys(n_to_s.values()))
         self.symtables = list_symtable(source)
-        assert_scope_table_mapping(self.scopes, self.symtables)
+        adjust_scope_table_mapping(self.scopes, self.symtables)     # See comment in the function
 
         # A list each of whose element is a name-to-symbol map
         self.name_to_symbol = [
-            {s.get_name(): s for s in table.get_symbols()} for table in self.symtables
+            {s.get_name(): s for s in table.get_symbols()} if table else None for table in self.symtables
         ]
         self.global_names = set()
 
@@ -167,7 +186,12 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
 
         i = next(i for i, v in enumerate(self.scopes) if scope == v)
 
-        symbol = self.name_to_symbol[i].get(node.value, None)
+        n_to_s = self.name_to_symbol[i]
+        while n_to_s is None:
+            i -= 1
+            n_to_s = self.name_to_symbol[i]
+
+        symbol = n_to_s.get(node.value, None)
         if symbol:
             if symbol.is_global():
                 symbol_top = self.name_to_symbol[0].get(node.value, None)
