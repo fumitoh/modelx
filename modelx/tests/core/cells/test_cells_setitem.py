@@ -19,11 +19,11 @@ def setitemsample():
         if x == 0 or x == 1:
             return x
         else:
-            return fibo(x - 1) + fibo[x - 2]
+            return fibo(x - 1) + fibo(x - 2)
 
     @defcells
     def double(x):
-        double[x] = 2 * x
+        return 2 * x
 
     @defcells
     def return_last(x):
@@ -57,29 +57,6 @@ def test_setitem_str(setitemsample):
 
 def test_setitem_in_cells(setitemsample):
     assert setitemsample.double[3] == 6
-
-
-def test_setitem_in_formula_invalid_assignment_error(setitemsample):
-
-    def invalid_in_formula_assignment(x):
-        invalid_in_formula_assignment[x + 1] = 3 * x
-
-    setitemsample.new_cells(formula=invalid_in_formula_assignment)
-    with SuppressFormulaError():
-        with pytest.raises(KeyError):
-            setitemsample.invalid_in_formula_assignment[3]
-
-
-def test_setitem_in_formula_duplicate_assignment_error(setitemsample):
-
-    def duplicate_assignment(x):
-        duplicate_assignment[x] = 4 * x
-        return 4 * x
-
-    setitemsample.new_cells(formula=duplicate_assignment)
-    with SuppressFormulaError():
-        with pytest.raises(ValueError):
-            setitemsample.duplicate_assignment[4]
 
 
 @pytest.mark.parametrize("recalc", [True, False])

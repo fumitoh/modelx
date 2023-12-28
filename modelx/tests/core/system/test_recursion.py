@@ -11,28 +11,32 @@ def is_github_actions():
     return os.getenv('GITHUB_ACTIONS') == 'true'
 
 
-if sys.platform == "win32":
-    if sys.version_info[:2] > (3, 10):  # Python 3.11 or newer
-        maxdepth = 100_000
-    else:
-        if is_github_actions():
-            maxdepth = 10000
-        else:
-            maxdepth = 50000
-
-elif sys.platform == "darwin":
-    # https://bugs.python.org/issue18075
-    # https://bugs.python.org/issue34602
-    # https://github.com/python/cpython/pull/14546
-    if sys.version_info[:2] == (3, 9):
-        maxdepth = 3500
-    else:
-        maxdepth = 4000
+if sys.version_info >= (3, 12):
+    maxdepth = 100_000
 else:
-    maxdepth = 65000
+    if sys.platform == "win32":
+        if sys.version_info[:2] > (3, 10):  # Python 3.11 or newer
+            maxdepth = 100_000
+        else:
+            if is_github_actions():
+                maxdepth = 10000
+            else:
+                maxdepth = 50000
+
+    elif sys.platform == "darwin":
+        # https://bugs.python.org/issue18075
+        # https://bugs.python.org/issue34602
+        # https://github.com/python/cpython/pull/14546
+        if sys.version_info[:2] == (3, 9):
+            maxdepth = 3500
+        else:
+            maxdepth = 4000
+    else:
+        maxdepth = 65000
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="macOS shallow stack")
+@pytest.mark.skipif(sys.platform == "darwin" and sys.version_info < (3, 12),
+                    reason="macOS shallow stack")
 def test_max_recursion():
 
     m, s = mx.new_model(), mx.new_space()
@@ -57,7 +61,8 @@ def test_max_recursion():
     m.close()
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="macOS shallow stack")
+@pytest.mark.skipif(sys.platform == "darwin" and sys.version_info < (3, 12),
+                    reason="macOS shallow stack")
 def test_maxout_recursion():
     
     m, s = mx.new_model(), mx.new_space()

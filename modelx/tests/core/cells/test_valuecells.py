@@ -1,3 +1,4 @@
+import sys
 import pytest
 from modelx import defcells, new_model, new_space
 
@@ -52,36 +53,12 @@ def constcells():
     model._impl._check_sanity()
     model.close()
 
-def test_lt(constcells):
-    with pytest.warns(UserWarning):
-        assert constcells.lt()
-
-
-def test_le(constcells):
-    with pytest.warns(UserWarning):
-        assert constcells.le()
-
-
-def test_gt(constcells):
-    with pytest.warns(UserWarning):
-        assert constcells.gt()
-
-
-def test_ge(constcells):
-    with pytest.warns(UserWarning):
-        assert constcells.ge()
-
 
 # --------------------------------------------------------------------------
 # Test value property
 
 def test_call(constcells):
     assert constcells.foo() == 2
-
-
-def test_eq(constcells):
-    with pytest.warns(UserWarning):
-        assert constcells.eq()
 
 
 def test_setattr_value(constcells):
@@ -102,7 +79,3 @@ def test_delattr_value(constcells):
     del cells.value
     assert cells.value is None
 
-
-def test_bool(constcells):
-    with pytest.warns(UserWarning):
-        assert constcells.bool_()

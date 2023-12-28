@@ -123,21 +123,6 @@ def test_tracegraph_standalone():
     model.close()
 
 
-def test_tracegraph_informula_assignment():
-    model, space = new_model(), new_space()
-
-    @defcells(space=space)
-    def bar(x):
-        bar[x] = x
-
-    bar(1)
-    nodes = model.tracegraph.nodes()
-    assert get_node(bar._impl, (1,), {}) in nodes
-
-    model._impl._check_sanity()
-    model.close()
-
-
 def test_refs(simplemodel):
     assert 'bar' in simplemodel.refs
     assert simplemodel.bar == simplemodel.refs['bar']

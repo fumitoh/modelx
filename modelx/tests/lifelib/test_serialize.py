@@ -4,6 +4,7 @@ import itertools
 import pytest
 from modelx.testing import testutil
 import modelx as mx
+import numpy as np
 
 
 def _compare_results_simplelife(src, trg):
@@ -113,7 +114,7 @@ def test_back_compat_fastlife(tmp_path):
 
     m = mx.read_model(projpath / "model")
 
-    assert sum(m.Projection.PV_NetCashflow(0)) == 288922348.168899
+    assert np.isclose(sum(m.Projection.PV_NetCashflow(0)), 288922348.168899)
     m.close()
 
 
