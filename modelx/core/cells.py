@@ -15,6 +15,7 @@ import warnings
 from collections import namedtuple
 from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
+from types import FunctionType
 
 from modelx.core.base import (
     Impl, Derivable, Interface, get_mixin_slots,
@@ -25,12 +26,43 @@ from modelx.core.node import (
 )
 from modelx.core.formula import (
     Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring,
-    HasFormula
+    HasFormula, create_closure
 )
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 from modelx.core.node import ItemFactory, ItemFactoryImpl
 from modelx.core.namespace import BaseNamespaceReferrer
+
+
+class CellsBoundFunction(BoundFunction):
+
+    # The introduction of a hardcoded limit on C-level recursion in Python 3.12
+    # revealed that dunder methods, like `__call__` induce C-level recursion.
+    # To avoid the recursion limit for modelx formulas effectively being bound
+    # by the C-level recursion limit,
+    # Cells names in the Space namespace are bound to CellsImpl.call method.
+    # See https://github.com/fumitoh/modelx/issues/92
+
+    __slots__ = ()
+
+    def _refresh(self):
+        """Update altfunc"""
+        self._is_names_updated = False
+
+        func = self.owner.formula.func
+        codeobj = func.__code__
+        name = func.__name__
+
+        closure = func.__closure__  # None normally.
+        if closure is not None:  # pytest fails without this.
+            closure = create_closure(self.owner.interface)
+
+        ns = {k: v._impl.call if isinstance(v, Cells) else v
+              for k, v in self.owner.namespace.interfaces.items()}
+
+        self.altfunc = FunctionType(
+            codeobj, ns, name=name, closure=closure
+        )
 
 
 class CellsMaker:
@@ -568,9 +600,9 @@ class CellsImpl(*_cells_impl_base):
         BaseNamespaceReferrer.__init__(self, space._namespace)
         self._namespace = self.parent._namespace
         if base:
-            self.altfunc = BoundFunction(self, base.altfunc.fresh)
+            self.altfunc = CellsBoundFunction(self, base.altfunc.fresh)
         else:
-            self.altfunc = BoundFunction(self)
+            self.altfunc = CellsBoundFunction(self)
 
     def on_namespace_change(self):
         self.clear_all_values(clear_input=False)
@@ -628,21 +660,13 @@ class CellsImpl(*_cells_impl_base):
     # Get/Set values
 
     def on_eval_formula(self, key):
-
-        value = self.altfunc.fresh.altfunc(*key)
-
-        if self.has_node(key):
-            # Assignment took place inside the cell.
-            if value is not None:
-                raise ValueError("Duplicate assignment for %s" % key)
-            else:
-                value = self.data[key]
-        else:
-            value = self._store_value(key, value)
-
-        return value
+        return self._store_value(key, self.altfunc.fresh.altfunc(*key))
 
     def get_value(self, args, kwargs=None):
+        node = get_node(self, args, kwargs)
+        return self.system.executor.eval_node(node)
+
+    def call(self, *args, **kwargs):
         node = get_node(self, args, kwargs)
         return self.system.executor.eval_node(node)
 
@@ -818,7 +842,7 @@ class UserCellsImpl(CellsImpl):
             else:
                 self.formula = Formula(self.formula, name=name)
 
-            self.altfunc = BoundFunction(self)
+            self.altfunc = CellsBoundFunction(self)
 
         self.parent.cells.rename_item(old_name, name)
 
@@ -838,7 +862,7 @@ class UserCellsImpl(CellsImpl):
                 cls = Formula
             self.formula = cls(func, name=self.name)
 
-        self.altfunc = BoundFunction(self)
+        self.altfunc = CellsBoundFunction(self)
 
 
 class DynamicCellsImpl(CellsImpl):

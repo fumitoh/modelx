@@ -209,10 +209,13 @@ class ThreadedExecutor(NonThreadedExecutor):
 
 class CallStack(deque):
 
-    if sys.platform == "win32":
-        default_maxdepth = 50000
+    if sys.version_info >= (3, 12):
+        default_maxdepth = 100_000
     else:
-        default_maxdepth = 65000
+        if sys.platform == "win32":
+            default_maxdepth = 50000
+        else:
+            default_maxdepth = 65000
 
     def __init__(self, executor, maxdepth=None):
         self.executor = executor
@@ -449,10 +452,13 @@ class System:
 
         self.configure_python()
         self.is_formula_error_used = True
-        if sys.platform == "win32":
-            self.executor = ThreadedExecutor(maxdepth=maxdepth)
-        else:
+        if sys.version_info >= (3, 12):
             self.executor = NonThreadedExecutor(maxdepth=maxdepth)
+        else:
+            if sys.platform == "win32":
+                self.executor = ThreadedExecutor(maxdepth=maxdepth)
+            else:
+                self.executor = NonThreadedExecutor(maxdepth=maxdepth)
         self.callstack = self.executor.callstack
         self.refstack = self.executor.refstack
         self._modelnamer = AutoNamer("Model")

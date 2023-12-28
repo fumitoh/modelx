@@ -8,6 +8,12 @@ from modelx.core.errors import DeepReferenceError
 import pytest
 
 
+def test_executer_type():
+    if sys.version_info < (3, 12) and sys.platform == "win32":
+        assert isinstance(mxsys.executor, mx.core.system.ThreadedExecutor)
+    else:
+        assert isinstance(mxsys.executor, mx.core.system.NonThreadedExecutor)
+
 @pytest.fixture
 def testmodel():
     m, s = new_model("ModelA"), new_space("SpaceA")
@@ -46,7 +52,7 @@ def test_defcells_withspace(testmodel):
 def test_defcells_lambda_object(testmodel):
 
     fibo = defcells(space=cur_space(), name="fibo")(
-        lambda x: x if x == 0 or x == 1 else fibo[x - 1] + fibo[x - 2]
+        lambda x: x if x == 0 or x == 1 else fibo(x - 1) + fibo(x - 2)
     )
 
     assert fibo(10) == 55
@@ -54,7 +60,7 @@ def test_defcells_lambda_object(testmodel):
 
 def test_decells_lambda_source(testmodel):
 
-    src = "lambda x: x if x == 0 or x == 1 else fibo2[x - 1] + fibo2[x - 2]"
+    src = "lambda x: x if x == 0 or x == 1 else fibo2(x - 1) + fibo2(x - 2)"
     fibo2 = cur_space().new_cells(name="fibo2", formula=src)
 
     assert fibo2(10) == 55
