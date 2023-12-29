@@ -9,7 +9,7 @@ import pytest
 
 
 def test_executer_type():
-    if sys.version_info < (3, 12) and sys.platform == "win32":
+    if sys.version_info < (3, 11) and sys.platform == "win32":
         assert isinstance(mxsys.executor, mx.core.system.ThreadedExecutor)
     else:
         assert isinstance(mxsys.executor, mx.core.system.NonThreadedExecutor)

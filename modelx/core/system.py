@@ -209,7 +209,7 @@ class ThreadedExecutor(NonThreadedExecutor):
 
 class CallStack(deque):
 
-    if sys.version_info >= (3, 12):
+    if sys.version_info >= (3, 11):
         default_maxdepth = 100_000
     else:
         if sys.platform == "win32":
@@ -452,7 +452,7 @@ class System:
 
         self.configure_python()
         self.is_formula_error_used = True
-        if sys.version_info >= (3, 12):
+        if sys.version_info >= (3, 11):
             self.executor = NonThreadedExecutor(maxdepth=maxdepth)
         else:
             if sys.platform == "win32":
