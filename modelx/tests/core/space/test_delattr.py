@@ -57,6 +57,19 @@ def test_delattr_ref(testmodel):
             s.x
 
 
+def test_delattr_ref_interface(testmodel):
+
+    s = testmodel.new_space("A")
+    t = testmodel.new_space("B")
+    t.x = s
+    assert t.x is s
+    del t.x
+
+    with SuppressFormulaError():
+        with pytest.raises(AttributeError):
+            t.x
+
+
 def test_delattr_null_space(testmodel):
     """
         A---B---C---foo

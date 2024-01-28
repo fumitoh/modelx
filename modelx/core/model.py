@@ -1831,17 +1831,18 @@ class ReferenceManager:
         else:
             raise RuntimeError("must not happen")
 
-        refs = self._valid_to_refs.get(valid)
-        assert refs
-        refs.remove(ref)
-        if not refs:
-            del self._valid_to_refs[valid]
-            spec = self._manager.get_spec_from_value(
-                io_group=self._model.interface,
-                value=val
-            )
-            if spec:
-                self._manager.del_spec(spec)
+        if not isinstance(val, Interface):
+            refs = self._valid_to_refs.get(valid)
+            assert refs
+            refs.remove(ref)
+            if not refs:
+                del self._valid_to_refs[valid]
+                spec = self._manager.get_spec_from_value(
+                    io_group=self._model.interface,
+                    value=val
+                )
+                if spec:
+                    self._manager.del_spec(spec)
 
     def change_ref(self, impl, name, value, refmode=None):
 
