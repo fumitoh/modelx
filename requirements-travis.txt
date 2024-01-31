@@ -2,7 +2,7 @@ networkx == ${NETWORKX_VERSION}
 asttokens
 pandas
 numpy >= 1.16.5
-openpyxl < 3.1  # To avoid a bug in 3.1.0
+openpyxl
 -e git+https://github.com/fumitoh/lifelib.git#egg=lifelib
 pytest-benchmark
 psutil
