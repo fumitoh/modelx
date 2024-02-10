@@ -233,6 +233,27 @@ class Impl(BaseImpl):
     def __repr__(self):
         return self.get_repr(fullname=True, add_params=True)
 
+    # ----------------------------------------------------------------------
+    # Inspection tools
+
+    def get_members_dict(self):
+        mro = self.__class__.__mro__
+        result = {}
+        all_mixin_slots = []
+        for cls in reversed(mro):
+            slots = cls.__slots__ if hasattr(cls, "__slots__") else ()
+            mixin_attr = "_" + cls.__name__ + "__mixin_slots"
+            mixin_slots = getattr(cls, mixin_attr) if hasattr(cls, mixin_attr) else ()
+            all_mixin_slots.extend(mixin_slots)
+
+            if slots:
+                names = [n for n in slots if n not in all_mixin_slots]
+                type_names = [type(getattr(self, n)).__name__ for n in names]
+                result[cls.__name__] = [n + ": " + t for n, t in zip(names, type_names)]
+            elif mixin_slots:
+                result[cls.__name__] = [n + ": " + type(getattr(self, n)).__name__ for n in mixin_slots]
+
+        return result
 
 class Derivable:
 
