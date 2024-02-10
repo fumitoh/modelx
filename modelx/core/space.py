@@ -79,7 +79,7 @@ class ParamFunc(Formula):
 
 class SpaceDict(ImplDict):
 
-    __slots__ = get_mixin_slots(ImplDict)
+    __slots__ = ()
 
     def __init__(self, name, space, data=None, observers=None):
         ImplDict.__init__(self, name, space, SpaceView, data, observers)
@@ -87,7 +87,7 @@ class SpaceDict(ImplDict):
 
 class CellsDict(ImplDict):
 
-    __slots__ = get_mixin_slots(ImplDict)
+    __slots__ = ()
 
     def __init__(self, name, space, data=None, observers=None):
         ImplDict.__init__(self, name, space, CellsView, data, observers)
@@ -95,7 +95,7 @@ class CellsDict(ImplDict):
 
 class RefDict(ImplDict):
 
-    __slots__ = get_mixin_slots(ImplDict)
+    __slots__ = ()
 
     def __init__(self, name, parent, data=None, observers=None):
         ImplDict.__init__(self, name, parent, RefView, None, observers)
@@ -123,6 +123,8 @@ class RefDict(ImplDict):
 
 
 class DynBaseRefDict(RefDict):
+
+    __slots__ = ()
 
     def wrap_impl(self, parent, name, value):
 
