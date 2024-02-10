@@ -332,7 +332,7 @@ class Model(IOSpecOperation, EditableParent):
 
     def close(self):
         """Close the model."""
-        self._impl.close()
+        self._impl.system.close_model(self._impl)
 
     @Interface.doc.setter
     def doc(self, value):
@@ -839,9 +839,6 @@ class ModelImpl(*_model_impl_base):
     @property
     def namespace(self):
         return self._namespace.fresh
-
-    def close(self):
-        self.system.close_model(self)
 
     def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the model."""
