@@ -252,6 +252,8 @@ class Impl(BaseImpl):
                 result[cls.__name__] = [n + ": " + t for n, t in zip(names, type_names)]
             elif mixin_slots:
                 result[cls.__name__] = [n + ": " + type(getattr(self, n)).__name__ for n in mixin_slots]
+            elif cls.__name__ != "object":
+                result[cls.__name__] = []
 
         return result
 
