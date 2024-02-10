@@ -591,12 +591,12 @@ null_interface = Interface(null_impl)
 
 class ChainObserver:
     __slots__ = ()
-    __mixin_slots = ("is_fresh", "observers", "observing")
+    __mixin_slots = ("is_fresh", "observers", "subjects")
 
     def __init__(self, observers=None):
         self.is_fresh = True    # Define here so that LazyEval can notify this
         self.observers = []
-        self.observing = []
+        self.subjects = []
         if observers:
             for observer in observers:
                 self.append_observer(observer)
@@ -608,13 +608,13 @@ class ChainObserver:
         # if observer not in self.observers:
         if all(observer is not other for other in self.observers):
             self.observers.append(observer)
-            observer.observing.append(self)
+            observer.subjects.append(self)
             if notify:
                 observer.notify()
 
     def remove_observer(self, observer):
         self.observers.remove(observer)
-        observer.observing.remove(self)
+        observer.subjects.remove(self)
 
     def observe(self, other, notify=True):
         other.append_observer(self, notify)
@@ -645,7 +645,7 @@ class LazyEval(ChainObserver):
     @property
     def fresh(self):
         if not self.is_fresh:
-            for other in self.observing:
+            for other in self.subjects:
                 other.fresh
             self._refresh()
             self.is_fresh = True
