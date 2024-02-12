@@ -591,6 +591,7 @@ class Interface:
 
 null_interface = Interface(null_impl)
 
+
 class ChainObserver:
     __slots__ = ()
     __mixin_slots = ("is_fresh", "observers", "subjects")
@@ -602,6 +603,7 @@ class ChainObserver:
         if observers:
             for observer in observers:
                 self.append_observer(observer)
+
     def notify(self):
         raise NotImplementedError
 

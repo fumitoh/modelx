@@ -81,6 +81,8 @@ def write_model(system, model, model_path,
                            compresslevel=compresslevel
                            ).write_model()
 
+    if model.path != root:
+        model.path = root
     return model
 
 
@@ -97,4 +99,6 @@ def read_model(system, model_path, name=None):
     else:
         serializer = _get_serializer(1)
 
-    return serializer.ModelReader(system, path).read_model(**kwargs)
+    model = serializer.ModelReader(system, path).read_model(**kwargs)
+    model.path = path
+    return model

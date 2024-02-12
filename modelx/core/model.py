@@ -14,6 +14,7 @@
 
 import builtins
 import itertools
+import pathlib
 import zipfile
 import gc
 from types import ModuleType
@@ -31,7 +32,7 @@ from modelx.core.base import (
 )
 from modelx.core.reference import ReferenceImpl, ReferenceProxy
 from modelx.core.cells import CellsImpl, UserCellsImpl
-from modelx.core.node import OBJ, KEY, get_node, node_has_key, ItemNode
+from modelx.core.node import OBJ, KEY, get_node, node_has_key, ItemNode, ObjectNode
 from modelx.core.parent import (
     BaseParentImpl,
     EditableParentImpl,
@@ -351,6 +352,21 @@ class Model(IOSpecOperation, EditableParent):
     @Interface.doc.setter
     def doc(self, value):
         self._impl.doc = value
+
+    @property
+    def path(self):
+        # TODO: Temporary
+        if self._impl.system.callstack.counter:
+            self._impl.system.refstack.append(
+                (self._impl.system.callstack.counter - 1,
+                 self._impl.global_refs["path"])
+            )
+        return self._impl.path
+
+    @path.setter
+    def path(self, path):
+        self._impl.path = pathlib.Path(path)
+        self._impl.global_refs.set_item("path", self._impl.path)
 
     def write(self, model_path, backup=True, log_input=False):
         """Write model to files.
@@ -792,6 +808,7 @@ class ModelImpl(*_model_impl_base):
         "_dynamic_bases_inverse",
         "_dynamic_base_namer",
         "currentspace",
+        "path",
         "refmgr"
     ) + get_mixin_slots(*_model_impl_base)
 
@@ -807,7 +824,9 @@ class ModelImpl(*_model_impl_base):
         TraceManager.__init__(self)
 
         self.currentspace = None
+        self.path = None
         self._global_refs = RefDict("global_refs", self)
+        self._global_refs.set_item("path", self.path)
         self._global_refs.set_item("__builtins__", builtins)
         self._named_spaces = SpaceDict("named_spaces", self)
         self._dynamic_bases = SpaceDict("dynamic_bases", self)
@@ -938,6 +957,9 @@ class ModelImpl(*_model_impl_base):
                 container=self._dynamic_bases)
             self._dynamic_bases_inverse[bases] = base
             return base
+
+    def to_node(self):
+        return ObjectNode(get_node(self, None, None))
 
 
 def split_node(node):
