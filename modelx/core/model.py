@@ -122,6 +122,20 @@ class ReferenceGraph(nx.DiGraph):
         self.remove_nodes_from((ref, *desc))
         return desc     # Not including ref
 
+    def remove_with_referred(self, nodes):
+        """Remove nodes that refer to ref nodes.
+
+        If the referred ref nodes become isolated, also remove them.
+        """
+        refs = []
+        for n in nodes:
+            if self.has_node(n):
+                refs.extend(self.predecessors(n))
+        self.remove_nodes_from(nodes)
+        for n in refs:
+            if self.degree(n) == 0:
+                self.remove_node(n)
+
 
 class IOSpecOperation:
 
@@ -675,14 +689,14 @@ class TraceManager:
     def clear_with_descs(self, node):
         """Clear values and nodes calculated from `source`."""
         removed = self.tracegraph.remove_with_descs(node)
-        self.refgraph.remove_nodes_from(removed)
+        self.refgraph.remove_with_referred(removed)
         for node in removed:
             node[OBJ].on_clear_trace(node[KEY])
 
     def clear_obj(self, obj):
         """Clear values and nodes of `obj` and their dependants."""
         removed = self.tracegraph.clear_obj(obj)
-        self.refgraph.remove_nodes_from(removed)
+        self.refgraph.remove_with_referred(removed)
         for node in removed:
             node[OBJ].on_clear_trace(node[KEY])
 
