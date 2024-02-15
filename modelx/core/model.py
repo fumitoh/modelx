@@ -359,14 +359,14 @@ class Model(IOSpecOperation, EditableParent):
         if self._impl.system.callstack.counter:
             self._impl.system.refstack.append(
                 (self._impl.system.callstack.counter - 1,
-                 self._impl.global_refs["path"])
+                 self._impl.property_refs["path"])
             )
         return self._impl.path
 
     @path.setter
     def path(self, path):
         self._impl.path = pathlib.Path(path)
-        self._impl.global_refs.set_item("path", self._impl.path)
+        self._impl.property_refs.set_item("path", self._impl.path)
 
     def write(self, model_path, backup=True, log_input=False):
         """Write model to files.
@@ -804,6 +804,7 @@ class ModelImpl(*_model_impl_base):
     __slots__ = (
         "_namespace",
         "_global_refs",
+        "_property_refs",
         "_dynamic_bases",
         "_dynamic_bases_inverse",
         "_dynamic_base_namer",
@@ -826,8 +827,10 @@ class ModelImpl(*_model_impl_base):
         self.currentspace = None
         self.path = None
         self._global_refs = RefDict("global_refs", self)
-        self._global_refs.set_item("path", self.path)
         self._global_refs.set_item("__builtins__", builtins)
+        self._property_refs = RefDict("property_refs", self)
+        self._property_refs.set_item("path", self.path)
+        self._global_refs.observe(self._property_refs)
         self._named_spaces = SpaceDict("named_spaces", self)
         self._dynamic_bases = SpaceDict("dynamic_bases", self)
         self._all_spaces = ImplChainMap("all_spaces",
@@ -868,6 +871,10 @@ class ModelImpl(*_model_impl_base):
 
     refs = global_refs
     own_refs = global_refs
+
+    @property
+    def property_refs(self):
+        return self._property_refs.fresh
 
     @property
     def namespace(self):
