@@ -1067,7 +1067,7 @@ class ModelReader:
             self.kwargs = kwargs
             if zipfile.is_zipfile(self.path):
                 with tempfile.TemporaryDirectory() as tempdir:
-                    self.temproot = pathlib.Path(tempdir)
+                    self.temproot = pathlib.Path(tempdir) / "temproot"
                     model = self._read_model_inner()
                 self.temproot = None
             else:
