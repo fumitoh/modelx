@@ -365,6 +365,7 @@ class Model(IOSpecOperation, EditableParent):
 
     @path.setter
     def path(self, path):
+        self._impl.clear_attr_referrers(self._impl.property_refs["path"])
         self._impl.path = pathlib.Path(path)
         self._impl.property_refs.set_item("path", self._impl.path)
 
@@ -830,7 +831,6 @@ class ModelImpl(*_model_impl_base):
         self._global_refs.set_item("__builtins__", builtins)
         self._property_refs = RefDict("property_refs", self)
         self._property_refs.set_item("path", self.path)
-        self._global_refs.observe(self._property_refs)
         self._named_spaces = SpaceDict("named_spaces", self)
         self._dynamic_bases = SpaceDict("dynamic_bases", self)
         self._all_spaces = ImplChainMap("all_spaces",

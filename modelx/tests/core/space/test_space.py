@@ -31,7 +31,7 @@ def test_refs(testmodel):
 
 
 def test_dir(testmodel):
-    assert {"foo", "bar", "_self", "_space", "__builtins__"} == set(
+    assert {"foo", "bar", "_self", "_space", "__builtins__", "_model"} == set(
         dir(testmodel.testspace)
     )
 
