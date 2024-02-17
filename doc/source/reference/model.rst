@@ -16,6 +16,7 @@ Model properties
   ~Model.name
   ~Model.fullname
   ~Model.doc
+  ~Model.path
   ~Model.model
   ~Model.parent
   ~Model.allow_none

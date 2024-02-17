@@ -355,7 +355,57 @@ class Model(IOSpecOperation, EditableParent):
 
     @property
     def path(self):
-        # TODO: Temporary
+        r"""A Path object representing the model's path.
+
+        When a previously saved model is loaded with :func:`~modelx.read_model`,
+        this property is set to a `pathlib.Path`_ object representing
+        the path given to :func:`~modelx.read_model`::
+
+            >>> import modelx as mx
+            >>> model = mx.read_model(r"C:\Users\mxuser\Model")
+            >>> model.path
+            WindowsPath('C:/Users/mxuser/Model2')
+
+        When a model is created with :py:func:`~modelx.new_model`,
+        this property is set to ``None``::
+
+            >>> model = mx.new_model()
+            >>> model.path     # Returns None
+
+        The user can set the path by assigning a string value to it::
+
+            >>> model.path = "."
+            >>> model.path
+            WindowsPath('.')
+
+        When a model is saved with :meth:`~Model.write` or
+        :func:`~modelx.write_model`,
+        this property is updated to a `pathlib.Path`_ object representing
+        the path given to the method or function::
+
+            >>> model.write(r"C:\Users\mxuser\Model2")
+            >>> model.path
+            WindowsPath('C:/Users/mxuser/Model2')
+
+        The property is accessed within formulas as an attribute
+        of a special Reference, ``model_``::
+
+            >>> @mx.defcells
+            >>> def foo():
+            ...     return _model.path
+            >>> foo()
+            WindowsPath('C:/Users/mxuser/Model')
+
+        Returns:
+            A `pathlib.Path`_ object or :py:obj:`None`
+
+        .. versionadded:: 0.25.0
+
+        .. _pathlib.Path:
+           https://docs.python.org/3/library/pathlib.html#pathlib.Path
+
+        """
+        # TODO: Temporary Implementation
         if self._impl.system.callstack.counter:
             self._impl.system.refstack.append(
                 (self._impl.system.callstack.counter - 1,
