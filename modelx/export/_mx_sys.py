@@ -38,6 +38,8 @@ class BaseParent(BaseMxObject):
 
 class BaseModel(BaseParent):
 
+    path = pathlib.Path(__file__).parent
+
     def _mx_load_io(self):
 
         ios = {}
@@ -45,16 +47,16 @@ class BaseModel(BaseParent):
         if has_io:
             for k, v in _mx_io.ios.items():
                 cls = io_types[v['type']]
-                load_from = pathlib.Path(__file__).parent / k
+                load_from = self.path / k
                 ios[k] = cls(k, load_from, v)
 
             for k, v in _mx_io.iospecs.items():
                 cls = iospec_types[v['type']]
                 io_data[k] = cls(ios[v['io']], v['kwargs']).load_value()
 
-        path = pathlib.Path(__file__).parent / '_mx_pickled'
-        if path.exists():
-            with open(path, mode='rb') as f:
+        p = self.path / '_mx_pickled'
+        if p.exists():
+            with open(p, mode='rb') as f:
                 pickle_data = pickle.load(f)
         else:
             pickle_data = {}

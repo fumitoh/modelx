@@ -224,3 +224,18 @@ def test_relative_refs2(tmp_path_factory):
     finally:
         sys.path.pop(0)
         m.close()
+
+
+def test_model_path(tmp_path_factory):
+    nomx_path = tmp_path_factory.mktemp('model')
+    m = mx.read_model(sample_dir / "ModelPath")
+    m.export(nomx_path / 'ModelPath_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from ModelPath_nomx import mx_model
+        assert mx_model.Space1.foo() == nomx_path / 'ModelPath_nomx'
+
+    finally:
+        sys.path.pop(0)
+        m.close()
