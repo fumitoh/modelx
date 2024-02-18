@@ -221,15 +221,8 @@ def _redirect_merged(cells):
 class ExcelWorkbook(BaseSharedIO):
 
     def __init__(self, path, manager, load_from):
-        from pandas.io.common import IOHandles, get_handle
-        # handles = IOHandles(
-        #     handle=load_from, compression={"method": None}
-        # )
-        handles = get_handle(
-            load_from, "rb", is_text=False
-        )
         super().__init__(path, manager, load_from=load_from)
-        self.book = opxl.load_workbook(handles.handle, data_only=True, keep_links=False)
+        self.book = opxl.load_workbook(load_from, data_only=True)
 
     def _on_write(self, path):
         self.book.save(path)
