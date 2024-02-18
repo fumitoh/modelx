@@ -1060,7 +1060,18 @@ class ModelReader:
             self.system.serializing = self
             self.system.iomanager.serializing = True
             self.kwargs = kwargs
-            if zipfile.is_zipfile(self.path):
+
+            if (sys.platform == "win32"
+                    and sys.version_info >= (3, 10)
+                    and zipfile.is_zipfile(self.path)):
+                # workaround for https://github.com/python/cpython/issues/74168
+                with tempfile.TemporaryDirectory(
+                        ignore_cleanup_errors=True
+                ) as tempdir:
+                    self.temproot = pathlib.Path(tempdir)
+                    model = self._read_model_inner()
+                self.temproot = None
+            elif zipfile.is_zipfile(self.path):
                 with tempfile.TemporaryDirectory() as tempdir:
                     self.temproot = pathlib.Path(tempdir)
                     model = self._read_model_inner()
