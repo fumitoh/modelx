@@ -163,7 +163,7 @@ by parameterizing *MonteCarlo* with ``r`` and ``sigma``:
 
 License
 -------
-Copyright 2017-2023, Fumito Hamamura
+Copyright 2017-2024, Fumito Hamamura
 
 modelx is free software; you can redistribute it and/or
 modify it under the terms of
