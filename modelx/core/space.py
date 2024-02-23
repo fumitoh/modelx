@@ -15,10 +15,11 @@
 import sys
 import importlib
 import pathlib
+import typing
 import uuid
 import weakref
 import warnings
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
 from modelx.core.chainmap import CustomChainMap
@@ -1227,44 +1228,6 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
             self.del_all_itemspaces()
             self.altfunc = self.formula = None
 
-    def _get_dynamic_base(self, bases_):
-        """Create or get the base space from a list of spaces
-
-        if a direct base space in `bases` is dynamic, replace it with
-        its base.
-        """
-        bases = tuple(
-            base._dynbase if base.is_dynamic() else base for base in bases_
-        )
-
-        if len(bases) == 1:
-            return bases[0]
-
-        elif len(bases) > 1:
-            return self.model.get_dynamic_base(bases)
-
-        else:
-            RuntimeError("must not happen")
-
-    def _new_itemspace(
-        self,
-        bases,
-        name=None,
-        refs=None,
-        arguments=None,
-        cache=None
-    ):
-        """Create a new dynamic root space."""
-        space = ItemSpaceImpl(
-            parent=self,
-            base=self._get_dynamic_base(bases),
-            name=name,
-            refs=refs,
-            arguments=arguments,
-            cache=cache
-        )
-        return space
-
     def del_all_itemspaces(self):
         for key in list(self.param_spaces):
             self.clear_itemspace_at(key)
@@ -1295,24 +1258,60 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         params = self.altfunc.fresh.altfunc(*key)
 
         if params is None:
-            params = {"bases": [self]}  # Default
-        else:
-            if "bases" in params:
-                bases = params.get("bases", None)
-                if isinstance(bases, UserSpace):
-                    params["bases"] = [bases._impl]
-                elif bases is None:
-                    params["bases"] = [self]  # Default
+            # Default
+            base = self._dynbase if self.is_dynamic() else self
+            refs = None
+        elif isinstance(params, Mapping):
+
+            # Set base
+            if "base" in params:
+                bs = params["base"]
+                if isinstance(bs, UserSpace):
+                    base = bs._impl
+                elif isinstance(bs, DynamicSpace):
+                    base = bs._impl._dynbase
                 else:
-                    params["bases"] = get_impl_list(bases)
+                    raise ValueError("base must be a Space")
+
+            elif "bases" in params:
+
+                bs = params["bases"]
+                if isinstance(bs, Sequence):
+                    if len(bs) == 1:
+                        bs = bs[0]
+                    else:
+                        raise ValueError("bases must have a single element")
+
+                if isinstance(bs, UserSpace):
+                    base = bs._impl
+                elif isinstance(bs, DynamicSpace):
+                    base = bs._impl._dynbase
+                elif bases is None:
+                    # Default
+                    base = self._dynbase if self.is_dynamic() else self
+                else:
+                    raise ValueError("invalid value for bases")
             else:
-                params["bases"] = [self]
+                base = self._dynbase if self.is_dynamic() else self
 
-        params["arguments"] = node_get_args(key_to_node(self, key))
+            # Set refs
+            refs = params.get("refs", None)
+            # TODO: check if refs is a dict with str keys
+
+        else:
+            raise ValueError("Space formula must return either dict or None")
+
         dkey = (self.dynamic_key if self.is_dynamic() else ()) + (key,)
-        params["cache"] = self.dynamic_cache.get(dkey, None)
 
-        space = self._new_itemspace(**params)
+        space = ItemSpaceImpl(
+            parent=self,
+            base=base,
+            name=None,
+            refs=refs,
+            arguments=node_get_args(key_to_node(self, key)),
+            cache=self.dynamic_cache.get(dkey, None)
+        )
+
         self.param_spaces[key] = space
         self.dynamic_cache[dkey] = space.interface
         return space

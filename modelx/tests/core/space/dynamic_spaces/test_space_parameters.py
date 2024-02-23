@@ -45,8 +45,7 @@ def test_formula(samplemodel):
     data = [[0, 50, 10], [1, 60, 15], [2, 70, 5]]
 
     def params(idx):
-        return {"name": "TestSpace%s" % idx}
-        # 'bases': _self}
+        return {"refs": {"TestSpace%s" % idx: idx}}
 
     space = samplemodel.new_space(name="TestSpace", formula=params)
 
@@ -69,7 +68,7 @@ def test_formula(samplemodel):
     space.data = data
 
     for idx, x, n in data:
-        assert space[idx].name == "TestSpace" + str(idx)
+        assert getattr(space[idx], "TestSpace" + str(idx)) == idx
         assert space[idx].x() == x
         assert space[idx].n() == n
 

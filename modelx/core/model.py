@@ -856,9 +856,6 @@ class ModelImpl(*_model_impl_base):
         "_namespace",
         "_global_refs",
         "_property_refs",
-        "_dynamic_bases",
-        "_dynamic_bases_inverse",
-        "_dynamic_base_namer",
         "currentspace",
         "path",
         "refmgr"
@@ -882,12 +879,7 @@ class ModelImpl(*_model_impl_base):
         self._property_refs = RefDict("property_refs", self)
         self._property_refs.set_item("path", self.path)
         self._named_spaces = SpaceDict("named_spaces", self)
-        self._dynamic_bases = SpaceDict("dynamic_bases", self)
-        self._all_spaces = ImplChainMap("all_spaces",
-            self, SpaceView, [self._named_spaces, self._dynamic_bases]
-        )
-        self._dynamic_bases_inverse = {}
-        self._dynamic_base_namer = AutoNamer("__Space")
+        self._all_spaces = self._named_spaces
         self._namespace = ImplChainMap("namespace",
             self, BaseView, [self._named_spaces, self._global_refs]
         )
@@ -995,25 +987,6 @@ class ModelImpl(*_model_impl_base):
             self.refmgr.del_ref(self, name)
         else:
             raise KeyError("Name '%s' not defined" % name)
-
-    # ----------------------------------------------------------------------
-    # Dynamic base manager
-
-    def get_dynamic_base(self, bases: tuple):
-        """Create of get a base space for a tuple of bases"""
-
-        try:
-            return self._dynamic_bases_inverse[bases]
-        except KeyError:
-            name = self._dynamic_base_namer.get_next(self._dynamic_bases)
-            base = self.updater.new_space(
-                self,
-                name=name,
-                bases=bases,
-                prefix="__",
-                container=self._dynamic_bases)
-            self._dynamic_bases_inverse[bases] = base
-            return base
 
     def to_node(self):
         return ObjectNode(get_node(self, None, None))

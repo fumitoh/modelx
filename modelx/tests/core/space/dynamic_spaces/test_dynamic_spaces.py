@@ -7,15 +7,15 @@ import pytest
 def parent_param(x):
 
     if x == 0:
-        bases = [Base1]
+        base = Base1
     else:
-        bases = [Base2]
+        base = Base2
 
-    return {"bases": bases}
+    return {"base": base}
 
 
 def child_param(y):
-    return {"bases": [ChildBase1, ChildBase2]}
+    return {"base": ChildBase}
 
 
 def cells1(i):
@@ -43,9 +43,9 @@ def build_sample_dynamic_model():
       |           |      |            |        |
     cells1      cells2  Child[y]     Base1    Base2
                          |
-                         |------------+
-                         |            |
-                        ChildBase1   ChildBase2
+                         |------------+-------------+
+                         |            |             |
+                        ChildBase1   ChildBase2    ChildBase
                          |            |
                         cells3       cells4
     """
@@ -63,6 +63,8 @@ def build_sample_dynamic_model():
 
     child.new_space(name="ChildBase1").new_cells(formula=cells3)
     child.new_space(name="ChildBase2").new_cells(formula=cells4)
+    child.new_space(name="ChildBase",
+                    bases=[child.ChildBase1, child.ChildBase2])
 
     parent.Base1 = base1
     parent.Base2 = base2
