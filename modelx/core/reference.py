@@ -24,50 +24,7 @@ from modelx.io.baseio import BaseIOSpec
 from modelx.core.node import ObjectNode, get_node, OBJ
 
 
-# For backward compatibility with -v0.0.23
-class _DummyBuiltins:
-    pass
-
-
-class _BasePickler:
-
-    __slots__ = ("value",)
-
-    def __init__(self, value):
-        self.value = self.convert(value)
-
-    @classmethod
-    def condition(cls, value):
-        raise NotImplementedError
-
-    def convert(self, value):
-        raise NotImplementedError
-
-    def restore(self):
-        raise NotImplementedError
-
-
-class _ModulePickler(_BasePickler):
-
-    __slots__ = ()
-
-    @classmethod
-    def condition(cls, value):
-        return isinstance(value, ModuleType)
-
-    def convert(self, value):
-        for k, v in sys.modules.items():
-            if value is v:
-                return k
-        raise ValueError("must not happen")
-
-    def restore(self):
-        return importlib.import_module(self.value)
-
-
 class ReferenceImpl(Derivable, Impl):
-
-    picklers = [_ModulePickler]    # List of _BasePickler sub classes
 
     __slots__ = (
         "container",
@@ -99,35 +56,6 @@ class ReferenceImpl(Derivable, Impl):
 
     def on_delete(self):
         pass
-
-    def __getstate__(self):
-
-        state = {key: getattr(self, key) for key in self.stateattrs}
-        value = state["interface"]
-
-        if self.model.refmgr.has_spec(value):
-            state["interface"] = self.model.refmgr.get_spec(value)
-        else:
-            for pickler in self.picklers:
-                if pickler.condition(value):
-                    state["interface"] = pickler(value)
-                    break
-
-        return state
-
-    def __setstate__(self, state):
-
-        if isinstance(state["interface"], _DummyBuiltins):
-            # For backward compatibility with -v0.0.23
-            state["interface"] = builtins
-        elif isinstance(state["interface"], BaseIOSpec):
-            state["interface"] = state["interface"].value
-        else:
-            if isinstance(state["interface"], _BasePickler):
-                state["interface"] = state["interface"].restore()
-
-        for attr in state:
-            setattr(self, attr, state[attr])
 
     def to_node(self):
         return ReferenceNode(get_node(self, None, None))
