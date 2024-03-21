@@ -1214,7 +1214,7 @@ class SharedSpaceOperations:
         self.model = model
         self._graph = SpaceGraph()
 
-    def _can_add(self, parent, name, klass, overwrite=True):
+    def _can_add(self, parent, name, klass):
         """Check name conflict for a given name.
 
         :obj:`False` if ``name`` is already defined not
@@ -1227,17 +1227,20 @@ class SharedSpaceOperations:
         # TODO: Reflect the overwriting order of names
         if parent is self.model:
             return name not in parent.namespace
+        elif name in parent.namespace:
+            # False if name is a child of parent
+            return not isinstance(parent._namespace.fresh[name], Impl)
 
-        sub = self._find_name_in_subs(parent, name)   # start from parent
+        sub = self._find_name_in_subs(parent, name, skip_self=True)   # start from parent
         if sub is None:
             return True
-        elif isinstance(sub, klass) and overwrite:
+        elif isinstance(sub, klass):
             return True
         else:
             return False
 
-    def _find_name_in_subs(self, parent, name):
-        for subspace in self._get_subs(parent, skip_self=False):
+    def _find_name_in_subs(self, parent, name, skip_self=False):
+        for subspace in self._get_subs(parent, skip_self=skip_self):
             if name in subspace.namespace:
                 return subspace._namespace.fresh[name]
         return None
@@ -1311,7 +1314,7 @@ class SpaceManager(SharedSpaceOperations):
         # Check name does not exit already
         parent = space.parent
         if not self._can_add(
-                parent, name, UserSpaceImpl, overwrite=False):
+                parent, name, UserSpaceImpl):
             raise ValueError("Cannot rename '%s' to '%s'" % (space.name, name))
 
         # Create name mapping
@@ -1347,11 +1350,11 @@ class SpaceManager(SharedSpaceOperations):
         self.update_subs(space, skip_self=False)
 
     def new_cells(self, space, name=None, formula=None, data=None,
-                  is_derived=False, overwrite=True):
+                  is_derived=False):
 
         # FIX: Creating a Cells of the same name in ``space``
 
-        if not self._can_add(space, name, CellsImpl, overwrite=overwrite):
+        if not self._can_add(space, name, CellsImpl):
             raise ValueError("Cannot create cells '%s'" % name)
 
         cells = UserCellsImpl(
@@ -1396,14 +1399,14 @@ class SpaceManager(SharedSpaceOperations):
 
         data = {k: v for k, v in source.data.items() if k in source.input_keys}
         return self.new_cells(space, name=name, formula=source.formula,
-                       data=data, is_derived=False, overwrite=False)
+                       data=data, is_derived=False)
 
     def rename_cells(self, cells, name):
         """Renames the Cells name"""
         if not is_valid_name(name):
             raise ValueError("name '%s' is invalid" % name)
 
-        if not self._can_add(cells.parent, name, CellsImpl, overwrite=True):
+        if not self._can_add(cells.parent, name, CellsImpl):
             raise ValueError("cannot create cells '%s'" % name)
 
         if cells.bases:
@@ -1794,7 +1797,7 @@ class SpaceUpdater(SharedSpaceOperations):
             name = source.name
 
         if self.manager._can_add(
-            parent, name, EditableParentImpl, overwrite=False):
+            parent, name, EditableParentImpl):
             return self._copy_space_recursively(
                 parent, source, name, defined_only
             )

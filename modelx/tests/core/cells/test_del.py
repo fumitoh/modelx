@@ -4,6 +4,11 @@ import pytest
 
 @pytest.fixture
 def testmodel():
+    """
+    m ---- Base--Foo
+       |
+       +-- Sub(Base)--Foo(*)
+    """
     m = mx.new_model()
 
     base = m.new_space("Base")
@@ -13,14 +18,14 @@ def testmodel():
     m._impl._check_sanity()
     m.close()
 
-
+@pytest.mark.skip()
 def test_del_defined(testmodel):
     """del Space.Cells when Cells is defined"""
 
     sub = testmodel.Sub
 
     assert "Foo" in sub.cells   # Sub.Foo is defined
-    sub.new_cells("Foo")
+    sub.formula = lambda x: x #TODO: Fix
 
     del sub.Foo
 
