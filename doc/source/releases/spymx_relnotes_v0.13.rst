@@ -13,6 +13,14 @@ If you're using Anaconda, use the ``conda`` command instead::
     >>> conda update spyder-modelx
 
 
+.. _release-mxplugin-v0.13.6:
+
+spyder-modelx v0.13.6 (6 April 2024)
+=========================================
+
+This release is for supporting Spyder version 5.5.2 - 5.5.3.
+
+
 .. _release-mxplugin-v0.13.5:
 
 spyder-modelx v0.13.5 (26 November 2023)
