@@ -123,7 +123,7 @@ def test_restore_python():
 
     restore_python()
 
-    assert sys.getrecursionlimit() == 1000
+    assert sys.getrecursionlimit() == mxsys.orig_settings["sys.recursionlimit"]  # 1000 or 3000
     assert not hasattr(sys, "tracebacklimit")
 
     configure_python()

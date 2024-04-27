@@ -553,8 +553,6 @@ class System:
         if "showwarning" in orig:
             warnings.showwarning = orig["showwarning"]
 
-        orig.clear()
-
     def new_model(self, name=None):
 
         if name in self.models:
