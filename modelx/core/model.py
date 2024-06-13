@@ -131,7 +131,9 @@ class ReferenceGraph(nx.DiGraph):
         refs = []
         for n in nodes:
             if self.has_node(n):
-                refs.extend(self.predecessors(n))
+                for pred in self.predecessors(n):
+                    if pred not in refs:
+                        refs.append(pred)
         self.remove_nodes_from(nodes)
         for n in refs:
             if self.degree(n) == 0:
