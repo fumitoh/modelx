@@ -239,3 +239,57 @@ def test_model_path(tmp_path_factory):
     finally:
         sys.path.pop(0)
         m.close()
+
+
+def test_parent(tmp_path_factory):
+    """Test if _parent is available both in the mx and nomx model
+
+    Code modified from: https://github.com/fumitoh/modelx/discussions/129
+    """
+
+    m = mx.new_model()
+    RA = m.new_space("RA")
+
+    # Parameterize Space RA with `calc_loop`.
+    # This means RA creates exact copies of itself parameterized by calc_loop on the fly,
+    # such as RA[0], RA[1], RA[2], etc.
+    # They are dynamic child spaces of RA.
+    RA.parameters = ("calc_loop",)
+    RA.calc_loop = 0    # In RA
+
+    # Define BEL_LAPSE in RA. In the formula, calc_loop is the value given to the parameter of RA[calc_loop].
+    # For example, calc_loop == 0 in RA[0].BEL_LAPSE(), calc_loop == 1 in RA[1].BEL_LAPSE(), and so on.
+    # In the formula, `_space` is a special name that represents the parent space of the Cells.
+    # For example, _space is RA[2] in RA[2].BEL_LAPSE(). _space.parent represents the parent space of RA[2], which is RA.
+    # So, _space.parent[1].BEL_LAPSE() means RA[1].BEL_LAPSE()
+
+    @mx.defcells(space=RA)
+    def BEL_LAPSE():
+        if calc_loop == 0:
+            return 0
+        elif calc_loop == 1:
+            return 120
+        else:
+            return _space._parent[1].BEL_LAPSE()
+
+    assert RA.BEL_LAPSE() == 0
+    assert RA[0].BEL_LAPSE() == 0
+
+    for i in range(1, 5):
+        RA[i].BEL_LAPSE() == 120
+
+    nomx_path = tmp_path_factory.mktemp('model')
+    m.export(nomx_path / 'Parent_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from Parent_nomx import mx_model as nomx
+
+        assert nomx.RA.BEL_LAPSE() == 0
+        assert nomx.RA[0].BEL_LAPSE() == 0
+        for i in range(1, 5):
+            nomx.RA[i].BEL_LAPSE() == 120
+
+    finally:
+        sys.path.pop(0)
+        m.close()
