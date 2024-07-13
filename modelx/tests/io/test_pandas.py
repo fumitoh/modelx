@@ -151,8 +151,8 @@ def test_space_with_string_index_to_frame(space_with_string_index):
     s.f1()
 
     df = pd.DataFrame(
-        data={"f0": ["foo", np.NaN], "f1": [np.NaN, 3.0]},
-        index=pd.Index(["foo", np.NaN], name="strind"),
+        data={"f0": ["foo", np.nan], "f1": [np.nan, 3.0]},
+        index=pd.Index(["foo", np.nan], name="strind"),
     )
 
     assert s.frame.equals(df)
