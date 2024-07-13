@@ -11,6 +11,7 @@ from modelx.tests.testdata import testmodule
 def testmodel():
 
     model, space = new_model(name="testmodel"), new_space(name="testspace")
+    space.parameters = ("a",)
 
     @defcells(space)
     def foo(x):
@@ -18,6 +19,10 @@ def testmodel():
             return 123
         else:
             return foo(x - 1)
+
+    @defcells(space)
+    def get_parent():
+        return _parent
 
     space.bar = 3
 
@@ -31,13 +36,16 @@ def test_refs(testmodel):
 
 
 def test_dir(testmodel):
-    assert {"foo", "bar", "_self", "_space", "__builtins__", "_model"} == set(
+    assert {"foo", "bar", "get_parent",
+            "_self", "_space", "__builtins__", "_model", "_parent"} == set(
         dir(testmodel.testspace)
     )
 
 
 def test_parent(testmodel):
     assert cur_space().parent == testmodel
+    assert cur_space().get_parent == testmodel
+    assert cur_space()[1].get_parent == cur_space()
 
 
 def test_create(testmodel):
