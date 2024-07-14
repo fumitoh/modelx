@@ -22,7 +22,7 @@ def testmodel():
 
     @defcells(space)
     def get_parent():
-        return _parent
+        return _space._parent
 
     space.bar = 3
 
@@ -37,7 +37,7 @@ def test_refs(testmodel):
 
 def test_dir(testmodel):
     assert {"foo", "bar", "get_parent",
-            "_self", "_space", "__builtins__", "_model", "_parent"} == set(
+            "_self", "_space", "__builtins__", "_model"} == set(
         dir(testmodel.testspace)
     )
 
