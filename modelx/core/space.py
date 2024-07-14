@@ -1377,8 +1377,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
         self._cells = CellsDict("cells", self)
         self._named_spaces = SpaceDict("named_spaces", self)
         self._sys_refs = LazyEvalDict("sys_refs",
-                                      {"_self": self, "_space": self,
-                                       "_model": self.model, "_parent": self.parent})
+                                      {"_self": self, "_space": self, "_model": self.model})
         self._refs = self._init_refs(arguments)
 
         NamespaceServer.__init__(

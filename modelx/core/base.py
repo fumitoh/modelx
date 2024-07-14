@@ -383,6 +383,8 @@ class Interface:
         else:
             return self._impl.parent.interface
 
+    _parent = parent
+
     @property
     def model(self):
         """The model this object belongs to.
