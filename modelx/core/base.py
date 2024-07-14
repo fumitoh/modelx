@@ -359,6 +359,8 @@ class Interface:
         """Name of the object."""
         return self._impl.name
 
+    _name = name
+
     @property
     def fullname(self):
         """Dotted name of the object.

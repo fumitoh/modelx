@@ -297,6 +297,7 @@ class ModelTranslator(ParentTranslator):
             # modelx variables
             self._parent = None
             self._model = self
+            self._name = "{name}"
                 
     {space_assigns}
     {space_dict}
@@ -347,6 +348,7 @@ class SpaceTranslator(ParentTranslator):
             self._space = self
             self._parent = parent
             self._model = parent._model
+            self._name = "{name}"
 
     {space_assigns}
     {space_dict}

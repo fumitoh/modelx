@@ -19,6 +19,7 @@ class BaseParent(BaseMxObject):
     _mx_spaces: Dict[str, 'BaseSpace']
     _parent: 'BaseParent'
     _model: 'BaseModel'
+    _name: str
 
     def _mx_walk(self, skip_self: bool = False):
         """Generator yielding spaces in breadth-first order"""
