@@ -54,6 +54,35 @@ def test_basiclife_and_savings(basiclife_and_savings):
         )
 
 
+def test_appliedlife(tmp_path_factory):
+    import lifelib
+    library, name = 'appliedlife', 'IntegratedLife'
+
+    work_dir = tmp_path_factory.mktemp('tmp') / library
+    lifelib.create(library, work_dir)
+
+    model = mx.read_model(work_dir / name)
+    model.export(work_dir / (name + '_nomx'))
+
+    try:
+        sys.path.insert(0, str(work_dir))
+        nomx = importlib.import_module((name + '_nomx')).mx_model
+
+        pd.testing.assert_frame_equal(
+            model.Run[1].GMXB.result_pv(),
+            nomx.Run[1].GMXB.result_pv()
+        )
+
+        pd.testing.assert_frame_equal(
+            model.Run[1].GMXB.result_sample(),
+            nomx.Run[1].GMXB.result_sample()
+        )
+
+    finally:
+        sys.path.pop(0)
+        model.close()
+
+
 def test_assets(tmp_path_factory):
     import lifelib
     library, name, arg = 'assets', 'BasicBonds', None

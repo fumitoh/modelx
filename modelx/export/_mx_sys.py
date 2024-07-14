@@ -68,6 +68,22 @@ class BaseModel(BaseParent):
 
 class BaseSpace(BaseParent):
 
+    # Class variable
+    _mx_cells_names: list
+
+    # Instance variables
+    _mx_is_cells_set: bool
+    _mx_cells: dict
+
+    @property
+    def _cells(self):
+        if not self._mx_is_cells_set:
+            for name in self._mx_cells_names:
+                self._mx_cells[name] = getattr(self, name)
+            self._mx_is_cells_set = True
+
+        return self._mx_cells
+
 
     def _mx_is_in(self, parent: BaseParent):
         p = self
