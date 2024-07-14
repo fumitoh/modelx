@@ -342,6 +342,8 @@ class SpaceTranslator(ParentTranslator):
     class_template = textwrap.dedent("""\
     class _c_{name}(_mx_sys.BaseSpace):
 
+    {cells_names_assign}
+
         def __init__(self, parent):
 
             # modelx variables
@@ -352,6 +354,8 @@ class SpaceTranslator(ParentTranslator):
 
     {space_assigns}
     {space_dict}
+            self._mx_cells = {{}}     # Populated on calling self._cells
+            self._mx_is_cells_set = False
     {itemspace_dict}
             self._mx_roots = []     # Dynamic Space only
 
@@ -532,6 +536,7 @@ class SpaceTranslator(ParentTranslator):
 
         return self.class_template.format(
             name=space.name,
+            cells_names_assign=textwrap.indent(self.cells_names_assign(space), ' ' * 4),
             space_assigns=textwrap.indent(self.space_assigns(space), ' ' * 8),
             space_dict=textwrap.indent(self.space_dict(space), ' ' * 8),
             itemspace_dict=textwrap.indent(itemspace_dict, ' ' * 8),
@@ -572,3 +577,15 @@ class SpaceTranslator(ParentTranslator):
             result.append('pass')
 
         return "\n".join(result)
+
+    def cells_names_assign(self, space):
+        str_elm = []
+        if space.cells:
+            str_elm.append("\n")
+        for name in space.cells:
+            str_elm.append("'" + name + "'")
+            str_elm.append(",\n")
+        template = textwrap.dedent("""\
+        _mx_cells_names = [{names}]
+        """)
+        return template.format(names=textwrap.indent(''.join(str_elm), ' ' * 4))

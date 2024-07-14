@@ -365,6 +365,8 @@ class BaseSpace(BaseParent, ItemFactory):
         """A mapping of cells names to the cells objects in the space."""
         return self._impl.cells.interfaces
 
+    _cells = cells
+
     @property
     def spaces(self):
         """A mapping associating names to named spaces."""

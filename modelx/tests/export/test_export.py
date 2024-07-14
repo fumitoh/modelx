@@ -293,3 +293,37 @@ def test_parent(tmp_path_factory):
     finally:
         sys.path.pop(0)
         m.close()
+
+
+def test_space_properties(tmp_path_factory):
+
+    m = mx.new_model()
+    s1 = m.new_space("Space1")
+    s2 = s1.new_space("Space2")
+
+    @mx.defcells(space=s1)
+    def get_parent():
+        return _space._parent
+
+    @mx.defcells(space=s2)
+    def get_parent():
+        return _space._parent
+
+    @mx.defcells(space=s1)
+    def get_name():
+        return _space._name
+
+    nomx_path = tmp_path_factory.mktemp('model')
+    m.export(nomx_path / 'TestSpaceProperties_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from TestSpaceProperties_nomx import mx_model as nomx
+
+        assert nomx.Space1.get_parent() is nomx
+        assert nomx.Space1.Space2.get_parent() is nomx.Space1
+        assert nomx.Space1.get_name() == "Space1"
+
+    finally:
+        sys.path.pop(0)
+        m.close()
