@@ -376,6 +376,8 @@ class SpaceTranslator(ParentTranslator):
     {itemspace_methods}
     
     {getitem}
+
+    {delitem}
     """)
 
     cache_method_noparam = textwrap.dedent("""\
@@ -445,6 +447,11 @@ class SpaceTranslator(ParentTranslator):
             return self.__call__(*item)
         else:
             return self.__call__(item)
+    """)
+
+    delitem_asis = textwrap.dedent("""\
+    def __delitem__(self, item):
+        del self._mx_itemspaces[item]
     """)
 
     @cached_property
@@ -547,7 +554,8 @@ class SpaceTranslator(ParentTranslator):
             methods=textwrap.indent(trans.transformed.code, ' ' * 4),
             cache_methods=textwrap.indent(''.join(cache_methods), ' ' * 4),
             itemspace_methods=textwrap.indent(itemspace_methods, ' ' * 4),
-            getitem=textwrap.indent(getitem, ' ' * 4)
+            getitem=textwrap.indent(getitem, ' ' * 4),
+            delitem=textwrap.indent(self.delitem_asis, ' ' * 4)
         )
 
     def space_assigns(self, parent):
