@@ -15,6 +15,7 @@ def testmodel():
 def test_formula_setter(testmodel):
 
     s = testmodel.new_space()
+    assert s.formula is None
     s.formula = param
 
     assert 'x' in s.parameters
