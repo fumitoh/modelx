@@ -1146,6 +1146,10 @@ class UserSpace(BaseSpace, EditableParent):
         src = "lambda " + ", ".join(parameters) + ": None"
         self._impl.set_formula(src)
 
+    @parameters.deleter
+    def parameters(self):
+        self._impl.del_formula()
+
     def del_formula(self):
         """Delete formula"""
         self._impl.del_formula()
