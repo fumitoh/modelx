@@ -147,26 +147,54 @@ def test_itemspace(mortgage_model):
     assert source.Summary.Payments() == target.Summary.Payments()
 
 
-def test_itemspace_params(tmp_path_factory):
+@pytest.fixture(scope="session")
+def sample_params(tmp_path_factory):
     nomx_path = tmp_path_factory.mktemp('model')
     m = mx.read_model(sample_dir / "Params")
     m.export(nomx_path / 'Params_nomx')
 
-    try:
-        sys.path.insert(0, str(nomx_path))
-        from Params_nomx import mx_model
-        assert mx_model.SingleParam(1).foo() == 1
-        assert mx_model.SingleParam[2].foo() == 2
-        assert mx_model.MultipleParams(3, 4).bar() == 7
-        assert mx_model.MultipleParams[5, 6].bar() == 11
-        assert mx_model.MultParamWithDefault(2).baz() == 4
-        assert mx_model.MultParamWithDefault[2].baz() == 4
-        assert mx_model.MultParamWithDefault(3, 4).baz() == 7
-        assert mx_model.MultParamWithDefault[3, 4].baz() == 7
+    sys.path.insert(0, str(nomx_path))
+    from Params_nomx import mx_model
+    yield m, mx_model
+    sys.path.pop(0)
+    m.close()
 
-    finally:
-        sys.path.pop(0)
-        m.close()
+
+def test_itemspace_params(sample_params):
+    _, nomx = sample_params
+    assert nomx.SingleParam(1).foo() == 1
+    assert nomx.SingleParam[2].foo() == 2
+    assert nomx.MultipleParams(3, 4).bar() == 7
+    assert nomx.MultipleParams[5, 6].bar() == 11
+    assert nomx.MultParamWithDefault(2).baz() == 4
+    assert nomx.MultParamWithDefault[2].baz() == 4
+    assert nomx.MultParamWithDefault(3, 4).baz() == 7
+    assert nomx.MultParamWithDefault[3, 4].baz() == 7
+
+
+def test_itemspace_delitem(sample_params):
+
+    _, nomx = sample_params
+    assert nomx.SingleParam(1).foo() == 1
+    assert nomx.SingleParam[2].foo() == 2
+    assert nomx.MultipleParams(3, 4).bar() == 7
+    assert nomx.MultipleParams[5, 6].bar() == 11
+    assert nomx.MultParamWithDefault(2).baz() == 4
+    assert nomx.MultParamWithDefault[2].baz() == 4
+    assert nomx.MultParamWithDefault(3, 4).baz() == 7
+    assert nomx.MultParamWithDefault[3, 4].baz() == 7
+
+    assert len(nomx.SingleParam._mx_itemspaces) == 2
+    assert len(nomx.MultipleParams._mx_itemspaces) == 2
+    assert len(nomx.MultParamWithDefault._mx_itemspaces) == 2
+
+    del nomx.SingleParam[2]
+    del nomx.MultipleParams[5, 6]
+    del nomx.MultParamWithDefault[3, 4]
+
+    assert len(nomx.SingleParam._mx_itemspaces) == 1
+    assert len(nomx.MultipleParams._mx_itemspaces) == 1
+    assert len(nomx.MultParamWithDefault._mx_itemspaces) == 1
 
 
 def test_itemspace_nested_params(tmp_path_factory):
