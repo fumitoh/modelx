@@ -5,7 +5,7 @@ from modelx.managers.component import Root, Branch, Leaf, ComponentManager, Chil
 
 class DummyModel(Root):
 
-    __slots__ = ("spaces")
+    __slots__ = ("spaces",)
     spaces: Dict[str, "DummySpace"]
 
     def __init__(self, name, comp_mgr: ComponentManager):
