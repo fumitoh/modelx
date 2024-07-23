@@ -2,6 +2,38 @@ import pytest
 import modelx as mx
 
 
+@pytest.fixture
+def testmodel():
+    m = mx.new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_set_formula_base(testmodel):
+    """
+
+        derived<------base
+           |           |
+           |           |
+           f1*         f1
+
+    """
+    base = testmodel.new_space("base")
+
+    @mx.defcells
+    def f1(x):
+        return x
+
+    def f2(x):
+        return 2 * x
+
+    derived = mx.new_space(name="derived", bases=base)
+    assert derived.f1(3) == 3
+    base.f1.set_formula(f2)
+    assert derived.f1(3) == 6
+
+
 def func1(x):
     return 2 * x
 

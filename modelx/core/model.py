@@ -1368,7 +1368,7 @@ class SpaceManager(SharedSpaceOperations):
 
         for subspace in self._get_subs(space):
             if name in subspace.cells:
-                break
+                continue
             else:
                 subspace.clear_subs_rootitems()
                 derived = UserCellsImpl(
