@@ -1437,8 +1437,9 @@ class SpaceManager(SharedSpaceOperations):
         define = True
         for space in self._get_subs(cells.parent, skip_self=False):
             c = space.cells[cells.name]
-            if c is not cells and c.is_defined():
-                break   # Stop when sub cells is defined
+            if (c is not cells and c.is_defined() and
+                    self.get_deriv_bases(c, defined_only=True)[0] is cells):
+                continue   # Skip when c's base is not cells
             space.clear_subs_rootitems()
             space.cells[cells.name].on_change_formula(func, define)
             define = False  # Do not define derived cells
