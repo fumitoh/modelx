@@ -106,3 +106,28 @@ def test_set_formula_with_defined_sub(sample_for_rename_and_formula):
     assert not len(foo)
     # assert len(sub1.Child1.Foo)         # Not Cleared
     # assert sub1.Child1.Foo(1) == 3      # Not Changed
+
+
+def test_set_base_formula_with_defined_sub():
+    """Setting the formula of a base cells not affecting its sub
+
+    https://github.com/fumitoh/modelx/issues/141
+
+    Base----foo
+       +----Sub1---foo(defined)
+       +----Sub2---foo(derived)
+    """
+    m = mx.new_model()
+    base = m.new_space('Base')
+    sub1 = m.new_space('Sub1', bases=base)
+    sub2 = m.new_space('Sub2', bases=base)
+
+    sub1.new_cells('foo')
+    base.new_cells('foo')
+    assert 'foo' in sub2
+
+    @mx.defcells(space=base)
+    def foo():
+        return "base"
+
+    assert sub2.foo() == "base"
