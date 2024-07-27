@@ -1643,7 +1643,7 @@ class UserSpaceImpl(*_user_space_impl_base):
                 # Choose only the functions defined in the module.
                 if func.__module__ == module.__name__:
                     if name in self.namespace and override:
-                        self.spmgr.change_cells_formula(
+                        self.spmgr.set_cells_formula(
                             self.cells[name], func)
                         newcells[name] = self.cells[name]
                     else:

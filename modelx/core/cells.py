@@ -78,7 +78,7 @@ class CellsMaker:
 
         name = func.__name__ if name is None else name
         if is_valid_name(name) and name in space.cells:
-            space.spmgr.change_cells_formula(space.cells[name], func)
+            space.spmgr.set_cells_formula(space.cells[name], func)
             return space.cells[name].interface
         else:
             return space.spmgr.new_cells(
@@ -389,7 +389,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
     def formula(self, formula):
         if isinstance(self._impl, DynamicCellsImpl):
             raise ValueError("'%s' is dynamic" % self.name)
-        self._impl.spmgr.change_cells_formula(self._impl, formula)
+        self._impl.spmgr.set_cells_formula(self._impl, formula)
 
     @formula.deleter
     def formula(self):
@@ -406,13 +406,13 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         """Set formula from a function.
         Deprecated since version 0.0.5. Use formula property instead.
         """
-        self._impl.spmgr.change_cells_formula(self._impl, func)
+        self._impl.spmgr.set_cells_formula(self._impl, func)
 
     def clear_formula(self):
         """Clear the formula.
         Deprecated since version 0.0.5. Use formula property instead.
         """
-        self._impl.spmgr.change_cells_formula(self._impl)
+        self._impl.spmgr.set_cells_formula(self._impl)
 
     @property
     def value(self):
@@ -819,7 +819,7 @@ class UserCellsImpl(CellsImpl):
             self._doc = doc
             funcdef = oldsrc
 
-        self.spmgr.change_cells_formula(self, funcdef)
+        self.spmgr.set_cells_formula(self, funcdef)
 
     def on_rename(self, name):
         """Renames the Cells name
@@ -846,7 +846,7 @@ class UserCellsImpl(CellsImpl):
 
         self.parent.cells.rename_item(old_name, name)
 
-    def on_change_formula(self, func, define):
+    def on_set_formula(self, func, define):
 
         self.model.clear_obj(self)
 

@@ -1433,7 +1433,7 @@ class SpaceManager(SharedSpaceOperations):
         for subspace in self._get_subs(space, skip_self=False):
             subspace.on_sort_cells(space=space)
 
-    def change_cells_formula(self, cells, func):
+    def set_cells_formula(self, cells, func):
         define = True
         for space in self._get_subs(cells.parent, skip_self=False):
             c = space.cells[cells.name]
@@ -1441,11 +1441,11 @@ class SpaceManager(SharedSpaceOperations):
                     self.get_deriv_bases(c, defined_only=True)[0] is cells):
                 continue   # Skip when c's base is not cells
             space.clear_subs_rootitems()
-            space.cells[cells.name].on_change_formula(func, define)
+            space.cells[cells.name].on_set_formula(func, define)
             define = False  # Do not define derived cells
 
     def del_cells_formula(self, cells):
-        self.change_cells_formula(cells, NULL_FORMULA)
+        self.set_cells_formula(cells, NULL_FORMULA)
 
     def _check_subs_relrefs(self, space, name, value, refmode):
 
