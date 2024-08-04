@@ -415,6 +415,17 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         self._impl.spmgr.set_cells_formula(self._impl)
 
     @property
+    def is_cached(self):
+        return self._impl.is_cached
+
+    @is_cached.setter
+    def is_cached(self, enable_cache):
+        if self._impl.is_cached == enable_cache:
+            return
+        else:
+            self._impl.spmgr.set_cache(self._impl, enable_cache)
+
+    @property
     def value(self):
         """Get, set, delete the scalar value.
         The cells must be a scalar cells.
@@ -547,12 +558,13 @@ class CellsImpl(*_cells_impl_base):
         "data",
         "_namespace",
         "altfunc",
-        "input_keys"
+        "input_keys",
+        "is_cached"
     ) + get_mixin_slots(*_cells_impl_base)
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
-        is_derived=False, add_to_space=True
+        is_derived=False, add_to_space=True, is_cached=True
     ):
         # Determine name
         if base:
@@ -589,6 +601,11 @@ class CellsImpl(*_cells_impl_base):
             self.formula = formula.__class__(formula, name=name)
         else:
             self.formula = Formula(formula, name=name)
+
+        if base:
+            self.is_cached = base.is_cached
+        else:
+            self.is_cached = is_cached
 
         # Set data
         self.data = {}
@@ -635,6 +652,8 @@ class CellsImpl(*_cells_impl_base):
     def on_inherit(self, updater, bases):
         self.model.clear_obj(self)
         self.formula = bases[0].formula
+        self.allow_none = bases[0].allow_none
+        self.is_cached = bases[0].is_cached
         self.altfunc.notify()
 
     @property
@@ -660,7 +679,10 @@ class CellsImpl(*_cells_impl_base):
     # Get/Set values
 
     def on_eval_formula(self, key):
-        return self._store_value(key, self.altfunc.fresh.altfunc(*key))
+        if self.is_cached:
+            return self._store_value(key, self.altfunc.fresh.altfunc(*key))
+        else:
+            return self.altfunc.fresh.altfunc(*key)
 
     def get_value(self, args, kwargs=None):
         node = get_node(self, args, kwargs)
@@ -863,6 +885,18 @@ class UserCellsImpl(CellsImpl):
             self.formula = cls(func, name=self.name)
 
         self.altfunc = CellsBoundFunction(self)
+
+    # ----------------------------------------------------------------------
+    # Property operations
+
+    def on_set_cache(self, enable_cache, define):
+
+        self.model.clear_obj(self)
+
+        if self.is_derived() and define:
+            self.set_defined()
+
+        self.is_cached = enable_cache
 
 
 class DynamicCellsImpl(CellsImpl):

@@ -424,7 +424,7 @@ class ItemFactoryImpl:
     def predecessors(self, args, kwargs):
         node = get_node(self, args, kwargs)
         preds = self.model.tracegraph.predecessors(node)
-        return [ItemNode(n) for n in preds]
+        return [ObjectNode(n) if len(n) < 2 else ItemNode(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = get_node(self, args, kwargs)

@@ -1107,9 +1107,7 @@ class UserSpace(BaseSpace, EditableParent):
             :meth:`absref`
         """
         if hasattr(type(self), name):
-            raise AttributeError("cannot set '%s'" % name)
-        elif name in self.properties:
-            raise AttributeError("cannot set '%s'" % name)
+            raise AttributeError("'%s' is already defined" % name)
         else:
             self._impl.set_attr(name, value, refmode=refmode)
 
@@ -1354,7 +1352,8 @@ class BaseSpaceImpl(*_base_space_impl_base):
         "_cells",
         "_sys_refs",
         "_own_refs",
-        "_refs"
+        "_refs",
+        "is_cached"
     ) + get_mixin_slots(*_base_space_impl_base)
 
     def __init__(
@@ -1385,6 +1384,8 @@ class BaseSpaceImpl(*_base_space_impl_base):
         self._sys_refs = LazyEvalDict("sys_refs",
                                       {"_self": self, "_space": self, "_model": self.model})
         self._refs = self._init_refs(arguments)
+
+        self.is_cached = True
 
         NamespaceServer.__init__(
             self,

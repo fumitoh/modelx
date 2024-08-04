@@ -100,8 +100,6 @@ class EditableParent(BaseParent):
                     raise AttributeError("%s is read-only" % name)
             else:
                 raise AttributeError("%s is not a property" % name)
-        elif name in self.properties:
-            object.__setattr__(self, name, value)
         else:
             self._impl.set_attr(name, value, refmode="auto")
 
