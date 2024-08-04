@@ -487,12 +487,16 @@ class SpaceTranslator(ParentTranslator):
                 if isinstance(v, Cells):
                     cells.add(k)
 
-        trans = FormulaTransformer(source, cells)
+        cacheless = set(k for k, v in space.cells.items() if v.is_cached == False)
+
+        trans = FormulaTransformer(source, cells, cacheless)
 
         cache_vars = []
         cache_methods = []
         for func in trans.func_attrs.values():
-            if len(func.params) > 0:
+            if func.name in cacheless:
+                continue
+            elif len(func.params) > 0:
                 cache_vars.append(
                     "self._v_" + func.name + " = {}")
                 cache_methods.append(self.cache_method.format(

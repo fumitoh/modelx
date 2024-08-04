@@ -142,10 +142,11 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
     METADATA_DEPENDENCIES = (ParentNodeProvider,)
     matchers_compstats = m.If() | m.Try() | m.With() | m.For() | m.While()
 
-    def __init__(self, source: str, cells: Set[str]):
+    def __init__(self, source: str, cells: Set[str], cacheless: Set[str]):
         super().__init__()
         self.source = source
         self.cells = cells
+        self.cacheless = cacheless
         self.prefix = "_f_"
         self.wrapper = cst.metadata.MetadataWrapper(cst.parse_module(source))
         self.module = self.wrapper.module
@@ -245,9 +246,12 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
             self.module.code_for_node(original_node)
         )
 
-        name = updated_node.name.with_changes(
-            value=self.prefix + updated_node.name.value
-        )
+        if updated_node.name.value in self.cacheless:
+            name = updated_node.name
+        else:
+            name = updated_node.name.with_changes(
+                value=self.prefix + updated_node.name.value
+            )
 
         self_param = cst.Param(name=cst.Name(value='self'))
         new_params = updated_node.params.with_changes(
