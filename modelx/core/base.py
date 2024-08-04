@@ -485,8 +485,15 @@ class Interface:
         Equivalent to ``x.name = value``,
         where x is a Model/Space/Cells object.
         """
-        if name in self.properties:
-            getattr(Interface, name).fset(self, value)
+        if hasattr(type(self), name):
+            attr = getattr(type(self), name)
+            if isinstance(attr, property):
+                if hasattr(attr, 'fset'):
+                    attr.fset(self, value)
+                else:
+                    raise ValueError("%s is read-only" % name)
+            else:
+                raise ValueError("%s is not a property" % name)
         else:
             raise ValueError("property %s not defined")
 

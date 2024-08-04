@@ -651,6 +651,10 @@ class CellsEncoder(BaseEncoder):
         if self.target.allow_none is not None:
             lines.append("_allow_none = " + str(self.target.allow_none))
 
+        # Output is_cached
+        if self.target.is_cached == False:
+            lines.append("_is_cached = False")
+
         return "\n\n".join(lines)
 
     def pickle_value(self):
@@ -1127,13 +1131,14 @@ class AttrAssignParser(BaseAssignParser):
             )
             return
 
-        elif self.target == "_allow_none":
+        elif self.target in ("_allow_none", "_is_cached"):
+            name = self.target[1:]  # Remove first _
             if self.section == "DEFAULT":
                 value = ast.literal_eval(self.atok.get_text(self.node.value))
                 return Instruction.from_method(
                     obj=self.obj,
                     method="set_property",
-                    args=("allow_none", value))
+                    args=(name, value))
             else:
                 # Cells.allow_none is processed
                 # by LambdaAssignParser and CellsFuncDefParser
@@ -1275,26 +1280,27 @@ class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
             kwargs=kwargs
         )
 
-        # find doc
+        compinst = [inst]
+
+        # Set doc and properties
         next_idx = skip_blank_tokens(
             self.atok.tokens, self.node.last_token.index + 1)
         next_node = node_from_token(self.atok, next_idx)
 
-        compinst = [inst]
-        if self.atok.tokens[next_idx].type == token.STRING:
-            doc = ast.literal_eval(self.atok.tokens[next_idx].string)
-            inst_doc = Instruction.from_method(
-                obj=inst,
-                method="set_doc",
-                kwargs={'doc': doc}
-            )
-            compinst.append(inst_doc)
+        while self.atok.tokens[next_idx].type == token.STRING or (
+                isinstance(next_node, ast.Assign) and (
+                next_node.first_token.string in ("_allow_none", "_is_cached"))
+        ):
+            if self.atok.tokens[next_idx].type == token.STRING:
+                doc = ast.literal_eval(self.atok.tokens[next_idx].string)
+                inst_doc = Instruction.from_method(
+                    obj=inst,
+                    method="set_doc",
+                    kwargs={'doc': doc}
+                )
+                compinst.append(inst_doc)
 
-            next_idx = skip_blank_tokens(
-                self.atok.tokens, next_idx + 1)
-            next_node = node_from_token(self.atok, next_idx)
-
-            if isinstance(next_node, ast.Assign) and (
+            elif isinstance(next_node, ast.Assign) and (
                     next_node.first_token.string == "_allow_none"):
                 value = ast.literal_eval(self.atok.get_text(next_node.value))
                 inst_allow_none = Instruction.from_method(
@@ -1304,15 +1310,8 @@ class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
                 )
                 compinst.append(inst_allow_none)
 
-        elif isinstance(next_node, ast.Assign) and (
-                next_node.first_token.string == "_allow_none"):
-            value = ast.literal_eval(self.atok.get_text(next_node.value))
-            inst_allow_none = Instruction.from_method(
-                obj=inst,
-                method="set_property",
-                args=("allow_none", value)
-            )
-            compinst.append(inst_allow_none)
+            next_idx = skip_blank_tokens(self.atok.tokens, next_idx + 1)
+            next_node = node_from_token(self.atok, next_idx)
 
         compinst.append(Instruction(self.load_pickledata))
         return CompoundInstruction(compinst)
@@ -1376,15 +1375,22 @@ class CellsFuncDefParser(FunctionDefParser, CellsInputDataMixin):
             self.atok.tokens, self.node.last_token.index + 1)
         next_node = node_from_token(self.atok, next_idx)
 
-        if isinstance(next_node, ast.Assign) and (
-                next_node.first_token.string == "_allow_none"):
+        # Process allow_none and is_cached
+        while isinstance(next_node, ast.Assign) and (
+                next_node.first_token.string in ("_allow_none", "_is_cached")):
+
+            property_name = (next_node.first_token.string)[1:]  # Remove "_"
             value = ast.literal_eval(self.atok.get_text(next_node.value))
             inst_allow_none = Instruction.from_method(
                 obj=inst,
                 method="set_property",
-                args=("allow_none", value)
+                args=(property_name, value)
             )
             compinst.append(inst_allow_none)
+
+            next_idx = skip_blank_tokens(
+                self.atok.tokens, next_idx + 1)
+            next_node = node_from_token(self.atok, next_idx)
 
         compinst.append(Instruction(self.load_pickledata))
         return CompoundInstruction(compinst)

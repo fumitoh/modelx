@@ -39,6 +39,7 @@ class NonThreadedExecutor:
     def __init__(self, maxdepth=None):
 
         self.refstack = deque()
+        self.cacheless_stack = deque()
         self.errorstack = None
         self.rolledback = deque()
         self.callstack = CallStack(self, maxdepth)
@@ -51,7 +52,7 @@ class NonThreadedExecutor:
         cells = node[OBJ]
         key = node[KEY]
 
-        if cells.has_node(key):
+        if cells.is_cached and cells.has_node(key):
             value = cells.data[key]
             if self.callstack:
                 cells.model.tracegraph.add_edge(node, self.callstack[-1])
@@ -65,17 +66,26 @@ class NonThreadedExecutor:
 
     def _eval_formula(self, node):
 
-        self.callstack.append(node)
         cells, key = node[OBJ], node[KEY]
 
-        try:
-            value = cells.on_eval_formula(key)
-
-        except:
-            self.callstack.rollback()
-            raise
+        if cells.is_cached:
+            self.callstack.append(node)
+            try:
+                value = cells.on_eval_formula(key)
+            except:
+                self.callstack.rollback()
+                raise
+            else:
+                self.callstack.pop()
         else:
-            self.callstack.pop()
+            if self.callstack.counter:
+                self.cacheless_stack.append((self.callstack.counter - 1, node))
+            try:
+                value = cells.on_eval_formula(key)
+            except:
+                _, cells = self.cacheless_stack.pop()
+                self.rolledback.append(node)
+                raise
 
         return value
 
@@ -94,6 +104,7 @@ class NonThreadedExecutor:
 
         assert not self.callstack
         assert not self.callstack.counter
+        assert not self.cacheless_stack
         assert not self.refstack
 
         if self.excinfo:
@@ -220,6 +231,7 @@ class CallStack(deque):
     def __init__(self, executor, maxdepth=None):
         self.executor = executor
         self.refstack = executor.refstack
+        self.cacheless_stack = executor.cacheless_stack
 
         if maxdepth:
             self.maxdepth = maxdepth
@@ -253,6 +265,13 @@ class CallStack(deque):
             graph.add_edge(node, self[-1])
         else:
             graph.add_node(node)
+
+        while self.cacheless_stack:
+            if self.cacheless_stack[-1][0] == self.counter:
+                _, nd = self.cacheless_stack.pop()
+                graph.add_edge((nd[OBJ],), node)
+            else:
+                break
 
         while self.refstack:
             if self.refstack[-1][0] == self.counter:

@@ -1444,6 +1444,17 @@ class SpaceManager(SharedSpaceOperations):
             space.cells[cells.name].on_set_formula(func, define)
             define = False  # Do not define derived cells
 
+    def set_cache(self, cells, enable_cache):
+        define = True
+        for space in self._get_subs(cells.parent, skip_self=False):
+            c = space.cells[cells.name]
+            if (c is not cells and c.is_defined() and
+                    self.get_deriv_bases(c, defined_only=True)[0] is cells):
+                continue   # Skip when c's base is not cells
+            space.clear_subs_rootitems()
+            space.cells[cells.name].on_set_cache(enable_cache, define)
+            define = False  # Do not define derived cells
+
     def del_cells_formula(self, cells):
         self.set_cells_formula(cells, NULL_FORMULA)
 
