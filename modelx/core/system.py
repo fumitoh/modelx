@@ -299,9 +299,11 @@ class CallStack(deque):
                 break
 
     def tracemessage(self, maxlen=6):
-        """
+        """ Not Used?
         if maxlen > 0, the message is shortened to maxlen traces.
         """
+        assert False    # TODO: This method is not used. Deleted in future version.
+
         result = ""
         for i, value in enumerate(self):
             result += "{0}: {1}\n".format(i, get_node_repr(value))
@@ -393,7 +395,7 @@ class ErrorStack(deque):
         else:
             return [(ItemNode(frame[0]), frame[1]) for frame in self]
 
-    def tracemessage(self, maxlen=6):
+    def tracemessage(self, maxlen=20):
         """
         if maxlen > 0, the message is shortened to maxlen traces.
         """
