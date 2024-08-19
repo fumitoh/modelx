@@ -161,7 +161,10 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     def __setitem__(self, key, value):
         """Set value of a particular cell"""
-        self._impl.set_value(tuplize_key(self, key), value)
+        if self._impl.is_cached:
+            self._impl.set_value(tuplize_key(self, key), value)
+        else:
+            raise ValueError("cannot set value because is_cached is False")
 
     def __iter__(self):
         def inner():  # For single parameter
@@ -434,7 +437,10 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     @value.setter
     def value(self, value):
-        self._impl.set_value((), value)
+        if self._impl.is_cached:
+            self._impl.set_value((), value)
+        else:
+            raise ValueError("cannot set value because is_cached is False")
 
     @value.deleter
     def value(self):

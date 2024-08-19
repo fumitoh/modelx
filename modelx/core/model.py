@@ -767,7 +767,8 @@ class TraceManager:
         removed = self.tracegraph.clear_obj(obj)
         self.refgraph.remove_with_referred(removed)
         for node in removed:
-            node[OBJ].on_clear_trace(node[KEY])
+            if node_has_key(node):
+                node[OBJ].on_clear_trace(node[KEY])
 
     def clear_attr_referrers(self, ref):
         removed = self.refgraph.remove_with_descs(ref)
