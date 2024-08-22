@@ -1,5 +1,5 @@
 import modelx as mx
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 import pytest
 
 
@@ -47,7 +47,7 @@ def test_delete_ref(refspace):
 
     del refspace.bar
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(NameError):
             refspace.foo()
 
@@ -63,7 +63,7 @@ def test_delete_global(refspace):
 
     assert refspace.foo() == 3
     del refspace.model.baz
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(NameError):
             refspace.foo()
 

@@ -2,7 +2,7 @@ import pytest
 import modelx as mx
 from modelx import defcells, new_space
 from modelx.core.errors import DeletedObjectError
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 
 @pytest.fixture
 def testmodel():
@@ -27,7 +27,7 @@ def test_delattr_cells(testmodel):
 
     assert not foo._is_valid()
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(AttributeError):
             space.foo(3)
         with pytest.raises(DeletedObjectError):
@@ -52,7 +52,7 @@ def test_delattr_ref(testmodel):
     assert s.x == 3
     del s.x
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(AttributeError):
             s.x
 
@@ -65,7 +65,7 @@ def test_delattr_ref_interface(testmodel):
     assert t.x is s
     del t.x
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(AttributeError):
             t.x
 

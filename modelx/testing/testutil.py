@@ -59,10 +59,11 @@ def compare_cells(src, trg):
     assert src.formula.source == trg.formula.source
 
 
-class SuppressFormulaError:
+class ConfigureExecutor:
     
-    def __init__(self, maxdepth=None):
+    def __init__(self, maxdepth=None, use_formula_error=False):
         self.maxdepth = maxdepth
+        self.use_formula_error = use_formula_error
         if maxdepth is not None:
             self.maxdepth_saved = mx.get_recursion()
 
@@ -71,7 +72,7 @@ class SuppressFormulaError:
             mx.set_recursion(self.maxdepth)
         
         self.saved = mx.use_formula_error()
-        mx.use_formula_error(False)
+        mx.use_formula_error(self.use_formula_error)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.maxdepth is not None:

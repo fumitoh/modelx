@@ -1,5 +1,5 @@
 import modelx as mx
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 import pytest
 
 
@@ -109,7 +109,7 @@ def test_del_global_attrref():
     assert foo(3) == 3
     del m.x
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(AttributeError):
             foo(3)
 
@@ -136,13 +136,13 @@ def test_del_attrref():
 
     assert A.foo() == 3
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(NameError):
             C.foo() == 3
 
     del B.x
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(AttributeError):
             A.foo()
 

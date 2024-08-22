@@ -2,7 +2,7 @@ import sys
 import os
 import modelx as mx
 from modelx.core.errors import DeepReferenceError
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 import pytest
 
 
@@ -74,7 +74,25 @@ def test_maxout_recursion():
         else:
             return foo(x-1) + 1
 
-    with SuppressFormulaError(maxdepth):
+    with ConfigureExecutor(maxdepth):
+        with pytest.raises(DeepReferenceError):
+            foo(maxdepth+1)
+
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_deep_uncached():
+
+    m, s = mx.new_model(), mx.new_space()
+
+    @mx.defcells
+    def foo(x):
+        return foo(x+1) + 1
+
+    foo.is_cached = False
+
+    with ConfigureExecutor(maxdepth=10):
         with pytest.raises(DeepReferenceError):
             foo(maxdepth+1)
 

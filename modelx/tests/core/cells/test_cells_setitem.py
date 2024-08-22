@@ -2,7 +2,7 @@ import pytest
 
 import modelx as mx
 from modelx import new_model, defcells
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 
 @pytest.fixture
 def setitemsample():

@@ -3,7 +3,7 @@ import modelx as mx
 from textwrap import dedent
 from modelx.core.system import mxsys
 from modelx.core.api import *
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 from modelx.core.errors import DeepReferenceError
 import pytest
 
@@ -84,7 +84,7 @@ def test_deep_reference_error():
         space = new_model(name="ErrModel").new_space(name="ErrSpace")
         cells = space.new_cells(formula=errfunc)
 
-        with SuppressFormulaError():
+        with ConfigureExecutor():
             with pytest.raises(DeepReferenceError) as errinfo:
                 cells(1, 3)
 

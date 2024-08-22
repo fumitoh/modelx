@@ -3,7 +3,7 @@ import pytest
 
 import modelx as mx
 from modelx.core.errors import NoneReturnedError
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 
 # --------------------------------------------------------------------------
 # Test errors
@@ -22,7 +22,7 @@ def test_none_returned_error():
     cells = space.new_cells(formula=errfunc)
     cells.allow_none = False
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(NoneReturnedError) as errinfo:
             cells(1, 3)
 
@@ -64,7 +64,7 @@ def test_zerodiv():
     space = m.new_space(name="ZeroDiv")
     cells = space.new_cells(formula=zerodiv)
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(ZeroDivisionError):
             cells(0)
 
@@ -82,7 +82,7 @@ def test_trace_cleanup_value_error():
         return foo(i - 1).replace(
             month=foo(i - 1).month + 1) if i > 0 else datetime.date(2016, 1, 1)
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(ValueError):
             foo(20)
 
@@ -103,7 +103,7 @@ def test_trace_cleanup_type_error():
         else:
             return 0
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(TypeError):
             foo(2)
 

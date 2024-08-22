@@ -2,7 +2,7 @@ import pytest
 
 from modelx.core.api import *
 from modelx.core.node import get_node
-from modelx.testing.testutil import SuppressFormulaError
+from modelx.testing.testutil import ConfigureExecutor
 
 
 @pytest.fixture
@@ -150,7 +150,7 @@ def test_global_ref_delattr():
     model.n = 2
     del model.n
 
-    with SuppressFormulaError():
+    with ConfigureExecutor():
         with pytest.raises(NameError):
             func1(4)
 
