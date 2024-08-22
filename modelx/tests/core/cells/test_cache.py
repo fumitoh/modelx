@@ -77,3 +77,25 @@ def test_redefine_cacheless():
     assert foo(3) == 12
 
     m.close()
+
+
+def test_unhashable_arg():
+
+    m = mx.new_model()
+
+    @mx.defcells
+    def foo(x):
+        return bar([1, 2, 3])
+
+    @mx.defcells
+    def bar(l: list):
+        return l
+
+    bar.is_cached = False
+
+    foo(0)
+
+    assert foo.preds(0)[0].obj is bar
+    assert foo.preds(0)[0].args is None
+
+    m.close()

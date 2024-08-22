@@ -51,7 +51,7 @@ class NonThreadedExecutor:
         cells = node[OBJ]
         key = node[KEY]
 
-        if cells.has_node(key):
+        if cells.is_cached and cells.has_node(key):
             value = cells.data[key]
             if self.callstack:
                 # Shortcut for append & pop for performance
