@@ -39,7 +39,6 @@ class NonThreadedExecutor:
     def __init__(self, maxdepth=None):
 
         self.refstack = deque()
-        self.cacheless_stack = deque()
         self.errorstack = None
         self.rolledback = deque()
         self.callstack = CallStack(self, maxdepth)
@@ -52,10 +51,15 @@ class NonThreadedExecutor:
         cells = node[OBJ]
         key = node[KEY]
 
-        if cells.is_cached and cells.has_node(key):
+        if cells.has_node(key):
             value = cells.data[key]
             if self.callstack:
-                cells.model.tracegraph.add_edge(node, self.callstack[-1])
+                # Shortcut for append & pop for performance
+                pred = self.callstack.idxstack[-1]
+                if pred >= 0:
+                    cells.model.tracegraph.add_edge(node, self.callstack[pred])
+                # self.callstack.append(node)
+                # self.callstack.pop()
         else:
             if self.is_executing:
                 value = self._eval_formula(node)
@@ -66,26 +70,17 @@ class NonThreadedExecutor:
 
     def _eval_formula(self, node):
 
+        self.callstack.append(node)
         cells, key = node[OBJ], node[KEY]
 
-        if cells.is_cached:
-            self.callstack.append(node)
-            try:
-                value = cells.on_eval_formula(key)
-            except:
-                self.callstack.rollback()
-                raise
-            else:
-                self.callstack.pop()
+        try:
+            value = cells.on_eval_formula(key)
+
+        except:
+            self.callstack.rollback()
+            raise
         else:
-            if self.callstack.counter:
-                self.cacheless_stack.append((self.callstack.counter - 1, node))
-            try:
-                value = cells.on_eval_formula(key)
-            except:
-                _, cells = self.cacheless_stack.pop()
-                self.rolledback.append(node)
-                raise
+            self.callstack.pop()
 
         return value
 
@@ -104,7 +99,6 @@ class NonThreadedExecutor:
 
         assert not self.callstack
         assert not self.callstack.counter
-        assert not self.cacheless_stack
         assert not self.refstack
 
         if self.excinfo:
@@ -231,7 +225,7 @@ class CallStack(deque):
     def __init__(self, executor, maxdepth=None):
         self.executor = executor
         self.refstack = executor.refstack
-        self.cacheless_stack = executor.cacheless_stack
+        self.idxstack = deque()
 
         if maxdepth:
             self.maxdepth = maxdepth
@@ -249,29 +243,41 @@ class CallStack(deque):
 
     def append(self, item):
 
-        if len(self) > self.maxdepth:
+        stacklen = len(self)
+        if stacklen > self.maxdepth:
             raise DeepReferenceError(
                 "Formula chain exceeded the %s limit" % self.maxdepth)
+
+        if item[OBJ].is_cached:
+            self.idxstack.append(stacklen)
+        elif stacklen:
+            self.idxstack.append(self.idxstack[-1])
+        else:   # idxstack is empty
+            self.idxstack.append(-1)
+
         deque.append(self, item)
         self.counter += 1
 
     def pop(self):
         node = deque.pop(self)
+        self.idxstack.pop()
         self.counter -= 1
         cells = node[OBJ]
 
         graph = cells.model.tracegraph
-        if self:
-            graph.add_edge(node, self[-1])
-        else:
-            graph.add_node(node)
-
-        while self.cacheless_stack:
-            if self.cacheless_stack[-1][0] == self.counter:
-                _, nd = self.cacheless_stack.pop()
-                graph.add_edge((nd[OBJ],), node)
+        if self:    # Not empty
+            pred = self.idxstack[-1]    # index of last cached cells
+            if pred >= 0:
+                if cells.is_cached:
+                    graph.add_edge(node, self[pred])
+                else:
+                    graph.add_edge((cells,), self[pred])
             else:
-                break
+                if cells.is_cached:
+                    graph.add_node(node)
+        else:
+            if cells.is_cached:
+                graph.add_node(node)
 
         while self.refstack:
             if self.refstack[-1][0] == self.counter:
@@ -284,6 +290,7 @@ class CallStack(deque):
 
     def rollback(self):
         node = deque.pop(self)
+        self.idxstack.pop()
         self.executor.rolledback.append(node)
         self.counter -= 1
         cells = node[OBJ]
