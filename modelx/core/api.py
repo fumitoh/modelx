@@ -121,77 +121,111 @@ def new_space(name=None, bases=None, formula=None):
     return cur_model().new_space(name, bases, formula)
 
 
-def defcells(space=None, name=None, *funcs):
-    """Decorator/function to create/update cells from Python functions.
+def defcells(space=None, name=None, is_cached=None, *funcs):
+    """Decorator to create or update a cells from a Python function.
 
-    Convenience decorator/function to create a new cells or change the
-    formula of an existing cells directly from a function
-    definition or a function object, which substitutes for calling
-    :py:meth:`~modelx.core.space.UserSpace.new_cells` or,
-    :py:meth:`~modelx.core.space.UserSpace.set_formula`
-    of the parent space or setting its
-    :py:attr:`~modelx.core.space.UserSpace.formula` property.
+    Note:
+        :func:`cached` is an alies for :func:`defcells`.
 
-    :meth:`defcells` understands arguments passed to it in 3 different ways
-    depending the number of the arguments and their types.
+    This convenience function serves as a decorator to create a new cells or
+    update the formula of an existing cells directly from a Python function definition.
+    It replaces the need to manually call :py:meth:`~modelx.core.space.UserSpace.new_cells`
+    or :py:meth:`~modelx.core.space.UserSpace.set_formula`
+    on the parent space, or to set the :py:attr:`~modelx.core.space.UserSpace.formula` property.
 
-    **1. As a decorator without arguments**
+    Examples:
 
-    To create a cells from a function definition in the current space
-    with the same name as the function's::
+        **1. As a decorator without arguments**
 
-        @defcells
-        def foo(x):
-            return x
+        The code below creates a cells named ``foo`` in the current space.
+        If ``foo`` already exists in the current space, updates its formula.
+
+        If the current space does not exist, a new space is created.
+        If the current model does not exist, a new model is also created::
+
+            >>> import modelx as mx
+
+            >>> @mx.defcells
+            ... def foo(x):
+            ...     return x
+
+            >>> foo
+            <Cells Model1.Space1.foo(x)>
+
+        If a cells with the same name already exists in the current space,
+        its formula is updated based on the decorated function::
+
+            >>> bar = foo
+
+            >>> @mx.defcells
+            ... def foo(x):
+            ...     return 2 * x
+
+            >>> foo is bar
+            True
+
+        **2. As a decorator with arguments**
+
+        The code below creates an uncached cells in a specified space
+        with the specified name, "bar".
+        If the cells named "bar" already exists in the specified space,
+        update its formula and ``is_cached`` property::
+
+            >>> space = mx.new_space("Foo")
+
+            >>> @mx.defcells(space=space, name='bar', is_cached=False)
+            ... def foo(x):
+            ...     return x
+
+            >>> foo
+            <Cells Model1.Foo.bar(x)>
+
+            >>> foo.is_cached
+            False
+
+        **3. As a function**
+
+        Creates multiple cells from multiple function definitions::
+
+            def foo(x):
+                return x
+
+            def bar(y):
+                return foo(y)
+
+            foo, bar = defcells(foo, bar)
+
+    Args:
+        space (optional): For usage 2, specifies the space to create the cells in. Defaults to the current space of the current model.
+        name (optional): For usage 2, specifies the name of the created cells. Defaults to the function name.
+        is_cached (optional): For usage 2, a boolean indicating whether the cells should be cached. Defaults to :obj:`True` when creating a new cell and :obj:`False` when updating an existing cell.
+        *funcs: For usage 3, function objects. (``space`` and ``name`` can also accept function objects for this usage.)
+
+    Returns:
+        For usage 1 and 2, the newly created single cells is returned.
+        For usage 3, a list of newly created cells is returned.
+
+    .. seealso:: :func:`uncached`
+
+    .. versionchanged:: 0.27.0: :func:`cached` is introduced as an alies.
+
+    .. versionchanged:: 0.27.0: The ``is_cached`` parameter is introduced.
 
     .. versionchanged:: 0.1.0
-        If the current space does not exist in the current model,
-        a new space is created. If the current model does not exit,
-        a new model is also created.
+        If the current space does not exist, a new space is created.
+        If the current model does not exist, a new model is created.
 
     .. versionchanged:: 0.1.0
         If a cells with the same name already exists in the current space,
-        the formula of the cells is updated based on the decorated function.
-
-    **2. As a decorator with arguments**
-
-    To create a cells from a function definition in a given space and/or with
-    a given name::
-
-        @defcells(space=space, name=name)
-        def foo(x):
-            return x
-
-    **3. As a function**
-
-    To create a multiple cells from a multiple function definitions::
-
-        def foo(x):
-            return x
-
-        def bar(y):
-            return foo(y)
-
-        foo, bar = defcells(foo, bar)
-
-    Args:
-        space(optional): For the 2nd usage, a space to create the cells in.
-            Defaults to the current space of the current model.
-        name(optional): For the 2nd usage, a name of the created cells.
-            Defaults to the function name.
-        *funcs: For the 3rd usage, function objects. (``space`` and ``name``
-            also take function objects for the 3rd usage.)
-
-    Returns:
-        For the 1st and 2nd usage, the newly created single cells is returned.
-        For the 3rd usage, a list of newly created cells are returned.
-
+        its formula is updated based on the decorated function.
     """
     if isinstance(space, _FunctionType) and name is None:
         # called as a function decorator
         func = space
         space = _system.get_curspace()
-        return _CellsMaker._create_or_change_cells(space, func.__name__, func)
+        return _CellsMaker(
+            space=space, name=func.__name__, is_cached=is_cached
+        ).create_or_change_cells(func)
 
     elif (isinstance(space, _Space) or space is None) and (
         isinstance(name, str) or name is None
@@ -200,16 +234,42 @@ def defcells(space=None, name=None, *funcs):
         if space is None:
             space = _system.get_curspace().interface
 
-        return _CellsMaker(space=space._impl, name=name)
+        return _CellsMaker(space=space._impl, name=name, is_cached=is_cached)
 
     elif all(
         isinstance(func, _FunctionType) for func in (space, name) + funcs
     ):
-
-        return [defcells(func) for func in (space, name) + funcs]
+        if isinstance(is_cached, _FunctionType):
+            return [defcells(func) for func in (space, name, is_cached) + funcs]
+        else:
+            return [defcells(func) for func in (space, name) + funcs]
 
     else:
         raise TypeError("invalid defcells arguments")
+
+
+cached = defcells
+
+def uncached(space=None, name=None, *funcs):
+    """Decorator to create or update an uncached cells from a Python function.
+
+    This decorator is an alies for :func:`defcells(is_cached=False)<defcells>`.
+
+    Example:
+
+        .. code-block:: python
+
+            import modelx as mx
+
+            @mx.uncached
+            def foo(x):
+                return x
+
+    .. seealso:: :func:`defcells`
+
+    .. versionadded:: 0.27.0
+    """
+    return defcells(space, name, is_cached=False, *funcs)
 
 
 def get_models():

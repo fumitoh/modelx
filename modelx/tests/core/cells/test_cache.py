@@ -16,7 +16,8 @@ def test_cache(cache_sample, space):
     assert repr(nodes[-1]) == f"cache_sample.{space}.foo(other, x)"
 
 
-def test_cached_in_cacheless():
+@pytest.mark.parametrize("pattern", range(3))
+def test_cached_in_uncached(pattern):
     """Calling cached cells in cacheless cells
 
     The called cached cells is a precedent of cached callers of the cacheless
@@ -27,11 +28,27 @@ def test_cached_in_cacheless():
     def foo(x):
         return bar(x)
 
-    @mx.defcells(space=s)
-    def bar(x):
-        return x + baz(3)
+    if pattern == 0:
+        @mx.defcells(space=s)
+        def bar(x):
+            return x + baz(3)
 
-    bar.is_cached = False
+        bar.is_cached = False
+
+    elif pattern == 1:
+        @mx.defcells(space=s, is_cached=False)
+        def bar(x):
+            return x + baz(3)
+
+    elif pattern == 2:
+
+        @mx.uncached
+        def bar(x):
+            return x + baz(3)
+
+    else:
+        raise ValueError
+
 
     @mx.defcells(space=s)
     def baz(x):
@@ -53,7 +70,8 @@ def test_cached_in_cacheless():
     m.close()
 
 
-def test_redefine_cacheless():
+@pytest.mark.parametrize("pattern", range(3))
+def test_redefine_uncached(pattern):
 
     m = mx.new_model()
     s = m.new_space()
@@ -62,19 +80,32 @@ def test_redefine_cacheless():
     def foo(x):
         return bar(x)
 
-    @mx.defcells
-    def bar(x):
-        return 3 * x
+    if pattern == 0:
 
-    bar.is_cached = False
+        @mx.defcells
+        def bar(x):
+            return 3 * x
+
+        bar.is_cached = False
+
+    elif pattern == 1:
+        @mx.defcells(is_cached=False)
+        def bar(x):
+            return 3 * x
+
+    elif pattern == 2:
+        @mx.uncached
+        def bar(x):
+            return 3 * x
 
     assert foo(3) == 9
 
-    @mx.defcells
+    @mx.defcells    # defcells won't change is_cached
     def bar(x):
         return 4 * x
 
     assert foo(3) == 12
+    assert bar.is_cached is False
 
     m.close()
 

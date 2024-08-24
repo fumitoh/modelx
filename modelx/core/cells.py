@@ -66,23 +66,32 @@ class CellsBoundFunction(BoundFunction):
 
 
 class CellsMaker:
-    def __init__(self, *, space, name):
+    def __init__(self, *, space, name, is_cached):
         self.space = space  # SpaceImpl
         self.name = name
+        self.is_cached = is_cached
 
     def __call__(self, func):
-        return self._create_or_change_cells(self.space, self.name, func)
+        return self.create_or_change_cells(func)
 
-    @staticmethod
-    def _create_or_change_cells(space, name, func):
+    def create_or_change_cells(self, func):
 
-        name = func.__name__ if name is None else name
-        if is_valid_name(name) and name in space.cells:
-            space.spmgr.set_cells_formula(space.cells[name], func)
-            return space.cells[name].interface
+        self.name = func.__name__ if self.name is None else self.name
+        if is_valid_name(self.name) and self.name in self.space.cells:
+            cells = self.space.cells[self.name]
+            if self.is_cached is None:
+                self.space.spmgr.set_cells_formula(cells, func)
+            else:
+                self.space.spmgr.set_cells_property(
+                    cells=cells,
+                    flags=UserCellsImpl.PROP_FORMULA & UserCellsImpl.PROP_CACHE,
+                    func=func,
+                    enable_cache=self.is_cached)
+            return cells.interface
         else:
-            return space.spmgr.new_cells(
-                space, name=name, formula=func).interface
+            is_cached = True if self.is_cached is None else self.is_cached
+            return self.space.spmgr.new_cells(
+                self.space, name=self.name, formula=func, is_cached=is_cached).interface
 
 
 ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
@@ -823,11 +832,13 @@ class UserCellsImpl(CellsImpl):
 
     def __init__(
         self, space, name=None, formula=None, data=None, base=None,
-        is_derived=False, add_to_space=True
+        is_derived=False, add_to_space=True,
+        is_cached=True
     ):
         CellsImpl.__init__(
             self, space=space, name=name, formula=formula, data=data,
-            base=base, is_derived=is_derived, add_to_space=add_to_space
+            base=base, is_derived=is_derived, add_to_space=add_to_space,
+            is_cached=is_cached
         )
 
     # ----------------------------------------------------------------------
