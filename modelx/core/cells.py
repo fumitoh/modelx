@@ -817,6 +817,10 @@ class UserCellsImpl(CellsImpl):
 
     __slots__ = ()
 
+    # Property ID
+    PROP_FORMULA = 1 << 0    # 0001
+    PROP_CACHE = 1 << 1      # 0002
+
     def __init__(
         self, space, name=None, formula=None, data=None, base=None,
         is_derived=False, add_to_space=True
@@ -874,35 +878,29 @@ class UserCellsImpl(CellsImpl):
 
         self.parent.cells.rename_item(old_name, name)
 
-    def on_set_formula(self, func, define):
+    def on_set_property(self, flags, define, func, enable_cache):
+        """Set formula and/or is_cached"""
 
         self.model.clear_obj(self)
 
         if self.is_derived() and define:
             self.set_defined()
 
-        if isinstance(func, NullFormula):
-            self.formula = NULL_FORMULA
-        else:
-            if isinstance(func, Formula):
-                cls = func.__class__
+        if flags & self.PROP_FORMULA:
+
+            if isinstance(func, NullFormula):
+                self.formula = NULL_FORMULA
             else:
-                cls = Formula
-            self.formula = cls(func, name=self.name)
+                if isinstance(func, Formula):
+                    cls = func.__class__
+                else:
+                    cls = Formula
+                self.formula = cls(func, name=self.name)
 
-        self.altfunc = CellsBoundFunction(self)
+            self.altfunc = CellsBoundFunction(self)
 
-    # ----------------------------------------------------------------------
-    # Property operations
-
-    def on_set_cache(self, enable_cache, define):
-
-        self.model.clear_obj(self)
-
-        if self.is_derived() and define:
-            self.set_defined()
-
-        self.is_cached = enable_cache
+        if flags & self.PROP_CACHE:
+            self.is_cached = enable_cache
 
 
 class DynamicCellsImpl(CellsImpl):

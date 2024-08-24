@@ -1434,7 +1434,8 @@ class SpaceManager(SharedSpaceOperations):
         for subspace in self._get_subs(space, skip_self=False):
             subspace.on_sort_cells(space=space)
 
-    def set_cells_formula(self, cells, func):
+    def set_cells_property(self, cells, flags, func, enable_cache):
+        """Set formula and/or is_enabled"""
         define = True
         for space in self._get_subs(cells.parent, skip_self=False):
             c = space.cells[cells.name]
@@ -1442,19 +1443,16 @@ class SpaceManager(SharedSpaceOperations):
                     self.get_deriv_bases(c, defined_only=True)[0] is cells):
                 continue   # Skip when c's base is not cells
             space.clear_subs_rootitems()
-            space.cells[cells.name].on_set_formula(func, define)
+            space.cells[cells.name].on_set_property(
+                flags, define, func, enable_cache
+            )
             define = False  # Do not define derived cells
 
+    def set_cells_formula(self, cells, func):
+        self.set_cells_property(cells, UserCellsImpl.PROP_FORMULA, func, True)
+
     def set_cache(self, cells, enable_cache):
-        define = True
-        for space in self._get_subs(cells.parent, skip_self=False):
-            c = space.cells[cells.name]
-            if (c is not cells and c.is_defined() and
-                    self.get_deriv_bases(c, defined_only=True)[0] is cells):
-                continue   # Skip when c's base is not cells
-            space.clear_subs_rootitems()
-            space.cells[cells.name].on_set_cache(enable_cache, define)
-            define = False  # Do not define derived cells
+        self.set_cells_property(cells, UserCellsImpl.PROP_CACHE, None, enable_cache)
 
     def del_cells_formula(self, cells):
         self.set_cells_formula(cells, NULL_FORMULA)
