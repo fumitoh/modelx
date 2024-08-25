@@ -428,6 +428,48 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
 
     @property
     def is_cached(self):
+        """Property to get or set whether the Cells is cached.
+
+        When this property is set to :obj:`True`, return values are cached,
+        meaning the arguments (which must be hashable) are used as keys
+        to store the computed return values. By default, this property is set to
+        :obj:`True` unless specified otherwise.
+
+        Example:
+
+            By default, the :obj:`is_cached` property is set to :obj:`True`::
+
+                >>> @mx.defcells
+                ... def get_pv(cashflows: list):
+                ...     rate = 0.05
+                ...     disc = 1 / (1 + rate)
+                ...     return sum(v * disc**(i + 1) for i, v in enumerate(cashflows))
+
+                >>> get_pv.is_cached
+                True
+
+            When the property is set to :obj:`True`, calling the cells with unhashable
+            arguments (like a list) raises a :obj:`TypeError` because the arguments
+            must be hashable to be used as a cache key::
+
+                >>> get_pv([1, 2, 3])
+                TypeError: unhashable type: 'list'
+
+            Setting the :attr:`is_cached` property to :obj:`False` allows the cells to compute
+            its result without caching::
+
+                >>> get_pv.is_cached = True
+
+
+                >>> get_pv([1, 2, 3])
+                5.3579527048914795
+
+        .. seealso::
+
+            * :func:`~modelx.cached`
+            * :func:`~modelx.uncached`
+
+        """
         return self._impl.is_cached
 
     @is_cached.setter
