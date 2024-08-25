@@ -632,20 +632,25 @@ class UserSpace(BaseSpace, EditableParent):
     # ----------------------------------------------------------------------
     # Manipulating cells
 
-    def new_cells(self, name=None, formula=None):
+    def new_cells(self, name=None, formula=None, is_cached=True):
         """Create a cells in the space.
 
         Args:
             name: If omitted, the model is named automatically ``CellsN``,
                 where ``N`` is an available number.
             func: The function to define the formula of the cells.
+            is_cached(optional): Whether to cache the results. :obj:`True` by default.
 
         Returns:
             The new cells.
+
+        .. seealso::
+
+            * :attr:`~modelx.core.cells.Cells.is_cached`
         """
         # Outside formulas only
         return self._impl.spmgr.new_cells(
-            self._impl, name, formula).interface
+            self._impl, name, formula, is_cached=is_cached).interface
 
     def copy(self, parent, name=None, defined_only=False):
         """Make a copy of itself
