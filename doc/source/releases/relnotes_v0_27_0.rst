@@ -92,6 +92,13 @@ reducing code duplication and improving maintainability.
 * :func:`~modelx.cached` has been introduced as an alies for :func:`~modelx.defcells`.
 
 
+Other API Changes
+^^^^^^^^^^^^^^^^^^^
+
+* Formula trace messages now print traces up to 20 lines (`GH144`_)
+
+.. _GH144: https://github.com/fumitoh/modelx/issues/144
+
 Bug Fixes
 ============
 
