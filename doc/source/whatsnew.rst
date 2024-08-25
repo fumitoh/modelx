@@ -8,15 +8,11 @@ What's New
 
 .. warning::
 
-   With the release of modelx version 0.1.0 in December 2019,
-   the author of modelx will try to maintain
-   backward compatibility as much as possible
-   in developing future releases of modelx.
-   Especially, he will try to make it possible to read
-   models written to files by one version's :func:`write_model`,
-   by :func:`read_model` of the next version of modelx.
-   However, models saved by :meth:`Model.backup <core.model.Model.backup>`
-   method may not be opened by new version's :func:`restore_model`.
+    Although modelx is still in its development phase, new releases will maintain
+    backward compatibility. This means models saved in previous versions of
+    modelx will be compatible with a new release. However, users may need
+    to manually update their models in some cases due to the deprecation of
+    certain features.
 
 .. End Development Sate
 
@@ -41,6 +37,7 @@ Release Notes - modelx
 .. toctree::
    :maxdepth: 1
 
+   releases/relnotes_v0_27_0
    releases/relnotes_v0_26_0
    releases/relnotes_v0_25_1
    releases/relnotes_v0_25_0

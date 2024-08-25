@@ -35,6 +35,8 @@ Creating objects
    ~modelx.new_model
    ~modelx.new_space
    ~modelx.defcells
+   ~modelx.uncached
+   ~modelx.cached
 
 
 Saving Models

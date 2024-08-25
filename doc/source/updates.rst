@@ -12,6 +12,9 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *25 August 2024:*
+  modelx v0.27.0 is released. See :doc:`releases/relnotes_v0_27_0`.
+
 * *15 July 2024:*
   modelx v0.26.0 is released. See :doc:`releases/relnotes_v0_26_0`.
 
@@ -23,6 +26,8 @@ Updates
 
 * *18 February 2024:*
   modelx v0.25.0 is released. See :doc:`releases/relnotes_v0_25_0`.
+
+.. Latest Updates End
 
 * *26 November 2023:*
   spyder-modelx v0.13.5 is released. See :ref:`release-mxplugin-v0.13.5`.
@@ -52,8 +57,6 @@ Updates
 * *4 February 2023:*
   modelx is now listed on `awesome-quant <https://github.com/wilsonfreitas/awesome-quant#numerical-libraries--data-structures>`_,
   a curated list of awesome libraries, packages and resources for Quants.
-
-.. Latest Updates End
 
 * *12 November 2022:*
   The :doc:`tutorial/using_pandas` page is added in the tutorial.

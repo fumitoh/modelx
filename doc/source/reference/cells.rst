@@ -22,6 +22,7 @@ Basic properties
   ~Cells.parent
   ~Cells.properties
   ~Cells.set_property
+  ~Cells.is_cached
 
 
 Cells operations
