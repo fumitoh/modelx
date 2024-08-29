@@ -306,7 +306,8 @@ class BaseSpace(BaseParent, ItemFactory):
         if name in self._impl.namespace:
             return self._impl.get_attr(name)
         else:
-            raise AttributeError  # Must return AttributeError for hasattr
+            raise AttributeError(f"Attribute '{name}' is not in space {str(self)}")
+            # Must return AttributeError for hasattr
 
     def __dir__(self):
         return list(self._impl.namespace.interfaces)
