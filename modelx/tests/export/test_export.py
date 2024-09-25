@@ -324,6 +324,12 @@ def test_parent(tmp_path_factory):
 
 
 def test_space_properties(tmp_path_factory):
+    """ Test _space._parent, _space._name, _cells
+
+        m----Space1-----------Space2
+               +--get_parent    +--get_parent
+               +--get_name
+    """
 
     m = mx.new_model()
     s1 = m.new_space("Space1")
@@ -351,6 +357,9 @@ def test_space_properties(tmp_path_factory):
         assert nomx.Space1.get_parent() is nomx
         assert nomx.Space1.Space2.get_parent() is nomx.Space1
         assert nomx.Space1.get_name() == "Space1"
+
+        for name in ['get_parent', 'get_name']:
+            assert name == nomx.Space1._cells[name].__name__   # method
 
     finally:
         sys.path.pop(0)

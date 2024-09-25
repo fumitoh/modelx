@@ -1,3 +1,4 @@
+import sys
 import collections
 import pickle
 from importlib import import_module
@@ -68,9 +69,6 @@ class BaseModel(BaseParent):
 
 class BaseSpace(BaseParent):
 
-    # Class variable
-    _mx_cells_names: list
-
     # Instance variables
     _mx_is_cells_set: bool
     _mx_cells: dict
@@ -78,7 +76,8 @@ class BaseSpace(BaseParent):
     @property
     def _cells(self):
         if not self._mx_is_cells_set:
-            for name in self._mx_cells_names:
+            for name in getattr(sys.modules[self.__class__.__module__],
+                                "_v_cells_names_" + self._name):
                 self._mx_cells[name] = getattr(self, name)
             self._mx_is_cells_set = True
 
