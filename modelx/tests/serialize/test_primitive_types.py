@@ -9,7 +9,8 @@ ref_values = [
     ('b', False, 'False'),
     ('c', None, 'None'),
     ('d', np.inf, 'Infinity'),
-    ('e', np.pi, '3.141592653589793')
+    ('e', np.pi, '3.141592653589793'),
+    ('f', -1, '-1')
 ]
 
 

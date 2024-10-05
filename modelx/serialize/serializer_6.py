@@ -1493,7 +1493,10 @@ class LiteralDecoder(ValueDecoder):
         return True
 
     def decode(self):
-        valstr = self.node.first_token.string.strip()
+        if isinstance(self.node, ast.UnaryOp):  # such as -1
+            valstr = self.node.first_token.string.strip() + self.node.last_token.string.strip()
+        else:
+            valstr = self.node.first_token.string.strip()
         if valstr in ["True", "False", "None"]:
             return ast.literal_eval(self.node)
         else:
