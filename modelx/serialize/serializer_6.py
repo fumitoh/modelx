@@ -1313,7 +1313,8 @@ class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
             next_idx = skip_blank_tokens(self.atok.tokens, next_idx + 1)
             next_node = node_from_token(self.atok, next_idx)
 
-        compinst.append(Instruction(self.load_pickledata))
+        if ziputil.exists(self.datapath):
+            compinst.append(Instruction(self.load_pickledata))
         return CompoundInstruction(compinst)
 
 
@@ -1392,7 +1393,8 @@ class CellsFuncDefParser(FunctionDefParser, CellsInputDataMixin):
                 self.atok.tokens, next_idx + 1)
             next_node = node_from_token(self.atok, next_idx)
 
-        compinst.append(Instruction(self.load_pickledata))
+        if ziputil.exists(self.datapath):
+            compinst.append(Instruction(self.load_pickledata))
         return CompoundInstruction(compinst)
 
 
