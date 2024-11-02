@@ -951,7 +951,7 @@ class ModelReader:
         srcstructure = SourceStructure(src)
         atok = asttokens.ASTTokens(src, parse=True)
 
-        for i, stmt in enumerate(atok.tree.body):
+        for stmt in atok.tree.body:
             sec = srcstructure.get_section(stmt.lineno)
             parser = ParserSelector.select(stmt, sec, atok)(
                 stmt, atok, self, sec, obj, srcpath=path_
