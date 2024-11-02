@@ -27,6 +27,7 @@ from modelx.core.model import Model
 from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
+from modelx.core.api import _new_cells_keep_source
 import asttokens
 from . import ziputil
 from .custom_pickle import (
@@ -880,6 +881,7 @@ class ModelReader:
             "doc",
             "set_formula",
             "set_property",
+            "_new_cells_keep_source",
             "new_cells",
             "set_doc"
         ])
@@ -890,6 +892,8 @@ class ModelReader:
             ["__setattr__", "set_ref"])
         self.instructions.execute_selected_methods(
             ["_set_dynamic_inputs"])
+
+        assert not self.instructions
 
         return model
 
@@ -1322,7 +1326,7 @@ class FunctionDefParser(BaseNodeParser):
     AST_NODE = ast.FunctionDef
     METHOD = None
 
-    def get_instruction(self):
+    def get_funcdef(self):
 
         funcdef = self.atok.get_text(self.node)
 
@@ -1339,7 +1343,11 @@ class FunctionDefParser(BaseNodeParser):
             deflines.append(self.node.last_token.line.rstrip())
             funcdef = "\n".join(deflines)
 
-        kwargs = {"formula": funcdef}
+        return funcdef
+
+    def get_instruction(self):
+
+        kwargs = {"formula": self.get_funcdef()}
         return Instruction.from_method(
             obj=self.obj,
             method=self.METHOD,
@@ -1369,7 +1377,11 @@ class CellsFuncDefParser(FunctionDefParser, CellsInputDataMixin):
 
     def get_instruction(self):
 
-        inst = super().get_instruction()
+        inst = Instruction(_new_cells_keep_source,
+                                kwargs={
+                                    "space": self.obj,
+                                    "formula": self.get_funcdef()
+                                })
         compinst = [inst]
 
         next_idx = skip_blank_tokens(

@@ -128,10 +128,9 @@ def is_lambda(src: str):
     return False
 
 
-def remove_decorator(source: str):
+def remove_decorator(source: str, atok):
     """Remove decorators from function definition"""
-    lines = source.splitlines()
-    atok = asttokens.ASTTokens(source, parse=True)
+    lines = source.splitlines(keepends=True)
 
     for node in ast.walk(atok.tree):
         if isinstance(node, ast.FunctionDef):
@@ -145,13 +144,13 @@ def remove_decorator(source: str):
 
         lines = lines[:line_first - 1] + lines[line_last:]
 
-    return "\n".join(lines) + "\n"
+    return ''.join(lines)
 
 
 def replace_funcname(source: str, name: str):
     """Replace function name"""
 
-    lines = source.splitlines()
+    lines = source.splitlines(keepends=True)
     atok = asttokens.ASTTokens(source, parse=True)
 
     for node in ast.walk(atok.tree):
@@ -173,12 +172,11 @@ def replace_funcname(source: str, name: str):
             lines[lineno-1][:col_begin] + name + lines[lineno-1][col_end:]
     )
 
-    return "\n".join(lines) + "\n"
+    return ''.join(lines)
 
 
 def replace_docstring(source: str, docstr: str, insert_indents=False):
     """Replace docstring"""
-    # lines = source.splitlines()
     atok = asttokens.ASTTokens(source, parse=True)
 
     found = False
@@ -286,7 +284,7 @@ class Formula:
     __slots__ = (
         "func", "signature", "source", "module", "_is_lambda")
 
-    def __init__(self, func, name=None, module=None):
+    def __init__(self, func, name=None, module=None, edit_source=True):
 
         if isinstance(func, NullFormula):   # TODO: Make NULL_FORMULA singleton
             self._copy_other(func)
@@ -299,7 +297,7 @@ class Formula:
                 self.module = func.__module__
 
             try:
-                self._init_from_func(func, name)
+                self._init_from_func(func, name, edit_source)
 
             except OSError:
                 warnings.warn(
@@ -312,43 +310,59 @@ class Formula:
 
         elif isinstance(func, str):
             self.module = module
-            self._init_from_source(func, name)
+            self._init_from_source(func, name, edit_source)
         else:
             raise ValueError("Invalid argument func: %s" % func)
 
-    def _init_from_func(self, func: FunctionType, name: str):
+    def _init_from_func(self, func: FunctionType, name: str, edit_source: bool):
 
         if is_func_lambda(func):
             src = extract_lambda_from_func(func)
             self._init_from_lambda(src, name)
         else:
-            self._init_from_funcdef(getsource(func), name)
+            self._init_from_funcdef(getsource(func), name, edit_source)
 
-    def _init_from_source(self, src: str, name: str):
+    def _init_from_source(self, src: str, name: str, edit_source: bool):
 
         if is_funcdef(src):
-            self._init_from_funcdef(src, name)
+            self._init_from_funcdef(src, name, edit_source)
         elif has_lambda(src):
             src = extract_lambda_from_source(dedent(src))
             self._init_from_lambda(src, name)
         else:
             raise ValueError("invalid function or lambda definition")
 
-    def _init_from_funcdef(self, src: str, name: str):
+    def _init_from_funcdef(self, src: str, name: str, edit_source: bool):
 
         self._is_lambda = False
 
-        module_node = ast.parse(dedent(src))
-        funcname = name or module_node.body[0].name
-        src = remove_decorator(dedent(src))
-        if name:
-            src = replace_funcname(src, name)
+        src = dedent(src).rstrip() + "\n"   # End src with newline
+        if edit_source:
+            module_node = asttokens.ASTTokens(src, parse=True)
+            src = remove_decorator(src, module_node)
+            if name:
+                src = replace_funcname(src, name)
+            else:
+                name = module_node.tree.body[0].name
 
         namespace = {}
         code = compile(src, "<string>", mode="exec")
         exec(code, namespace)
 
-        self.func = namespace[funcname]
+        if edit_source:
+            self.func = namespace[name]
+        if not edit_source:
+            # Get function name from code object
+            if len(code.co_names) == 1:
+                self.func = namespace[code.co_names[0]]
+            else:
+                for n in code.co_names:
+                    # ex. def foo(x: str) -> co_names = ('str', 'foo')
+                    v = namespace.get(n, None)
+                    if isinstance(v, FunctionType):
+                        self.func = v
+                        break
+
         self.signature = signature(self.func)
         self.source = src
 

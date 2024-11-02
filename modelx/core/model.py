@@ -1353,7 +1353,7 @@ class SpaceManager(SharedSpaceOperations):
         self.update_subs(space, skip_self=False)
 
     def new_cells(self, space, name=None, formula=None, data=None,
-                  is_derived=False, is_cached=True):
+                  is_derived=False, is_cached=True, edit_source=True):
 
         # FIX: Creating a Cells of the same name in ``space``
 
@@ -1362,7 +1362,7 @@ class SpaceManager(SharedSpaceOperations):
 
         cells = UserCellsImpl(
             space=space, name=name, formula=formula,
-            data=data, is_derived=is_derived, is_cached=is_cached)
+            data=data, is_derived=is_derived, is_cached=is_cached, edit_source=edit_source)
         space.clear_subs_rootitems()
 
         name = cells.name   # If name is none, auto-named in __init__

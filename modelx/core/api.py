@@ -944,3 +944,8 @@ def export_model(model, path):
     from ..export.exporter import Exporter
     Exporter(model, path).export()
 
+
+def _new_cells_keep_source(space, formula):
+    """Used by deserializer"""
+    return space._impl.spmgr.new_cells(
+        space._impl, formula=formula, edit_source=False).interface
