@@ -38,9 +38,9 @@ from .custom_pickle import (
 Section = namedtuple("Section", ["id", "symbol"])
 SECTION_DIVIDER = "# " + "-" * 75
 SECTIONS = {
+    "DEFAULT": Section("DEFAULT", ""),
     "CELLSDEFS": Section("CELLSDEFS", "# Cells"),
-    "REFDEFS": Section("REFDEFS", "# References"),
-    "DEFAULT": Section("DEFAULT", "")
+    "REFDEFS": Section("REFDEFS", "# References")
 }
 
 
