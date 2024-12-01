@@ -1,7 +1,5 @@
 import tokenize
-import pprint
 import pathlib
-from io import StringIO
 from collections import namedtuple
 
 from modelx.serialize.ziputil import FileForTokenizer

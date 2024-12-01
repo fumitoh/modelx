@@ -11,12 +11,13 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+
 import sys
 import json, types, importlib, pathlib
 import ast
 import enum
 import shutil
-from collections import namedtuple
+from types import MethodType, FunctionType
 import tokenize
 import token
 import tempfile
@@ -28,27 +29,15 @@ from modelx.core.base import Interface
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
 from modelx.core.api import _new_cells_keep_source
-import asttokens
 from . import ziputil
+from .deserializer import (
+    get_statement_tokens, StatementTokens, SECTION_DIVIDER, SECTIONS)
 from .custom_pickle import (
     IOSpecUnpickler, ModelUnpickler,
     IOSpecPickler, ModelPickler)
 
 
-Section = namedtuple("Section", ["id", "symbol"])
-SECTION_DIVIDER = "# " + "-" * 75
-SECTIONS = {
-    "DEFAULT": Section("DEFAULT", ""),
-    "CELLSDEFS": Section("CELLSDEFS", "# Cells"),
-    "REFDEFS": Section("REFDEFS", "# References")
-}
-
-
 class TupleID(tuple):
-
-    @classmethod
-    def tuplize(cls, expr):
-        return ast.literal_eval(expr)
 
     @classmethod
     def unpickle_args(cls, keys, argsdict):
@@ -133,7 +122,7 @@ class BaseInstruction:
 
 class Instruction(BaseInstruction):
 
-    def __init__(self, func, args=(), arghook=None, kwargs=None, parser=None):
+    def __init__(self, func, args=(), arghook=None, kwargs=None, parser=None, priority=0):
 
         self.func = func
         self.args = args
@@ -141,17 +130,29 @@ class Instruction(BaseInstruction):
         self.kwargs = kwargs if kwargs else {}
         self.parser = parser
         self.retval = None
+        self.priority = priority    # Order priority in compound instructions
 
     @classmethod
     def from_method(cls, obj, method, args=(), arghook=None, kwargs=None,
-                    parser=None):
+                    parser=None, priority=0):
 
         if isinstance(obj, BaseInstruction):
             func = OtherInstFunctor(obj, method)
         else:
             func = getattr(obj, method)
         return cls(func, args=args, arghook=arghook, kwargs=kwargs,
-                   parser=parser)
+                   parser=parser, priority=priority)
+
+    @property
+    def obj(self):
+        if isinstance(self.func, MethodType):
+            return self.func.__self__
+        elif isinstance(self.func, FunctionType):
+            return self.args[0]
+        elif isinstance(self.func, OtherInstFunctor):
+            raise ValueError("must not happen")
+        else:
+            raise ValueError("no object is associated with instruction")
 
     def execute(self):
         if self.arghook:
@@ -184,6 +185,10 @@ class OtherInstFunctor:
     def __name__(self):
         return self.method
 
+    @property
+    def obj(self):
+        return self.inst.retval
+
 
 class CompoundInstruction(BaseInstruction):
 
@@ -196,10 +201,22 @@ class CompoundInstruction(BaseInstruction):
     def __len__(self):  # Used by __eq__
         return len(self.instructions)
 
+    @property
+    def funcname(self):
+        return self.instructions[0].func.__name__
+
+    @property
+    def obj(self):
+        return self.instructions[0].obj
+
+    @property
+    def last(self):
+        return self.instructions[-1]
+
     def append(self, inst):
-        if inst:
-            if isinstance(inst, BaseInstruction):
-                self.instructions.append(inst)
+        assert inst
+        assert isinstance(inst, BaseInstruction)
+        self.instructions.append(inst)
 
     def extend(self, instructions):
         if instructions:
@@ -208,8 +225,14 @@ class CompoundInstruction(BaseInstruction):
                     self.instructions.append(inst)
 
     def execute(self):
+
+        first = True
         for inst in self.instructions:
-            self.retval = inst.execute()
+            if first:
+                self.retval = inst.execute()
+                first = False
+            else:
+                inst.execute()
         return self.retval
 
     def execute_selected(self, cond, pop_executed=True):
@@ -226,7 +249,9 @@ class CompoundInstruction(BaseInstruction):
                     self.instructions.pop(pos)
             else:
                 if cond(inst):
-                    inst.execute()
+                    retval = inst.execute()
+                    if inst.priority == 0:
+                        self.retval = retval
                     if pop_executed:
                         self.instructions.pop(pos)
                     else:
@@ -237,14 +262,7 @@ class CompoundInstruction(BaseInstruction):
     def execute_selected_methods(self, methods, pop_executed=True):
 
         def cond(inst):
-            return inst.func.__name__ in methods
-
-        self.execute_selected(cond, pop_executed)
-
-    def execute_selected_parser(self, parser_type, pop_executed=True):
-
-        def cond(inst):
-            return isinstance(inst.parser, parser_type)
+            return inst.funcname in methods
 
         self.execute_selected(cond, pop_executed)
 
@@ -947,20 +965,11 @@ class ModelReader:
 
     def parse_source(self, path_, obj: Interface):
 
-        src = ziputil.read_str_utf8(path_)
-        srcstructure = SourceStructure(src)
-        atok = asttokens.ASTTokens(src, parse=True)
-
-        for stmt in atok.tree.body:
-            sec = srcstructure.get_section(stmt.lineno)
-            parser = ParserSelector.select(stmt, sec, atok)(
-                stmt, atok, self, sec, obj, srcpath=path_
+        for stmt in get_statement_tokens(path_):
+            parser = ParserSelector.select(stmt)(
+                stmt, self, obj, srcpath=path_
             )
-            ist = parser.get_instruction()
-            if parser.priority == PriorityID.AT_PARSE:
-                ist.execute()
-            else:
-                self.instructions.append(ist)
+            parser.set_instruction()
 
     def read_pickledata(self):
 
@@ -998,62 +1007,134 @@ class BaseNodeParser:
     AST_NODE = None
     default_priority = PriorityID.NORMAL
 
-    def __init__(self, node, atok, reader, section, obj, srcpath, **kwargs):
-        self.node = node
-        self.atok = atok
+    def __init__(self, stmt, reader, obj, srcpath, **kwargs):
+        self.stmt = stmt
         self.reader = reader
-        self.section = section
         self.obj = obj
         self.impl = obj._impl
         self.srcpath = srcpath
         self.kwargs = kwargs
         self.priority = self.default_priority
 
-    @classmethod
-    def condition(cls, node, section, atok):
-        return isinstance(node, cls.AST_NODE)
+    @property
+    def prev_inst(self):
+        return self.reader.instructions.last
 
-    def get_instruction(self):
+    @property
+    def instructions(self):
+        return self.reader.instructions
+
+    @property
+    def section(self):
+        return self.stmt.section
+
+    @classmethod
+    def condition(cls, stmt):
         raise NotImplementedError
 
 
 class DocstringParser(BaseNodeParser):
-    AST_NODE = ast.Expr
-
+    """Docstring at module level"""
     @classmethod
-    def condition(cls, node, section, atok):
-        if isinstance(node, cls.AST_NODE):
-            if isinstance(node.value, ast.Str):
-                return True
+    def condition(cls, stmt: StatementTokens):
+        # stmt has 1 element that is STRING and starts at line 1.
+        if stmt.section == "DEFAULT" and len(stmt) == 1:
+            elm = stmt[0]
+            if elm.type == tokenize.STRING:
+                if elm.start[0] == 1:
+                    return True
 
         return False
 
-    def get_instruction(self):
+    def set_instruction(self):
         if self.section == "DEFAULT":
-            return Instruction.from_method(
+            inst = Instruction.from_method(
                 obj=type(self.obj).doc,
                 method="fset",
-                args=(self.obj, self.node.value.s)
+                args=(self.obj, self.docstr)
             )
+            self.instructions.append(inst)
+            return inst
         else:   # Cells.doc for lambda is processed by LambdaAssignParser
-            return None
+            # must not happen
+            raise ValueError
+
+    @property
+    def docstr(self):
+        return ast.literal_eval(self.stmt.str_)
 
 
 class ImportFromParser(BaseNodeParser):
     AST_NODE = ast.ImportFrom
 
-    def get_instruction(self):
+    @classmethod
+    def condition(cls, stmt: StatementTokens):
+        # first element is NAME 'import'.
+        if stmt.section == "DEFAULT":
+            elm = stmt[0]
+            if elm.type == tokenize.NAME and elm.string == 'from':
+                return True
+
+        return False
+
+    def set_instruction(self):
         return  # Skip any import from statement
 
 
 class BaseAssignParser(BaseNodeParser):
     AST_NODE = ast.Assign
 
+    @classmethod
+    def condition(cls, stmt):
+        if stmt[0].type == tokenize.NAME:
+            if stmt[1].type == tokenize.OP and stmt[1].string == '=':
+                return True
+
+        return False
+
+    @property
+    def name(self):
+        return self.stmt[0].string
+
+    @property
+    def value(self):
+
+        if self.stmt[2].string == 'lambda': # Return source text
+            lines = []
+            first = True
+            for tk in self.stmt[2:]:
+                if first:
+                    last_line = tk.end[0]
+                    lines.append(tk.line)
+                    first = False
+                else:
+                    if tk.start[0] == tk.end[0]:  # single line
+
+                        if last_line < tk.end[0]:
+                            lines.append(tk.line)
+                            last_line = tk.end[0]
+                    else:
+                        ls = tk.line.splietlines(keepends=True)
+                        start_line = tk.start[0]
+                        end_line = tk.end[0]
+                        while last_line < end_line:
+                            if start_line <= last_line:
+                                lines.append(ls[last_line - start_line])
+                            last_line += 1
+
+            start_pos = self.stmt[2].start[1]
+            lines[0] = lines[0][start_pos:]
+            lines[-1] = lines[-1][:self.stmt[-1].end[1] - start_pos]
+            return ''.join(lines)
+        else:
+            txt = ' '.join(s.string for s in self.stmt[2:])
+            return ast.literal_eval(txt)
+
     @property
     def target(self):
-        return self.node.first_token.string
+        return self.stmt[0].string
 
-    def get_instruction(self):
+    def set_instruction(self):
         raise NotImplementedError
 
 
@@ -1062,50 +1143,61 @@ class RenameParser(BaseAssignParser):
     default_priority = PriorityID.AT_PARSE
 
     @classmethod
-    def condition(cls, node, section, atok):
-
-        if not super(RenameParser, cls).condition(node, section, atok):
+    def condition(cls, stmt):
+        if not super(RenameParser, cls).condition(stmt):
             return False
-        if node.first_token.string == "_name":
-            return True
+
+        if stmt.section == "DEFAULT":
+            if stmt[0].string == '_name':
+                return True
+
         return False
 
-    def get_instruction(self):
+    @property
+    def new_name(self):
+        return ast.literal_eval(self.stmt[2].string)
+
+    def set_instruction(self):
 
         method = "rename"
         if "name" in self.reader.kwargs and self.reader.kwargs["name"]:
             val = self.reader.kwargs["name"]
         else:
-            val = ast.literal_eval(self.atok.get_text(self.node.value))
+            val = self.new_name
 
         kwargs = {"rename_old": True}
 
-        return Instruction.from_method(
+        inst = Instruction.from_method(
                 obj=self.obj,
                 method=method,
                 args=(val,),
                 kwargs=kwargs)
 
-class AttrAssignParser(BaseAssignParser):
+        inst.execute()
+        return inst
+
+
+class ParentAttrAssignParser(BaseAssignParser):
 
     @classmethod
-    def condition(cls, node, section, atok):
-        if isinstance(node, cls.AST_NODE) and (
-                section == "DEFAULT" or section == "CELLSDEFS"):
+    def condition(cls, stmt):
+        if not super(ParentAttrAssignParser, cls).condition(stmt):
+            return False
+
+        if stmt.section == "DEFAULT":
             return True
+
         return False
 
-    def get_instruction(self):
+    def set_instruction(self):
 
         if self.target == "_formula":
             # lambda formula definition
             method = "set_formula"
-            val = self.atok.get_text(self.node.value)
-            if val == "None":
-                val = None
+            val = self.value
 
             kwargs = {"formula": val}
-            return Instruction.from_method(
+            inst = Instruction.from_method(
                     obj=self.impl,
                     method=method,
                     kwargs=kwargs
@@ -1115,60 +1207,55 @@ class AttrAssignParser(BaseAssignParser):
 
             bases = [
                 rel_to_abs(base, self.obj.parent.fullname)
-                for base in ast.literal_eval(
-                    self.atok.get_text(self.node.value))
+                for base in self.value
             ]
 
             def bases_hook(inst):
                 args = [mx.get_object(base) for base in inst.args]
                 return args, inst.kwargs
 
-            return Instruction.from_method(
+            inst = Instruction.from_method(
                 obj=self.obj,
                 method="add_bases",
                 args=bases,
                 arghook=bases_hook)
 
         elif self.target == "_spaces":
-            self.reader.result = json.loads(
-                self.atok.get_text(self.node.value)
-            )
+            self.reader.result = self.value
             return
 
         elif self.target in ("_allow_none", "_is_cached"):
             name = self.target[1:]  # Remove first _
-            if self.section == "DEFAULT":
-                value = ast.literal_eval(self.atok.get_text(self.node.value))
-                return Instruction.from_method(
-                    obj=self.obj,
-                    method="set_property",
-                    args=(name, value))
-            else:
-                # Cells.allow_none is processed
-                # by LambdaAssignParser and CellsFuncDefParser
-                return
+            inst = Instruction.from_method(
+                obj=self.obj,
+                method="set_property",
+                args=(name, self.value))
 
         else:
             raise RuntimeError("unknown attribute assignment")
+
+        self.instructions.append(inst)
+        return inst
 
 
 class RefAssignParser(BaseAssignParser):
     AST_NODE = ast.Assign
 
     @classmethod
-    def condition(cls, node, section, atok):
-        if isinstance(node, cls.AST_NODE) and section == "REFDEFS":
+    def condition(cls, stmt):
+        if not super(RefAssignParser, cls).condition(stmt):
+            return False
+
+        if stmt.section == "REFDEFS":
             return True
         return False
 
-    def get_instruction(self):
+    def set_instruction(self):
 
         name = self.target
-        valnode = self.node.value
-
-        decoder_class = DecoderSelector.select(valnode)
+        decoder_class = DecoderSelector.select(self.stmt)
         decoder = decoder_class(
-            self.reader, valnode, self.atok,
+            self.reader, self.stmt,
             self.obj, name=name, srcpath=self.srcpath)
 
         if hasattr(decoder, "restore"):
@@ -1192,7 +1279,7 @@ class RefAssignParser(BaseAssignParser):
                 arghook=arghook
             )
         else:
-            refmode = decoder.elm(2)
+            refmode = decoder.value[2]
             setter = Instruction.from_method(
                 obj=self.obj,
                 method="set_ref",
@@ -1200,7 +1287,7 @@ class RefAssignParser(BaseAssignParser):
                 arghook=arghook,
                 kwargs={'refmode': refmode}
             )
-
+        self.instructions.append(setter)
         return setter
 
 
@@ -1258,24 +1345,41 @@ else:
 
 
 class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
-
+    """Cells definition as a lambda expression"""
     @classmethod
-    def condition(cls, node, section, atok):
-        # Exclude assignments of names starting "_"
-        if isinstance(node, cls.AST_NODE) and section == "CELLSDEFS" and (
-            node.targets[0].id[0] != "_"
-        ):
-            return True
+    def condition(cls, stmt):
+        if not super(LambdaAssignParser, cls).condition(stmt):
+            return False
+
+        if stmt.section == "CELLSDEFS":
+            if stmt[2].type == tokenize.NAME and stmt[2].string == 'lambda':
+                return True
+
         return False
 
     @property
     def cellsname(self):
-        return self.atok.get_text(self.node.targets[0])
+        return self.stmt[0].string
 
-    def get_instruction(self):
+    def set_instruction(self):
+
+        # get lambda expression
+        expr = ""
+        first_token = True
+        first_line = 0
+        for token in self.stmt[2:]:
+            if first_token:
+                expr += token.line[token.start[1]:]
+                first_line = token.start[0]
+                first_token = False
+            elif token.start[0] == first_line:
+                continue
+            else:
+                expr += token.line
+
         kwargs = {
             "name": self.cellsname,
-            "formula": self.atok.get_text(self.node.value)
+            "formula": expr
         }
         # lambda cells definition
         inst = Instruction.from_method(
@@ -1283,76 +1387,102 @@ class LambdaAssignParser(BaseAssignParser, CellsInputDataMixin):
             method="new_cells",
             kwargs=kwargs
         )
-
-        compinst = [inst]
-
-        # Set doc and properties
-        next_idx = skip_blank_tokens(
-            self.atok.tokens, self.node.last_token.index + 1)
-        next_node = node_from_token(self.atok, next_idx)
-
-        while self.atok.tokens[next_idx].type == token.STRING or (
-                isinstance(next_node, ast.Assign) and (
-                next_node.first_token.string in ("_allow_none", "_is_cached"))
-        ):
-            if self.atok.tokens[next_idx].type == token.STRING:
-                doc = ast.literal_eval(self.atok.tokens[next_idx].string)
-                inst_doc = Instruction.from_method(
-                    obj=inst,
-                    method="set_doc",
-                    kwargs={'doc': doc}
-                )
-                compinst.append(inst_doc)
-
-            elif isinstance(next_node, ast.Assign) and (
-                    next_node.first_token.string == "_allow_none"):
-                value = ast.literal_eval(self.atok.get_text(next_node.value))
-                inst_allow_none = Instruction.from_method(
-                    obj=inst,
-                    method="set_property",
-                    args=("allow_none", value)
-                )
-                compinst.append(inst_allow_none)
-
-            next_idx = skip_blank_tokens(self.atok.tokens, next_idx + 1)
-            next_node = node_from_token(self.atok, next_idx)
+        inst_list = [inst]
 
         if ziputil.exists(self.datapath):
-            compinst.append(Instruction(self.load_pickledata))
-        return CompoundInstruction(compinst)
+            inst_list.append(Instruction(self.load_pickledata, priority=2))
+
+        compinst = CompoundInstruction(inst_list)
+        self.instructions.append(compinst)
+        return compinst
+
+
+class LambdaDocstringParser(BaseNodeParser):
+
+    @classmethod
+    def condition(cls, stmt):
+        """String in CELLSDEFS section for docstring of lambda cells"""
+        if stmt.section == "CELLSDEFS" and len(stmt) == 1:
+            if stmt[0].type == tokenize.STRING:
+                return True
+
+        return False
+
+    def set_instruction(self):
+        doc = ast.literal_eval(self.stmt.str_)
+        inst = Instruction.from_method(
+            obj=self.prev_inst,
+            method="set_doc",
+            kwargs={'doc': doc},
+            priority=1
+        )
+        assert isinstance(self.prev_inst, CompoundInstruction)
+        self.prev_inst.append(inst)
+        return inst
+
+
+class CellsAttrAssignParser(BaseAssignParser):
+
+    @classmethod
+    def condition(cls, stmt):
+        if stmt.section == "CELLSDEFS":
+            first_elm = stmt[0]
+            if first_elm.type == tokenize.NAME:
+                if stmt[0].string in ("_allow_none", "_is_cached"):
+                    return True
+
+        return False
+
+    def set_instruction(self):
+
+        name = self.name[1:]    # Remove prefix '_'
+        inst = Instruction.from_method(
+            obj=self.prev_inst,
+            method="set_property",
+            args=(name, self.value),
+            priority=1
+        )
+        assert isinstance(self.prev_inst, CompoundInstruction)
+        self.prev_inst.append(inst)
+        return inst
 
 
 class FunctionDefParser(BaseNodeParser):
     AST_NODE = ast.FunctionDef
     METHOD = None
 
+    @classmethod
+    def condition(cls, stmt):
+
+        if stmt[0].type == tokenize.NAME and stmt[0].string == 'def':
+            if stmt[1].type == tokenize.NAME:
+                return True
+        return False
+
     def get_funcdef(self):
 
-        funcdef = self.atok.get_text(self.node)
-
+        funcdef = self.stmt.str_
         # The code below is just for adding back comment in the last line
         # such as:
         # def foo():
         #     return 0  # Comment
-        nxtok = self.node.last_token.index + 1
-        if nxtok < len(self.atok.tokens) and (
-                self.atok.tokens[nxtok].type == tokenize.COMMENT
-        ) and self.node.last_token.line == self.atok.tokens[nxtok].line:
-            deflines = funcdef.splitlines()
-            deflines.pop()
-            deflines.append(self.node.last_token.line.rstrip())
-            funcdef = "\n".join(deflines)
+        lines = funcdef.splitlines()
+        n = len(self.stmt[-1].line) - len(lines[-1])
+        if n > 0:
+            funcdef += self.stmt[-1].line[-n:]
 
         return funcdef
 
-    def get_instruction(self):
+    def set_instruction(self):
 
         kwargs = {"formula": self.get_funcdef()}
-        return Instruction.from_method(
+        inst = Instruction.from_method(
             obj=self.obj,
             method=self.METHOD,
             kwargs=kwargs
         )
+        self.instructions.append(inst)
+        return inst
 
 
 class SpaceFuncDefParser(FunctionDefParser):
@@ -1360,54 +1490,43 @@ class SpaceFuncDefParser(FunctionDefParser):
     METHOD = "set_formula"
 
     @classmethod
-    def condition(cls, node, section, atok):
-        if super(SpaceFuncDefParser, cls).condition(node, section, atok):
-            if node.name == "_formula":
+    def condition(cls, stmt):
+        if stmt.section == 'DEFAULT':
+            if super(SpaceFuncDefParser, cls).condition(stmt):
                 return True
+
         return False
 
 
 class CellsFuncDefParser(FunctionDefParser, CellsInputDataMixin):
 
     METHOD = "new_cells"
+    @classmethod
+    def condition(cls, stmt):
+        if stmt.section == 'CELLSDEFS':
+            if super(CellsFuncDefParser, cls).condition(stmt):
+                return True
+
+        return False
 
     @property
     def cellsname(self):
-        return self.node.name
+        return self.stmt[1].string
 
-    def get_instruction(self):
+    def set_instruction(self):
 
         inst = Instruction(_new_cells_keep_source,
+                                args=(self.obj,),
                                 kwargs={
-                                    "space": self.obj,
                                     "formula": self.get_funcdef()
                                 })
-        compinst = [inst]
-
-        next_idx = skip_blank_tokens(
-            self.atok.tokens, self.node.last_token.index + 1)
-        next_node = node_from_token(self.atok, next_idx)
-
-        # Process allow_none and is_cached
-        while isinstance(next_node, ast.Assign) and (
-                next_node.first_token.string in ("_allow_none", "_is_cached")):
-
-            property_name = (next_node.first_token.string)[1:]  # Remove "_"
-            value = ast.literal_eval(self.atok.get_text(next_node.value))
-            inst_allow_none = Instruction.from_method(
-                obj=inst,
-                method="set_property",
-                args=(property_name, value)
-            )
-            compinst.append(inst_allow_none)
-
-            next_idx = skip_blank_tokens(
-                self.atok.tokens, next_idx + 1)
-            next_node = node_from_token(self.atok, next_idx)
+        instlist = [inst]
 
         if ziputil.exists(self.datapath):
-            compinst.append(Instruction(self.load_pickledata))
-        return CompoundInstruction(compinst)
+            instlist.append(Instruction(self.load_pickledata, priority=2))
+        compinst = CompoundInstruction(instlist)
+        self.instructions.append(compinst)
+        return compinst
 
 
 class ParserSelector(BaseSelector):
@@ -1416,7 +1535,9 @@ class ParserSelector(BaseSelector):
         ImportFromParser,
         RenameParser,
         LambdaAssignParser,
-        AttrAssignParser,
+        LambdaDocstringParser,
+        ParentAttrAssignParser,
+        CellsAttrAssignParser,
         RefAssignParser,
         SpaceFuncDefParser,
         CellsFuncDefParser
@@ -1425,10 +1546,9 @@ class ParserSelector(BaseSelector):
 
 class ValueDecoder:
 
-    def __init__(self, reader, node, atok, obj, name=None, srcpath=None):
+    def __init__(self, reader, stmt, obj, name=None, srcpath=None):
         self.reader = reader
-        self.node = node
-        self.atok = atok
+        self.stmt = stmt
         self.obj = obj
         self.name = name
         self.srcpath = srcpath
@@ -1436,36 +1556,43 @@ class ValueDecoder:
     def decode(self):
         raise NotImplementedError
 
+    @property
+    def value(self):
+        expr = ' '.join(token.string for token in self.stmt[2:])
+        try:
+            return ast.literal_eval(expr)
+        except ValueError:
+            return json.loads(expr)
+
 
 class TupleDecoder(ValueDecoder):
-    DECTYPE = None
-
-    def elm(self, index, decoder=ast.literal_eval):
-        return decoder(self.atok.get_text(self.node.elts[index]))
+    DECTYPE = ''
+    DECTYPE_COMPAT = ''
 
     def size(self):
-        return len(self.node.elts)
+        return len(self.value)
 
     @classmethod
-    def condition(cls, node):
-        if isinstance(node, ast.Tuple):
-            if node.elts[0].s == cls.DECTYPE:
-                return True
-            elif (hasattr(cls, 'DECTYPE_COMPAT')  # for backward compatibility
-                  and node.elts[0].s == cls.DECTYPE_COMPAT):
-                return True
-        return False
+    def condition(cls, stmt):
+        if stmt.section == "REFDEFS":
+            if stmt[2].string == '(' and stmt[-1].string == ')':
+                if stmt[3].type == tokenize.STRING:
+                    s = ast.literal_eval(stmt[3].string)
+                    if s == cls.DECTYPE or s == cls.DECTYPE_COMPAT:
+                        return True
+        else:
+            return False
 
 
 class InterfaceDecoder(TupleDecoder):
     DECTYPE = "Interface"
 
     def decode(self):
-        return rel_to_abs(self.elm(1), self.obj.fullname)
+        return rel_to_abs(self.value[1], self.obj.fullname)
 
     def restore(self):
         decoded = TupleID.unpickle_args(
-            TupleID.tuplize(self.atok.get_text(self.node.elts[1])),
+            self.value[1],
             self.reader.pickledata
         )
         decoded = rel_to_abs_tuple(decoded, self.obj._idtuple)
@@ -1477,7 +1604,7 @@ class IOSpecDecoder(TupleDecoder):
     DECTYPE_COMPAT = "DataSpec"     # for backward compatibility > mx v0.20.0
 
     def decode(self):
-        return self.elm(1)
+        return self.value[1]
 
     def restore(self):
         return self.reader.pickledata[self.decode()]
@@ -1487,14 +1614,14 @@ class ModuleDecoder(TupleDecoder):
     DECTYPE = "Module"
 
     def decode(self):
-        return importlib.import_module(self.elm(1))
+        return importlib.import_module(self.value[1])
 
 
 class PickleDecoder(TupleDecoder):
     DECTYPE = "Pickle"
 
     def decode(self):
-        return self.elm(1)
+        return self.value[1]
 
     def restore(self):
         return self.reader.pickledata[self.decode()]
@@ -1503,18 +1630,11 @@ class PickleDecoder(TupleDecoder):
 class LiteralDecoder(ValueDecoder):
 
     @classmethod
-    def condition(cls, node):
+    def condition(cls, stmt):
         return True
 
     def decode(self):
-        if isinstance(self.node, ast.UnaryOp):  # such as -1
-            valstr = self.node.first_token.string.strip() + self.node.last_token.string.strip()
-        else:
-            valstr = self.node.first_token.string.strip()
-        if valstr in ["True", "False", "None"]:
-            return ast.literal_eval(self.node)
-        else:
-            return json.loads(valstr)   # such as 3.1415, Infinity
+        return self.value
 
 
 class DecoderSelector(BaseSelector):
