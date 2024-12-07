@@ -495,7 +495,7 @@ class Interface:
             else:
                 raise ValueError("%s is not a property" % name)
         else:
-            raise ValueError("property %s not defined")
+            raise ValueError("property %s not defined" % name)
 
     @property
     def allow_none(self):

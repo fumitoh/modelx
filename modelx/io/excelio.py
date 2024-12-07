@@ -40,9 +40,9 @@ def _is_range_address(range_addr):
     RANGE_EXPR = """
     (?P<cells>
     [$]?(?P<min_col>[A-Za-z]{1,3})?
-    [$]?(?P<min_row>\d+)?
+    [$]?(?P<min_row>\\d+)?
     (:[$]?(?P<max_col>[A-Za-z]{1,3})?
-    [$]?(?P<max_row>\d+)?)?
+    [$]?(?P<max_row>\\d+)?)?
     )$
     """
     RANGE_EXPR_RE = re.compile(RANGE_EXPR, re.VERBOSE)

@@ -290,9 +290,9 @@ def test_base_parent_child():
     """
         C <-----+
           <-B   |
-             \  A
-              \ |
-                D
+            |   A
+            |   |
+            +---D
     """
     model = mx.new_model()
     A = model.new_space("A")
