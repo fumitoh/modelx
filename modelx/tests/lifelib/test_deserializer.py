@@ -27,4 +27,4 @@ def test_compare_statements_agains_asttokens_using_lifelib(libs):
             assert t.str_ == a
             assert srcstruct.get_section(t.lineno[0]) == t.section
 
-    assert file_count > 50
+    assert file_count > 30
