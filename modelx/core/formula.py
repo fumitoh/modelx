@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2024 Fumito Hamamura <fumito.ham@gmail.com>
-
+import sys
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation version 3.
@@ -202,8 +202,14 @@ def replace_docstring(source: str, docstr: str, insert_indents=False):
 
         docstr = "\n".join(lines)
 
-        if isinstance(first_stmt, ast.Expr) and isinstance(
-                first_stmt.value, ast.Str):     # Has docstring
+        if sys.version_info >= (3, 8, 0):
+            has_docstring = isinstance(first_stmt, ast.Expr) and isinstance(
+                first_stmt.value, ast.Constant) and isinstance(first_stmt.value.value, str)
+        else:
+            has_docstring = isinstance(first_stmt, ast.Expr) and isinstance(
+                first_stmt.value, ast.Str)
+
+        if has_docstring:     # Has docstring
 
             src_front = source[:prev_token.startpos]
             src_back = source[first_stmt.first_token.endpos:]
@@ -216,8 +222,14 @@ def replace_docstring(source: str, docstr: str, insert_indents=False):
 
     else:    # single line
 
-        if isinstance(first_stmt, ast.Expr) and isinstance(
-                first_stmt.value, ast.Str):     # Has docstring
+        if sys.version_info >= (3, 8, 0):
+            has_docstring = isinstance(first_stmt, ast.Expr) and isinstance(
+                first_stmt.value, ast.Constant) and isinstance(first_stmt.value.value, str)
+        else:
+            has_docstring = isinstance(first_stmt, ast.Expr) and isinstance(
+                first_stmt.value, ast.Str)
+
+        if has_docstring:     # Has docstring
 
             src_front = source[:first_stmt.first_token.startpos]
             src_back = source[first_stmt.first_token.endpos:]
