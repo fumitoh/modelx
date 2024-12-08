@@ -1,3 +1,4 @@
+import sys
 from itertools import product
 import inspect
 
@@ -45,6 +46,16 @@ multdocstr = \
     here
     """
 
+# Due to a spec change in Python 3.13
+# https://docs.python.org/3/whatsnew/3.13.html#other-language-changes
+
+def _():
+    """this line
+        continues
+        here
+        """
+multdocstr_py313 = _.__doc__
+
 multdocstr_unindented = \
 """this line
 continues
@@ -63,7 +74,10 @@ def test_replace_docstring(func, docstr):
     ns = {}
     exec(funcdef, ns)
 
-    assert ns[func.__name__].__doc__ == docstr
+    if sys.version_info >= (3, 13, 0) and docstr == multdocstr:
+        assert ns[func.__name__].__doc__ == multdocstr_py313
+    else:
+        assert ns[func.__name__].__doc__ == docstr
 
 
 @pytest.mark.parametrize(
@@ -81,7 +95,10 @@ def test_replace_docstring_indent(func, docstrs):
     ns = {}
     exec(funcdef, ns)
 
-    assert ns[func.__name__].__doc__ == docstr_indented
+    if sys.version_info >= (3, 13, 0) and docstr_indented == multdocstr:
+        assert ns[func.__name__].__doc__ == multdocstr_py313
+    else:
+        assert ns[func.__name__].__doc__ == docstr_indented
 
 
 @pytest.fixture(scope="module")
@@ -98,7 +115,11 @@ def testspace():
     product(["foo", "bar", "baz", "qux", "quux"], [singledocstr, multdocstr]))
 def test_set_doc(testspace, func, docstr):
     testspace.cells[func].doc = docstr
-    assert testspace.cells[func].doc == docstr
+
+    if sys.version_info >= (3, 13, 0) and docstr == multdocstr:
+        assert testspace.cells[func].doc == multdocstr_py313
+    else:
+        assert testspace.cells[func].doc == docstr
 
 
 @pytest.mark.parametrize(
@@ -110,6 +131,8 @@ def test_set_doc_indent(testspace, func, docstrs):
 
     docstr_unindented, docstr_indented = docstrs
     testspace.cells[func].set_doc(docstr_unindented, insert_indents=True)
-    assert testspace.cells[func].doc == docstr_indented
-
+    if sys.version_info >= (3, 13, 0) and docstr_indented == multdocstr:
+        assert testspace.cells[func].doc == multdocstr_py313
+    else:
+        assert testspace.cells[func].doc == docstr_indented
 
