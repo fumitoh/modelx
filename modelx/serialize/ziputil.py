@@ -25,8 +25,17 @@ import time
 import tokenize
 
 
+def remove_extended_prefix(path):
+    path_str = str(path)
+    if path_str.startswith(r'\\?\UNC'):
+        # Replace '\\?\UNC\\' with '\\'
+        standard_path = r'\\' + path_str[8:]
+        return pathlib.Path(standard_path)
+    return path
+
+
 def get_archive_path(path: pathlib.Path, root: pathlib.Path):
-    return str(path.resolve().relative_to(root).as_posix())
+    return str(remove_extended_prefix(path.resolve()).relative_to(remove_extended_prefix(root)).as_posix())
 
 
 def make_parent_dir(path: pathlib.Path):
