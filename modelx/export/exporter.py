@@ -541,10 +541,12 @@ class SpaceTranslator(ParentTranslator):
                 param_assigns=textwrap.indent(
                     self.param_assigns(attrs.params), ' ' * 4)
             )
+            delitem = self.delitem_asis
         else:
             itemspace_dict = ''
             itemspace_methods = ''
             getitem = ''
+            delitem = ''
 
         return self.class_template.format(
             name=space.name,
@@ -560,7 +562,7 @@ class SpaceTranslator(ParentTranslator):
             cache_methods=textwrap.indent(''.join(cache_methods), ' ' * 4),
             itemspace_methods=textwrap.indent(itemspace_methods, ' ' * 4),
             getitem=textwrap.indent(getitem, ' ' * 4),
-            delitem=textwrap.indent(self.delitem_asis, ' ' * 4)
+            delitem=textwrap.indent(delitem, ' ' * 4)
         )
 
     def space_assigns(self, parent):
