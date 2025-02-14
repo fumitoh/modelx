@@ -342,6 +342,8 @@ class SpaceTranslator(ParentTranslator):
     class_template = textwrap.dedent("""\
 
     _v_cells_names_{name} = [{cells_name_list}]
+    _v_space_params_{name} = [{space_param_list}]
+
 
     class _c_{name}(_mx_sys.BaseSpace):
 
@@ -551,6 +553,7 @@ class SpaceTranslator(ParentTranslator):
         return self.class_template.format(
             name=space.name,
             cells_name_list=textwrap.indent(self.cells_name_list(space), ' ' * 4),
+            space_param_list=textwrap.indent(self.space_param_list(space), ' ' * 4),
             space_assigns=textwrap.indent(self.space_assigns(space), ' ' * 8),
             space_dict=textwrap.indent(self.space_dict(space), ' ' * 8),
             itemspace_dict=textwrap.indent(itemspace_dict, ' ' * 8),
@@ -601,3 +604,14 @@ class SpaceTranslator(ParentTranslator):
             str_elm.append("'" + name + "'")
             str_elm.append(",\n")
         return ''.join(str_elm)
+
+    def space_param_list(self, space):
+        str_elm = []
+        if space.parameters:
+            str_elm.append("\n")
+            for name in space.parameters:
+                str_elm.append("'" + name + "'")
+                str_elm.append(",\n")
+            return ''.join(str_elm)
+        else:
+            return ''
