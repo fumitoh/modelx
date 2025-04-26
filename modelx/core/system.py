@@ -107,21 +107,24 @@ class NonThreadedExecutor:
                 self.excinfo,
                 self.rolledback
             )
+            e = self.excinfo[1]
             if self.is_formula_error_used:
                 errmsg = traceback.format_exception_only(
                     self.excinfo[0],
-                    self.excinfo[1]
+                    e
                 )
                 errmsg = "".join(errmsg)
+
+                if e.__cause__ is not None:
+                    cause = e.__cause__
+                    cause_traceback = ''.join(traceback.format_exception(type(cause), cause, cause.__traceback__))
+                    errmsg += "\nCaused by:\n" + cause_traceback
+
                 errmsg += self.errorstack.tracemessage()
-                err = FormulaError(
+                raise FormulaError(
                     "Error raised during formula execution\n" + errmsg)
-                if self.is_formula_error_handled:
-                    print(err, file=sys.stderr)
-                else:
-                    raise err
             else:
-                raise self.excinfo[1]
+                raise e
 
         else:
             return self.buffer
