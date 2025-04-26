@@ -1236,8 +1236,12 @@ class DocstringParser(BaseNodeParser):
     @classmethod
     def condition(cls, node, section, atok):
         if isinstance(node, cls.AST_NODE):
-            if isinstance(node.value, ast.Str):
-                return True
+            if sys.version_info >= (3, 8, 0):
+                if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                    return True
+            else:
+                if isinstance(node.value, ast.Str):
+                    return True
 
         return False
 

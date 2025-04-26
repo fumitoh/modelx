@@ -621,18 +621,22 @@ class CellsImpl(*_cells_impl_base):
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
-        is_derived=False, add_to_space=True, is_cached=True
+        is_derived=False, add_to_space=True, is_cached=True, edit_source=True
     ):
+        formula_temp = None
+        use_func_name = False
         # Determine name
         if base:
             name = base.name
         elif is_valid_name(name):
             pass
         elif formula:
-            name = Formula(formula).name
+            formula_temp = Formula(formula, edit_source=edit_source)
+            name = formula_temp.name
             if is_valid_name(name):
-                pass
+                use_func_name = True
             else:
+                use_func_name = False
                 name = space.cellsnamer.get_next(space.namespace)
         else:
             name = space.cellsnamer.get_next(space.namespace)
@@ -656,8 +660,10 @@ class CellsImpl(*_cells_impl_base):
             self.formula = NullFormula(NULL_FORMULA, name=name)
         elif isinstance(formula, Formula):
             self.formula = formula.__class__(formula, name=name)
+        elif use_func_name:
+            self.formula = formula_temp
         else:
-            self.formula = Formula(formula, name=name)
+            self.formula = Formula(formula, name=name, edit_source=edit_source)
 
         if base:
             self.is_cached = base.is_cached
@@ -875,12 +881,12 @@ class UserCellsImpl(CellsImpl):
     def __init__(
         self, space, name=None, formula=None, data=None, base=None,
         is_derived=False, add_to_space=True,
-        is_cached=True
+        is_cached=True, edit_source=True
     ):
         CellsImpl.__init__(
             self, space=space, name=name, formula=formula, data=data,
             base=base, is_derived=is_derived, add_to_space=add_to_space,
-            is_cached=is_cached
+            is_cached=is_cached, edit_source=edit_source
         )
 
     # ----------------------------------------------------------------------

@@ -94,7 +94,8 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12'
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13'
     ],
 
     # What does your project relate to?
@@ -123,7 +124,7 @@ setup(
     #  specifier string will prevent pip from installing the project on
     # other Python versions.
     # For example, if your package is for Python 3+ only, write:
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

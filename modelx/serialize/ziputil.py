@@ -22,10 +22,20 @@ import locale
 import os
 import warnings
 import time
+import tokenize
+
+
+def remove_extended_prefix(path):
+    path_str = str(path)
+    if path_str.startswith(r'\\?\UNC'):
+        # Replace '\\?\UNC\\' with '\\'
+        standard_path = r'\\' + path_str[8:]
+        return pathlib.Path(standard_path)
+    return path
 
 
 def get_archive_path(path: pathlib.Path, root: pathlib.Path):
-    return str(path.resolve().relative_to(root).as_posix())
+    return str(remove_extended_prefix(path.resolve()).relative_to(remove_extended_prefix(root)).as_posix())
 
 
 def make_parent_dir(path: pathlib.Path):
@@ -379,3 +389,65 @@ def read_file(callback, path: pathlib.Path, mode,
 
 def read_file_utf8(callback, path: pathlib.Path, mode, newline=None):
     return read_file(callback, path, mode, encoding="utf-8", newline=newline)
+
+
+def open_for_readline(filename):
+    """Open a file in read only mode using the encoding detected by
+    detect_encoding().
+    """
+    buffer = open(filename, 'rb')
+    try:
+        encoding, lines = tokenize.detect_encoding(buffer.readline)
+        buffer.seek(0)
+        text = io.TextIOWrapper(buffer, encoding, line_buffering=True)
+        text.mode = 'r'
+        return text
+    except:
+        buffer.close()
+        raise
+
+
+class FileForTokenizer:
+    def __init__(self, path):
+
+        root = find_zip_parent(path)
+        self.is_zip = False if not root else True
+
+        if not self.is_zip:
+            self.buffer = open(path, 'rb')
+            try:
+                encoding, lines = tokenize.detect_encoding(self.buffer.readline)
+                self.buffer.seek(0)
+                self.text = io.TextIOWrapper(self.buffer, encoding, line_buffering=True)
+                self.text.mode = 'r'
+            except:
+                self.buffer.close()
+                raise
+
+        else:
+            arch_path = get_archive_path(path, root)
+            try:
+                self.zip_file = zipfile.ZipFile(root, mode="r")
+            except:
+                self.zip_file.close()
+                raise
+            try:
+                self.buffer = self.zip_file.open(arch_path, mode='r')
+                encoding, lines = tokenize.detect_encoding(self.buffer.readline)
+                self.buffer.seek(0)
+                self.text = io.TextIOWrapper(self.buffer, encoding, line_buffering=True)
+                self.text.mode = 'r'
+            except:
+                self.buffer.close()
+                self.zip_file.close()
+                raise
+
+    def __enter__(self):
+        return self.text
+
+    def __exit__(self, type, value, traceback):
+        if not self.is_zip:
+            self.buffer.close()
+        else:
+            self.buffer.close()
+            self.zip_file.close()
