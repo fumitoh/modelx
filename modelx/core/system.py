@@ -121,8 +121,12 @@ class NonThreadedExecutor:
                     errmsg += "\nCaused by:\n" + cause_traceback
 
                 errmsg += self.errorstack.tracemessage()
-                raise FormulaError(
+                err = FormulaError(
                     "Error raised during formula execution\n" + errmsg)
+                if self.is_formula_error_handled:
+                    print(err, file=sys.stderr)
+                else:
+                    raise err
             else:
                 raise e
 
