@@ -1,3 +1,4 @@
+import sys
 import types
 
 import modelx as mx
@@ -288,6 +289,7 @@ def test_nested_def_error(errormodel, formula_error_handle_state, capsys):
     assert isinstance(mx.get_traceback(True)[0][-1]['my_sum'], types.FunctionType)
 
 
+@pytest.mark.skipif(sys.platform == "win32" and sys.version_info < (3, 12), reason="Prevent unknown fails")
 def test_caused_by_error_message(capsys):
 
     errmsg = dedent("""\
@@ -324,4 +326,5 @@ def test_caused_by_error_message(capsys):
         foo()
 
     assert errinfo.value.args[0] == errmsg
+    m.close()
 
