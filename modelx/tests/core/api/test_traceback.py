@@ -1,3 +1,4 @@
+import sys
 import types
 
 import modelx as mx
@@ -286,3 +287,44 @@ def test_nested_def_error(errormodel, formula_error_handle_state, capsys):
     assert mx.get_traceback(True)[0][:-1] == (cells.node(1), 4)
     assert mx.get_traceback(True)[0][-1]['t'] == 1
     assert isinstance(mx.get_traceback(True)[0][-1]['my_sum'], types.FunctionType)
+
+
+@pytest.mark.skipif(sys.platform == "win32" and sys.version_info < (3, 12), reason="Prevent unknown fails")
+def test_caused_by_error_message(capsys):
+
+    errmsg = dedent("""\
+    Error raised during formula execution
+    RuntimeError: Couldn't calculate myfunc
+    
+    Caused by:
+    Traceback (most recent call last):
+      File "<string>", line 3, in foo
+    IndexError: list index out of range
+    
+    Formula traceback:
+    0: CausedByErrorMessage.Space1.foo(), line 5
+    
+    Formula source:
+    def foo():
+        try:
+            return [0, 1, 2][3]
+        except Exception as e:
+            raise RuntimeError(f"Couldn't calculate myfunc") from e
+    """)
+
+    m = mx.new_model("CausedByErrorMessage")
+    s = m.new_space()
+
+    @mx.defcells(space=s)
+    def foo():
+        try:
+            return [0, 1, 2][3]
+        except Exception as e:
+            raise RuntimeError(f"Couldn't calculate myfunc") from e
+
+    with pytest.raises(FormulaError) as errinfo:
+        foo()
+
+    assert errinfo.value.args[0] == errmsg
+    m.close()
+
