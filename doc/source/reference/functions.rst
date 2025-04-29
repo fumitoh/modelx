@@ -20,10 +20,10 @@ Getting objects
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.get_models
-   ~modelx.get_object
-   ~modelx.cur_model
-   ~modelx.cur_space
+   ~get_models
+   ~get_object
+   ~cur_model
+   ~cur_space
 
 
 Creating objects
@@ -32,11 +32,11 @@ Creating objects
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.new_model
-   ~modelx.new_space
-   ~modelx.defcells
-   ~modelx.uncached
-   ~modelx.cached
+   ~new_model
+   ~new_space
+   ~defcells
+   ~uncached
+   ~cached
 
 
 Saving Models
@@ -45,10 +45,10 @@ Saving Models
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.write_model
-   ~modelx.zip_model
-   ~modelx.export_model
-   ~modelx.read_model
+   ~write_model
+   ~zip_model
+   ~export_model
+   ~read_model
 
 
 Recursion limit
@@ -57,8 +57,8 @@ Recursion limit
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.get_recursion
-   ~modelx.set_recursion
+   ~get_recursion
+   ~set_recursion
 
 
 Recalculation mode
@@ -67,8 +67,8 @@ Recalculation mode
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.get_recalc
-   ~modelx.set_recalc
+   ~get_recalc
+   ~set_recalc
 
 
 IPython configuration
@@ -77,8 +77,8 @@ IPython configuration
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.setup_ipython
-   ~modelx.restore_ipython
+   ~setup_ipython
+   ~restore_ipython
 
 
 
@@ -88,10 +88,10 @@ Tracing the call stack
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.start_stacktrace
-   ~modelx.stop_stacktrace
-   ~modelx.get_stacktrace
-   ~modelx.clear_stacktrace
+   ~start_stacktrace
+   ~stop_stacktrace
+   ~get_stacktrace
+   ~clear_stacktrace
 
 
 Error reporting
@@ -100,8 +100,8 @@ Error reporting
 .. autosummary::
    :toctree: generated/
 
-   ~modelx.get_error
-   ~modelx.get_traceback
-   ~modelx.trace_locals
-   ~modelx.use_formula_error
-   ~modelx.handle_formula_error
+   ~get_error
+   ~get_traceback
+   ~trace_locals
+   ~use_formula_error
+   ~handle_formula_error
