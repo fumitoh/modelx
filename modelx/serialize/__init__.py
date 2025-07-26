@@ -1,7 +1,11 @@
+import os
+import stat
+import errno
 import pathlib
 import importlib
 import shutil
 import json
+import sys
 import zipfile
 import modelx
 from . import ziputil
@@ -25,6 +29,22 @@ def _get_serializer(version):
         ".serializer_%s" % version, "modelx.serialize")
 
 
+def _handle_remove_readonly(func, path, exc):
+    # Workaround for WindowsError: [Error 5] Access is denied
+    # https://github.com/fumitoh/modelx/issues/181
+    # Modified from: https://stackoverflow.com/a/1214935/2400267
+
+    if sys.version_info >= (3, 12):
+        excvalue = exc
+    else:
+        excvalue = exc[1]
+    if func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
+        os.chmod(path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
+        func(path)
+    else:
+        raise
+
+
 def _increment_backups(
         model, base_path: pathlib.Path,
         max_backups=DEFAULT_MAX_BACKUPS, nth=0):
@@ -34,7 +54,14 @@ def _increment_backups(
     if backup_path.exists():
         if nth == max_backups:
             if backup_path.is_dir():
-                shutil.rmtree(backup_path)
+                kwargs = {}
+                if sys.platform == "win32":
+                    if sys.version_info >= (3, 12):
+                        kwargs["onexc"] = _handle_remove_readonly
+                    else:
+                        kwargs["onerror"] = _handle_remove_readonly
+
+                shutil.rmtree(backup_path, **kwargs)
             elif backup_path.is_file():
                 backup_path.unlink()
             else:
