@@ -12,8 +12,16 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *2 August 2025:*
+  modelx v0.28.1 is released. See :doc:`releases/relnotes_v0_28_1`.
+
+* *27 July 2025:*
+  spymx-kernels v0.2.1 is released. see :doc:`releases/spymx_kernels_relnotes`.
+
 * *19 April 2025:*
   spyder-modelx v0.14.0 is released. See :ref:`release-mxplugin-v0.14.0`.
+
+.. Latest Updates End
 
 * *7 December 2024:*
   modelx v0.28.0 is released. See :doc:`releases/relnotes_v0_28_0`.
@@ -32,8 +40,6 @@ Updates
 
 * *18 February 2024:*
   modelx v0.25.0 is released. See :doc:`releases/relnotes_v0_25_0`.
-
-.. Latest Updates End
 
 * *26 November 2023:*
   spyder-modelx v0.13.5 is released. See :ref:`release-mxplugin-v0.13.5`.
