@@ -4,10 +4,198 @@ import os.path
 import threading
 import traceback
 from collections import deque
+import networkx as nx
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.node import get_node_repr
-from modelx.core.node import OBJ, KEY, ItemNode
+from modelx.core.node import OBJ, KEY, ItemNode, node_has_key
 from modelx.core.errors import DeepReferenceError, FormulaError
+
+
+class TraceGraph(nx.DiGraph):
+    """Directed Graph of ObjectArgs"""
+
+    def remove_with_descs(self, source):
+        """Remove all descendants of(reachable from) `source`.
+
+        Args:
+            source: Node descendants
+        Returns:
+            set: The removed nodes.
+        """
+        if not self.has_node(source):
+            return set()
+        desc = nx.descendants(self, source)
+        desc.add(source)
+        self.remove_nodes_from(desc)
+        return desc
+
+    def clear_obj(self, obj):
+        """Remove all nodes with `obj` and their descendants."""
+        obj_nodes = self.get_nodes_with(obj)
+        removed = set()
+        for node in obj_nodes:
+            if self.has_node(node):
+                removed.update(self.remove_with_descs(node))
+        return removed
+
+    def get_nodes_with(self, obj):
+        """Return nodes with `obj`."""
+        result = set()
+
+        if nx.__version__[0] == "1":
+            nodes = self.nodes_iter()
+        else:
+            nodes = self.nodes
+
+        for node in nodes:
+            if node[OBJ] == obj:
+                result.add(node)
+        return result
+
+    def get_startnodes_from(self, node):
+        if node in self:
+            return [n for n in nx.descendants(self, node)
+                    if self.out_degree(n) == 0]
+        else:
+            return []
+
+    def fresh_copy(self):
+        """Overriding Graph.fresh_copy"""
+        return TraceGraph()
+
+    def add_path(self, nodes, **attr):
+        """(Not used anymore) In replacement for Deprecated add_path method"""
+        if nx.__version__[0] == "1":
+            return super().add_path(nodes, **attr)
+        else:
+            return nx.add_path(self, nodes, **attr)
+
+
+class ReferenceGraph(nx.DiGraph):
+
+    def remove_with_descs(self, ref):
+        if ref not in self:
+            return set()
+        desc = nx.descendants(self, ref)
+        self.remove_nodes_from((ref, *desc))
+        return desc     # Not including ref
+
+    def remove_with_referred(self, nodes):
+        """Remove nodes that refer to ref nodes.
+
+        If the referred ref nodes become isolated, also remove them.
+        """
+        refs = []
+        for n in nodes:
+            if self.has_node(n):
+                for pred in self.predecessors(n):
+                    if pred not in refs:
+                        refs.append(pred)
+        self.remove_nodes_from(nodes)
+        for n in refs:
+            if self.degree(n) == 0:
+                self.remove_node(n)
+
+
+class TraceManager:
+
+    __slots__ = ()
+    __mixin_slots = (
+        "tracegraph",
+        "refgraph"
+    )
+
+    def __init__(self):
+        self.tracegraph = TraceGraph()
+        self.refgraph = ReferenceGraph()
+
+    def clear_with_descs(self, node):
+        """Clear values and nodes calculated from `source`."""
+        removed = self.tracegraph.remove_with_descs(node)
+        self.refgraph.remove_with_referred(removed)
+        for node in removed:
+            node[OBJ].on_clear_trace(node[KEY])
+
+    def clear_obj(self, obj):
+        """Clear values and nodes of `obj` and their dependants."""
+        removed = self.tracegraph.clear_obj(obj)
+        self.refgraph.remove_with_referred(removed)
+        for node in removed:
+            if node_has_key(node):
+                node[OBJ].on_clear_trace(node[KEY])
+
+    def clear_attr_referrers(self, ref):
+        removed = self.refgraph.remove_with_descs(ref)
+        for node in removed:
+            descs = self.tracegraph.remove_with_descs(node)
+            for desc in descs:
+                desc[OBJ].on_clear_trace(desc[KEY])
+
+    def get_calcsteps(self, targets, nodes, step_size):
+        """ Get calculation steps
+        Calculate a new block
+        Find nodes to paste in the block
+        Find nodes to clear from the earlier blocks
+        Push the paste node in the earlier blocks
+        """
+        subgraph = self.tracegraph.subgraph(nodes)
+
+        ordered = list(nx.topological_sort(subgraph))
+        node_len = len(ordered)
+
+        pasted = []         # in reverse order
+        step = 0
+        result = []
+        while step * step_size < node_len:
+
+            start = step * step_size
+            stop = min(node_len, (step + 1) * step_size)
+
+            cur_block = ordered[start:stop]
+            cur_paste = []
+            cur_clear = []
+            cur_targets = []    # also included in cur_paste
+            for n in cur_block:
+
+                paste = False
+                if n in targets:
+                    cur_targets.append(n)
+                    paste = True
+                else:
+                    for suc in subgraph.successors(n):
+                        if suc not in cur_block:
+                            paste = True
+                            break
+                if paste:
+                    cur_paste.append(n)
+                else:
+                    cur_clear.append(n)
+
+            accum_nodes = set(ordered[:stop])
+            for n in pasted.copy():
+
+                paste = False
+                for suc in subgraph.successors(n):
+                    if suc not in accum_nodes:
+                        paste = True
+                        break
+
+                if not paste:
+                    cur_clear.append(n)
+                    pasted.remove(n)
+
+            for n in cur_paste:
+                if n not in cur_targets:
+                    pasted.append(n)
+
+            result.append(['calc', [ItemNode(n) for n in cur_block]])
+            result.append(['paste', [ItemNode(n) for n in reversed(cur_paste)]])
+            result.append(['clear', [ItemNode(n) for n in cur_clear]])
+
+            step += 1
+
+        assert not pasted
+        return result
 
 
 class NonThreadedExecutor:
