@@ -211,7 +211,7 @@ class Impl(BaseImpl):
 
     @property
     def evalrepr(self):
-        """Evaluable repr"""
+        """TraceObject repr"""
         if self.is_model():
             return self.get_fullname()
         else:

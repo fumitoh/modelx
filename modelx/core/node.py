@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from modelx.core.trace import OBJ, KEY, get_node
+from modelx.core.trace import OBJ, KEY, get_node, TraceObject, TraceKey
 
 
 class BaseNode:
@@ -143,8 +143,6 @@ class ItemNode(BaseNode):
             :meth:`Cells.precedents<modelx.core.cells.Cells.precedents>`,
             :meth:`Space.precedents<modelx.core.space.UserSpace.precedents>`
 
-
-
         """
         return (self.preds + self._impl[OBJ].get_valuerefs()
                 + self._impl[OBJ].get_attrpreds(self.args, {}))
@@ -240,6 +238,7 @@ class ObjectNode(BaseNode):
 
 class ItemFactory:
 
+    _impl: TraceObject
     __slots__ = ()
 
     def node(self, *args, **kwargs):

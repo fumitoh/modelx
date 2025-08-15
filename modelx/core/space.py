@@ -55,7 +55,7 @@ from modelx.core.trace import (
     key_to_node,
     OBJ,
     KEY,
-    ParentEvaluable
+    ParentTraceObject
 )
 from modelx.core.node import (
     ItemFactory,
@@ -1343,7 +1343,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
 _base_space_impl_base = (
     NamespaceServer,
     ItemSpaceParent,
-    ParentEvaluable,
+    ParentTraceObject,
     BaseParentImpl,
     Impl
 )
@@ -1420,10 +1420,10 @@ class BaseSpaceImpl(*_base_space_impl_base):
                 ReferenceImpl(self, key, value, container=self._own_refs,
                               refmode="auto")
 
-        ParentEvaluable.__init__(self, tracemgr=self.model)
+        ParentTraceObject.__init__(self, tracemgr=self.model)
 
     # ----------------------------------------------------------------------
-    # ParentEvaluable implementation
+    # ParentTraceObject implementation
 
     def get_nodes_for(self, key):
         root = self.param_spaces[key]
@@ -2213,7 +2213,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
 
     @property
     def evalrepr(self):
-        """Evaluable repr"""
+        """TraceObject repr"""
         args = [repr(arg) for arg in get_interface_list(self.argvalues)]
         param = ", ".join(args)
         return "%s(%s)" % (self.parent.evalrepr, param)
