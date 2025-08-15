@@ -43,8 +43,15 @@ def test_farthest_first(duplicate_inheritance_model):
     assert "Under Base3" == m.Sub.Child.GChild.foo()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def property_sample():
+    """
+        m--------Base---------foo
+           |            +-----bar
+           |            +-----baz
+           +-----Sub(Base)
+
+    """
 
     m = mx.new_model("PropertySample")
     base = m.new_space("Base")

@@ -79,7 +79,7 @@ class ReferenceImpl(Derivable, Impl):
 
     def on_inherit(self, updater, bases):
 
-        self.model.clear_obj(self)
+        self.model.clear_attr_referrers(self)
         if bases[0].has_interface():
 
             if self.refmode == "absolute":
