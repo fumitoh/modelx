@@ -16,16 +16,48 @@ from collections import deque
 from typing import Any, Tuple
 import networkx as nx
 
+
+TraceKey = Tuple[Any, ...]
+
+class TraceObject:
+
+    __slots__ = ()
+    __mixin_slots = ("is_cached", "tracemgr")   # and "data"
+
+    def __init__(self, tracemgr):
+        self.tracemgr = tracemgr
+
+    def has_node(self, key: TraceKey) -> bool:
+        raise NotImplementedError
+
+    def on_eval_formula(self) -> Any:
+        raise NotImplementedError
+
+    def on_clear_trace(self, key: TraceKey) -> None:
+        raise NotImplementedError
+
+
+class ParentTraceObject(TraceObject):
+
+    __slots__ = ()
+    __mixin_slots = ()
+
+    def get_nodes_for(self, key: TraceKey):
+        raise NotImplementedError
+
+
+TraceNode = Tuple[TraceObject, TraceKey]
+
 OBJ = 0
 KEY = 1
 
 
-def key_to_node(obj, key):
+def key_to_node(obj: TraceObject, key: TraceKey) -> TraceNode:
     """Return node form object ane ky"""
-    return (obj, key)
+    return obj, key
 
 
-def get_node(obj, args, kwargs):
+def get_node(obj: TraceObject, args, kwargs) -> TraceNode:
     """Create a node from arguments and return it"""
 
     if args is None and kwargs is None:
@@ -36,7 +68,7 @@ def get_node(obj, args, kwargs):
     return obj, _bind_args(obj, args, kwargs)
 
 
-def node_get_args(node):
+def node_get_args(node: TraceNode) -> TraceKey:
     """Return an ordered mapping from params to args"""
     obj = node[OBJ]
     key = node[KEY]
@@ -64,13 +96,13 @@ def tuplize_key(obj, key, remove_extra=False):
             return key
 
 
-def _bind_args(obj, args, kwargs):
+def _bind_args(obj: TraceObject, args, kwargs) -> TraceKey:
     boundargs = obj.formula.signature.bind(*args, **kwargs)
     boundargs.apply_defaults()
     return tuple(boundargs.arguments.values())
 
 
-def get_node_repr(node):
+def get_node_repr(node: TraceNode) -> str:
 
     obj = node[OBJ]
     key = node[KEY]
@@ -86,34 +118,6 @@ def get_node_repr(node):
         return name + "(" + arglist + ")" + "=" + str(obj.data[key])
     else:
         return name + "(" + arglist + ")"
-
-
-class Evaluable:
-
-    __slots__ = ()
-    __mixin_slots = ("is_cached", "tracemgr")   # and "data"
-
-    def __init__(self, tracemgr):
-        self.tracemgr = tracemgr
-
-    def has_node(self, key: Tuple[Any, ...]) -> bool:
-        raise NotImplementedError
-
-    def on_eval_formula(self) -> Any:
-        raise NotImplementedError
-
-    def on_clear_trace(self, key: Tuple[Any, ...]) -> None:
-        raise NotImplementedError
-
-
-class ParentEvaluable(Evaluable):
-
-    __slots__ = ()
-    __mixin_slots = ()
-
-    def get_nodes_for(self, key):
-        raise NotImplementedError
-
 
 
 class TraceGraph(nx.DiGraph):
@@ -205,7 +209,7 @@ class TraceManager:
                 edges.append(e_or_n)
             elif s == TraceGraph.NODE:
                 dfs.append(e_or_n)
-                if isinstance(e_or_n[OBJ], ParentEvaluable):
+                if isinstance(e_or_n[OBJ], ParentTraceObject):
                     parents.append(e_or_n)
 
         if not parents:
@@ -221,7 +225,7 @@ class TraceManager:
                         if s == TraceGraph.EDGE:
                             g.add_edge(*e_or_n)
                         elif s == TraceGraph.NODE:
-                            if isinstance(e_or_n[OBJ], ParentEvaluable):
+                            if isinstance(e_or_n[OBJ], ParentTraceObject):
                                 parents.append(e_or_n)
             return deque(nx.dfs_postorder_nodes(g, source))
 
@@ -233,7 +237,7 @@ class TraceManager:
             if n[OBJ].is_cached:
                 n[OBJ].on_clear_trace(n[KEY])
 
-    def clear_obj(self, obj):
+    def clear_obj(self, obj: TraceObject):
         """Clear values and nodes of `obj` and their dependants."""
         if not obj.is_cached:
             self.clear_with_descs((obj,))

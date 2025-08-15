@@ -21,7 +21,7 @@ from modelx.core.base import (
     Impl, Derivable, Interface, get_mixin_slots,
 )
 from modelx.core.trace import (
-    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node, Evaluable
+    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node, TraceObject
 )
 from modelx.core.formula import (
     Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring,
@@ -601,7 +601,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         self._impl.set_doc(doc, insert_indents=insert_indents)
 
 
-_cells_impl_base = (BaseNamespaceReferrer, Derivable, ItemFactoryImpl, Evaluable,
+_cells_impl_base = (BaseNamespaceReferrer, Derivable, ItemFactoryImpl, TraceObject,
                     HasFormula, Impl)
 
 
@@ -684,7 +684,7 @@ class CellsImpl(*_cells_impl_base):
         else:
             self.altfunc = CellsBoundFunction(self)
 
-        Evaluable.__init__(self, tracemgr=self.model)
+        TraceObject.__init__(self, tracemgr=self.model)
 
     def on_namespace_change(self):
         self.clear_all_values(clear_input=False)
