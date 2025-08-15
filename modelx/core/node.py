@@ -144,8 +144,7 @@ class ItemNode(BaseNode):
             :meth:`Space.precedents<modelx.core.space.UserSpace.precedents>`
 
         """
-        return (self.preds + self._impl[OBJ].get_valuerefs()
-                + self._impl[OBJ].get_attrpreds(self.args, {}))
+        return self.obj.precedents(*self.args)
 
     def __repr__(self):
 
