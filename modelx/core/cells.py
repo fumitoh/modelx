@@ -20,9 +20,8 @@ from types import FunctionType
 from modelx.core.base import (
     Impl, Derivable, Interface, get_mixin_slots,
 )
-from modelx.core.node import (
-    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node,
-    ObjectNode, Evaluable
+from modelx.core.trace import (
+    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node, Evaluable
 )
 from modelx.core.formula import (
     Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring,
