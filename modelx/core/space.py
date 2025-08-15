@@ -48,16 +48,18 @@ from modelx.core.reference import (
     ReferenceImpl,
     ReferenceProxy
 )
-from modelx.core.node import (
+from modelx.core.trace import (
     node_get_args,
     tuplize_key,
     get_node,
     key_to_node,
     OBJ,
     KEY,
+    ParentEvaluable
+)
+from modelx.core.node import (
     ItemFactory,
     ItemFactoryImpl,
-    ParentEvaluable
 )
 from modelx.core.parent import (
     BaseParent,

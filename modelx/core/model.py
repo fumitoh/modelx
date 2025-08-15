@@ -44,7 +44,7 @@ from modelx.core.space import (
 )
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
-from modelx.core.execution import TraceManager
+from modelx.core.trace import TraceManager
 
 
 class IOSpecOperation:
