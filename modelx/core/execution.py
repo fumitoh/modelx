@@ -4,39 +4,27 @@ import os.path
 import threading
 import traceback
 from collections import deque
+from typing import Any, Tuple
 import networkx as nx
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.node import get_node_repr
-from modelx.core.node import OBJ, KEY, ItemNode, node_has_key
+from modelx.core.node import OBJ, KEY, ItemNode, Evaluable, ParentEvaluable
 from modelx.core.errors import DeepReferenceError, FormulaError
 
 
 class TraceGraph(nx.DiGraph):
     """Directed Graph of ObjectArgs"""
 
-    def remove_with_descs(self, source):
-        """Remove all descendants of(reachable from) `source`.
+    NODE = 1
+    EDGE = 2
 
-        Args:
-            source: Node descendants
-        Returns:
-            set: The removed nodes.
-        """
-        if not self.has_node(source):
-            return set()
-        desc = nx.descendants(self, source)
-        desc.add(source)
-        self.remove_nodes_from(desc)
-        return desc
-
-    def clear_obj(self, obj):
-        """Remove all nodes with `obj` and their descendants."""
-        obj_nodes = self.get_nodes_with(obj)
-        removed = set()
-        for node in obj_nodes:
-            if self.has_node(node):
-                removed.update(self.remove_with_descs(node))
-        return removed
+    def _dfs_edges_and_postorder(self, source):
+        """Single-pass stream of DFS tree-edges and postorder nodes."""
+        for u, v, lbl in nx.dfs_labeled_edges(self, source=source):
+            if lbl == "forward" and u != v:  # skip the (root, root) pseudo-edge
+                yield self.EDGE, (u, v)  # matches what dfs_edges() would yield
+            elif lbl == "reverse":  # v just finished => postorder event
+                yield self.NODE, v  # includes the root as the last 'post'
 
     def get_nodes_with(self, obj):
         """Return nodes with `obj`."""
@@ -63,35 +51,30 @@ class TraceGraph(nx.DiGraph):
         """Overriding Graph.fresh_copy"""
         return TraceGraph()
 
-    def add_path(self, nodes, **attr):
-        """(Not used anymore) In replacement for Deprecated add_path method"""
-        if nx.__version__[0] == "1":
-            return super().add_path(nodes, **attr)
-        else:
-            return nx.add_path(self, nodes, **attr)
-
 
 class ReferenceGraph(nx.DiGraph):
 
     def remove_with_descs(self, ref):
         if ref not in self:
-            return set()
-        desc = nx.descendants(self, ref)
-        self.remove_nodes_from((ref, *desc))
-        return desc     # Not including ref
+            return deque()
 
-    def remove_with_referred(self, nodes):
+        descs = deque(nx.dfs_postorder_nodes(self, ref)) # includes ref
+        self.remove_nodes_from(descs)
+        descs.pop()     # remove ref
+
+        return descs
+
+    def remove_with_referred(self, node):
         """Remove nodes that refer to ref nodes.
 
         If the referred ref nodes become isolated, also remove them.
         """
-        refs = []
-        for n in nodes:
-            if self.has_node(n):
-                for pred in self.predecessors(n):
-                    if pred not in refs:
-                        refs.append(pred)
-        self.remove_nodes_from(nodes)
+        if not self.has_node(node):
+            return
+
+        refs = list(self.predecessors(node))
+        self.remove_node(node)
+
         for n in refs:
             if self.degree(n) == 0:
                 self.remove_node(n)
@@ -106,30 +89,74 @@ class TraceManager:
     )
 
     def __init__(self):
-        self.tracegraph = TraceGraph()
-        self.refgraph = ReferenceGraph()
+        self.tracegraph: TraceGraph = TraceGraph()
+        self.refgraph: ReferenceGraph = ReferenceGraph()
+
+    def _extended_dfs_nodes(self, source):
+        dfs = deque()
+        parents = deque()
+        edges = []
+        for s, e_or_n in self.tracegraph._dfs_edges_and_postorder(source):
+            if s == TraceGraph.EDGE:
+                edges.append(e_or_n)
+            elif s == TraceGraph.NODE:
+                dfs.append(e_or_n)
+                if isinstance(e_or_n[OBJ], ParentEvaluable):
+                    parents.append(e_or_n)
+
+        if not parents:
+            return dfs
+        else:
+            g = nx.DiGraph(edges)
+            g.add_node(source)  # in case source is isolated
+            while parents:
+                p = parents.popleft()
+                for child in p[OBJ].get_nodes_for(p[KEY]):
+                    g.add_edge(p, child)
+                    for s, e_or_n in self.tracegraph._dfs_edges_and_postorder(child):
+                        if s == TraceGraph.EDGE:
+                            g.add_edge(*e_or_n)
+                        elif s == TraceGraph.NODE:
+                            if isinstance(e_or_n[OBJ], ParentEvaluable):
+                                parents.append(e_or_n)
+            return deque(nx.dfs_postorder_nodes(g, source))
 
     def clear_with_descs(self, node):
         """Clear values and nodes calculated from `source`."""
-        removed = self.tracegraph.remove_with_descs(node)
-        self.refgraph.remove_with_referred(removed)
-        for node in removed:
-            node[OBJ].on_clear_trace(node[KEY])
+        for n in self._extended_dfs_nodes(node):
+            self.tracegraph.remove_node(n)
+            self.refgraph.remove_with_referred(n)
+            if n[OBJ].is_cached:
+                n[OBJ].on_clear_trace(n[KEY])
 
     def clear_obj(self, obj):
         """Clear values and nodes of `obj` and their dependants."""
-        removed = self.tracegraph.clear_obj(obj)
-        self.refgraph.remove_with_referred(removed)
-        for node in removed:
-            if node_has_key(node):
-                node[OBJ].on_clear_trace(node[KEY])
+        if not obj.is_cached:
+            self.clear_with_descs((obj,))
+            return
+
+        keys = deque(obj.data)
+        removed = set()
+
+        while keys:
+            k = keys.popleft()
+            if (obj, k) not in removed:
+                for n in self._extended_dfs_nodes((obj, k)):
+                    self.tracegraph.remove_node(n)
+                    self.refgraph.remove_with_referred(n)
+                    if n[OBJ].is_cached:
+                        n[OBJ].on_clear_trace(n[KEY])
+                    removed.add(n)
 
     def clear_attr_referrers(self, ref):
-        removed = self.refgraph.remove_with_descs(ref)
-        for node in removed:
-            descs = self.tracegraph.remove_with_descs(node)
-            for desc in descs:
-                desc[OBJ].on_clear_trace(desc[KEY])
+        descs = self.refgraph.remove_with_descs(ref)
+        while descs:
+            node = descs.popleft()
+            if node in self.tracegraph:
+                for n in self._extended_dfs_nodes(node):
+                    self.tracegraph.remove_node(n)
+                    if n[OBJ].is_cached:
+                        n[OBJ].on_clear_trace(n[KEY])
 
     def get_calcsteps(self, targets, nodes, step_size):
         """ Get calculation steps

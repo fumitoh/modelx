@@ -19,6 +19,7 @@ import typing
 import uuid
 import weakref
 import warnings
+from collections import deque
 from collections.abc import Sequence, Mapping
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
@@ -55,7 +56,8 @@ from modelx.core.node import (
     OBJ,
     KEY,
     ItemFactory,
-    ItemFactoryImpl
+    ItemFactoryImpl,
+    ParentEvaluable
 )
 from modelx.core.parent import (
     BaseParent,
@@ -1339,6 +1341,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
 _base_space_impl_base = (
     NamespaceServer,
     ItemSpaceParent,
+    ParentEvaluable,
     BaseParentImpl,
     Impl
 )
@@ -1414,6 +1417,27 @@ class BaseSpaceImpl(*_base_space_impl_base):
             for key, value in refs.items():
                 ReferenceImpl(self, key, value, container=self._own_refs,
                               refmode="auto")
+
+        ParentEvaluable.__init__(self, tracemgr=self.model)
+
+    # ----------------------------------------------------------------------
+    # ParentEvaluable implementation
+
+    def get_nodes_for(self, key):
+        root = self.param_spaces[key]
+        for c in root.cells.values():
+            for key in c.data:
+                yield c, key
+
+        queue = deque()
+        queue.append(root)
+        while queue:
+            obj = queue.popleft()
+            for k, _ in obj.param_spaces.items():
+                yield obj, k
+            for child in obj.named_spaces.values():
+                queue.append(child)
+
 
     def __getstate__(self):
         d = {attr: getattr(self, attr)
@@ -1888,7 +1912,7 @@ class UserSpaceImpl(*_user_space_impl_base):
 
     def on_sort_cells(self, space):
 
-        for c in space.cells:
+        for c in space.cells.values():
             self.model.clear_obj(c)
 
         if self.bases:

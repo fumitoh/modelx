@@ -13,13 +13,10 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from collections.abc import Sequence
+from typing import Any, Tuple
 
 OBJ = 0
 KEY = 1
-
-
-def node_has_key(node):
-    return len(node) > 1
 
 
 def key_to_node(obj, key):
@@ -88,6 +85,33 @@ def get_node_repr(node):
         return name + "(" + arglist + ")" + "=" + str(obj.data[key])
     else:
         return name + "(" + arglist + ")"
+
+
+class Evaluable:
+
+    __slots__ = ()
+    __mixin_slots = ("is_cached", "tracemgr")   # and "data"
+
+    def __init__(self, tracemgr):
+        self.tracemgr = tracemgr
+
+    def has_node(self, key: Tuple[Any, ...]) -> bool:
+        raise NotImplementedError
+
+    def on_eval_formula(self) -> Any:
+        raise NotImplementedError
+
+    def on_clear_trace(self, key: Tuple[Any, ...]) -> None:
+        raise NotImplementedError
+
+
+class ParentEvaluable(Evaluable):
+
+    __slots__ = ()
+    __mixin_slots = ()
+
+    def get_nodes_for(self, key):
+        raise NotImplementedError
 
 
 class BaseNode:
