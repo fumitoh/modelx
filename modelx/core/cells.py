@@ -29,7 +29,7 @@ from modelx.core.formula import (
 )
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
-from modelx.core.node import ItemFactory, ItemFactoryImpl
+from modelx.core.node import NodeFactory, NodeFactoryImpl
 from modelx.core.namespace import BaseNamespaceReferrer
 
 
@@ -96,7 +96,7 @@ class CellsMaker:
 ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
 
 
-class Cells(Interface, Mapping, Callable, ItemFactory):
+class Cells(Interface, Mapping, Callable, NodeFactory):
     """Data container with a formula to calculate its own values.
 
     Cells are created by :meth:`~modelx.core.space.UserSpace.new_cells`
@@ -601,7 +601,7 @@ class Cells(Interface, Mapping, Callable, ItemFactory):
         self._impl.set_doc(doc, insert_indents=insert_indents)
 
 
-_cells_impl_base = (BaseNamespaceReferrer, Derivable, ItemFactoryImpl, TraceObject,
+_cells_impl_base = (BaseNamespaceReferrer, Derivable, NodeFactoryImpl, TraceObject,
                     HasFormula, Impl)
 
 
