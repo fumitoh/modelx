@@ -19,6 +19,7 @@ import typing
 import uuid
 import weakref
 import warnings
+from collections import deque
 from collections.abc import Sequence, Mapping
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
@@ -47,15 +48,18 @@ from modelx.core.reference import (
     ReferenceImpl,
     ReferenceProxy
 )
-from modelx.core.node import (
+from modelx.core.trace import (
     node_get_args,
     tuplize_key,
     get_node,
     key_to_node,
     OBJ,
     KEY,
-    ItemFactory,
-    ItemFactoryImpl
+    ParentTraceObject
+)
+from modelx.core.node import (
+    NodeFactory,
+    NodeFactoryImpl,
 )
 from modelx.core.parent import (
     BaseParent,
@@ -297,7 +301,7 @@ class RefView(SelectedView):
         return result
 
 
-class BaseSpace(BaseParent, ItemFactory):
+class BaseSpace(BaseParent, NodeFactory):
 
     __slots__ = ()
 
@@ -1163,7 +1167,7 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.doc = value
 
 
-class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
+class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
 
     __slots__ = ()
     __mixin_slots = (
@@ -1327,7 +1331,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         return space
 
     # ----------------------------------------------------------------------
-    # ItemFactoryImpl override
+    # NodeFactoryImpl override
 
     def has_node(self, key):
         return key in self.param_spaces
@@ -1339,6 +1343,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
 _base_space_impl_base = (
     NamespaceServer,
     ItemSpaceParent,
+    ParentTraceObject,
     BaseParentImpl,
     Impl
 )
@@ -1414,6 +1419,27 @@ class BaseSpaceImpl(*_base_space_impl_base):
             for key, value in refs.items():
                 ReferenceImpl(self, key, value, container=self._own_refs,
                               refmode="auto")
+
+        # ParentTraceObject.__init__(self, tracemgr=self.model)
+
+    # ----------------------------------------------------------------------
+    # ParentTraceObject implementation
+
+    def get_nodes_for(self, key):
+        root = self.param_spaces[key]
+        for c in root.cells.values():
+            for key in c.data:
+                yield c, key
+
+        queue = deque()
+        queue.append(root)
+        while queue:
+            obj = queue.popleft()
+            for k, _ in obj.param_spaces.items():
+                yield obj, k
+            for child in obj.named_spaces.values():
+                queue.append(child)
+
 
     def __getstate__(self):
         d = {attr: getattr(self, attr)
@@ -1888,7 +1914,7 @@ class UserSpaceImpl(*_user_space_impl_base):
 
     def on_sort_cells(self, space):
 
-        for c in space.cells:
+        for c in space.cells.values():
             self.model.clear_obj(c)
 
         if self.bases:
@@ -2187,7 +2213,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
 
     @property
     def evalrepr(self):
-        """Evaluable repr"""
+        """TraceObject repr"""
         args = [repr(arg) for arg in get_interface_list(self.argvalues)]
         param = ", ".join(args)
         return "%s(%s)" % (self.parent.evalrepr, param)

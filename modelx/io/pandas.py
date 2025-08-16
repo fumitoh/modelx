@@ -17,7 +17,7 @@ import itertools
 import pandas as pd
 import numpy as np
 
-from modelx.core.node import tuplize_key
+from modelx.core.trace import tuplize_key
 from modelx.core.util import is_valid_name, get_param_func
 
 _pd_ver = tuple(int(i) for i in pd.__version__.split("."))[:-1]

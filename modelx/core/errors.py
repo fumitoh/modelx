@@ -13,7 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from textwrap import dedent
-from modelx.core.node import get_node_repr
+from modelx.core.trace import get_node_repr
 
 """
 modelx errors & warnings

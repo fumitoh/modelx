@@ -34,6 +34,7 @@ def test_dynref(dynref_model):
 
     m.A.B.C.bar = m.A.B.C.foo
     m.D.baz = m.D.C
+    assert m.D.C.bar is m.D.C.foo
     assert m.D[1].C.bar is m.D[1].C.foo
     assert m.D[1].baz is m.D[1].C
 

@@ -12,82 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections.abc import Sequence
-
-OBJ = 0
-KEY = 1
-
-
-def node_has_key(node):
-    return len(node) > 1
-
-
-def key_to_node(obj, key):
-    """Return node form object ane ky"""
-    return (obj, key)
-
-
-def get_node(obj, args, kwargs):
-    """Create a node from arguments and return it"""
-
-    if args is None and kwargs is None:
-        return (obj,)
-
-    if kwargs is None:
-        kwargs = {}
-    return obj, _bind_args(obj, args, kwargs)
-
-
-def node_get_args(node):
-    """Return an ordered mapping from params to args"""
-    obj = node[OBJ]
-    key = node[KEY]
-    boundargs = obj.formula.signature.bind(*key)
-    boundargs.apply_defaults()
-    return boundargs.arguments
-
-
-def tuplize_key(obj, key, remove_extra=False):
-    """Args"""
-
-    if key.__class__ is tuple:  # Not isinstance(key, tuple) for speed
-        pass
-    else:
-        key = (key,)
-
-    if not remove_extra:
-        return key
-    else:
-        paramlen = len(obj.formula.parameters)
-        arglen = len(key)
-        if arglen:
-            return key[: min(arglen, paramlen)]
-        else:
-            return key
-
-
-def _bind_args(obj, args, kwargs):
-    boundargs = obj.formula.signature.bind(*args, **kwargs)
-    boundargs.apply_defaults()
-    return tuple(boundargs.arguments.values())
-
-
-def get_node_repr(node):
-
-    obj = node[OBJ]
-    key = node[KEY]
-
-    name = obj.get_repr(fullname=True, add_params=False)
-    params = obj.formula.parameters
-
-    arglist = ", ".join(
-        "%s=%s" % (param, arg) for param, arg in zip(params, key)
-    )
-
-    if key in obj.data:
-        return name + "(" + arglist + ")" + "=" + str(obj.data[key])
-    else:
-        return name + "(" + arglist + ")"
+from modelx.core.trace import OBJ, KEY, get_node, TraceObject, TraceKey
 
 
 class BaseNode:
@@ -218,11 +143,8 @@ class ItemNode(BaseNode):
             :meth:`Cells.precedents<modelx.core.cells.Cells.precedents>`,
             :meth:`Space.precedents<modelx.core.space.UserSpace.precedents>`
 
-
-
         """
-        return (self.preds + self._impl[OBJ].get_valuerefs()
-                + self._impl[OBJ].get_attrpreds(self.args, {}))
+        return self.obj.precedents(*self.args)
 
     def __repr__(self):
 
@@ -313,8 +235,9 @@ class ObjectNode(BaseNode):
                 return name + "(" + params + ")"
 
 
-class ItemFactory:
+class NodeFactory:
 
+    _impl: TraceObject
     __slots__ = ()
 
     def node(self, *args, **kwargs):
@@ -413,7 +336,7 @@ class ItemFactory:
                 + self._impl.get_attrpreds(args, kwargs))
 
 
-class ItemFactoryImpl:
+class NodeFactoryImpl:
 
     __slots__ = ()
     __mixin_slots = ()
