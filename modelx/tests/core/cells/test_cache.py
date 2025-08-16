@@ -10,7 +10,7 @@ def test_cache(cache_sample, space):
     s.foo.is_cached = False
     s.baz(3)
 
-    nodes = s.baz.preds(3)
+    nodes = s.baz.precedents(3)
     print(nodes)
 
     assert repr(nodes[-1]) == f"cache_sample.{space}.foo(other, x)"
@@ -61,7 +61,7 @@ def test_cached_in_uncached(pattern):
     foo(3)
     foo2(3)
 
-    for preds in [foo.preds(3), foo2.preds(3)]:
+    for preds in [foo.precedents(3), foo2.precedents(3)]:
         assert preds[0].obj is baz
         assert preds[0].args == (3,)
         assert preds[1].obj is bar
@@ -126,7 +126,7 @@ def test_unhashable_arg():
 
     foo(0)
 
-    assert foo.preds(0)[0].obj is bar
-    assert foo.preds(0)[0].args is None
+    assert foo.precedents(0)[0].obj is bar
+    assert foo.precedents(0)[0].args is None
 
     m.close()
