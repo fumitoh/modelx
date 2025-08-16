@@ -684,7 +684,7 @@ class CellsImpl(*_cells_impl_base):
         else:
             self.altfunc = CellsBoundFunction(self)
 
-        TraceObject.__init__(self, tracemgr=self.model)
+        # TraceObject.__init__(self, tracemgr=self.model)
 
     def on_namespace_change(self):
         self.clear_all_values(clear_input=False)

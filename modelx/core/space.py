@@ -1420,7 +1420,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
                 ReferenceImpl(self, key, value, container=self._own_refs,
                               refmode="auto")
 
-        ParentTraceObject.__init__(self, tracemgr=self.model)
+        # ParentTraceObject.__init__(self, tracemgr=self.model)
 
     # ----------------------------------------------------------------------
     # ParentTraceObject implementation
