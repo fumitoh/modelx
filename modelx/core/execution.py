@@ -4,10 +4,11 @@ import os.path
 import threading
 import traceback
 from collections import deque
+from typing import Optional
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.errors import DeepReferenceError, FormulaError
 from modelx.core.trace import (
-    OBJ, KEY, get_node_repr, TraceObject, ParentTraceObject, TraceKey, TraceNode
+    OBJ, KEY, get_node_repr, TraceObject, TraceGraph, ReferenceGraph, TraceKey, TraceNode
 )
 
 
@@ -19,7 +20,9 @@ class NonThreadedExecutor:
         self.errorstack = None
         self.rolledback = deque()
         self.callstack = CallStack(self, maxdepth)
-        self.is_executing = False
+        self.is_executing: bool = False
+        self.tracegraph: Optional[TraceGraph] = None
+        self.refgraph: Optional[ReferenceGraph] = None
         self.is_formula_error_used = True
         self.is_formula_error_handled = False
 
@@ -34,7 +37,7 @@ class NonThreadedExecutor:
                 # Shortcut for append & pop for performance
                 pred = self.callstack.idxstack[-1]
                 if pred >= 0:
-                    obj.model.tracegraph.add_edge(node, self.callstack[pred])
+                    self.tracegraph.add_edge(node, self.callstack[pred])
                 # self.callstack.append(node)
                 # self.callstack.pop()
         else:
@@ -66,6 +69,8 @@ class NonThreadedExecutor:
         self.excinfo = None
         self.errorstack = None
         self.is_executing = True
+        self.tracegraph = node[OBJ].model.tracegraph
+        self.refgraph = node[OBJ].model.refgraph
 
         try:
             self.buffer = self._eval_formula(node)
@@ -73,6 +78,8 @@ class NonThreadedExecutor:
             self.excinfo = sys.exc_info()
         finally:
             self.is_executing = False
+            self.tracegraph = None
+            self.refgraph = None
 
         assert not self.callstack
         assert not self.callstack.counter
@@ -148,7 +155,7 @@ class ThreadedExecutor(NonThreadedExecutor):
                 except:
                     self.executor.excinfo = sys.exc_info()
 
-                self.executor.is_executing = False
+                # self.executor.is_executing = False
                 self.signal_start.clear()
                 self.signal_stop.set()
 
@@ -158,6 +165,8 @@ class ThreadedExecutor(NonThreadedExecutor):
         self.errorstack = None
         try:
             self.is_executing = True
+            self.tracegraph = node[OBJ].model.tracegraph
+            self.refgraph = node[OBJ].model.refgraph
             self.thread.signal_start.set()
             self.thread.signal_stop.wait()
             self.thread.signal_stop.clear()
@@ -194,6 +203,9 @@ class ThreadedExecutor(NonThreadedExecutor):
 
         finally:
             self.initnode = None
+            self.is_executing = False
+            self.tracegraph = None
+            self.refgraph = None
 
 
 class CallStack(deque):
@@ -248,14 +260,14 @@ class CallStack(deque):
         self.counter -= 1
         obj = node[OBJ]
 
-        graph = obj.model.tracegraph
+        graph = self.executor.tracegraph
         if self:    # Not empty
             pred = self.idxstack[-1]    # index of last cached cells
             if pred >= 0:
                 if obj.is_cached:
                     graph.add_edge(node, self[pred])
                 else:
-                    obj.model.refgraph.add_edge(obj, self[pred])
+                    self.executor.refgraph.add_edge(obj, self[pred])
             else:
                 if obj.is_cached:
                     graph.add_node(node)
@@ -266,7 +278,7 @@ class CallStack(deque):
         while self.refstack:
             if self.refstack[-1][0] == self.counter:
                 _, ref = self.refstack.pop()
-                obj.model.refgraph.add_edge(ref, node)
+                self.executor.refgraph.add_edge(ref, node)
             else:
                 break
 
@@ -279,7 +291,7 @@ class CallStack(deque):
         self.counter -= 1
         obj = node[OBJ]
 
-        graph = obj.model.tracegraph
+        graph = self.executor.tracegraph
         if graph.has_node(node):
             graph.remove_node(node)
 
