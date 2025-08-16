@@ -13,11 +13,12 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from collections import deque
-from typing import Any, Tuple, Dict
+from typing import Any, Tuple, Dict, Union
 import networkx as nx
 
 
 TraceKey = Tuple[Any, ...]
+
 
 class TraceObject:
 
@@ -50,7 +51,7 @@ class ParentTraceObject(TraceObject):
         raise NotImplementedError
 
 
-TraceNode = Tuple[TraceObject, TraceKey]
+TraceNode = Union[Tuple[TraceObject, TraceKey], Tuple[TraceObject]]
 
 OBJ = 0
 KEY = 1

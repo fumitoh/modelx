@@ -6,7 +6,9 @@ import traceback
 from collections import deque
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.errors import DeepReferenceError, FormulaError
-from modelx.core.trace import OBJ, KEY, get_node_repr
+from modelx.core.trace import (
+    OBJ, KEY, get_node_repr, TraceObject, ParentTraceObject, TraceKey, TraceNode
+)
 
 
 class NonThreadedExecutor:
@@ -21,18 +23,18 @@ class NonThreadedExecutor:
         self.is_formula_error_used = True
         self.is_formula_error_handled = False
 
-    def eval_node(self, node):
+    def eval_node(self, node: TraceNode):
 
-        cells = node[OBJ]
+        obj = node[OBJ]
         key = node[KEY]
 
-        if cells.is_cached and cells.has_node(key):
-            value = cells.data[key]
+        if obj.is_cached and obj.has_node(key):
+            value = obj.data[key]
             if self.callstack:
                 # Shortcut for append & pop for performance
                 pred = self.callstack.idxstack[-1]
                 if pred >= 0:
-                    cells.model.tracegraph.add_edge(node, self.callstack[pred])
+                    obj.model.tracegraph.add_edge(node, self.callstack[pred])
                 # self.callstack.append(node)
                 # self.callstack.pop()
         else:
@@ -43,13 +45,13 @@ class NonThreadedExecutor:
 
         return value
 
-    def _eval_formula(self, node):
+    def _eval_formula(self, node: TraceNode):
 
         self.callstack.append(node)
-        cells, key = node[OBJ], node[KEY]
+        obj, key = node[OBJ], node[KEY]
 
         try:
-            value = cells.on_eval_formula(key)
+            value = obj.on_eval_formula(key)
 
         except:
             self.callstack.rollback()
@@ -59,7 +61,7 @@ class NonThreadedExecutor:
 
         return value
 
-    def _start_exec(self, node):
+    def _start_exec(self, node: TraceNode):
 
         self.excinfo = None
         self.errorstack = None
@@ -244,27 +246,27 @@ class CallStack(deque):
         node = deque.pop(self)
         self.idxstack.pop()
         self.counter -= 1
-        cells = node[OBJ]
+        obj = node[OBJ]
 
-        graph = cells.model.tracegraph
+        graph = obj.model.tracegraph
         if self:    # Not empty
             pred = self.idxstack[-1]    # index of last cached cells
             if pred >= 0:
-                if cells.is_cached:
+                if obj.is_cached:
                     graph.add_edge(node, self[pred])
                 else:
-                    graph.add_edge((cells,), self[pred])
+                    graph.add_edge((obj,), self[pred])
             else:
-                if cells.is_cached:
+                if obj.is_cached:
                     graph.add_node(node)
         else:
-            if cells.is_cached:
+            if obj.is_cached:
                 graph.add_node(node)
 
         while self.refstack:
             if self.refstack[-1][0] == self.counter:
                 _, ref = self.refstack.pop()
-                cells.model.refgraph.add_edge(ref, node)
+                obj.model.refgraph.add_edge(ref, node)
             else:
                 break
 
@@ -275,9 +277,9 @@ class CallStack(deque):
         self.idxstack.pop()
         self.executor.rolledback.append(node)
         self.counter -= 1
-        cells = node[OBJ]
+        obj = node[OBJ]
 
-        graph = cells.model.tracegraph
+        graph = obj.model.tracegraph
         if graph.has_node(node):
             graph.remove_node(node)
 
