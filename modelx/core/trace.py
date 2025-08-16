@@ -27,7 +27,7 @@ class TraceObject:
 
     model: 'TraceManager'
     is_cached: bool
-    data: Dict[TraceKey, Any]   # shared with Cacheable
+    data: Dict[TraceKey, Any]
 
     # def __init__(self, tracemgr):
     #     self.tracemgr = tracemgr
@@ -51,7 +51,7 @@ class ParentTraceObject(TraceObject):
         raise NotImplementedError
 
 
-TraceNode = Union[Tuple[TraceObject, TraceKey], Tuple[TraceObject]]
+TraceNode = Tuple[TraceObject, TraceKey]
 
 OBJ = 0
 KEY = 1
@@ -239,13 +239,12 @@ class TraceManager:
         for n in self._extended_dfs_nodes(node):
             self.tracegraph.remove_node(n)
             self.refgraph.remove_with_referred(n)
-            if n[OBJ].is_cached:
-                n[OBJ].on_clear_trace(n[KEY])
+            n[OBJ].on_clear_trace(n[KEY])
 
     def clear_obj(self, obj: TraceObject):
         """Clear values and nodes of `obj` and their dependants."""
         if not obj.is_cached:
-            self.clear_with_descs((obj,))
+            self.clear_attr_referrers(obj)
             return
 
         keys = deque(obj.data)
@@ -257,8 +256,7 @@ class TraceManager:
                 for n in self._extended_dfs_nodes((obj, k)):
                     self.tracegraph.remove_node(n)
                     self.refgraph.remove_with_referred(n)
-                    if n[OBJ].is_cached:
-                        n[OBJ].on_clear_trace(n[KEY])
+                    n[OBJ].on_clear_trace(n[KEY])
                     removed.add(n)
 
     def clear_attr_referrers(self, ref):
@@ -268,8 +266,7 @@ class TraceManager:
             if node in self.tracegraph:
                 for n in self._extended_dfs_nodes(node):
                     self.tracegraph.remove_node(n)
-                    if n[OBJ].is_cached:
-                        n[OBJ].on_clear_trace(n[KEY])
+                    n[OBJ].on_clear_trace(n[KEY])
 
     def get_calcsteps(self, targets, nodes, step_size):
         """ Get calculation steps

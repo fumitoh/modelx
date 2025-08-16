@@ -255,7 +255,7 @@ class CallStack(deque):
                 if obj.is_cached:
                     graph.add_edge(node, self[pred])
                 else:
-                    graph.add_edge((obj,), self[pred])
+                    obj.model.refgraph.add_edge(obj, self[pred])
             else:
                 if obj.is_cached:
                     graph.add_node(node)
