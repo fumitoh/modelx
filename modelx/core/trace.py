@@ -13,7 +13,7 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 from collections import deque
-from typing import Any, Tuple
+from typing import Any, Tuple, Dict
 import networkx as nx
 
 
@@ -23,6 +23,10 @@ class TraceObject:
 
     __slots__ = ()
     __mixin_slots = ("is_cached", "tracemgr")   # and "data"
+
+    is_cached: bool
+    tracemgr: 'TraceManager'
+    data: Dict[TraceKey, Any]   # shared with Cacheable
 
     def __init__(self, tracemgr):
         self.tracemgr = tracemgr

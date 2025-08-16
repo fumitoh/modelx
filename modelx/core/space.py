@@ -58,8 +58,8 @@ from modelx.core.trace import (
     ParentTraceObject
 )
 from modelx.core.node import (
-    ItemFactory,
-    ItemFactoryImpl,
+    NodeFactory,
+    NodeFactoryImpl,
 )
 from modelx.core.parent import (
     BaseParent,
@@ -301,7 +301,7 @@ class RefView(SelectedView):
         return result
 
 
-class BaseSpace(BaseParent, ItemFactory):
+class BaseSpace(BaseParent, NodeFactory):
 
     __slots__ = ()
 
@@ -1167,7 +1167,7 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.doc = value
 
 
-class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
+class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
 
     __slots__ = ()
     __mixin_slots = (
@@ -1331,7 +1331,7 @@ class ItemSpaceParent(ItemFactoryImpl, BaseNamespaceReferrer, HasFormula):
         return space
 
     # ----------------------------------------------------------------------
-    # ItemFactoryImpl override
+    # NodeFactoryImpl override
 
     def has_node(self, key):
         return key in self.param_spaces

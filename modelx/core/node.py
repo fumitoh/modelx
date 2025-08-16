@@ -235,7 +235,7 @@ class ObjectNode(BaseNode):
                 return name + "(" + params + ")"
 
 
-class ItemFactory:
+class NodeFactory:
 
     _impl: TraceObject
     __slots__ = ()
@@ -336,7 +336,7 @@ class ItemFactory:
                 + self._impl.get_attrpreds(args, kwargs))
 
 
-class ItemFactoryImpl:
+class NodeFactoryImpl:
 
     __slots__ = ()
     __mixin_slots = ()
