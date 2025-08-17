@@ -56,6 +56,10 @@ FROM_PANDAS_METHODS = [
 
 CONSTRUCTOR_METHODS = FROM_FILE_METHODS + FROM_PANDAS_METHODS
 
+# compatiblity for Python 3.7
+def value_or_s(node):
+    return getattr(node, 'value') if sys.version_info >= (3, 8) else getattr(node, "s")
+
 
 class TupleID(tuple):
 
@@ -1250,7 +1254,7 @@ class DocstringParser(BaseNodeParser):
             return Instruction.from_method(
                 obj=type(self.obj).doc,
                 method="fset",
-                args=(self.obj, self.node.value.value)
+                args=(self.obj, value_or_s(self.node.value))
             )
         else:   # Cells.doc for lambda is processed by LambdaAssignParser
             return None
@@ -1761,7 +1765,7 @@ class TupleDecoder(ValueDecoder):
     @classmethod
     def condition(cls, node):
         if isinstance(node, ast.Tuple):
-            if node.elts[0].value == cls.DECTYPE:
+            if value_or_s(node.elts[0]) == cls.DECTYPE:
                 return True
         return False
 
