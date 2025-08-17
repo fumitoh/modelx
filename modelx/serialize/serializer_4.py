@@ -1250,7 +1250,7 @@ class DocstringParser(BaseNodeParser):
             return Instruction.from_method(
                 obj=type(self.obj).doc,
                 method="fset",
-                args=(self.obj, self.node.value.s)
+                args=(self.obj, self.node.value.value)
             )
         else:   # Cells.doc for lambda is processed by LambdaAssignParser
             return None
@@ -1761,7 +1761,7 @@ class TupleDecoder(ValueDecoder):
     @classmethod
     def condition(cls, node):
         if isinstance(node, ast.Tuple):
-            if node.elts[0].s == cls.DECTYPE:
+            if node.elts[0].value == cls.DECTYPE:
                 return True
         return False
 

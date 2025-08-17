@@ -1767,10 +1767,10 @@ class TupleDecoder(ValueDecoder):
     @classmethod
     def condition(cls, node):
         if isinstance(node, ast.Tuple):
-            if node.elts[0].s == cls.DECTYPE:
+            if node.elts[0].value == cls.DECTYPE:
                 return True
             elif (hasattr(cls, 'DECTYPE_COMPAT')  # for backward compatibility
-                  and node.elts[0].s == cls.DECTYPE_COMPAT):
+                  and node.elts[0].value == cls.DECTYPE_COMPAT):
                 return True
         return False
 
