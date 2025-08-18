@@ -117,6 +117,7 @@ class EditableParent(BaseParent):
                 This function should return a mapping of keyword arguments
                 to be passed to this method when the dynamic child spaces
                 are created.
+            refs (optional): A dict of name–value pairs to define refs in the created space.
 
         Returns:
             The new child space.
