@@ -701,7 +701,10 @@ class UserSpace(BaseSpace, EditableParent):
             self._impl, get_impl_list(bases))
 
     def import_funcs(self, module):
-        """Create a cells from a module."""
+        """Create a cells from a module.
+        .. warning:: This method is deprecated and will be removed in a future release.
+        """
+        warnings.warn("'import_funcs' is deprecated and will be removed in a future release.")
         # Outside formulas only
         newcells = self._impl.new_cells_from_module(module)
         return get_interface_dict(newcells)
@@ -717,6 +720,8 @@ class UserSpace(BaseSpace, EditableParent):
 
     def reload(self):
         """Reload the source module and update the formulas.
+
+        .. warning:: This method is deprecated and will be removed in a future releases.
 
         If the space was created from a module, reload the module and
         update the formulas of its cells.
@@ -737,6 +742,7 @@ class UserSpace(BaseSpace, EditableParent):
         Returns:
             This method returns the space itself.
         """
+        warnings.warn("'reload' is deprecated and will be removed in a future release.")
         self._impl.reload()
         return self
 
