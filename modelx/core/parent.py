@@ -90,7 +90,7 @@ class EditableParent(BaseParent):
 
     __slots__ = ()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name, value):    # TODO: When a space is assigned, convert it to its namespace.
         if hasattr(type(self), name):
             attr = getattr(type(self), name)
             if isinstance(attr, property):
@@ -760,13 +760,6 @@ class BaseParentImpl:
     @property
     def all_spaces(self):
         return self._all_spaces.fresh
-
-    def has_space(self, name):
-        return name in self.spaces
-
-    @property
-    def namespace(self):
-        raise NotImplementedError
 
 
 class EditableParentImpl(BaseParentImpl):

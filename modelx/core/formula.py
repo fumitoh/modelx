@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2024 Fumito Hamamura <fumito.ham@gmail.com>
-import sys
+
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation version 3.
@@ -12,44 +12,16 @@ import sys
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 import token
 import ast
 import warnings
 from types import FunctionType, CodeType
 from inspect import signature, getsource, getsourcefile, findsource
 from textwrap import dedent, indent
-import dis
-from modelx.core.base import (
-    LazyEval, get_mixin_slots, Interface)
+from modelx.core.base import Interface
 
 import asttokens
-
-
-def create_closure(new_value):
-    # Used to prevent pytest from failing.
-    # Code modified from:
-    # http://stackoverflow.com/questions/37665862/how-to-create-new-closure-cell-objects
-
-    import ctypes
-
-    dummy = None
-
-    def temp_func():
-        return dummy
-
-    closure = temp_func.__closure__
-
-    PyCell_Set = ctypes.pythonapi.PyCell_Set
-
-    # ctypes.pythonapi functions need to have argtypes and restype set manually
-    PyCell_Set.argtypes = (ctypes.py_object, ctypes.py_object)
-
-    # restype actually defaults to c_int here, but we might as well be explicit
-    PyCell_Set.restype = ctypes.c_int
-
-    PyCell_Set(closure[0], new_value)
-
-    return closure
 
 
 class ModuleSource:
@@ -470,107 +442,51 @@ class NullFormula(Formula):
 NULL_FORMULA = NullFormula("lambda: None")
 
 
-class BoundFunction(LazyEval):
-    """Hold function with updated namespace"""
-
-    __slots__ = (
-        "owner",
-        "_global_names",
-        "_is_names_updated",
-        "altfunc") + get_mixin_slots(LazyEval)
-
-    def __init__(self, owner, base=None):
-        """Create altered function from owner's formula.
-
-        owner is a UserSpaceImpl or CellsImpl, which has formula, and
-        namespace_impl as its members.
-        """
-        LazyEval.__init__(self, [])
-        self.owner = owner
-
-        # Must not update owner's namespace to avoid circular updates.
-        self.observe(owner._namespace)
-        self.altfunc = None
-        self.notify()
-
-    @property
-    def global_names(self):
-        if self._is_names_updated:
-            return self._global_names
-        else:
-            self._global_names = tuple(self._extract_globals(self.owner.formula.func.__code__))
-            return self._global_names
-
-    def _extract_globals(self, codeobj):
-
-        insts = list(dis.get_instructions(codeobj))
-
-        names = []
-        for inst in insts:
-            if inst.opname == "LOAD_GLOBAL" and inst.argval not in names:
-                names.append(inst.argval)
-
-        # Extract globals in generators and nested functions
-        for co in codeobj.co_consts:
-            if isinstance(co, CodeType):
-                names.extend(self._extract_globals(co))
-
-        return names
-
-    def _refresh(self):
-        """Update altfunc"""
-        self._is_names_updated = False
-
-        func = self.owner.formula.func
-        codeobj = func.__code__
-        name = func.__name__  # self.cells.name   # func.__name__
-
-        closure = func.__closure__  # None normally.
-        if closure is not None:  # pytest fails without this.
-            closure = create_closure(self.owner.interface)
-
-        self.altfunc = FunctionType(
-            codeobj, self.owner.namespace.interfaces, name=name, closure=closure
-        )
-
-    def get_referents(self):
-        ns = self.owner.namespace
-
-        result = {}
-        for mid in ns.map_ids:
-            result[mid] = {}
-
-        result["missing"] = {}
-        result["builtins"] = {}
-
-        for n in self.global_names:
-            idx = ns.get_map_index_from_key(n)
-            if idx is None:
-                if '__builtins__' in ns:
-                    builtins = ns['__builtins__'].interface.__dict__
-                    if n in builtins:
-                        result["builtins"][n] = builtins[n]
-                    else:
-                        result["missing"][n] = None
-                else:
-                    result["missing"][n] = None
-            else:
-                result[ns.map_ids[idx]][n] = ns[n]
-
-        return result
-
-
 class HasFormula:
 
     __slots__ = ()
     __mixin_slots = ()
+
+    def _get_referents(self):   # TODO: NameServer does not have cells, spaces, refs
+
+        ns = self.ns_server
+        result = {}
+
+        for key in ('cells', 'refs', 'spaces', 'missing', 'builtins'):
+            result[key] = {}
+
+        for n in self.global_names:
+
+            v = ns.cells.get(n)
+            if v is not None:
+                result["cells"][n] = v
+                continue
+
+            v = ns.spaces.get(n)
+            if v is not None:
+                result["spaces"][n] = v
+                continue
+
+            v = ns.refs.get(n)
+            if v is not None:
+                result["refs"][n] = v
+                continue
+
+            if '__builtins__' in ns.refs:
+                builtins = ns.refs['__builtins__'].interface.__dict__
+                if n in builtins:
+                    result["builtins"][n] = builtins[n]
+                else:
+                    result["missing"][n] = None
+
+        return result
 
     def get_referents(self):
 
         if self.formula is None:
             return None
         else:
-            refs = self.altfunc.get_referents()
+            refs = self._get_referents()
             result = refs.copy()
 
             for key, data in refs.items():

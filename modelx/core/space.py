@@ -22,7 +22,8 @@ import warnings
 from collections import deque
 from collections.abc import Sequence, Mapping
 from types import FunctionType, ModuleType, MappingProxyType
-from modelx.core.namespace import NamespaceServer, BaseNamespaceReferrer
+from modelx.core.namespace import NamespaceServer, BaseNamespace
+from modelx.core.boundfunc import AlteredFunction
 from modelx.core.chainmap import CustomChainMap
 
 from modelx.core.base import (
@@ -43,7 +44,7 @@ from modelx.core.base import (
     BaseView,
     SelectedView
 )
-from modelx.core.formula import BoundFunction, HasFormula
+from modelx.core.formula import HasFormula
 from modelx.core.reference import (
     ReferenceImpl,
     ReferenceProxy
@@ -307,14 +308,17 @@ class BaseSpace(BaseParent, NodeFactory):
 
     def __getattr__(self, name):
 
-        if name in self._impl.namespace:
-            return self._impl.get_attr(name)
+        if self._impl.system.callstack.counter:     # TODO: check executer.is_executing instead
+            return getattr(self._impl.namespace, name)
         else:
-            raise AttributeError(f"Attribute '{name}' is not in space {str(self)}")
-            # Must return AttributeError for hasattr
+            child = self._impl.get_attr(name)
+            if child is None:
+                raise AttributeError(f"Attribute '{name}' is not in space {str(self)}")
+            else:
+                return child.interface
 
     def __dir__(self):
-        return list(self._impl.namespace.interfaces)
+        return list(self._impl.ns_dict)
 
     def _get_object(self, name, as_proxy=False):
         parts = name.split(".")
@@ -1015,7 +1019,7 @@ class UserSpace(BaseSpace, EditableParent):
             True if item is a direct child of the space, False otherwise.
         """
         if isinstance(item, str):
-            return item in self._impl.namespace
+            return self._impl.get_attr(item) is not None
 
         elif isinstance(item, Cells):
             return item._impl in self._impl.cells.values()
@@ -1173,7 +1177,7 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.doc = value
 
 
-class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
+class ItemSpaceParent(NodeFactoryImpl, AlteredFunction, HasFormula):
 
     __slots__ = ()
     __mixin_slots = (
@@ -1182,7 +1186,6 @@ class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
         "dynamic_cache",
         "param_spaces",
         "formula",
-        "altfunc"
     )
 
     def __init__(self, formula):
@@ -1199,7 +1202,7 @@ class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
         # Construct altfunc after space members are crated
 
         self.param_spaces = {}
-        self.altfunc = self.formula = None
+        self.formula = None
         if formula is not None:
             self.set_formula(formula)
 
@@ -1231,8 +1234,8 @@ class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
                     self.formula = formula
                 else:
                     self.formula = ParamFunc(formula, name="_formula")
-                self.altfunc = BoundFunction(self)
-                self.altfunc.notify()
+
+                self.is_altfunc_updated = False
             else:
                 self.del_formula()
                 self.set_formula(formula)
@@ -1246,7 +1249,7 @@ class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
             return
         else:
             self.del_all_itemspaces()
-            self.altfunc = self.formula = None
+            self.formula = None
 
     def del_all_itemspaces(self):
         for key in list(self.param_spaces):
@@ -1275,7 +1278,7 @@ class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
         return self.system.executor.eval_node(node)
 
     def on_eval_formula(self, key):
-        params = self.altfunc.fresh.altfunc(*key)
+        params = self.altfunc(*key)
 
         if params is None:
             # Default
@@ -1285,15 +1288,15 @@ class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
 
             # Set base
             if "base" in params:
-                bs = params["base"]
-                if isinstance(bs, UserSpace):
-                    base = bs._impl
-                elif isinstance(bs, DynamicSpace):
-                    base = bs._impl._dynbase
+                bs = params["base"]._impl
+                if isinstance(bs, UserSpaceImpl):
+                    base = bs
+                elif isinstance(bs, DynamicSpaceImpl):
+                    base = bs._dynbase
                 else:
                     raise ValueError("base must be a Space")
 
-            elif "bases" in params:
+            elif "bases" in params: # TODO: Remove 'bases' support
 
                 bs = params["bases"]
                 if isinstance(bs, Sequence):
@@ -1302,13 +1305,13 @@ class ItemSpaceParent(NodeFactoryImpl, BaseNamespaceReferrer, HasFormula):
                     else:
                         raise ValueError("bases must have a single element")
 
-                if isinstance(bs, UserSpace):
-                    base = bs._impl
-                elif isinstance(bs, DynamicSpace):
-                    base = bs._impl._dynbase
-                elif bases is None:
+                if bs is None:
                     # Default
                     base = self._dynbase if self.is_dynamic() else self
+                elif isinstance(bs._impl, UserSpaceImpl):
+                    base = bs._impl
+                elif isinstance(bs._impl, DynamicSpace):
+                    base = bs._impl._dynbase
                 else:
                     raise ValueError("invalid value for bases")
             else:
@@ -1355,12 +1358,58 @@ _base_space_impl_base = (
 )
 
 
+class Namespace(BaseNamespace):
+
+    __slots__ = ()
+
+    _impl: 'BaseSpaceImpl'
+
+    def __getattr__(self, name):    # TODO: Refactor.
+        # Check if name is a Reference in the current Space
+        ref = self._impl.refs.get(name)
+        if ref is not None:
+            if self._impl.system.callstack.counter:
+                assert isinstance(ref, ReferenceImpl)
+                self._impl.system.refstack.append(
+                    (self._impl.system.callstack.counter - 1, ref)
+                )
+            return ref.interface
+
+        try:
+            return self._impl.ns_dict[name]
+        except KeyError:
+            raise AttributeError(f"{name!r} not found")
+
+    def __contains__(self, item):
+        return item in self._impl.ns_dict
+
+    def __call__(self, *args, **kwargs):
+        return self._impl.get_itemspace(args, kwargs).namespace
+
+    def __getitem__(self, key):
+        return self._impl.get_itemspace(tuplize_key(self, key)).namespace
+
+    @property
+    def _name(self):
+        return self._impl.name
+
+    @property
+    def _cells(self):
+        return {k: v.call for k, v in self._impl.cells.items()}
+
+    @property
+    def _parent(self):
+        return self._impl.parent.namespace
+
+    parent = _parent  # for backward compatibility
+
+
 class BaseSpaceImpl(*_base_space_impl_base):
     """Read-only base Space class
 
     * Cells container
     * Ref container
-    * Namespace
+    * BaseNamespace
     * Formula container
     * Implement Derivable
     """
@@ -1372,6 +1421,8 @@ class BaseSpaceImpl(*_base_space_impl_base):
         "_refs",
         "is_cached"
     ) + get_mixin_slots(*_base_space_impl_base)
+
+    _ns_class = Namespace
 
     def __init__(
         self,
@@ -1406,13 +1457,11 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
         NamespaceServer.__init__(
             self,
-            ImplChainMap("namespace",
-                self, None, [self._cells, self._refs, self._named_spaces],
-                map_ids=("cells", "refs", "spaces")
+            (self._cells, self._refs, self._named_spaces)
             )
-        )
+
         ItemSpaceParent.__init__(self, formula)
-        BaseNamespaceReferrer.__init__(self, self._namespace)
+        AlteredFunction.__init__(self, self)
         self._all_spaces = ImplChainMap("all_spaces",
             self, SpaceView, [self._named_spaces, self._named_itemspaces]
         )
@@ -1427,6 +1476,13 @@ class BaseSpaceImpl(*_base_space_impl_base):
                               refmode="auto")
 
         # ParentTraceObject.__init__(self, tracemgr=self.model)
+
+    def on_notify(self, subject):
+        if subject is self.ns_server:
+            assert subject is self
+            AlteredFunction.on_notify(self, subject)
+        else:
+            NamespaceServer.on_notify(self, subject)
 
     # ----------------------------------------------------------------------
     # ParentTraceObject implementation
@@ -1446,7 +1502,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
             for child in obj.named_spaces.values():
                 queue.append(child)
 
-
     def __getstate__(self):
         d = {attr: getattr(self, attr)
                 for c in type(self).mro()[:-1]
@@ -1458,7 +1513,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
             setattr(self, k, v)
         self.dynamic_cache = weakref.WeakValueDictionary()
 
-
     def _init_own_refs(self):
         raise NotImplementedError
 
@@ -1466,16 +1520,12 @@ class BaseSpaceImpl(*_base_space_impl_base):
         raise NotImplementedError
 
     def get_attr(self, name):
-
-        value = self.namespace[name]
-
-        if self.system.callstack.counter:
-            if isinstance(value, ReferenceImpl):
-                self.system.refstack.append(
-                    (self.system.callstack.counter - 1, value)
-                )
-
-        return self.namespace.interfaces[name]
+        child = self.cells.get(name)
+        if child is None:
+            child = self.named_spaces.get(name)
+        if child is None:
+            child = self.refs.get(name)
+        return child
 
     @property
     def cells(self):
@@ -1548,12 +1598,11 @@ class BaseSpaceImpl(*_base_space_impl_base):
             else:
                 return None
         else:
-            if child in self.namespace:
-                return self._namespace[child]
-            elif child in self.named_itemspaces:
-                return self._named_itemspaces[child]
+            result = self.get_attr(child)
+            if result is not None:
+                return result
             else:
-                return None
+                return self.named_itemspaces.get(child)     # may be None
 
     # ----------------------------------------------------------------------
     # repr methods
@@ -1587,11 +1636,12 @@ class DynamicBase(BaseSpaceImpl):
     def __init__(self):
         self._dynamic_subs = []
 
-    def on_namespace_change(self):
+    def on_notify(self, subject):
         ItemSpaceParent.on_namespace_change(self)
         # Use dict instead of list to avoid duplicates
         for r in {s.rootspace: True for s in self._dynamic_subs}:
-            r.del_all_itemspaces()
+            r.parent.del_all_itemspaces()
+        BaseSpaceImpl.on_notify(self, subject)
 
     def change_dynsub_refs(self, name):
 
@@ -1681,7 +1731,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             if isinstance(func, FunctionType):
                 # Choose only the functions defined in the module.
                 if func.__module__ == module.__name__:
-                    if name in self.namespace and override:
+                    if name in self.cells and override:
                         self.spmgr.set_cells_formula(
                             self.cells[name], func)
                         newcells[name] = self.cells[name]
@@ -1775,7 +1825,7 @@ class UserSpaceImpl(*_user_space_impl_base):
         if not is_valid_name(name):
             raise ValueError("Invalid name '%s'" % name)
 
-        if name in self.namespace:
+        if self.get_attr(name) is not None:
             if name in self.refs:
                 if name in self.own_refs:
                     self.model.refmgr.change_ref(self, name, value, refmode)
@@ -1800,7 +1850,7 @@ class UserSpaceImpl(*_user_space_impl_base):
         ``del space.name`` by user script
         Called from ``UserSpace.__delattr__``
         """
-        if name in self.namespace:
+        if self.get_attr(name) is not None:
             if name in self.cells:
                 self.spmgr.del_cells(self, name)
             elif name in self.spaces:
@@ -2230,3 +2280,5 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             return self.parent.dynamic_key + (self.argvalues_if,)
         else:
             return (self.argvalues_if,)
+
+

@@ -4,6 +4,13 @@ import pytest
 
 @pytest.fixture
 def itemspaces():
+    """
+        Model---SpaceA[i]---SpaceB[j]
+                |          |
+                |          +---qux=5 (ref)
+                |
+                +---foo=3 (ref)
+    """
 
     def param(i):
         refs = {"bar": foo}

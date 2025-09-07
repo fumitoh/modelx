@@ -15,7 +15,6 @@ import warnings
 from collections import namedtuple
 from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
-from types import FunctionType
 
 from modelx.core.base import (
     Impl, Derivable, Interface, get_mixin_slots,
@@ -24,44 +23,13 @@ from modelx.core.trace import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node, TraceObject
 )
 from modelx.core.formula import (
-    Formula, NullFormula, NULL_FORMULA, BoundFunction, replace_docstring,
-    HasFormula, create_closure
+    Formula, NullFormula, NULL_FORMULA, replace_docstring,
+    HasFormula
 )
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 from modelx.core.node import NodeFactory, NodeFactoryImpl
-from modelx.core.namespace import BaseNamespaceReferrer
-
-
-class CellsBoundFunction(BoundFunction):
-
-    # The introduction of a hardcoded limit on C-level recursion in Python 3.12
-    # revealed that dunder methods, like `__call__` induce C-level recursion.
-    # To avoid the recursion limit for modelx formulas effectively being bound
-    # by the C-level recursion limit,
-    # Cells names in the Space namespace are bound to CellsImpl.call method.
-    # See https://github.com/fumitoh/modelx/issues/92
-
-    __slots__ = ()
-
-    def _refresh(self):
-        """Update altfunc"""
-        self._is_names_updated = False
-
-        func = self.owner.formula.func
-        codeobj = func.__code__
-        name = func.__name__
-
-        closure = func.__closure__  # None normally.
-        if closure is not None:  # pytest fails without this.
-            closure = create_closure(self.owner.interface)
-
-        ns = {k: v._impl.call if isinstance(v, Cells) else v
-              for k, v in self.owner.namespace.interfaces.items()}
-
-        self.altfunc = FunctionType(
-            codeobj, ns, name=name, closure=closure
-        )
+from modelx.core.boundfunc import AlteredFunction
 
 
 class CellsMaker:
@@ -601,7 +569,7 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         self._impl.set_doc(doc, insert_indents=insert_indents)
 
 
-_cells_impl_base = (BaseNamespaceReferrer, Derivable, NodeFactoryImpl, TraceObject,
+_cells_impl_base = (AlteredFunction, Derivable, NodeFactoryImpl, TraceObject,
                     HasFormula, Impl)
 
 
@@ -613,8 +581,6 @@ class CellsImpl(*_cells_impl_base):
     __slots__ = (
         "formula",
         "data",
-        "_namespace",
-        "altfunc",
         "input_keys",
         "is_cached"
     ) + get_mixin_slots(*_cells_impl_base)
@@ -637,9 +603,9 @@ class CellsImpl(*_cells_impl_base):
                 use_func_name = True
             else:
                 use_func_name = False
-                name = space.cellsnamer.get_next(space.namespace)
+                name = space.cellsnamer.get_next(space.ns_dict)
         else:
-            name = space.cellsnamer.get_next(space.namespace)
+            name = space.cellsnamer.get_next(space.ns_dict)
 
         Impl.__init__(
             self,
@@ -650,8 +616,10 @@ class CellsImpl(*_cells_impl_base):
         )
         Derivable.__init__(self, is_derived)
 
-        if add_to_space:
+        if add_to_space:    # Assign to space before calling AlteredFunction.__init__ to avoid getting notified
             space._cells.set_item(name, self)
+
+        AlteredFunction.__init__(self, space)
 
         # Set formula
         if base:
@@ -677,16 +645,8 @@ class CellsImpl(*_cells_impl_base):
         self.data.update(data)
         self.input_keys = set(data.keys())
 
-        BaseNamespaceReferrer.__init__(self, space._namespace)
-        self._namespace = self.parent._namespace
-        if base:
-            self.altfunc = CellsBoundFunction(self, base.altfunc.fresh)
-        else:
-            self.altfunc = CellsBoundFunction(self)
-
-        # TraceObject.__init__(self, tracemgr=self.model)
-
-    def on_namespace_change(self):
+    def on_notify(self, namespace):
+        AlteredFunction.on_notify(self, namespace)
         self.clear_all_values(clear_input=False)
 
     # ----------------------------------------------------------------------
@@ -719,7 +679,7 @@ class CellsImpl(*_cells_impl_base):
         self.formula = bases[0].formula
         self.allow_none = bases[0].allow_none
         self.is_cached = bases[0].is_cached
-        self.altfunc.notify()
+        self.is_altfunc_updated = False
 
     @property
     def namespace(self):
@@ -745,9 +705,9 @@ class CellsImpl(*_cells_impl_base):
 
     def on_eval_formula(self, key):
         if self.is_cached:
-            return self._store_value(key, self.altfunc.fresh.altfunc(*key))
+            return self._store_value(key, self.altfunc(*key))
         else:
-            return self.altfunc.fresh.altfunc(*key)
+            return self.altfunc(*key)
 
     def get_value(self, args, kwargs=None):
         node = get_node(self, args, kwargs)
@@ -935,7 +895,7 @@ class UserCellsImpl(CellsImpl):
             else:
                 self.formula = Formula(self.formula, name=name)
 
-            self.altfunc = CellsBoundFunction(self)
+            self.is_altfunc_updated = False
 
         self.parent.cells.rename_item(old_name, name)
 
@@ -958,7 +918,7 @@ class UserCellsImpl(CellsImpl):
                     cls = Formula
                 self.formula = cls(func, name=self.name)
 
-            self.altfunc = CellsBoundFunction(self)
+            self.is_altfunc_updated = False
 
         if flags & self.PROP_CACHE:
             self.is_cached = enable_cache

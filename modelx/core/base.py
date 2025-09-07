@@ -11,7 +11,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import annotations
 
+from collections.abc import Iterable
+from typing import ClassVar, Optional, List
 import sys
 from collections.abc import Sequence, Mapping
 from inspect import BoundArguments
@@ -603,39 +606,68 @@ class Interface:
 null_interface = Interface(null_impl)
 
 
-class ChainObserver:
+class Subject:
+    """Mixin: provides observer management and notify()."""
     __slots__ = ()
-    __mixin_slots = ("is_fresh", "observers", "subjects")
+    __mixin_slots = ("observers",)
 
-    def __init__(self, observers=None):
-        self.is_fresh = True    # Define here so that LazyEval can notify this
+    observers: Sequence[Observer]
+
+    def __init__(self, observers: Optional[Sequence[Observer]] = ()) -> None:
         self.observers = []
-        self.subjects = []
         if observers:
-            for observer in observers:
-                self.append_observer(observer)
+            for obs in observers:
+                self.append_observer(obs)
 
-    def notify(self):
-        raise NotImplementedError
-
-    def append_observer(self, observer, notify=True):
-        # Speed deteriorates by a lot if below
-        # if observer not in self.observers:
+    def append_observer(self, observer: Observer, notify: bool = True) -> None:
+        # Identity-based de-dupe (faster than equality)
         if all(observer is not other for other in self.observers):
             self.observers.append(observer)
+            # back-link to subject
             observer.subjects.append(self)
             if notify:
-                observer.notify()
+                observer.on_notify(self)
 
-    def remove_observer(self, observer):
+    def remove_observer(self, observer: Observer) -> None:
         self.observers.remove(observer)
         observer.subjects.remove(self)
 
-    def observe(self, other, notify=True):
-        other.append_observer(self, notify)
+    def notify(self) -> None:
+        for observer in self.observers:
+            observer.on_notify(self)
 
-    def unobserve(self, other):
-        other.remove_observer(self)
+
+class Observer:
+    """Mixin: provides observe()/unobserve() and on_notify() hook."""
+    __slots__ = ()
+    __mixin_slots = ("subjects",)
+
+    subjects: Sequence[Subject]
+
+    def __init__(self, subjects: Optional[Sequence[Subject]] = ()) -> None:
+        self.subjects = []
+        if subjects:
+            for subject in subjects:
+                self.observe(subject, notify=False)
+
+    def on_notify(self, subject: Subject) -> None:
+        raise NotImplementedError
+
+    def observe(self, subject: Subject, notify: bool = True) -> None:
+        subject.append_observer(self, notify)
+
+    def unobserve(self, subject: Subject) -> None:
+        subject.remove_observer(self)
+
+
+class ChainObserver(Observer, Subject):
+
+    __slots__ = ()
+    __mixin_slots = ()
+
+    def __init__(self, observers: Optional[Iterable[Observer]] = (), subjects: Optional[Iterable[Subject]] = ()) -> None:
+        Observer.__init__(self, subjects)
+        Subject.__init__(self, observers)
 
 
 class LazyEval(ChainObserver):
@@ -649,13 +681,25 @@ class LazyEval(ChainObserver):
     The updating operation can be customized by overwriting _refresh method.
     """
     __slots__ = ()
-    __mixin_slots = ()
+    __mixin_slots = ("is_fresh",)
+
+    is_fresh: bool
+
+    def __init__(self, observers=None):
+        self.is_fresh = False    # Define here so that LazyEval can notify this
+        ChainObserver.__init__(self, observers)
 
     def notify(self):
-        self.is_fresh = False
-        for observer in self.observers:
-            if observer.is_fresh:
-                observer.notify()
+        if not self.is_fresh:
+            return
+        else:
+            self.is_fresh = False
+            for observer in self.observers:
+                # if observer.is_fresh:
+                observer.on_notify(self)
+
+    def on_notify(self, subject):
+        self.notify()
 
     @property
     def fresh(self):
@@ -665,6 +709,12 @@ class LazyEval(ChainObserver):
             self._refresh()
             self.is_fresh = True
         return self
+
+    def unfresh(self):
+        self.is_fresh = False
+        for other in self.observers:
+            other.on_notify(self)
+
 
     def _refresh(self):
         raise NotImplementedError  # To be overwritten in derived classes
@@ -759,7 +809,8 @@ class LazyEvalDict(LazyEval, dict):
         self._repr = ""
 
     def _refresh(self):
-        raise NotImplementedError
+        pass
+        # raise NotImplementedError
 
     def _rename_item(self, old_name, new_name):
         _rename_item(self, old_name, new_name)
@@ -811,7 +862,8 @@ class LazyEvalChainMap(LazyEval, CustomChainMap):
             other.append_observer(self)
 
     def _refresh(self):
-        raise NotImplementedError
+        pass
+        # raise NotImplementedError
 
     def __setitem__(self, name, value):
         raise NotImplementedError

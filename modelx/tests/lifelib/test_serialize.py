@@ -11,6 +11,8 @@ def _compare_results_simplelife(src, trg):
 
     for pol in (100, 200, 300):
         for t in range(50):
+            res1 = src.Projection[pol].PV_NetCashflow[t]
+            res2 = trg.Projection[pol].PV_NetCashflow[t]
             assert (src.Projection[pol].PV_NetCashflow[t]
                     == trg.Projection[pol].PV_NetCashflow[t])
 
@@ -67,9 +69,9 @@ def testpaths(tmp_path):
     return path1, path2, path3
 
 
-# @pytest.mark.skip()
+@pytest.mark.skip()
 @pytest.mark.parametrize("project", _PROJECTS.keys())
-def test_with_lifelib(testpaths, project):
+def test_with_lifelib_script(testpaths, project):
 
     build_path, write_path, zip_path = testpaths
 
@@ -98,6 +100,37 @@ def test_with_lifelib(testpaths, project):
 
             m3 = mx.read_model(str(zip_path / project))
             testutil.compare_model(m, m3)
+
+    _PROJECTS[project](m, m2)
+    _PROJECTS[project](m, m3)
+    for mn in [m, m2, m3]:
+        mn.close()
+
+
+@pytest.mark.parametrize("project", _PROJECTS.keys())
+def test_with_lifelib(testpaths, project):
+
+    build_path, write_path, zip_path = testpaths
+
+    import lifelib
+
+    testproj = project + "_test"
+    projpath = build_path / testproj
+
+    lifelib.create(project, projpath)
+    modelpath = projpath / "model"
+
+    m = mx.read_model(modelpath)
+    # Assigning refs in 'm' will remove input values in dynamic cells
+    # so don't update m here
+    mx.write_model(m, str(write_path / project))
+    mx.zip_model(m, str(zip_path / project))
+
+    m2 = mx.read_model(str(write_path / project))
+    testutil.compare_model(m, m2)
+
+    m3 = mx.read_model(str(zip_path / project))
+    testutil.compare_model(m, m3)
 
     _PROJECTS[project](m, m2)
     _PROJECTS[project](m, m3)
