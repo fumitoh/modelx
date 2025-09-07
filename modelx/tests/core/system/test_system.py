@@ -4,7 +4,7 @@ from textwrap import dedent
 from modelx.core.system import mxsys
 from modelx.core.api import *
 from modelx.testing.testutil import ConfigureExecutor
-from modelx.core.errors import DeepReferenceError
+from modelx.core.errors import DeepReferenceError, FormulaError
 import pytest
 
 
@@ -90,7 +90,7 @@ def test_deep_reference_error():
 
         assert errinfo.value.args[0] == "Formula chain exceeded the 3 limit"
 
-        with pytest.raises(mx.core.system.FormulaError) as errinfo:
+        with pytest.raises(FormulaError) as errinfo:
             cells(1, 3)
 
         errmsg = dedent(

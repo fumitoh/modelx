@@ -14,29 +14,23 @@
 
 import sys
 import importlib
-import pathlib
-import typing
-import uuid
 import weakref
 import warnings
 from collections import deque
 from collections.abc import Sequence, Mapping
 from types import FunctionType, ModuleType, MappingProxyType
-from modelx.core.namespace import NamespaceServer, BaseNamespace
-from modelx.core.boundfunc import AlteredFunction
+from modelx.core.binding.namespace import NamespaceServer, BaseNamespace
+from modelx.core.binding.boundfunc import AlteredFunction
 from modelx.core.chainmap import CustomChainMap
 
 from modelx.core.base import (
     get_impl_dict,
     get_impl_list,
-    get_impls,
     get_interface_dict,
     get_interface_list,
     get_mixin_slots,
     Interface,
     Impl,
-    set_null_impl,
-    Derivable,
     LazyEvalDict,
     ImplDict,
     ImplChainMap,
@@ -49,12 +43,11 @@ from modelx.core.reference import (
     ReferenceImpl,
     ReferenceProxy
 )
-from modelx.core.trace import (
+from modelx.core.execution.trace import (
     node_get_args,
     tuplize_key,
     get_node,
     key_to_node,
-    OBJ,
     KEY,
     ParentTraceObject
 )
