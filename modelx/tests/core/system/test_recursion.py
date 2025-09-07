@@ -1,10 +1,12 @@
 import sys
 import os
+import pathlib
 import modelx as mx
+import modelx.tests.testdata
 from modelx.core.errors import DeepReferenceError
 from modelx.testing.testutil import ConfigureExecutor
 import pytest
-
+datadir = pathlib.Path(os.path.dirname(mx.tests.testdata.__file__))
 
 def is_github_actions():
     """Check if the test is running on GitHub Actions."""
@@ -77,6 +79,20 @@ def test_maxout_recursion():
     with ConfigureExecutor(maxdepth):
         with pytest.raises(DeepReferenceError):
             foo(maxdepth+1)
+
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_maxout_recursion_referred_as_space_attr():
+
+    m = mx.read_model(datadir / "CircularRefSample")
+
+    with ConfigureExecutor(10000):
+        with pytest.raises(DeepReferenceError):
+            m.Foo[1].foo(1)
+
+    assert len(mx.get_traceback()) == 10000 + 1
 
     m._impl._check_sanity()
     m.close()

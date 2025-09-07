@@ -12,35 +12,99 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from modelx.core.base import ImplChainMap, ChainObserver, get_mixin_slots
+from typing import Tuple, Sequence
+import logging
+from modelx.core.base import ChainObserver, Observer, Subject
+
+logger = logging.getLogger(__name__)
 
 
-class NamespaceServer:
+class BaseNamespace:
+
+    __slots__ = ('_impl',)
+
+    _impl: 'NamespaceServer'
+
+    def __init__(self, impl: 'NamespaceServer'):
+        self._impl = impl
+
+
+class NamespaceServer(ChainObserver):
 
     __slots__ = ()
-    __mixin_slots = ("_namespace",)
+    __mixin_slots = (
+        "_namespace",
+        "_ns_dict",
+        "_is_ns_updated"
+    )
+    _ns_class = BaseNamespace
+    _namespace: BaseNamespace
+    _ns_dict: dict
+    _is_ns_updated: bool
 
-    def __init__(self, namespace: ImplChainMap):
-        self._namespace = namespace
+    def __init__(self, subjects: Sequence[Subject]):
+        """
+        Initialize NamespaceServer.
+        subjects: a sequence of name-object mappings (e.g., ImplChainMap, NamespaceServer, dict, etc.)
+        subjects must be in a reverse order of name resolution priority.
+        The last subject has the highest priority in name resolution.
+        """
+        ChainObserver.__init__(self, subjects=subjects)
+        self._namespace = self._ns_class(self)
+        self._is_ns_updated = False
+
+    def on_notify(self, subject: Subject) -> None:
+        self._is_ns_updated = False
+        self.notify()   # notify observers
 
     @property
     def namespace(self):
-        return self._namespace.fresh
+        if self._is_ns_updated:
+            return self._namespace
+        else:
+            return self._update_ns()
+    
+    @property
+    def ns_dict(self):
+        if self._is_ns_updated:
+            return self._ns_dict
+        else:
+            self._update_ns()
+            return self._ns_dict
+
+    def _update_ns(self) -> BaseNamespace:  # TODO: Refactor.
+        self._ns_dict = {}
+        for subject in self.subjects:
+            if subject is not self:  # Avoid self-reference
+                for k, v in subject.fresh.items():
+                    if isinstance(v, NamespaceServer):  # Spaces
+                        self._ns_dict[k] = v._namespace # Avoid infinite recursion
+                    elif isinstance(v, BaseNamespaceReferrer):  # Cells
+                        self._ns_dict[k] = v.call
+                    else:
+                        self._ns_dict[k] = v.interface
+        self._is_ns_updated = True
+        return self._namespace
 
 
-class BaseNamespaceReferrer(ChainObserver):
+class BaseNamespaceReferrer(Observer):
 
     __slots__ = ()
-    __mixin_slots = ()
+    __mixin_slots = ('ns_server',)
+    
+    ns_server: NamespaceServer
 
-    def __init__(self, namespace):
-        ChainObserver.__init__(self)
-        self.observe(namespace, notify=False)
+    def __init__(self, server: NamespaceServer):
+        if isinstance(self, NamespaceServer):
+            self.observe(self, notify=False)
+        else:
+            Observer.__init__(self, (server,))
+        self.ns_server = server
 
-    def notify(self):
-        self.on_namespace_change()
+    def on_notify(self, namspace: NamespaceServer):
+        raise NotImplementedError
 
-    def on_namespace_change(self):
+    def call(self, *args, **kwargs):    # Used in server._uspdate_ns() to indicate cells
         raise NotImplementedError
 
 

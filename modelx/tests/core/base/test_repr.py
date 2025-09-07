@@ -7,6 +7,14 @@ import pytest
 
 @pytest.fixture
 def repr_test():
+    """
+        m-------ReprSpace-------ReprChild
+        |        |               |
+        |      Foo(x, y)        Bar(x,y)
+        |
+        +-----DynSpace(m, n)
+
+    """
 
     model, space = new_model("ReprModel"), new_space("ReprSpace")
 

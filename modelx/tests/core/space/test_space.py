@@ -44,8 +44,8 @@ def test_dir(testmodel):
 
 def test_parent(testmodel):
     assert cur_space().parent == testmodel
-    assert cur_space().get_parent == testmodel
-    assert cur_space()[1].get_parent == cur_space()
+    assert cur_space().get_parent == testmodel._impl.namespace
+    assert cur_space()[1].get_parent == cur_space()._impl.namespace
 
 
 def test_create(testmodel):

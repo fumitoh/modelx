@@ -42,6 +42,7 @@ from modelx.core.space import (
     SpaceDict,
     RefDict
 )
+from modelx.core.namespace import BaseNamespace
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.trace import TraceManager
@@ -418,7 +419,7 @@ class Model(IOSpecOperation, EditableParent):
         self._impl.del_attr(name)
 
     def __dir__(self):
-        return list(self._impl.namespace.interfaces)
+        return list(self._impl._namespace.fresh.interfaces)
 
     @property
     def tracegraph(self):
@@ -650,6 +651,47 @@ class Model(IOSpecOperation, EditableParent):
                 gc.enable()
 
 
+class ModelNamespace(BaseNamespace):
+
+    __slots__ = ()
+
+    _impl: 'ModelImpl'
+
+    def __getattr__(self, name):    # TODO: Refactor.
+        # Check if name is a Reference in the current Space
+        ref = self._impl.refs.get(name)
+        if ref is not None:
+            if self._impl.system.callstack.counter:
+                assert isinstance(ref, ReferenceImpl)
+                self._impl.system.refstack.append(
+                    (self._impl.system.callstack.counter - 1, ref)
+                )
+            return ref.interface
+        else:
+            raise AttributeError(f"{name!r} not found in {repr(self._impl.interface)}")
+
+    def __contains__(self, item):
+        return item in self._impl._namespace.fresh
+
+    @property
+    def _parent(self):
+        return self
+
+    parent = _parent    # for backward compatibility
+
+    @property
+    def path(self):
+        # return self._impl.path
+        # Check if name is a Reference in the current Space
+        if self._impl.system.callstack.counter:
+            path = self._impl._property_refs['path']
+            assert isinstance(path, ReferenceImpl)
+            self._impl.system.refstack.append(
+                (self._impl.system.callstack.counter - 1, path)
+            )
+        return path.interface
+
+
 
 _model_impl_base = (
     TraceManager,
@@ -663,6 +705,7 @@ class ModelImpl(*_model_impl_base):
     interface_cls = Model
 
     __slots__ = (
+        "namespace",
         "_namespace",
         "_global_refs",
         "_property_refs",
@@ -693,6 +736,7 @@ class ModelImpl(*_model_impl_base):
         self._namespace = ImplChainMap("namespace",
             self, BaseView, [self._named_spaces, self._global_refs]
         )
+        self.namespace = ModelNamespace(self)
         self.allow_none = False
         self.refmgr = ReferenceManager(self, system.iomanager)
 
@@ -727,10 +771,6 @@ class ModelImpl(*_model_impl_base):
     @property
     def property_refs(self):
         return self._property_refs.fresh
-
-    @property
-    def namespace(self):
-        return self._namespace.fresh
 
     def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the model."""
@@ -1037,9 +1077,10 @@ class SharedSpaceOperations:
         # TODO: Reflect the overwriting order of names
         if parent is self.model:
             return name not in parent.namespace
-        elif name in parent.namespace:
-            # False if name is a child of parent
-            return not isinstance(parent._namespace.fresh[name], Impl)
+        else:   # parent is a Space
+            child = parent.get_attr(name)
+            if child is not None:
+                return not isinstance(child, Impl)
 
         sub = self._find_name_in_subs(parent, name, skip_self=True)   # start from parent
         if sub is None:
@@ -1051,8 +1092,9 @@ class SharedSpaceOperations:
 
     def _find_name_in_subs(self, parent, name, skip_self=False):
         for subspace in self._get_subs(parent, skip_self=skip_self):
-            if name in subspace.namespace:
-                return subspace._namespace.fresh[name]
+            child = subspace.get_attr(name)
+            if child is not None:
+                return child
         return None
 
     def _get_space_bases(self, space, skip_self=True):
