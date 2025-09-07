@@ -42,10 +42,10 @@ from modelx.core.space import (
     SpaceDict,
     RefDict
 )
-from modelx.core.namespace import BaseNamespace
+from modelx.core.binding.namespace import BaseNamespace
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
-from modelx.core.trace import TraceManager
+from modelx.core.execution.trace import TraceManager
 
 
 class IOSpecOperation:

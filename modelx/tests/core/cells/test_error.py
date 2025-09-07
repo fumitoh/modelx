@@ -2,7 +2,7 @@ from textwrap import dedent
 import pytest
 
 import modelx as mx
-from modelx.core.errors import NoneReturnedError
+from modelx.core.errors import NoneReturnedError, FormulaError
 from modelx.testing.testutil import ConfigureExecutor
 
 # --------------------------------------------------------------------------
@@ -29,7 +29,7 @@ def test_none_returned_error():
     errmsg = "ErrModel.ErrSpace.return_none(x=1, y=3)"
     assert errinfo.value.args[0] == errmsg
 
-    with pytest.raises(mx.core.system.FormulaError) as errinfo:
+    with pytest.raises(FormulaError) as errinfo:
         cells(1, 3)
 
     errmsg = dedent("""\

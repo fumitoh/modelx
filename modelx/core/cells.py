@@ -19,7 +19,7 @@ from itertools import combinations
 from modelx.core.base import (
     Impl, Derivable, Interface, get_mixin_slots,
 )
-from modelx.core.trace import (
+from modelx.core.execution.trace import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node, TraceObject
 )
 from modelx.core.formula import (
@@ -29,7 +29,7 @@ from modelx.core.formula import (
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
 from modelx.core.node import NodeFactory, NodeFactoryImpl
-from modelx.core.boundfunc import AlteredFunction
+from modelx.core.binding.boundfunc import AlteredFunction
 
 
 class CellsMaker:

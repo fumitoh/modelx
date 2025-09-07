@@ -1,5 +1,4 @@
 # Copyright (c) 2017-2024 Fumito Hamamura <fumito.ham@gmail.com>
-import sys
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation version 3.
@@ -15,7 +14,7 @@ import sys
 from types import FunctionType, CodeType
 import dis
 from modelx.core.base import Subject
-from modelx.core.namespace import BaseNamespaceReferrer
+from modelx.core.binding.namespace import BaseNamespaceReferrer
 
 
 def create_closure(new_value):

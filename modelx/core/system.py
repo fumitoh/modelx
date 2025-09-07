@@ -19,10 +19,10 @@ if sys.platform == "linux":
 import warnings
 from contextlib import contextmanager
 from modelx.core.model import ModelImpl
-from modelx.core.util import AutoNamer, is_valid_name
-from modelx.core.errors import DeepReferenceError, FormulaError
-from modelx.io.baseio import IOManager, BaseSharedIO
-from modelx.core.execution import NonThreadedExecutor, ThreadedExecutor, CallStack, TraceableCallStack
+from modelx.core.util import AutoNamer
+from modelx.core.errors import DeepReferenceError
+from modelx.io.baseio import IOManager
+from modelx.core.execution.executor import NonThreadedExecutor, ThreadedExecutor, CallStack, TraceableCallStack
 
 
 def custom_showwarning(

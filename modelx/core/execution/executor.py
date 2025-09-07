@@ -7,8 +7,8 @@ from collections import deque
 from typing import Optional
 import modelx   # https://bugs.python.org/issue18145
 from modelx.core.errors import DeepReferenceError, FormulaError
-from modelx.core.trace import (
-    OBJ, KEY, get_node_repr, TraceObject, TraceGraph, ReferenceGraph, TraceKey, TraceNode
+from modelx.core.execution.trace import (
+    OBJ, KEY, get_node_repr, TraceGraph, ReferenceGraph, TraceNode
 )
 
 
