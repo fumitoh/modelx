@@ -543,23 +543,6 @@ class BaseSpace(BaseParent, NodeFactory):
         return self._impl.get_itemspace(args, kwargs).interface
 
     # ----------------------------------------------------------------------
-    # Name referrer
-
-    def get_referents(self):
-
-        if self._impl.formula is None:
-            return None
-        else:
-            refs = self._impl.altfunc.get_referents()
-            result = refs.copy()
-
-            for key, data in refs.items():
-                if key != "builtins" and key != "missing":
-                    result[key] = {name: obj.to_node() for
-                                   name, obj in refs[key].items()}
-            return result
-
-    # ----------------------------------------------------------------------
     # Conversion to Pandas objects
 
     def to_frame(self, *args):
