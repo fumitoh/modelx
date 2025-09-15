@@ -1439,7 +1439,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self._own_refs = self._init_own_refs()
+        self._own_refs = RefDict("own_refs", self)
         self._cells = CellsDict("cells", self)
         self._named_spaces = SpaceDict("named_spaces", self)
         self._sys_refs = LazyEvalDict("sys_refs",
@@ -1505,8 +1505,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
             setattr(self, k, v)
         self.dynamic_cache = weakref.WeakValueDictionary()
 
-    def _init_own_refs(self):
-        raise NotImplementedError
 
     def _init_refs(self, arguments=None):
         raise NotImplementedError
@@ -1694,9 +1692,6 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.source = source.__name__
         else:
             self.source = source
-
-    def _init_own_refs(self):
-        return RefDict("own_refs", self)
 
     def _init_refs(self, arguments=None):
         return RefChainMap("refs",
@@ -2082,9 +2077,6 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     def _init_cells(self):
         for base in self._dynbase.cells.values():
             DynamicCellsImpl(space=self, base=base, is_derived=True)
-
-    def _init_own_refs(self):
-        return RefDict("own_refs", self)
 
     def _init_refs(self, arguments=None):
         self._allargs = self._init_allargs()
