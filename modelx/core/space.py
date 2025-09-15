@@ -1361,12 +1361,8 @@ class Namespace(BaseNamespace):
         # Check if name is a Reference in the current Space
         ref = self._impl.refs.get(name)
         if ref is not None:
-            if self._impl.system.callstack.counter:
-                assert isinstance(ref, ReferenceImpl)
-                self._impl.system.refstack.append(
-                    (self._impl.system.callstack.counter - 1, ref)
-                )
-            return ref.interface
+            assert isinstance(ref, ReferenceImpl)
+            return self._impl.system.executor.add_reference(ref).interface
 
         try:
             return self._impl.ns_dict[name]

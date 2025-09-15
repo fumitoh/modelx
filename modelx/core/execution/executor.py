@@ -117,6 +117,11 @@ class NonThreadedExecutor:
         else:
             return self.buffer
 
+    def add_reference(self, ref):
+        if self.is_executing:
+            self.refstack.append((self.callstack.counter - 1, ref))
+        return ref
+
 
 class ThreadedExecutor(NonThreadedExecutor):
 

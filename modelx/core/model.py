@@ -315,13 +315,8 @@ class Model(IOSpecOperation, EditableParent):
            https://docs.python.org/3/library/pathlib.html#pathlib.Path
 
         """
-        # TODO: Temporary Implementation
-        if self._impl.system.callstack.counter:
-            self._impl.system.refstack.append(
-                (self._impl.system.callstack.counter - 1,
-                 self._impl.property_refs["path"])
-            )
-        return self._impl.path
+        return self._impl.system.executor.add_reference(
+            self._impl.property_refs["path"]).interface
 
     @path.setter
     def path(self, path):
@@ -661,12 +656,8 @@ class ModelNamespace(BaseNamespace):
         # Check if name is a Reference in the current Space
         ref = self._impl.refs.get(name)
         if ref is not None:
-            if self._impl.system.callstack.counter:
-                assert isinstance(ref, ReferenceImpl)
-                self._impl.system.refstack.append(
-                    (self._impl.system.callstack.counter - 1, ref)
-                )
-            return ref.interface
+            assert isinstance(ref, ReferenceImpl)
+            return self._impl.system.executor.add_reference(ref).interface
         else:
             raise AttributeError(f"{name!r} not found in {repr(self._impl.interface)}")
 
@@ -681,16 +672,9 @@ class ModelNamespace(BaseNamespace):
 
     @property
     def path(self):
-        # return self._impl.path
-        # Check if name is a Reference in the current Space
-        if self._impl.system.callstack.counter:
-            path = self._impl._property_refs['path']
-            assert isinstance(path, ReferenceImpl)
-            self._impl.system.refstack.append(
-                (self._impl.system.callstack.counter - 1, path)
-            )
-        return path.interface
-
+        path = self._impl._property_refs['path']
+        assert isinstance(path, ReferenceImpl)
+        return self._impl.system.executor.add_reference(path).interface
 
 
 _model_impl_base = (
