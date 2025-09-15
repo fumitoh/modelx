@@ -1482,14 +1482,13 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
     def get_nodes_for(self, key):
         root = self.param_spaces[key]
-        for c in root.cells.values():
-            for key in c.data:
-                yield c, key
-
         queue = deque()
         queue.append(root)
         while queue:
             obj = queue.popleft()
+            for c in obj.cells.values():
+                for key in c.data:
+                    yield c, key
             for k, _ in obj.param_spaces.items():
                 yield obj, k
             for child in obj.named_spaces.values():
