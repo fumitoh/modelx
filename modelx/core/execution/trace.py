@@ -23,14 +23,10 @@ TraceKey = Tuple[Any, ...]
 class TraceObject:
 
     __slots__ = ()
-    # __mixin_slots = ("is_cached", "tracemgr")   # and "data"
 
     model: 'TraceManager'
     is_cached: bool
     data: Dict[TraceKey, Any]
-
-    # def __init__(self, tracemgr):
-    #     self.tracemgr = tracemgr
 
     def has_node(self, key: TraceKey) -> bool:
         raise NotImplementedError

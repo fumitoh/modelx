@@ -122,3 +122,60 @@ class AlteredFunction(BaseNamespaceReferrer):
         self._is_global_updated = False
         self.is_altfunc_updated = True
 
+    def _get_referents(self):   # TODO: NameServer does not have cells, spaces, refs
+
+        ns = self.ns_server
+        result = {}
+
+        for key in ('cells', 'refs', 'spaces', 'missing', 'builtins'):
+            result[key] = {}
+
+        for n in self.global_names:
+
+            v = ns.cells.get(n)
+            if v is not None:
+                result["cells"][n] = v
+                continue
+
+            v = ns.spaces.get(n)
+            if v is not None:
+                result["spaces"][n] = v
+                continue
+
+            v = ns.refs.get(n)
+            if v is not None:
+                result["refs"][n] = v
+                continue
+
+            if '__builtins__' in ns.refs:
+                builtins = ns.refs['__builtins__'].interface.__dict__
+                if n in builtins:
+                    result["builtins"][n] = builtins[n]
+                else:
+                    result["missing"][n] = None
+
+        return result
+
+    def get_referents(self):
+
+        if self.formula is None:
+            return None
+        else:
+            refs = self._get_referents()
+            result = refs.copy()
+
+            for key, data in refs.items():
+                if key != "builtins" and key != "missing":
+                    result[key] = {name: obj.to_node() for
+                                   name, obj in refs[key].items()}
+            return result
+
+    def get_valuerefs(self):
+        from modelx.core.base import Interface  #TODO: Refactor.
+        refs = self.get_referents()
+        if refs and "refs" in refs:
+            return [v for v in refs["refs"].values()
+                    if v.has_value()
+                    and not isinstance(v.value, Interface)]
+        else:
+            return []
