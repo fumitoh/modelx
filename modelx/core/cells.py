@@ -23,8 +23,7 @@ from modelx.core.execution.trace import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node, TraceObject
 )
 from modelx.core.formula import (
-    Formula, NullFormula, NULL_FORMULA, replace_docstring,
-    HasFormula
+    Formula, NullFormula, NULL_FORMULA, replace_docstring
 )
 from modelx.core.util import is_valid_name
 from modelx.core.errors import NoneReturnedError
@@ -570,7 +569,7 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
 
 
 _cells_impl_base = (AlteredFunction, Derivable, NodeFactoryImpl, TraceObject,
-                    HasFormula, Impl)
+                    Impl)
 
 
 class CellsImpl(*_cells_impl_base):

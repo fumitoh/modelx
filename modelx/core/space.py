@@ -38,7 +38,6 @@ from modelx.core.base import (
     BaseView,
     SelectedView
 )
-from modelx.core.formula import HasFormula
 from modelx.core.reference import (
     ReferenceImpl,
     ReferenceProxy
@@ -1153,7 +1152,7 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.doc = value
 
 
-class ItemSpaceParent(NodeFactoryImpl, AlteredFunction, HasFormula):
+class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
 
     __slots__ = ()
     __mixin_slots = (
