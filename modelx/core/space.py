@@ -47,12 +47,11 @@ from modelx.core.execution.trace import (
     tuplize_key,
     get_node,
     key_to_node,
-    KEY,
-    ParentTraceObject
+    KEY
 )
 from modelx.core.node import (
     NodeFactory,
-    NodeFactoryImpl,
+    ParentNodeFactoryImpl,
 )
 from modelx.core.parent import (
     BaseParent,
@@ -1152,7 +1151,7 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.doc = value
 
 
-class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
+class ItemSpaceParent(ParentNodeFactoryImpl, AlteredFunction):
 
     __slots__ = ()
     __mixin_slots = (
@@ -1327,7 +1326,6 @@ class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
 _base_space_impl_base = (
     NamespaceServer,
     ItemSpaceParent,
-    ParentTraceObject,
     BaseParentImpl,
     Impl
 )
