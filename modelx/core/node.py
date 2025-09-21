@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from modelx.core.execution.trace import OBJ, KEY, get_node, TraceObject
+from modelx.core.execution.trace import OBJ, KEY, get_node, TraceObject, ParentTraceObject
 
 
 class BaseNode:
@@ -336,7 +336,7 @@ class NodeFactory:
                 + self._impl.get_attrpreds(args, kwargs))
 
 
-class NodeFactoryImpl:
+class BaseNodeFactoryImpl:
 
     __slots__ = ()
     __mixin_slots = ()
@@ -376,3 +376,11 @@ class NodeFactoryImpl:
 
     def clear_value_at(self, key, clear_input=True):
         pass
+
+
+class NodeFactoryImpl(BaseNodeFactoryImpl, TraceObject):
+    pass
+
+
+class ParentNodeFactoryImpl(BaseNodeFactoryImpl, ParentTraceObject):
+    pass

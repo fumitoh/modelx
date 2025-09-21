@@ -20,7 +20,7 @@ from modelx.core.base import (
     Impl, Derivable, Interface, get_mixin_slots,
 )
 from modelx.core.execution.trace import (
-    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node, TraceObject
+    OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node
 )
 from modelx.core.formula import (
     Formula, NullFormula, NULL_FORMULA, replace_docstring
@@ -568,8 +568,7 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         self._impl.set_doc(doc, insert_indents=insert_indents)
 
 
-_cells_impl_base = (AlteredFunction, Derivable, NodeFactoryImpl, TraceObject,
-                    Impl)
+_cells_impl_base = (AlteredFunction, Derivable, NodeFactoryImpl, Impl)
 
 
 class CellsImpl(*_cells_impl_base):
