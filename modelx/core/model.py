@@ -716,7 +716,6 @@ class ModelImpl(*_model_impl_base):
         self._property_refs = RefDict("property_refs", self)
         self._property_refs.set_item("path", self.path)
         self._named_spaces = SpaceDict("named_spaces", self)
-        self._all_spaces = self._named_spaces
         self._namespace = ImplChainMap("namespace",
             self, BaseView, [self._named_spaces, self._global_refs]
         )
@@ -1368,7 +1367,7 @@ class SpaceManager(SharedSpaceOperations):
     def _check_sanity(self):
 
         nodes = set(self._graph.nodes)
-        spaces = dict(self.model._all_spaces)
+        spaces = dict(self.model.named_spaces)
 
         # consistency between spaces and nodes
         while spaces:

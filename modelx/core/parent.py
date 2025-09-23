@@ -39,11 +39,6 @@ class BaseParent(Interface):
         """A mapping of the names of child spaces to the Space objects"""
         return self._impl.spaces.interfaces
 
-    @property
-    def _all_spaces(self):
-        """A mapping associating names to all(static and dynamic) spaces."""
-        return self._impl.all_spaces.interfaces
-
     # ----------------------------------------------------------------------
     # Current Space method
 
@@ -741,10 +736,7 @@ class BaseParentImpl:
 
     """
     __slots__ = ()
-    __mixin_slots = (
-        "_named_spaces",
-        "_all_spaces"
-    )
+    __mixin_slots = ("_named_spaces",)
 
     # ----------------------------------------------------------------------
     # Properties
@@ -756,10 +748,6 @@ class BaseParentImpl:
     @property
     def named_spaces(self):
         return self._named_spaces.fresh
-
-    @property
-    def all_spaces(self):
-        return self._all_spaces.fresh
 
 
 class EditableParentImpl(BaseParentImpl):
