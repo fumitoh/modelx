@@ -1431,9 +1431,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
         ItemSpaceParent.__init__(self, formula)
         AlteredFunction.__init__(self, self)
-        self._all_spaces = ImplChainMap("all_spaces",
-            self, SpaceView, [self._named_spaces, self._named_itemspaces]
-        )
+
         container.set_item(name, self)
 
         # ------------------------------------------------------------------
@@ -1559,10 +1557,14 @@ class BaseSpaceImpl(*_base_space_impl_base):
         child = parts.pop(0)
 
         if parts:
-            if child in self.all_spaces:
-                return self.all_spaces[child].get_impl_from_namelist(parts)
-            else:
-                return None
+            space = self.named_spaces.get(child)
+            if space is not None:
+                return space.get_impl_from_namelist(parts)
+            space = self._named_itemspaces.get(child)
+            if space is not None:
+                return space.get_impl_from_namelist(parts)
+
+            return None
         else:
             result = self.get_attr(child)
             if result is not None:

@@ -1,3 +1,4 @@
+from collections import ChainMap
 import modelx as mx
 import pytest
 
@@ -28,8 +29,9 @@ def test_named_spaces(testspaces):
 
 def test_all_spaces(testspaces):
     parent, child, item = testspaces
-    assert len(parent._all_spaces) == 2
-    assert child in parent._all_spaces.values()
-    assert item in parent._all_spaces.values()
+    all_spaces = ChainMap(parent.named_spaces, parent._named_itemspaces)
+    assert len(all_spaces) == 2
+    assert child in all_spaces.values()
+    assert item in all_spaces.values()
 
 
