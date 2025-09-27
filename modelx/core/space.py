@@ -2161,11 +2161,9 @@ class ItemSpaceImpl(DynamicSpaceImpl):
 
     __slots__ = (
         "_arguments",
-        "boundargs",
         "argvalues",
         "argvalues_if"
     ) + get_mixin_slots(DynamicSpaceImpl)
-
 
     def __init__(
         self,
@@ -2210,8 +2208,8 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         return refs
 
     def _bind_args(self, args):
-        self.boundargs = self.parent.formula.signature.bind(**args)
-        self.argvalues = tuple(self.boundargs.arguments.values())
+        boundargs = self.parent.formula.signature.bind(**args)
+        self.argvalues = tuple(boundargs.arguments.values())
         self.argvalues_if = tuple(get_interface_list(self.argvalues))
 
     # ----------------------------------------------------------------------
