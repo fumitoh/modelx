@@ -34,7 +34,6 @@ from modelx.core.base import (
     LazyEvalDict,
     ImplDict,
     ImplChainMap,
-    RefChainMap,
     BaseView,
     SelectedView
 )
@@ -1672,7 +1671,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.source = source
 
     def _init_refs(self, arguments=None):
-        return RefChainMap("refs",
+        return ImplChainMap("refs",
             self,
             RefView,
             [self._own_refs, self._sys_refs, self.model._global_refs]
