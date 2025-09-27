@@ -936,13 +936,6 @@ class ImplChainMap(*bases):
         self._update_interfaces()
 
 
-class RefChainMap(ImplChainMap):
-
-    def __init__(self, name, owner, ifclass, maps=None, observers=None):
-        ImplChainMap.__init__(self, name, owner, ifclass,
-            maps=maps, observers=observers)
-
-
 # The code below is modified from UserDict in Python's standard library.
 #
 # The original code was taken from the following URL:
