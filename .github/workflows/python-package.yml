@@ -22,7 +22,8 @@ jobs:
                          {py: "3.10", nx: "2.7"},
                          {py: "3.11", nx: "2.8"},
                          {py: "3.12", nx: "3.2"},
-                         {py: "3.13", nx: "3.4"}
+                         {py: "3.13", nx: "3.4"},
+                         {py: "3.14", nx: "3.5"}
         ]
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         exclude:
