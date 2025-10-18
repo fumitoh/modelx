@@ -24,8 +24,6 @@ import networkx as nx
 from modelx.core.base import (
     Interface,
     Impl,
-    ImplChainMap,
-    BaseView,
     Derivable,
     get_mixin_slots,
     null_impl
@@ -37,15 +35,13 @@ from modelx.core.parent import (
     EditableParentImpl,
     EditableParent,
 )
-from modelx.core.space import (
-    UserSpaceImpl,
-    SpaceDict,
-    RefDict
-)
+from modelx.core.space import UserSpaceImpl
 from modelx.core.binding.namespace import BaseNamespace
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.execution.trace import TraceManager
+from modelx.core.chainmap import CustomChainMap
+from modelx.core.views import RefView2
 
 
 class IOSpecOperation:
@@ -322,7 +318,9 @@ class Model(IOSpecOperation, EditableParent):
     def path(self, path):
         self._impl.clear_attr_referrers(self._impl.property_refs["path"])
         self._impl.path = pathlib.Path(path)
-        self._impl.property_refs.set_item("path", self._impl.path)
+        self._impl.property_refs['path'] = ReferenceImpl(
+            self._impl, "path", self._impl.path, container=self._impl._property_refs,
+            set_item=False)
 
     def write(self, model_path, backup=True, log_input=False):
         """Write model to files.
@@ -414,7 +412,7 @@ class Model(IOSpecOperation, EditableParent):
         self._impl.del_attr(name)
 
     def __dir__(self):
-        return list(self._impl._namespace.fresh.interfaces)
+        return list(self._impl._namespace)
 
     @property
     def tracegraph(self):
@@ -424,7 +422,7 @@ class Model(IOSpecOperation, EditableParent):
     @property
     def refs(self):
         """Return a mapping of global references."""
-        return self._impl.global_refs.interfaces
+        return RefView2(self._impl.global_refs)
 
     def _get_from_name(self, name):
         """Get object by named id"""
@@ -658,11 +656,13 @@ class ModelNamespace(BaseNamespace):
         if ref is not None:
             assert isinstance(ref, ReferenceImpl)
             return self._impl.system.executor.add_reference(ref).interface
+        elif name in self._impl.named_spaces:
+            return self._impl.named_spaces[name].interface
         else:
             raise AttributeError(f"{name!r} not found in {repr(self._impl.interface)}")
 
     def __contains__(self, item):
-        return item in self._impl._namespace.fresh
+        return item in self._impl._namespace
 
     @property
     def _parent(self):
@@ -711,14 +711,16 @@ class ModelImpl(*_model_impl_base):
 
         self.currentspace = None
         self.path = None
-        self._global_refs = RefDict("global_refs", self)
-        self._global_refs.set_item("__builtins__", builtins)
-        self._property_refs = RefDict("property_refs", self)
-        self._property_refs.set_item("path", self.path)
-        self._named_spaces = SpaceDict("named_spaces", self)
-        self._namespace = ImplChainMap("namespace",
-            self, BaseView, [self._named_spaces, self._global_refs]
-        )
+        self._global_refs = {}
+        self._global_refs['__builtins__'] = ReferenceImpl(
+            self, '__builtins__', builtins, container=self._global_refs,
+            set_item=False)
+        self._property_refs = {}
+        self._property_refs["path"] = ReferenceImpl(
+            self, "path", self.path, container=self._property_refs,
+            set_item=False)
+        self._named_spaces = {}
+        self._namespace = CustomChainMap(self._named_spaces, self._global_refs)
         self.namespace = ModelNamespace(self)
         self.allow_none = False
         self.refmgr = ReferenceManager(self, system.iomanager)
@@ -746,14 +748,14 @@ class ModelImpl(*_model_impl_base):
 
     @property
     def global_refs(self):
-        return self._global_refs.fresh
+        return self._global_refs
 
     refs = global_refs
     own_refs = global_refs
 
     @property
     def property_refs(self):
-        return self._property_refs.fresh
+        return self._property_refs
 
     def get_impl_from_name(self, name):
         """Retrieve an object by a dotted name relative to the model."""
@@ -781,7 +783,9 @@ class ModelImpl(*_model_impl_base):
         ref = self.global_refs[name]
         self.model.clear_attr_referrers(ref)
         ref.on_delete()
-        self.global_refs.del_item(name)
+        del self.global_refs[name]
+        for space in self.yield_spaces():
+            space.on_notify(self.global_refs)
 
     def change_ref(self, name, value):
         self.del_ref(name)
@@ -791,7 +795,9 @@ class ModelImpl(*_model_impl_base):
         ref = ReferenceImpl(
             self, name, value, container=self._global_refs,
             set_item=False)
-        self._global_refs.set_item(name, ref)
+        self._global_refs[name] = ref
+        for space in self.yield_spaces():
+            space.on_notify(self.global_refs)
         return ref
 
     def get_attr(self, name):
@@ -1215,11 +1221,11 @@ class SpaceManager(SharedSpaceOperations):
 
                 idx = list(base_cells).index(name)
                 cells_after = list(subspace.cells)[idx:]
-                subspace._cells.set_item(name, derived)
+                subspace._cells[name] = derived
+                subspace.on_notify(subspace._cells)
 
                 for k in cells_after:
                     subspace._cells[k] = subspace._cells.pop(k)
-
 
         return cells
 
@@ -1516,7 +1522,7 @@ class SpaceUpdater(SharedSpaceOperations):
         try:
             self._instructions.execute()
         except BaseException:
-            container.del_item(name)
+            del container[name]
             raise
 
         self._update_manager()

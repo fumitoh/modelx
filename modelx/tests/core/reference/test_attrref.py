@@ -120,8 +120,8 @@ def test_del_global_attrref():
 def test_del_attrref():
     """
     m-----A-----B---x
-       |     +----foo
-       +--C(A)
+    |     +----foo
+    +--C(A)
     """
     m = mx.new_model()
     A = m.new_space("A")

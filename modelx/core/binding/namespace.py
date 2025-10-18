@@ -12,9 +12,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Tuple, Sequence
 import logging
-from modelx.core.base import ChainObserver, Observer, Subject
+from modelx.core.base import Observer, Subject
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ class BaseNamespace:
         self._impl = impl
 
 
-class NamespaceServer(ChainObserver):
+class NamespaceServer(Subject):
 
     __slots__ = ()
     __mixin_slots = (
@@ -42,14 +41,14 @@ class NamespaceServer(ChainObserver):
     _ns_dict: dict
     _is_ns_updated: bool
 
-    def __init__(self, subjects: Sequence[Subject]):
+    def __init__(self):
         """
         Initialize NamespaceServer.
         subjects: a sequence of name-object mappings (e.g., ImplChainMap, NamespaceServer, dict, etc.)
         subjects must be in a reverse order of name resolution priority.
         The last subject has the highest priority in name resolution.
         """
-        ChainObserver.__init__(self, subjects=subjects)
+        Subject.__init__(self)
         self._namespace = self._ns_class(self)
         self._is_ns_updated = False
 
@@ -74,17 +73,13 @@ class NamespaceServer(ChainObserver):
 
     def _update_ns(self) -> BaseNamespace:  # TODO: Refactor.
         self._ns_dict = {}
-        for subject in self.subjects:
-            if subject is not self:  # Avoid self-reference
-                for k, v in subject.fresh.items():
-                    if isinstance(v, NamespaceServer):  # Spaces
-                        self._ns_dict[k] = v._namespace # Avoid infinite recursion
-                    elif isinstance(v, BaseNamespaceReferrer):  # Cells
-                        self._ns_dict[k] = v.call
-                    else:
-                        self._ns_dict[k] = v.interface
+        self.on_update_ns()
         self._is_ns_updated = True
         return self._namespace
+
+    def on_update_ns(self):
+        """Called when namespace is updated."""
+        raise NotImplementedError
 
 
 class BaseNamespaceReferrer(Observer):
@@ -95,10 +90,7 @@ class BaseNamespaceReferrer(Observer):
     ns_server: NamespaceServer
 
     def __init__(self, server: NamespaceServer):
-        if isinstance(self, NamespaceServer):
-            self.observe(self, notify=False)
-        else:
-            Observer.__init__(self, (server,))
+        Observer.__init__(self, (server,))
         self.ns_server = server
 
     def on_notify(self, namspace: NamespaceServer):

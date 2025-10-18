@@ -27,7 +27,7 @@ def test_model_path(tmp_path):
     m = mx.read_model(tmp_path / "model")
     assert m.Space1.foo() == tmp_path / "model"
 
-    ref = m.Space1.foo.precedents()[0]
+    ref = next(r for r in m.Space1.foo.precedents() if r.obj.name == 'path')
     assert ref.obj.name == "path"
     assert ref.obj.value == tmp_path / "model"
 
