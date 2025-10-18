@@ -13,25 +13,26 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import ClassVar, Optional, List
-import sys
+from typing import Optional
 from collections.abc import Sequence, Mapping
-from inspect import BoundArguments
-from modelx.core.chainmap import CustomChainMap
 from modelx.core.errors import DeletedObjectError
+
 
 def get_interface_dict(impls):
     return {name: impls[name].interface for name in impls}
 
+
 def get_interface_list(impls):
     return [impl.interface for impl in impls]
+
 
 def get_impl_dict(interfaces):
     return {name: interfaces[name]._impl for name in interfaces}
 
+
 def get_impl_list(interfaces):
     return [interfaces._impl for interfaces in interfaces]
+
 
 def get_impls(interfaces):
     """Get impls from their interfaces."""
@@ -157,7 +158,6 @@ class Impl(BaseImpl):
         else:
             return prop
 
-
     def get_fullname(self, omit_model=False):
 
         if self.parent:
@@ -259,6 +259,7 @@ class Impl(BaseImpl):
                 result[cls.__name__] = []
 
         return result
+
 
 class Derivable:
 
@@ -613,24 +614,19 @@ class Subject:
 
     observers: Sequence[Observer]
 
-    def __init__(self, observers: Optional[Sequence[Observer]] = ()) -> None:
+    def __init__(self) -> None:
         self.observers = []
-        if observers:
-            for obs in observers:
-                self.append_observer(obs)
 
     def append_observer(self, observer: Observer, notify: bool = True) -> None:
         # Identity-based de-dupe (faster than equality)
         if all(observer is not other for other in self.observers):
             self.observers.append(observer)
             # back-link to subject
-            observer.subjects.append(self)
             if notify:
                 observer.on_notify(self)
 
     def remove_observer(self, observer: Observer) -> None:
         self.observers.remove(observer)
-        observer.subjects.remove(self)
 
     def notify(self) -> None:
         for observer in self.observers:
@@ -640,12 +636,9 @@ class Subject:
 class Observer:
     """Mixin: provides observe()/unobserve() and on_notify() hook."""
     __slots__ = ()
-    __mixin_slots = ("subjects",)
-
-    subjects: Sequence[Subject]
+    __mixin_slots = ()
 
     def __init__(self, subjects: Optional[Sequence[Subject]] = ()) -> None:
-        self.subjects = []
         if subjects:
             for subject in subjects:
                 self.observe(subject, notify=False)
@@ -658,66 +651,6 @@ class Observer:
 
     def unobserve(self, subject: Subject) -> None:
         subject.remove_observer(self)
-
-
-class ChainObserver(Observer, Subject):
-
-    __slots__ = ()
-    __mixin_slots = ()
-
-    def __init__(self, observers: Optional[Iterable[Observer]] = (), subjects: Optional[Iterable[Subject]] = ()) -> None:
-        Observer.__init__(self, subjects)
-        Subject.__init__(self, observers)
-
-
-class LazyEval(ChainObserver):
-    """Base class for flagging observers so that they update themselves later.
-
-    An object of a class inherited from LazyEvaluation can have its observers.
-    When the data of the object is updated, the users call notify method,
-    to flag the object's observers.
-    When the observers get_updated methods are called later, their data
-    contents are updated depending on their update states.
-    The updating operation can be customized by overwriting _refresh method.
-    """
-    __slots__ = ()
-    __mixin_slots = ("is_fresh",)
-
-    is_fresh: bool
-
-    def __init__(self, observers=None):
-        self.is_fresh = False    # Define here so that LazyEval can notify this
-        ChainObserver.__init__(self, observers)
-
-    def notify(self):
-        if not self.is_fresh:
-            return
-        else:
-            self.is_fresh = False
-            for observer in self.observers:
-                # if observer.is_fresh:
-                observer.on_notify(self)
-
-    def on_notify(self, subject):
-        self.notify()
-
-    @property
-    def fresh(self):
-        if not self.is_fresh:
-            for other in self.subjects:
-                other.fresh
-            self._refresh()
-            self.is_fresh = True
-        return self
-
-    def unfresh(self):
-        self.is_fresh = False
-        for other in self.observers:
-            other.on_notify(self)
-
-
-    def _refresh(self):
-        raise NotImplementedError  # To be overwritten in derived classes
 
 
 def _rename_item(self, old_name, new_name):
@@ -792,298 +725,11 @@ def _sort_partial(self, sorted_keys):
         i += 1
 
 
-class LazyEvalDict(LazyEval, dict):
+def sort_dict(self, sorted_keys=None):
+    if sorted_keys is None:
+        _sort_all(self)
+    else:
+        _sort_partial(self, sorted_keys)
 
-    __slots__ = ("name", "_repr") + get_mixin_slots(LazyEval, dict)
-
-    def __init__(self, name, data=None, observers=None):
-
-        if data is None:
-            data = {}
-        if observers is None:
-            observers = []
-
-        dict.__init__(self, data)
-        LazyEval.__init__(self, observers)
-        self.name = name
-        self._repr = ""
-
-    def _refresh(self):
-        pass
-        # raise NotImplementedError
-
-    def _rename_item(self, old_name, new_name):
-        _rename_item(self, old_name, new_name)
-        return old_name, new_name
-
-    def _sort(self, sorted_keys=None):
-        if sorted_keys is None:
-            _sort_all(self)
-        else:
-            _sort_partial(self, sorted_keys)
-
-    def set_item(self, name, value):
-        dict.__setitem__(self, name, value)
-        self.notify()
-
-    def del_item(self, name):
-        dict.__delitem__(self, name)
-        self.notify()
-
-    def rename_item(self, old_name, new_name):
-        self._rename_item(old_name, new_name)
-        self.notify()
-
-    def sort_items(self, sort_keys):
-        self._sort(sort_keys)
-        self.notify()
-
-
-assert issubclass(LazyEvalDict, Mapping)
-
-
-class LazyEvalChainMap(LazyEval, CustomChainMap):
-
-    __slots__ = ("name", "_repr") + get_mixin_slots(LazyEval, CustomChainMap)
-
-    def __init__(self, name, maps=None, observers=None):
-
-        if maps is None:
-            maps = []
-        if observers is None:
-            observers = []
-
-        CustomChainMap.__init__(self, *maps)
-        LazyEval.__init__(self, observers)
-        self.name = name
-        self._repr = ""
-
-        for other in maps:
-            other.append_observer(self)
-
-    def _refresh(self):
-        pass
-        # raise NotImplementedError
-
-    def __setitem__(self, name, value):
-        raise NotImplementedError
-
-    def __delitem__(self, name):
-        raise NotImplementedError
-
-
-assert issubclass(LazyEvalChainMap, Mapping)
-
-
-class InterfaceMixin:
-    """Mixin to LazyEval to update interface with impl
-
-    _update_interfaces needs to be manually called from _refresh.
-    """
-    __slots__ = ()
-    __mixin_slots = ("_interfaces", "map_class", "interfaces")
-
-    def __init__(self, map_class):
-        self._interfaces = dict()
-        self.map_class = map_class
-        self._set_interfaces(map_class)
-
-    def _set_interfaces(self, map_class):
-        if map_class is None:
-            self.interfaces = self._interfaces
-        elif map_class is dict:
-            raise RuntimeError
-        else:
-            self.interfaces = map_class(self._interfaces, self)
-
-    def _update_interfaces(self):
-        self._interfaces = {k: v.interface for k, v in self.items()}
-        self._set_interfaces(self.map_class)
-
-bases = InterfaceMixin, LazyEvalDict
-
-
-class ImplDict(*bases):
-
-    __slots__ = ("owner",) + get_mixin_slots(*bases)
-
-    def __init__(self, name, owner, ifclass, data=None, observers=None):
-        self.owner = owner
-        InterfaceMixin.__init__(self, ifclass)
-        LazyEvalDict.__init__(self, name, data, observers)
-
-    def _refresh(self):
-        self._update_interfaces()
-
-
-bases = InterfaceMixin, LazyEvalChainMap
-
-
-class ImplChainMap(*bases):
-
-    __slots__ = ("owner", "map_ids") + get_mixin_slots(*bases)
-
-    def __init__(
-        self, name, owner, ifclass, maps=None, observers=None,
-            map_ids=None
-    ):
-        self.owner = owner
-        self.map_ids = map_ids
-        InterfaceMixin.__init__(self, ifclass)
-        LazyEvalChainMap.__init__(self, name, maps, observers)
-
-    def _refresh(self):
-        self._update_interfaces()
-
-
-# The code below is modified from UserDict in Python's standard library.
-#
-# The original code was taken from the following URL:
-#   https://github.com/python/cpython/blob/\
-#       7e68790f3db75a893d5dd336e6201a63bc70212b/\
-#       Lib/collections/__init__.py#L968-L1027
-
-
-class BaseView(Mapping):
-
-    # Start by filling-out the abstract methods
-    def __init__(self, data, impl):
-        self._data = data
-        self.impl = impl
-
-    def __len__(self):
-        return len(self._data)
-
-    def __getitem__(self, key):
-        if key in self._data:
-            return self._data[key]
-        if hasattr(self.__class__, "__missing__"):
-            return self.__class__.__missing__(self, key)
-        raise KeyError(key)
-
-    def __iter__(self):
-        return iter(self._data)
-
-    # Modify __contains__ to work correctly when __missing__ is present
-    def __contains__(self, key):
-        return key in self._data
-
-    # Now, add the methods in dicts but not in MutableMapping
-    def __repr__(self):
-        return repr(self._data)
-
-    # ----------------------------------------------------------------------
-    # Override base class methods
-
-    @property
-    def _baseattrs(self):
-        """A dict of members expressed in literals"""
-
-        result = {"type": type(self).__name__}
-        try:
-            result["items"] = {
-                name: item._baseattrs
-                for name, item in self.items()
-                if name[0] != "_"
-            }
-        except:
-            raise RuntimeError("%s literadict raised an error" % self)
-
-        return result
-
-    @property
-    def _baseattrs_private(self):
-        """For spyder-modelx to populate SpaceView for named_itemspace"""
-
-        result = {"type": type(self).__name__}
-        try:
-            result["items"] = {
-                name: item._baseattrs
-                for name, item in self.items()
-            }
-        except:
-            raise RuntimeError("%s literadict raised an error" % self)
-
-        return result
-
-    def _to_attrdict(self, attrs=None):
-        """Used by spyder-modelx"""
-
-        result = {"type": type(self).__name__}
-        try:
-            result["items"] = {
-                name: item._to_attrdict(attrs) for name, item in self.items()
-            }
-        except:
-            raise RuntimeError("%s literadict raised an error" % self)
-
-        return result
-
-    def _get_attrdict(self, extattrs=None, recursive=True):
-        """Get extra attributes"""
-        result = {"type": type(self).__name__}
-        result["items"] = {
-            name: item._get_attrdict(extattrs, recursive)
-            for name, item in self.items()
-        }
-        # To make it possible to detect order change by comparison operation
-        result["keys"] = list(self.keys())
-
-        return result
-
-
-def _map_repr(self):
-    result = [",\n "] * (len(self) * 2 - 1)
-    result[0::2] = list(self)
-    return "{" + "".join(result) + "}"
-
-
-class SelectedView(BaseView):
-    """View to the original mapping but has only selected items.
-
-    A base class for :class:`modelx.core.space.CellsView`.
-
-    Args:
-        data: The original mapping object.
-        keys: Iterable of selected keys.
-    """
-
-    def __init__(self, data, impl, keys=None):
-        BaseView.__init__(self, data, impl)
-        self._set_keys(keys)
-
-    def __getitem__(self, key):
-        if isinstance(key, str):
-            return BaseView.__getitem__(self, key)
-        if isinstance(key, Sequence):
-            return type(self)(self._data, self.impl, key)
-        else:
-            raise KeyError
-
-    def _set_keys(self, keys=None):
-
-        if keys is None:
-            self.__keys = None
-        else:
-            self.__keys = list(keys)
-
-    def __len__(self):
-        return len(list(iter(self)))
-
-    def __iter__(self):
-        def newiter():
-            for key in self.__keys:
-                if key in self._data:
-                    yield key
-
-        if self.__keys is None:
-            return BaseView.__iter__(self)
-        else:
-            return newiter()
-
-    def __contains__(self, key):
-        return key in iter(self)
-
-    __repr__ = _map_repr
 
 

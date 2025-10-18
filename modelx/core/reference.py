@@ -105,7 +105,10 @@ class ReferenceImpl(Derivable, Impl):
                     raise ValueError("must not happen")
         else:
             self.interface = bases[0].interface
-        self.container.notify()
+
+
+class NameSpaceReferenceImpl(ReferenceImpl):
+    __slots__ = ()
 
 
 class ReferenceProxy:

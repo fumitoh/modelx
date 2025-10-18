@@ -13,12 +13,11 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
 import warnings
-import pathlib
-import uuid
 from modelx.core.base import (
     get_impls, Interface
 )
 from modelx.core.util import AutoNamer, get_module, get_param_func
+from modelx.core.views import SpaceView
 
 
 class BaseParent(Interface):
@@ -37,7 +36,7 @@ class BaseParent(Interface):
     @property
     def spaces(self):
         """A mapping of the names of child spaces to the Space objects"""
-        return self._impl.spaces.interfaces
+        return SpaceView(self._impl.spaces)
 
     # ----------------------------------------------------------------------
     # Current Space method
@@ -743,11 +742,16 @@ class BaseParentImpl:
 
     @property
     def spaces(self):
-        return self._named_spaces.fresh
+        return self._named_spaces
 
     @property
     def named_spaces(self):
-        return self._named_spaces.fresh
+        return self._named_spaces
+
+    def yield_spaces(self):
+        for space in self._named_spaces.values():
+            yield from space.yield_spaces()
+            yield space
 
 
 class EditableParentImpl(BaseParentImpl):
@@ -934,5 +938,5 @@ class EditableParentImpl(BaseParentImpl):
 
     def on_del_space(self, name):
         space = self.named_spaces[name]
-        self.named_spaces.del_item(name)
+        del self.named_spaces[name]
         space.on_delete()

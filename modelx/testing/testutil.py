@@ -1,6 +1,6 @@
 import modelx as mx
 from modelx.core.base import Interface, null_impl
-
+from modelx.core.binding.namespace import BaseNamespace
 
 def compare_model(src, trg):
 
@@ -49,6 +49,8 @@ def compare_ref(src, trg):
         else:
             assert type(src) == type(trg)
             assert src._impl is trg._impl is null_impl
+    elif isinstance(src, BaseNamespace):
+        assert src._impl.interface.fullname.split(".")[1:] == trg._impl.interface.fullname.split(".")[1:]
     else:
         assert src == trg
 

@@ -17,7 +17,7 @@ from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import (
-    Impl, Derivable, Interface, get_mixin_slots,
+    Impl, Derivable, Interface, get_mixin_slots, _rename_item
 )
 from modelx.core.execution.trace import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node
@@ -615,7 +615,8 @@ class CellsImpl(*_cells_impl_base):
         Derivable.__init__(self, is_derived)
 
         if add_to_space:    # Assign to space before calling AlteredFunction.__init__ to avoid getting notified
-            space._cells.set_item(name, self)
+            space._cells[name] = self
+            space.on_notify(space._cells)
 
         AlteredFunction.__init__(self, space)
 
@@ -895,7 +896,7 @@ class UserCellsImpl(CellsImpl):
 
             self.is_altfunc_updated = False
 
-        self.parent.cells.rename_item(old_name, name)
+        _rename_item(self.parent.cells, old_name, name)
 
     def on_set_property(self, flags, define, func, enable_cache):
         """Set formula and/or is_cached"""

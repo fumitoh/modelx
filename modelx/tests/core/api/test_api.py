@@ -79,7 +79,7 @@ def test_get_object_attrs(testmodel):
     attrs = ["spaces", "cells", "formula"]
 
     for obj, attr in zip(objs, attrs):
-        assert mx.get_object(obj.fullname + "." + attr) is getattr(obj, attr)
+        assert mx.get_object(obj.fullname + "." + attr) == getattr(obj, attr)
 
 
 def test_get_object_error(testmodel):

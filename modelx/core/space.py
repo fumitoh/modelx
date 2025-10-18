@@ -22,23 +22,20 @@ from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.binding.namespace import NamespaceServer, BaseNamespace
 from modelx.core.binding.boundfunc import AlteredFunction
 from modelx.core.chainmap import CustomChainMap
+from modelx.core.views import CellsView, SpaceView, RefView2, _to_frame_inner
 
 from modelx.core.base import (
-    get_impl_dict,
     get_impl_list,
     get_interface_dict,
     get_interface_list,
     get_mixin_slots,
     Interface,
     Impl,
-    LazyEvalDict,
-    ImplDict,
-    ImplChainMap,
-    BaseView,
-    SelectedView
+    sort_dict
 )
 from modelx.core.reference import (
     ReferenceImpl,
+    NameSpaceReferenceImpl,
     ReferenceProxy
 )
 from modelx.core.execution.trace import (
@@ -71,225 +68,6 @@ from modelx.core.util import AutoNamer, is_valid_name, get_module
 class ParamFunc(Formula):
 
     __slots__ = ()
-
-
-class SpaceDict(ImplDict):
-
-    __slots__ = ()
-
-    def __init__(self, name, space, data=None, observers=None):
-        ImplDict.__init__(self, name, space, SpaceView, data, observers)
-
-
-class CellsDict(ImplDict):
-
-    __slots__ = ()
-
-    def __init__(self, name, space, data=None, observers=None):
-        ImplDict.__init__(self, name, space, CellsView, data, observers)
-
-
-class RefDict(ImplDict):
-
-    __slots__ = ()
-
-    def __init__(self, name, parent, data=None, observers=None):
-        ImplDict.__init__(self, name, parent, RefView, None, observers)
-        if data is not None:
-            for name, value in data.items():
-                self.set_item(name, value)
-
-    def set_item(self, name, value):
-        ImplDict.set_item(self, name,
-                          self.wrap_impl(self.owner, name, value))
-
-    def del_item(self, name):
-        # TODO: Better way to get TraceManager
-        self.owner.model.clear_attr_referrers(self.fresh[name])
-        ImplDict.del_item(self, name)
-
-    def wrap_impl(self, parent, name, value):
-
-        if isinstance(value, ReferenceImpl):
-            return value
-        elif isinstance(value, Impl):
-            raise RuntimeError("must not happen")
-        else:
-            return ReferenceImpl(parent, name, value, container=self)
-
-
-class DynBaseRefDict(RefDict):
-
-    __slots__ = ()
-
-    def wrap_impl(self, parent, name, value):
-
-        assert isinstance(value, ReferenceImpl)
-
-        if isinstance(value.interface, Interface) and value.interface._is_valid():
-
-            if value.is_relative:   # value.is_relative is set to True
-                                    # When value.is_defined and
-                                    # value.refmode == "relative"
-
-                impl = value.interface._impl.idstr
-                root = self.owner.rootspace._dynbase.idstr
-                rootlen = len(root)
-
-                if root == impl:
-                    return self.owner.rootspace
-                elif root == impl[:rootlen]:
-                    return self.owner.rootspace.get_impl_from_name(
-                        impl[rootlen+1:]) # +1 to remove preceding dot
-                else:
-                    if value.refmode == "auto":
-                        if value.is_defined():
-                            return value
-                        else:
-                            return value.direct_bases[0]
-
-                    elif value.refmode == "relative":
-                        raise ValueError(
-                            "'%s' referred as '%s' is out of '%s'" %
-                            (impl, value.idstr, root)
-                        )
-                    else:
-                        raise RuntimeError("must not happen")
-
-            else:   # absolute
-                return value
-        else:
-            return value
-
-
-def _to_frame_inner(cellsiter, args):
-
-    from modelx.io.pandas import cellsiter_to_dataframe
-
-    if len(args) == 1:
-        if isinstance(args[0], Sequence) and len(args[0]) == 0:
-            pass  # Empty sequence
-        else:
-            args = args[0]
-
-    if len(args) and shareable_parameters(cellsiter) is None:
-        raise RuntimeError("Parameters not shared")
-
-    argkeys = []
-    for arg in args:
-        for cells in cellsiter.values():
-
-            newarg = tuplize_key(cells, arg, remove_extra=True)
-            cells.get_value(newarg)
-            arg = tuplize_key(cells, arg, remove_extra=False)
-
-            if arg not in argkeys:
-                argkeys.append(arg)
-
-    return cellsiter_to_dataframe(cellsiter, argkeys)
-
-
-class CellsView(SelectedView):
-    """A mapping of cells names to cells objects.
-
-    CellsView objects are returned by :attr:`UserSpace.cells` property.
-    When :attr:`UserSpace.cells` is called without subscription(``[]`` operator),
-    the returned CellsView contains all the cells in the space.
-
-    CellsView supports a normal subscription(``[]``) operation with one
-    argument to retrieve a cells object from its name,
-    but it also supports multiple arguments to indicate the names of cells
-    to select,
-    and returns another CellsView containing only the selected cells.
-
-    For example, if ``space`` contains 3 cells ``foo``, ``bar`` and ``baz``::
-
-        >> space.cells
-        {foo,
-         bar,
-         baz}
-
-        >> space.cells['bar', 'baz']
-        {bar,
-         baz}
-
-    """
-
-    def __delitem__(self, name):
-        cells = self._data[name]._impl
-        cells.spmgr.del_cells(cells.parent, name)
-
-    def to_frame(self, *args):
-        """Convert the cells in the view into a DataFrame object.
-
-        If ``args`` is not given, this method returns a DataFrame that
-        has an Index or a MultiIndex depending of the number of
-        cells parameters and columns each of which corresponds to each
-        cells included in the view.
-
-        ``args`` can be given to calculate cells values and limit the
-        DataFrame indexes to the given arguments.
-
-        The cells in this view may have different number of parameters,
-        but parameters shared among multiple cells
-        must appear in the same position in all the parameter lists.
-        For example,
-        Having ``foo()``, ``bar(x)`` and ``baz(x, y=1)`` is okay
-        because the shared parameter ``x`` is always the first parameter,
-        but this method does not work if the view has ``quz(x, z=2, y=1)``
-        cells in addition to the first three cells, because ``y`` appears
-        in different positions.
-
-        Args:
-            args(optional): multiple arguments,
-               or an iterator of arguments to the cells.
-        """
-        if sys.version_info < (3, 6, 0):
-            from collections import OrderedDict
-
-            impls = OrderedDict()
-            for name, obj in self.items():
-                impls[name] = obj._impl
-        else:
-            impls = get_impl_dict(self)
-
-        return _to_frame_inner(impls, args)
-
-
-class SpaceView(BaseView):
-    """A mapping of space names to space objects."""
-
-    def __delitem__(self, name):
-        space = self._data[name]._impl
-        # space.parent.del_space(name)
-        space.model.updater.del_defined_space(space)
-
-
-class RefView(SelectedView):
-
-    @property
-    def _baseattrs(self):
-
-        result = {"type": type(self).__name__}
-
-        result["items"] = items = {}
-        for name, item in self.items():
-            if name[0] != "_":
-                items[name] = ReferenceProxy(self.impl[name])._baseattrs
-
-        return result
-
-    def _get_attrdict(self, extattrs=None, recursive=True):
-
-        result = {"type": type(self).__name__}
-        result["items"] = items = {}
-
-        for name, item in self.items():
-            if name[0] != "_":
-                items[name] = ReferenceProxy(
-                    self.impl[name])._get_attrdict(extattrs, recursive)
-
-        return result
 
 
 class BaseSpace(BaseParent, NodeFactory):
@@ -362,14 +140,14 @@ class BaseSpace(BaseParent, NodeFactory):
     @property
     def cells(self):
         """A mapping of cells names to the cells objects in the space."""
-        return self._impl.cells.interfaces
+        return CellsView(self._impl.cells)
 
     _cells = cells
 
     @property
     def spaces(self):
         """A mapping associating names to named spaces."""
-        return self._impl.named_spaces.interfaces
+        return SpaceView(self._impl.named_spaces)
 
     @property
     def named_spaces(self):
@@ -379,7 +157,7 @@ class BaseSpace(BaseParent, NodeFactory):
 
         .. versionadded:: 0.2.0
         """
-        return self._impl.named_spaces.interfaces
+        return SpaceView(self._impl.named_spaces)
 
     @property
     def static_spaces(self):
@@ -390,7 +168,7 @@ class BaseSpace(BaseParent, NodeFactory):
         .. deprecated:: 0.2.0 Use :attr:`named_spaces` instead.
         """
         warnings.warn("static_spaces is deprecated. Use named_spaces instead.")
-        return self._impl.named_spaces.interfaces
+        return SpaceView(self._impl.named_spaces)
 
     @property
     def itemspaces(self):
@@ -416,7 +194,7 @@ class BaseSpace(BaseParent, NodeFactory):
     @property
     def _named_itemspaces(self):
         """A mapping associating names to dynamic spaces."""
-        return self._impl.named_itemspaces.interfaces
+        return SpaceView(self._impl.named_itemspaces)
 
     @property
     def parameters(self):
@@ -429,12 +207,12 @@ class BaseSpace(BaseParent, NodeFactory):
     @property
     def refs(self):
         """A map associating names to objects accessible by the names."""
-        return self._impl.refs.interfaces
+        return RefView2(self._impl.refs)
 
     @property
     def _own_refs(self):
         """A mapping associating names to self refs."""
-        return self._impl.own_refs.interfaces
+        return RefView2(self._impl.own_refs)
 
     @property
     def formula(self):
@@ -1162,7 +940,7 @@ class ItemSpaceParent(ParentNodeFactoryImpl, AlteredFunction):
     )
 
     def __init__(self, formula):
-        self._named_itemspaces = ImplDict('named_itemspaces', self, SpaceView)
+        self._named_itemspaces = {}
         self.itemspacenamer = AutoNamer("__Space")
 
         if self.is_dynamic():
@@ -1190,7 +968,7 @@ class ItemSpaceParent(ParentNodeFactoryImpl, AlteredFunction):
 
     @property
     def named_itemspaces(self):
-        return self._named_itemspaces.fresh
+        return self._named_itemspaces
 
     @property
     def data(self):
@@ -1239,7 +1017,7 @@ class ItemSpaceParent(ParentNodeFactoryImpl, AlteredFunction):
         if key in list(self.param_spaces):
             space = self.param_spaces[key]
             space.on_delete()
-            self.named_itemspaces.del_item(space.name)
+            del self.named_itemspaces[space.name]
             del self.param_spaces[key]
 
     def get_itemspace(self, args, kwargs=None):
@@ -1414,34 +1192,34 @@ class BaseSpaceImpl(*_base_space_impl_base):
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self._own_refs = RefDict("own_refs", self)
-        self._cells = CellsDict("cells", self)
-        self._named_spaces = SpaceDict("named_spaces", self)
-        self._sys_refs = LazyEvalDict("sys_refs",
-                                      {"_self": self, "_space": self, "_model": self.model})
+        self._own_refs = {}
+        self._cells = {}
+        self._named_spaces = {}
+        self._sys_refs = {}
         self._refs = self._init_refs(arguments)
 
         self.is_cached = True
 
-        NamespaceServer.__init__(
-            self,
-            (self._cells, self._refs, self._named_spaces)
-            )
+        NamespaceServer.__init__(self)
+        self._sys_refs.update(
+            _self=NameSpaceReferenceImpl(self, '_self', self._namespace, self._sys_refs, set_item=False),
+            _space=NameSpaceReferenceImpl(self, '_space', self._namespace, self._sys_refs, set_item=False),
+            _model=NameSpaceReferenceImpl(self, '_model', self.model.namespace, self._sys_refs, set_item=False)
+        )
 
         ItemSpaceParent.__init__(self, formula)
         AlteredFunction.__init__(self, self)
 
-        container.set_item(name, self)
+        container[name] = self
 
         # ------------------------------------------------------------------
         # Add initial refs members
 
         if refs is not None:
             for key, value in refs.items():
-                ReferenceImpl(self, key, value, container=self._own_refs,
-                              refmode="auto")
+                self._own_refs[key] = ReferenceImpl(self, key, value, container=self._own_refs,
+                              refmode="auto", set_item=False)
 
-        # ParentTraceObject.__init__(self, tracemgr=self.model)
 
     def on_notify(self, subject):
         if subject is self.ns_server:
@@ -1449,6 +1227,19 @@ class BaseSpaceImpl(*_base_space_impl_base):
             AlteredFunction.on_notify(self, subject)
         else:
             NamespaceServer.on_notify(self, subject)
+
+    def on_update_ns(self):
+        for k, v in self.named_spaces.items():
+            self._ns_dict[k] = v._namespace
+        for k, v in self.refs.items():
+            if isinstance(v, BaseNamespace):
+                self._ns_dict[k] = v
+            elif isinstance(v, NamespaceServer):
+                self._ns_dict[k] = v._namespace
+            else:
+                self._ns_dict[k] = v.interface
+        for k, v in self.cells.items():
+            self._ns_dict[k] = v.call
 
     # ----------------------------------------------------------------------
     # ParentTraceObject implementation
@@ -1478,7 +1269,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
             setattr(self, k, v)
         self.dynamic_cache = weakref.WeakValueDictionary()
 
-
     def _init_refs(self, arguments=None):
         raise NotImplementedError
 
@@ -1492,15 +1282,15 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
     @property
     def cells(self):
-        return self._cells.fresh
+        return self._cells
 
     @property
     def refs(self):
-        return self._refs.fresh
+        return self._refs
 
     @property
     def own_refs(self):
-        return self._own_refs.fresh
+        return self._own_refs
 
     @property
     def sys_refs(self):
@@ -1671,11 +1461,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.source = source
 
     def _init_refs(self, arguments=None):
-        return ImplChainMap("refs",
-            self,
-            RefView,
-            [self._own_refs, self._sys_refs, self.model._global_refs]
-        )
+        return CustomChainMap(self._own_refs, self._sys_refs, self.model._global_refs)
 
     @Impl.doc.setter
     def doc(self, value):
@@ -1907,7 +1693,8 @@ class UserSpaceImpl(*_user_space_impl_base):
                         self, name, None,
                         container=self._own_refs,
                         is_derived=True,
-                        refmode=bs[0].refmode
+                        refmode=bs[0].refmode,
+                        set_item=False
                     )
                 else:
                     raise RuntimeError("must not happen")
@@ -1929,7 +1716,8 @@ class UserSpaceImpl(*_user_space_impl_base):
     def on_del_cells(self, name):
         cells = self.cells[name]
         self.model.clear_obj(cells)
-        self.cells.del_item(name)
+        del self.cells[name]
+        self.on_notify(self.cells)
         cells.on_delete()
 
     def on_sort_cells(self, space):
@@ -1963,7 +1751,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             assert self is space
             keys = None
 
-        self.cells.sort_items(keys)
+        sort_dict(self.cells, keys)
 
     def on_change_ref(self, name, value, is_derived, refmode,
                       is_relative):
@@ -1980,19 +1768,24 @@ class UserSpaceImpl(*_user_space_impl_base):
                             is_derived=is_derived,
                             refmode=refmode,
                             set_item=False)
-        self._own_refs.set_item(name, ref)
+        self._own_refs[name] = ref
+        self.on_notify(self.own_refs)
         return ref
 
     def on_del_ref(self, name):
+        self.model.clear_attr_referrers(self.own_refs[name])
         self.own_refs[name].on_delete()
-        self.own_refs.del_item(name)
+        del self.own_refs[name]
+        self.on_notify(self.own_refs)
 
     def on_rename(self, name):
         self.model.clear_obj(self)
         self.clear_all_cells(clear_input=True, recursive=True, del_items=True)
         old_name = self.name
         self.name = name
-        self.parent.named_spaces.rename_item(old_name, name)
+        self.parent.named_spaces[name] = self.parent.named_spaces.pop(old_name)
+        if isinstance(self.parent, NamespaceServer):    # TODO: Refactor
+            self.parent.on_notify(self.parent.named_spaces)
 
 
 class DynamicSpace(BaseSpace):
@@ -2057,38 +1850,63 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     def _init_refs(self, arguments=None):
         self._allargs = self._init_allargs()
-        self._dynbase_refs = DynBaseRefDict("dynbase_refs", self)
-        self._dynbase_refs.observe(self._dynbase.own_refs)
-        # _dynbase_refs are populated from self._dynbase.own_refs
-        # later by _init_dynbaserefs called last
-        # from ItemSpaceParent.__init__, because
-        # dynamic spaces and leafs are not yet constructed here.
-
-        # Make _dynbase_refs updated
-        # _dynbase_refs.is_fresh must always True
-        self._dynbase_refs.fresh
-
-        return ImplChainMap("refs",
-            self,
-            RefView,
-            [
+        self._dynbase_refs = {}
+        return CustomChainMap(
                 *self._allargs.maps,     # underlying parent's _allargs
                 self._own_refs,
                 self._sys_refs,
                 self._dynbase_refs,
-                self.model._global_refs
-            ],
-        )
+                self.model._global_refs)
 
     def _init_dynbaserefs(self):
         # Populate _dynbase_refs creating relative reference within
         # the dynamic space tree.
         # Called from ItemSpaceParent.__init__ at last.
         for name, ref in self._dynbase.own_refs.items():
-            self._dynbase_refs.set_item(name, ref)
+            self._dynbase_refs[name] = self.wrap_impl(ref)
 
         for space in self.named_spaces.values():
             space._init_dynbaserefs()
+
+    def wrap_impl(self, value):
+
+        assert isinstance(value, ReferenceImpl)
+
+        if isinstance(value.interface, Interface) and value.interface._is_valid():
+
+            if value.is_relative:   # value.is_relative is set to True
+                                    # When value.is_defined and
+                                    # value.refmode == "relative"
+
+                impl = value.interface._impl.idstr
+                root = self.rootspace._dynbase.idstr
+                rootlen = len(root)
+
+                if root == impl:
+                    return self.rootspace
+                elif root == impl[:rootlen]:
+                    return self.rootspace.get_impl_from_name(
+                        impl[rootlen+1:]) # +1 to remove preceding dot
+                else:
+                    if value.refmode == "auto":
+                        if value.is_defined():
+                            return value
+                        else:
+                            return value.direct_bases[0]
+
+                    elif value.refmode == "relative":
+                        raise ValueError(
+                            "'%s' referred as '%s' is out of '%s'" %
+                            (impl, value.idstr, root)
+                        )
+                    else:
+                        raise RuntimeError("must not happen")
+
+            else:   # absolute
+                return value
+        else:
+            return value
+
 
     def _init_allargs(self):
         if isinstance(self.parent, UserSpaceImpl):
@@ -2098,23 +1916,19 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         else:
             allargs = [*self.parent._allargs.maps]
 
-        return ImplChainMap("allargs", self, None, allargs)
+        return CustomChainMap(*allargs)
 
     def on_delete(self):
         for space in list(self.named_spaces.values()):
             space.on_delete()
-            self.named_spaces.del_item(space.name)
+            del self.named_spaces[space.name]
         self.del_all_itemspaces()
         self._dynbase._dynamic_subs.remove(self)
         super().on_delete()
 
     @property
     def arguments(self):
-        return self._arguments.fresh
-
-    @property
-    def allargs(self):
-        return self._arguments.fresh
+        return self._arguments
 
     def is_dynamic(self):
         return True
@@ -2201,9 +2015,11 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             self.parent.dynamic_cache[dkey] = child.interface
 
     def _init_refs(self, arguments=None):
-        self._arguments = RefDict("arguments", self, data=arguments)
+        args = {}
+        for k, v in arguments.items():
+            args[k] = ReferenceImpl(self, k, v, container=args, set_item=False)
+        self._arguments = args
         refs = DynamicSpaceImpl._init_refs(self)
-        refs.observe(self._arguments)
         return refs
 
     def _bind_args(self, args):
