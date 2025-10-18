@@ -84,6 +84,8 @@ def test_maxout_recursion():
     m.close()
 
 
+@pytest.mark.skipif(sys.platform == "darwin" and sys.version_info < (3, 12),
+                    reason="macOS shallow stack")
 def test_maxout_recursion_referred_as_space_attr():
 
     m = mx.read_model(datadir / "CircularRefSample")
