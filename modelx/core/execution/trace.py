@@ -127,14 +127,6 @@ class TraceGraph(nx.DiGraph):
     NODE = 1
     EDGE = 2
 
-    def _dfs_edges_and_postorder(self, source):
-        """Single-pass stream of DFS tree-edges and postorder nodes."""
-        for u, v, lbl in nx.dfs_labeled_edges(self, source=source):
-            if lbl == "forward" and u != v:  # skip the (root, root) pseudo-edge
-                yield self.EDGE, (u, v)  # matches what dfs_edges() would yield
-            elif lbl == "reverse":  # v just finished => postorder event
-                yield self.NODE, v  # includes the root as the last 'post'
-
     def get_nodes_with(self, obj):
         """Return nodes with `obj`."""
         result = set()
@@ -201,38 +193,9 @@ class TraceManager:
         self.tracegraph: TraceGraph = TraceGraph()
         self.refgraph: ReferenceGraph = ReferenceGraph()
 
-    def _extended_dfs_nodes(self, source):
-        dfs = deque()
-        parents = deque()
-        edges = []
-        for s, e_or_n in self.tracegraph._dfs_edges_and_postorder(source):
-            if s == TraceGraph.EDGE:
-                edges.append(e_or_n)
-            elif s == TraceGraph.NODE:
-                dfs.append(e_or_n)
-                if isinstance(e_or_n[OBJ], ParentTraceObject):
-                    parents.append(e_or_n)
-
-        if not parents:
-            return dfs
-        else:
-            g = nx.DiGraph(edges)
-            g.add_node(source)  # in case source is isolated
-            while parents:
-                p = parents.popleft()
-                for child in p[OBJ].get_nodes_for(p[KEY]):
-                    g.add_edge(p, child)
-                    for s, e_or_n in self.tracegraph._dfs_edges_and_postorder(child):
-                        if s == TraceGraph.EDGE:
-                            g.add_edge(*e_or_n)
-                        elif s == TraceGraph.NODE:
-                            if isinstance(e_or_n[OBJ], ParentTraceObject):
-                                parents.append(e_or_n)
-            return deque(nx.dfs_postorder_nodes(g, source))
-
     def clear_with_descs(self, node):
         """Clear values and nodes calculated from `source`."""
-        for n in self._extended_dfs_nodes(node):
+        for n in list(nx.dfs_postorder_nodes(self.tracegraph, node)):
             self.tracegraph.remove_node(n)
             self.refgraph.remove_with_referred(n)
             n[OBJ].on_clear_trace(n[KEY])
@@ -249,7 +212,7 @@ class TraceManager:
         while keys:
             k = keys.popleft()
             if (obj, k) not in removed:
-                for n in self._extended_dfs_nodes((obj, k)):
+                for n in list(nx.dfs_postorder_nodes(self.tracegraph, (obj, k))):
                     self.tracegraph.remove_node(n)
                     self.refgraph.remove_with_referred(n)
                     n[OBJ].on_clear_trace(n[KEY])
@@ -260,7 +223,7 @@ class TraceManager:
         while descs:
             node = descs.popleft()
             if node in self.tracegraph:
-                for n in self._extended_dfs_nodes(node):
+                for n in list(nx.dfs_postorder_nodes(self.tracegraph, node)):
                     self.tracegraph.remove_node(n)
                     n[OBJ].on_clear_trace(n[KEY])
 

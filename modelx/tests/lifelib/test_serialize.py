@@ -104,6 +104,8 @@ def test_with_lifelib_script(testpaths, project):
     _PROJECTS[project](m, m2)
     _PROJECTS[project](m, m3)
     for mn in [m, m2, m3]:
+        m._impl._check_sanity()
+        m.clear_all()
         mn.close()
 
 
@@ -135,6 +137,8 @@ def test_with_lifelib(testpaths, project):
     _PROJECTS[project](m, m2)
     _PROJECTS[project](m, m3)
     for mn in [m, m2, m3]:
+        m._impl._check_sanity()
+        m.clear_all()
         mn.close()
 
 
@@ -148,6 +152,8 @@ def test_back_compat_fastlife(tmp_path):
     m = mx.read_model(projpath / "model")
 
     assert np.isclose(sum(m.Projection.PV_NetCashflow(0)), 288922348.168899)
+    m._impl._check_sanity()
+    m.clear_all()
     m.close()
 
 
