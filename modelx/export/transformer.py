@@ -34,6 +34,9 @@ def list_symtable(source) -> list:
 
 
 def _list_symtable_inner(table: symtable.SymbolTable, result: list):
+    if sys.version_info >= (3, 13):
+        if table.get_type() == symtable.SymbolTableType.ANNOTATION:
+            return result
     result.append(table)
     if table.has_children():
         for child in table.get_children():
