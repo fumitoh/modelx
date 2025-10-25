@@ -615,8 +615,8 @@ class CellsImpl(*_cells_impl_base):
         Derivable.__init__(self, is_derived)
 
         if add_to_space:    # Assign to space before calling AlteredFunction.__init__ to avoid getting notified
-            space._cells[name] = self
-            space.on_notify(space._cells)
+            space.cells[name] = self
+            space.on_notify(space.cells)
 
         AlteredFunction.__init__(self, space)
 

@@ -735,21 +735,18 @@ class BaseParentImpl:
 
     """
     __slots__ = ()
-    __mixin_slots = ("_named_spaces",)
+    __mixin_slots = ("named_spaces",)
 
     # ----------------------------------------------------------------------
     # Properties
 
     @property
     def spaces(self):
-        return self._named_spaces
+        return self.named_spaces
 
-    @property
-    def named_spaces(self):
-        return self._named_spaces
 
     def yield_spaces(self):
-        for space in self._named_spaces.values():
+        for space in self.named_spaces.values():
             yield from space.yield_spaces()
             yield space
 

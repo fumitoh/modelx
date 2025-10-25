@@ -1161,10 +1161,10 @@ class BaseSpaceImpl(*_base_space_impl_base):
     """
 
     __slots__ = (
-        "_cells",
-        "_sys_refs",
-        "_own_refs",
-        "_refs",
+        "cells",
+        "sys_refs",
+        "own_refs",
+        "refs",
         "is_cached"
     ) + get_mixin_slots(*_base_space_impl_base)
 
@@ -1192,19 +1192,19 @@ class BaseSpaceImpl(*_base_space_impl_base):
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self._own_refs = {}
-        self._cells = {}
-        self._named_spaces = {}
-        self._sys_refs = {}
-        self._refs = self._init_refs(arguments)
+        self.own_refs = {}
+        self.cells = {}
+        self.named_spaces = {}
+        self.sys_refs = {}
+        self.refs = self._init_refs(arguments)
 
         self.is_cached = True
 
         NamespaceServer.__init__(self)
-        self._sys_refs.update(
-            _self=NameSpaceReferenceImpl(self, '_self', self._namespace, self._sys_refs, set_item=False),
-            _space=NameSpaceReferenceImpl(self, '_space', self._namespace, self._sys_refs, set_item=False),
-            _model=NameSpaceReferenceImpl(self, '_model', self.model.namespace, self._sys_refs, set_item=False)
+        self.sys_refs.update(
+            _self=NameSpaceReferenceImpl(self, '_self', self._namespace, self.sys_refs, set_item=False),
+            _space=NameSpaceReferenceImpl(self, '_space', self._namespace, self.sys_refs, set_item=False),
+            _model=NameSpaceReferenceImpl(self, '_model', self.model.namespace, self.sys_refs, set_item=False)
         )
 
         ItemSpaceParent.__init__(self, formula)
@@ -1217,7 +1217,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
         if refs is not None:
             for key, value in refs.items():
-                self._own_refs[key] = ReferenceImpl(self, key, value, container=self._own_refs,
+                self.own_refs[key] = ReferenceImpl(self, key, value, container=self.own_refs,
                               refmode="auto", set_item=False)
 
 
@@ -1279,22 +1279,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
         if child is None:
             child = self.refs.get(name)
         return child
-
-    @property
-    def cells(self):
-        return self._cells
-
-    @property
-    def refs(self):
-        return self._refs
-
-    @property
-    def own_refs(self):
-        return self._own_refs
-
-    @property
-    def sys_refs(self):
-        return self._sys_refs
 
     # --- Inheritance properties ---
 
@@ -1461,7 +1445,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.source = source
 
     def _init_refs(self, arguments=None):
-        return CustomChainMap(self._own_refs, self._sys_refs, self.model._global_refs)
+        return CustomChainMap(self.own_refs, self.sys_refs, self.model._global_refs)
 
     @Impl.doc.setter
     def doc(self, value):
@@ -1691,7 +1675,7 @@ class UserSpaceImpl(*_user_space_impl_base):
                 elif attr == "own_refs":
                     selfdict[name] = ReferenceImpl(
                         self, name, None,
-                        container=self._own_refs,
+                        container=self.own_refs,
                         is_derived=True,
                         refmode=bs[0].refmode,
                         set_item=False
@@ -1764,11 +1748,11 @@ class UserSpaceImpl(*_user_space_impl_base):
 
     def on_create_ref(self, name, value, is_derived, refmode):
         ref = ReferenceImpl(self, name, value,
-                            container=self._own_refs,
+                            container=self.own_refs,
                             is_derived=is_derived,
                             refmode=refmode,
                             set_item=False)
-        self._own_refs[name] = ref
+        self.own_refs[name] = ref
         self.on_notify(self.own_refs)
         return ref
 
@@ -1853,8 +1837,8 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         self._dynbase_refs = {}
         return CustomChainMap(
                 *self._allargs.maps,     # underlying parent's _allargs
-                self._own_refs,
-                self._sys_refs,
+                self.own_refs,
+                self.sys_refs,
                 self._dynbase_refs,
                 self.model._global_refs)
 
@@ -2010,7 +1994,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         for name, base in space._dynbase.named_spaces.items():
             dkey = space.dynamic_key + (name,)
             cache = self.dynamic_cache.get(dkey, None)
-            child = DynamicSpaceImpl(space, name, space._named_spaces, base, cache=cache)
+            child = DynamicSpaceImpl(space, name, space.named_spaces, base, cache=cache)
             self._init_child_spaces(child)
             self.parent.dynamic_cache[dkey] = child.interface
 

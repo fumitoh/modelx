@@ -719,8 +719,8 @@ class ModelImpl(*_model_impl_base):
         self._property_refs["path"] = ReferenceImpl(
             self, "path", self.path, container=self._property_refs,
             set_item=False)
-        self._named_spaces = {}
-        self._namespace = CustomChainMap(self._named_spaces, self._global_refs)
+        self.named_spaces = {}
+        self._namespace = CustomChainMap(self.named_spaces, self._global_refs)
         self.namespace = ModelNamespace(self)
         self.allow_none = False
         self.refmgr = ReferenceManager(self, system.iomanager)
@@ -1221,11 +1221,11 @@ class SpaceManager(SharedSpaceOperations):
 
                 idx = list(base_cells).index(name)
                 cells_after = list(subspace.cells)[idx:]
-                subspace._cells[name] = derived
-                subspace.on_notify(subspace._cells)
+                subspace.cells[name] = derived
+                subspace.on_notify(subspace.cells)
 
                 for k in cells_after:
-                    subspace._cells[k] = subspace._cells.pop(k)
+                    subspace.cells[k] = subspace.cells.pop(k)
 
         return cells
 
@@ -1499,7 +1499,7 @@ class SpaceUpdater(SharedSpaceOperations):
             self._graph.get_mro(n)
 
         if container is None:
-            container = parent._named_spaces
+            container = parent.named_spaces
 
         space = UserSpaceImpl(
             parent,
