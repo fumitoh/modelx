@@ -476,7 +476,7 @@ class UserSpace(BaseSpace, EditableParent):
     def reload(self):
         """Reload the source module and update the formulas.
 
-        .. warning:: This method is deprecated and will be removed in a future releases.
+        .. warning:: This method is deprecated and will be removed in a future release.
 
         If the space was created from a module, reload the module and
         update the formulas of its cells.
