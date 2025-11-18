@@ -644,8 +644,33 @@ class Model(IOSpecOperation, EditableParent):
                 gc.enable()
 
     def compare_cells(self, func):
-        """Search for a function in the model"""
-        """It groups the spaces by the formula of the cell that contains the function"""
+        """Tentative: Compare cells with the same name across different spaces in the model.
+
+        ..  warning:: This is a tentative feature based on a use request 
+                      (See `#196 <https://github.com/fumitoh/modelx/discussions/196>`_), 
+                      and will be replaced with a more robust solution in future releases.
+
+        This method searches for cells with a given name across all spaces in the model,
+        groups them by their normalized formula, and displays the results.
+        Args:
+            func: Either a function object or a string representing the cell name to compare.
+                  If a function object is provided, its __name__ attribute will be used.
+        Returns:
+            None. Results are printed to stdout.
+        Output Format:
+            Groups cells by their normalized formula and displays:
+            - Group number
+            - List of space names containing cells with identical formulas
+            - The normalized formula (with empty lines removed)
+        Notes:
+            - Empty lines in formulas are removed during normalization
+            - If a cell's formula is not accessible, it will be labeled as "<formula not accessible>"
+            - If no spaces contain a cell with the given name, a message is printed
+            - Formulas are considered identical after normalization (stripping and removing empty lines)
+        Example:
+            >>> model.compare_cells('my_cell')
+            # Displays groups of spaces with identical formulas for 'my_cell'
+        """
 
         func_name = getattr(func, '__name__', func)
         grouped = {}
