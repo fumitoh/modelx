@@ -643,6 +643,52 @@ class Model(IOSpecOperation, EditableParent):
             if gc_status:
                 gc.enable()
 
+    def compare_cells(self, func):
+        """Search for a function in the model"""
+        """It groups the spaces by the formula of the cell that contains the function"""
+
+        func_name = getattr(func, '__name__', func)
+        grouped = {}
+
+        try:
+            spaces_iter = self.spaces.values()
+            
+        except AttributeError:
+            spaces_iter = self.spaces
+
+        for space in spaces_iter:
+            cell = getattr(space, func_name, None)
+            if cell is None:
+                continue
+            try:
+                formula = str(cell.formula).strip()
+                lines = formula.split('\n')
+                normalized_lines = []
+                
+                for line in lines:
+                    
+                    if line.strip():
+                        normalized_lines.append(line)
+                
+                normalized_formula = '\n'.join(normalized_lines)            
+            
+            except Exception:
+                formula = "<formula not accessible>"
+                normalized_formula = formula
+            grouped.setdefault(normalized_formula, []).append(space.name)
+
+        if not grouped:
+            print(f"No spaces contain a cell named '{func_name}'.")
+            return
+
+        for idx, (normalized_formula, names) in enumerate(grouped.items(), 1):
+            print("\n" + "-"*60 + "\n")
+            print(f"[Group {idx}]")
+            print(f"Spaces    : {', '.join(sorted(names))}")
+            print("Formula (normalized):")
+            print(normalized_formula)
+            print("\n" + "-"*60 + "\n")
+
 
 class ModelNamespace(BaseNamespace):
 
