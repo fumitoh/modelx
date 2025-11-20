@@ -22,7 +22,7 @@ from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.binding.namespace import NamespaceServer, BaseNamespace
 from modelx.core.binding.boundfunc import AlteredFunction
 from modelx.core.chainmap import CustomChainMap
-from modelx.core.views import CellsView, SpaceView, RefView2, _to_frame_inner
+from modelx.core.views import CellsView, SpaceView, RefView, _to_frame_inner
 
 from modelx.core.base import (
     get_impl_list,
@@ -207,12 +207,12 @@ class BaseSpace(BaseParent, NodeFactory):
     @property
     def refs(self):
         """A map associating names to objects accessible by the names."""
-        return RefView2(self._impl.refs)
+        return RefView(self._impl.refs_outer)
 
     @property
     def _own_refs(self):
         """A mapping associating names to self refs."""
-        return RefView2(self._impl.own_refs)
+        return RefView(self._impl.own_refs)
 
     @property
     def formula(self):
@@ -1165,6 +1165,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
         "sys_refs",
         "own_refs",
         "refs",
+        "refs_outer",
         "is_cached"
     ) + get_mixin_slots(*_base_space_impl_base)
 
@@ -1196,7 +1197,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
         self.cells = {}
         self.named_spaces = {}
         self.sys_refs = {}
-        self.refs = self._init_refs(arguments)
+        self._init_refs(arguments)
 
         self.is_cached = True
 
@@ -1445,7 +1446,8 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.source = source
 
     def _init_refs(self, arguments=None):
-        return CustomChainMap(self.own_refs, self.sys_refs, self.model._global_refs)
+        self.refs = CustomChainMap(self.own_refs, self.sys_refs, self.model._global_refs)
+        self.refs_outer = CustomChainMap(self.own_refs, self.model._global_refs)
 
     @Impl.doc.setter
     def doc(self, value):
@@ -1835,10 +1837,16 @@ class DynamicSpaceImpl(BaseSpaceImpl):
     def _init_refs(self, arguments=None):
         self._allargs = self._init_allargs()
         self._dynbase_refs = {}
-        return CustomChainMap(
+        self.refs = CustomChainMap(
                 *self._allargs.maps,     # underlying parent's _allargs
                 self.own_refs,
                 self.sys_refs,
+                self._dynbase_refs,
+                self.model._global_refs)
+
+        self.refs_outer = CustomChainMap(
+                *self._allargs.maps,     # underlying parent's _allargs
+                self.own_refs,
                 self._dynbase_refs,
                 self.model._global_refs)
 
@@ -2003,8 +2011,8 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         for k, v in arguments.items():
             args[k] = ReferenceImpl(self, k, v, container=args, set_item=False)
         self._arguments = args
-        refs = DynamicSpaceImpl._init_refs(self)
-        return refs
+        DynamicSpaceImpl._init_refs(self)
+
 
     def _bind_args(self, args):
         boundargs = self.parent.formula.signature.bind(**args)
