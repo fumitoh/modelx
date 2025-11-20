@@ -226,7 +226,7 @@ class SpaceView(BaseView):
         space.model.updater.del_defined_space(space)
 
 
-class RefView2(BaseView):
+class RefView(BaseView):
 
     @property
     def _baseattrs(self):

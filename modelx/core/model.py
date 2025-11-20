@@ -41,7 +41,7 @@ from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.execution.trace import TraceManager
 from modelx.core.chainmap import CustomChainMap
-from modelx.core.views import RefView2
+from modelx.core.views import RefView
 
 
 class IOSpecOperation:
@@ -422,7 +422,7 @@ class Model(IOSpecOperation, EditableParent):
     @property
     def refs(self):
         """Return a mapping of global references."""
-        return RefView2(self._impl.global_refs)
+        return RefView(self._impl.global_refs)
 
     def _get_from_name(self, name):
         """Get object by named id"""
