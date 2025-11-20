@@ -24,6 +24,7 @@ Getting objects
    ~get_object
    ~cur_model
    ~cur_space
+   ~export_members
 
 
 Creating objects
