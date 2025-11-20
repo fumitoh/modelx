@@ -24,8 +24,10 @@ or by::
     from modelx import *
 
 """
+import sys
 import sys as _sys
 import ast as _ast
+import itertools as _itertools
 import warnings
 from types import FunctionType as _FunctionType
 import zipfile
@@ -949,3 +951,52 @@ def _new_cells_keep_source(space, formula):
     """Used by deserializer"""
     return space._impl.spmgr.new_cells(
         space._impl, formula=formula, edit_source=False).interface
+
+
+def export_members(space: _Space, module='__main__'):
+    """Export members of a space to a module's global namespace.
+
+    This function defines global variables in the specified module
+    for all static members (spaces, cells, refs) of the given ``space``.
+
+    The global variables are named the same as the member names
+    and reference the corresponding member objects.
+    By default, the members are exported to the ``__main__`` module,
+    making them accessible directly in the main script or interactive shell.
+
+    Args:
+        space: The space whose members are to be exported.
+        module(str, optional): The name of the module to which
+            the members will be exported. Defaults to ``'__main__'``.
+
+    Example:
+
+        .. code-block:: python
+
+            >>> import modelx as mx
+
+            >>> s = m.new_space()   # Create a new model and space
+
+            >>> @mx.defcells
+            ... def foo(x):
+            ...     return x
+
+            >>> del foo  # Remove foo from __main__
+
+            >>> foo(5)  # Raises NameError: name 'foo' is not defined
+
+            >>> mx.export_members(s) # Export members to __main__
+
+            >>> foo(5)  # Now foo is accessible in __main__
+            5
+    """
+    if not isinstance(space, _Space):
+        raise TypeError("space must be a Space object")
+
+    if not isinstance(module, str):
+        raise TypeError("module must be a string")
+
+    mod = sys.modules[module]
+    for name, member in _itertools.chain(
+            space.cells.items(), space.refs.items(), space.spaces.items()):
+        setattr(mod, name, member)

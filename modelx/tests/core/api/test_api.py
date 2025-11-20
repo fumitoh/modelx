@@ -171,3 +171,26 @@ def test_save_again(tmpdir_factory):
     m2.write(file)
     m.close()
     m2.close()
+
+
+def test_export_members(testmodel, tmpdir_factory):
+
+    global foo
+
+    m = mx.new_model()
+    s = m.new_space()
+
+    @mx.defcells
+    def foo(x):
+        return x
+
+    del foo
+
+    with pytest.raises(NameError):
+        foo(5)
+
+    mx.export_members(s, module=__name__)
+
+    assert foo(5) == 5
+    del foo
+    m.close()
