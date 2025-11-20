@@ -652,24 +652,66 @@ class Model(IOSpecOperation, EditableParent):
 
         This method searches for cells with a given name across all spaces in the model,
         groups them by their normalized formula, and displays the results.
+
         Args:
+
             func: Either a function object or a string representing the cell name to compare.
                   If a function object is provided, its __name__ attribute will be used.
+
         Returns:
+
             None. Results are printed to stdout.
+
         Output Format:
+
             Groups cells by their normalized formula and displays:
+
             - Group number
             - List of space names containing cells with identical formulas
             - The normalized formula (with empty lines removed)
+
         Notes:
+
             - Empty lines in formulas are removed during normalization
             - If a cell's formula is not accessible, it will be labeled as "<formula not accessible>"
             - If no spaces contain a cell with the given name, a message is printed
             - Formulas are considered identical after normalization (stripping and removing empty lines)
+
         Example:
-            >>> model.compare_cells('my_cell')
-            # Displays groups of spaces with identical formulas for 'my_cell'
+
+            .. code-block:: python
+
+                >>> import  modelx as mx
+
+                >>> m = mx.new_model()
+
+                >>> s1 = m.new_space()
+
+                >>> @mx.defcells
+                ... def foo(x):
+                ...     return 1
+
+                >>> s2 = mx.new_space()
+
+                >>> @mx.defcells
+                ... def foo(x):
+                ...     return 2
+
+                >>> m.compare_cells('foo')
+                ------------------------------------------------------------
+                [Group 1]
+                Spaces    : Space1
+                Formula (normalized):
+                def foo(x):
+                    return 1
+                ------------------------------------------------------------
+                ------------------------------------------------------------
+                [Group 2]
+                Spaces    : Space2
+                Formula (normalized):
+                def foo(x):
+                    return 2
+                ------------------------------------------------------------
         """
 
         func_name = getattr(func, '__name__', func)
