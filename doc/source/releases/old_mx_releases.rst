@@ -3,6 +3,205 @@
 Older **modelx** releases
 =========================
 
+.. _release-v0.0.25:
+
+v0.0.25 (19 October 2019)
+-------------------------
+
+This release introduces a feature to trace the call stack of formula calculations
+in response to user's feature request.
+The tracing is useful when the user wants to get the information on
+the execution of cells formulas, such as
+how much time each formula takes from start to finish, or
+what formulas are called in what order to identify performance bottlenecks.
+
+
+Enhancements
+~~~~~~~~~~~~
+
+* The API functions blow are introduce for the stack tracing feature (`GH13`_).
+
+    * :func:`~start_stacktrace`
+    * :func:`~stop_stacktrace`
+    * :func:`~get_stacktrace`
+    * :func:`~clear_stacktrace`
+
+.. _GH13: https://github.com/fumitoh/modelx/issues/13
+
+Bug Fixes
+~~~~~~~~~
+
+* Error when writing models containing non-ascii strings as refs.
+
+
+.. _release-v0.0.24:
+
+v0.0.24 (4 October 2019)
+------------------------
+
+Code around implementing inheritance is extensively refactored in this release,
+and a couple of small enhancements are incorporated in response to user's feature requests.
+
+
+Enhancements
+~~~~~~~~~~~~
+
+* Models with modules included in them as references can now be saved with
+  :meth:`~core.model.Model.save` method (`GH8 Comment`_).
+
+.. _GH8 Comment: https://github.com/fumitoh/modelx/issues/8#issuecomment-536170506
+
+* ``name`` parameter is added to :func:`~read_model` to overwrite
+  the opened model name (`GH8`_).
+
+.. _GH8: https://github.com/fumitoh/modelx/issues/8
+
+
+Bug Fixes
+~~~~~~~~~
+* Getting cells values from the shell iteratively was too slow
+  (`GH12`_)
+
+.. _GH12: https://github.com/fumitoh/modelx/issues/12
+
+
+.. _release-v0.0.23:
+
+v0.0.23 (9 August 2019)
+-----------------------
+
+New Features
+~~~~~~~~~~~~
+
+This release introduces methods to create Space and Cells
+from Pandas objects or CSV files.
+
+When the model is written out,
+the data source Pandas objects are saved as files in the folder
+of the parent space.
+The CSV files are copied in the parent space folder.
+
+**Methods to Create Cells**
+
+* :meth:`UserSpace.new_cells_from_pandas<core.space.UserSpace.new_cells_from_pandas>`
+* :meth:`UserSpace.new_cells_from_csv<core.space.UserSpace.new_cells_from_csv>`
+
+The first method above creates one or more cells in the parent space
+from a Pandas DataFrame or Series object passed as an argument.
+If a DataFrame is passed, created cells correspond to
+the DataFrame's columns.
+The second method creates cells from a CSV file.
+In either case, the created cells are populated with values read
+from the date source.
+
+
+**Methods to Create a Space and Cells**
+
+* :meth:`Model.new_space_from_pandas<core.model.Model.new_space_from_pandas>`
+* :meth:`UserSpace.new_space_from_pandas<core.space.UserSpace.new_space_from_pandas>`
+* :meth:`Model.new_space_from_csv<core.model.Model.new_space_from_csv>`
+* :meth:`UserSpace.new_space_from_csv<core.space.UserSpace.new_space_from_csv>`
+
+Those methods above create a UserSpace in the parent object (Model or UserSpace)
+from the data source (DataFrame/Series or CSV file) and
+then creates one or more Cells in the created space.
+The created UserSpace can have parameters by specifying which
+parameters should be interpreted as Space parameters in stead of Cells
+parameters.
+When the UserSpace has parameters, DynamicSpaces are also created
+in the UserSpace, and Cells in the DynamicSpaces are also populated
+with values from the data source.
+
+
+Other Enhancements
+~~~~~~~~~~~~~~~~~~
+
+* :py:func:`~write_model` and :py:func:`~read_model` now supports
+  writing/reading models with multiple cells created together by
+  the same execution of
+  :meth:`~core.space.UserSpace.new_cells_from_excel` method.
+
+* Added :attr:`modelx.models` attribute, an alias for :func:`get_models`
+
+Backward Incompatible Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* ``StaticSpace`` is now renamed to :class:`~core.space.UserSpace`.
+
+
+Bug Fixes
+~~~~~~~~~
+* Fix the default values of ``names_row`` and ``param_cols`` parameters of
+  :meth:`~core.space.UserSpace.new_cells_from_excel`
+
+* Fix an error when passing a lambda function whose definition spans
+  across multiple lines in a function call.
+
+
+.. _release-v0.0.22:
+
+v0.0.22 (4 June 2019)
+---------------------
+
+Overview
+~~~~~~~~
+
+The most notable improvement among others in
+this release is the introduction of a new feature to write/read models
+to/from text files for better version control experience.
+
+Prior to this release,
+models could only be saved("pickled") into a binary file. Maintaining models
+as binary files is not ideal for version control, as it disables the use of
+rich features offered by modern version control systems such as
+`git <https://git-scm.com/>`_.
+When you wanted to save a model as text, you needed to write
+the entire python script to build the model from the source files.
+Changes made to the models interactively through IPython console could not
+be saved as human-readable text.
+
+This release introduces :py:func:`~write_model` function
+(or equivalent :py:meth:`~core.model.Model.write` method) and
+:py:func:`~read_model` function,
+to write/read a model to/from a tree of folders containing text files.
+
+The text files created by :py:func:`~write_model` function are written
+as syntactically correct Python scripts with some literals expressed
+in JSON.
+However, in most cases they are not semantically correct. These
+files can only be interpreted through :py:func:`~read_model` function.
+
+Another notable improvement is the extended depth of formula recursion.
+Previously the maximum depth of formula recursion was set to 1000 by default.
+With this release the maximum depth is extended to 65000.
+
+Enhancements
+~~~~~~~~~~~~
+
+* Add :py:func:`~write_model` function, :py:meth:`~core.model.Model.write` method and
+  :py:func:`~read_model` function.
+* The maximum depth of formula recursion is extended from 1000 to 65000 by default.
+* Add ``set_property`` method to :py:class:`~core.model.Model`,
+  :py:class:`~core.space.UserSpace`,
+  :py:class:`~core.cells.Cells`.
+* Add ``doc`` method to :py:class:`~core.model.Model`,
+  :py:class:`~core.space.UserSpace`,
+  :py:class:`~core.cells.Cells`.
+* :py:meth:`~core.space.UserSpace.new_space_from_excel` can now
+  create a static space when ``space_param_order`` is not given.
+
+
+Backward Incompatible Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Remove :py:attr:`~core.space.UserSpace._self_cells` and
+  :py:attr:`~core.space.UserSpace._derived_cells`
+  from :py:class:`~core.space.UserSpace`
+
+Bug Fixes
+~~~~~~~~~
+* Fix :py:meth:`~core.space.UserSpace.add_bases` and
+  :py:meth:`~core.cells.Cells.set_formula`.
+
+
 .. _release-v0.0.21:
 
 v0.0.21 (23 March 2019)

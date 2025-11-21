@@ -72,10 +72,6 @@ Release Notes - modelx
    releases/relnotes_v0_3_0
    releases/relnotes_v0_2_0
    releases/relnotes_v0_1_0
-   releases/relnotes_v0_0_25
-   releases/relnotes_v0_0_24
-   releases/relnotes_v0_0_23
-   releases/relnotes_v0_0_22
    releases/old_mx_releases
 
 
