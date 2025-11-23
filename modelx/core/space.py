@@ -381,11 +381,35 @@ class BaseSpace(BaseParent, NodeFactory):
 
 
 class UserSpace(BaseSpace, EditableParent):
-    """Container of cells, other spaces, and cells namespace.
+    """Editable space serving as a container for cells, child spaces, and references.
 
-    UserSpace objects can contain cells and other spaces.
-    Spaces have mappings of names to objects that serve as global namespaces
-    of the formulas of the cells in the spaces.
+    UserSpace is the primary space type that users create and modify directly.
+    It serves as a static, editable container that can hold:
+
+    * :class:`~modelx.core.cells.Cells` objects (formulas with cached values)
+    * Child UserSpace objects (nested spaces)
+    * References to external objects (data, modules, etc.)
+
+    UserSpaces can be parameterized with a formula, which enables the creation
+    of :class:`ItemSpace` instances dynamically when accessed with arguments.
+
+    UserSpaces support inheritance through base spaces, allowing cells and
+    references to be inherited and overridden in derived spaces.
+
+    Key Characteristics:
+
+    * **Editable**: Cells, spaces, and references can be added, modified, or removed
+    * **Static**: Exists independently of any parameter values
+    * **Named**: Has a fixed name within its parent's namespace
+    * **Inheritable**: Can serve as a base for other UserSpaces
+
+    See Also:
+        :class:`DynamicSpace`: Read-only spaces created dynamically
+        :class:`ItemSpace`: Parameterized instances of spaces
+        :meth:`~modelx.core.model.Model.new_space`: Create a new UserSpace in a model
+
+    .. versionchanged:: 0.0.23
+        Renamed from StaticSpace to UserSpace
     """
 
     __slots__ = ()
@@ -1775,14 +1799,41 @@ class UserSpaceImpl(*_user_space_impl_base):
 
 
 class DynamicSpace(BaseSpace):
-    """Dynamically created space.
+    """Read-only space created dynamically as a child of another dynamic space.
 
-    Dynamic spaces of a parametric space
-    are created by accessing its elements for the first time,
-    through subscription ``[]`` or call ``()`` operations on the parametric
-    space.
+    DynamicSpace objects are automatically created when accessing child spaces
+    within a parameterized space hierarchy. They mirror the structure of their
+    base UserSpace but exist within the context of specific parameter values.
 
-    Dynamic spaces are not editable like static spaces.
+    Unlike :class:`ItemSpace` which represents the root of a parameterized space
+    instance, DynamicSpace represents nested child spaces within that instance.
+
+    Creation:
+        DynamicSpaces are created automatically when:
+
+        * An :class:`ItemSpace` is created from a parameterized UserSpace
+        * The base UserSpace contains child spaces
+        * These child spaces are accessed within the ItemSpace context
+
+    Key Characteristics:
+
+    * **Read-only**: Cannot add, modify, or remove cells, spaces, or references
+    * **Dynamic**: Created on-demand when parent ItemSpace is instantiated
+    * **Derived**: Mirrors the structure and formulas of a base UserSpace
+    * **Contextual**: Exists within a specific parameter context from parent ItemSpace
+
+    Example:
+        >>> space = model.new_space()
+        >>> space.parameters = ('x',)
+        >>> child = space.new_space('Child')  # UserSpace
+        >>> item = space[1]  # ItemSpace created
+        >>> item.Child  # DynamicSpace (not ItemSpace)
+        <DynamicSpace Child in Model1.space[1]>
+
+    See Also:
+        :class:`UserSpace`: The base space that DynamicSpace derives from
+        :class:`ItemSpace`: Root dynamic space with parameters
+        :class:`BaseSpace`: Base class for all space types
     """
     __slots__ = ()
 
@@ -1939,14 +1990,51 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
 
 class ItemSpace(DynamicSpace):
-    """Dynamically created space.
+    """Root dynamic space created by calling a parameterized UserSpace with arguments.
 
-    Dynamic spaces of a parametric space
-    are created by accessing its elements for the first time,
-    through subscription ``[]`` or call ``()`` operations on the parametric
-    space.
+    ItemSpace is a subclass of :class:`DynamicSpace` that represents
+    the top-level space instance for a specific set of parameter values.
+    When a UserSpace has a parameter formula defined, accessing it with
+    arguments (via ``[]`` subscription or ``()`` call) creates an ItemSpace
+    that serves as the root of a dynamic space hierarchy.
 
-    Dynamic spaces are not editable like static spaces.
+    Each ItemSpace:
+
+    * Corresponds to a unique combination of parameter values
+    * Contains cells with formulas inherited from the base UserSpace
+    * Creates child DynamicSpaces for any nested spaces in the base
+    * Is cached and reused when accessed with the same arguments
+
+    Creation:
+        ItemSpaces are created automatically when a parameterized UserSpace
+        is accessed with arguments::
+
+            >>> space = model.new_space()
+            >>> space.parameters = ('x', 'y')
+            >>> space[1, 2]  # Creates ItemSpace with x=1, y=2
+            <ItemSpace space[1, 2] in Model1>
+
+    Key Characteristics:
+
+    * **Root dynamic space**: Top of the dynamic space hierarchy for given parameters
+    * **Parameterized**: Has specific argument values (accessible via :attr:`argvalues`)
+    * **Read-only**: Cannot be edited after creation
+    * **Cached**: Same arguments return the same ItemSpace instance
+    * **Deletable**: Can be removed via :meth:`~UserSpace.clear_at` or ``del space[args]``
+
+    The key distinction from :class:`DynamicSpace`:
+
+    * ItemSpace = root of dynamic hierarchy (has parameters)
+    * DynamicSpace = nested child within that hierarchy (no parameters)
+
+
+    See Also:
+        :class:`DynamicSpace`: Non-root dynamic spaces in the hierarchy
+        :class:`UserSpace`: The base space that ItemSpace derives from
+        :attr:`UserSpace.parameters`: Define parameters for a space
+
+    .. versionadded:: 0.0.21
+        Split from DynamicSpace class
     """
     __slots__ = ()
 
@@ -1956,7 +2044,7 @@ class ItemSpace(DynamicSpace):
 
     @property
     def argvalues(self):
-        """A tuple of space arguments."""
+        """A tuple containing the argument values used to create this ItemSpace."""
         return self._impl.argvalues_if
 
 
