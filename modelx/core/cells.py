@@ -64,12 +64,87 @@ ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
 
 
 class Cells(Interface, Mapping, Callable, NodeFactory):
-    """Data container with a formula to calculate its own values.
+    """Callable object with a formula that computes and caches values based on arguments.
 
-    Cells are created by :meth:`~modelx.core.space.UserSpace.new_cells`
-    method or its variant methods of
-    the containing Space, or by function definitions with
-    :func:`modelx.defcells` decorator.
+    Cells represent formulas in modelx that can compute values for different
+    argument combinations. They function like spreadsheet cells but with
+    parameters, allowing you to define recursive formulas with automatic
+    dependency tracking and caching.
+
+    Key Characteristics:
+
+    * **Callable**: Invoke like a function to compute values
+    * **Cached**: Results are stored and reused (configurable via :attr:`is_cached`)
+    * **Parameterized**: Accept arguments like regular Python functions
+    * **Recursive**: Can reference themselves and other cells
+    * **Dependency-tracked**: The modelx system tracks formula dependencies automatically
+    * **Dictionary-like** (Not available within formulas): Access cached values via subscription (``cells[args]``) 
+
+    Creation:
+        Cells can be created in several ways:
+
+        **Using decorator** (recommended)::
+
+            >>> @mx.defcells
+            ... def present_value(t):
+            ...     if t == 0:
+            ...         return 0
+            ...     return cashflow(t) / (1 + disc_rate()) ** t + present_value(t-1)
+
+        **Using new_cells method**::
+
+            >>> def pv_formula(t):  # Can be any valid identifier, such as '_'
+            ...     return cashflow(t) / (1 + disc_rate()) ** t
+            >>> space.new_cells(name='pv', formula=pv_formula)
+
+
+    Usage:
+        Cells can be called like functions or accessed like dictionaries::
+
+            >>> present_value(10)  # Call with argument
+            95420.5
+
+            >>> present_value[10]  # Access cached value
+            95420.5
+
+            >>> 10 in present_value  # Check if value exists
+            True
+
+    Caching Behavior:
+        By default, computed values are cached. For unhashable arguments,
+        set :attr:`is_cached` to :obj:`False`::
+
+            >>> @mx.defcells
+            ... def process_data(data: list):  # list is unhashable
+            ...     return sum(data)
+
+            >>> process_data.is_cached = False
+            >>> process_data([1, 2, 3])
+            6
+
+    Input vs Calculated Values:
+        Cells distinguish between input values (assigned directly) and
+        calculated values (computed by formula)::
+
+            >>> cells[5] = 100  # Input value
+            >>> cells.is_input(5)
+            True
+
+            >>> cells(10)  # Calculated value
+            250
+            >>> cells.is_input(10)
+            False
+
+    See Also:
+        :func:`~modelx.defcells`: Decorator to create cells
+        :func:`~modelx.cached`: Decorator for cached cells (default)
+        :func:`~modelx.uncached`: Decorator for uncached cells
+        :meth:`~modelx.core.space.UserSpace.new_cells`: Create cells programmatically
+        :class:`~modelx.core.space.UserSpace`: Container for cells
+
+    .. versionchanged:: 0.1.0
+        Separated :meth:`clear` (calculated values only) from 
+        :meth:`clear_all` (all values including input)
     """
 
     __slots__ = ()
