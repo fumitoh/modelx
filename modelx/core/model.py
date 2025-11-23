@@ -212,15 +212,95 @@ class IOSpecOperation:
 
 
 class Model(IOSpecOperation, EditableParent):
-    """Top-level container in modelx object hierarchy.
+    """Top-level container representing a complete modelx model.
 
-    Model instances are the top-level objects and directly contain
-    :py:class:`~modelx.core.space.UserSpace` objects, which in turn
-    contain other spaces or
-    :py:class:`~modelx.core.cells.Cells` objects.
+    Model is the root object in the modelx object hierarchy and serves as
+    the primary container for organizing spaces, cells, and references.
+    Each Model represents an independent, self-contained computational model
+    with its own namespace and execution environment.
 
-    A model can be created by
-    :py:func:`~modelx.new_model` API function.
+    A Model contains:
+
+    * :class:`~modelx.core.space.UserSpace` objects (top-level spaces)
+    * Global references accessible throughout the model
+    * Serialization and I/O specifications
+
+    Key Characteristics:
+
+    * **Top-level container**: Root of the object hierarchy
+    * **Independent namespace**: Each model has isolated global references
+    * **Serializable**: Can be saved to/loaded from files or zip archives
+    * **Exportable**: Can be exported as a Python package
+
+    Creation:
+        Models are created using the :func:`~modelx.new_model` function::
+
+            >>> import modelx as mx
+            >>> model = mx.new_model()
+            >>> model
+            <Model Model1>
+
+            >>> # Create with specific name
+            >>> model = mx.new_model('MyModel')
+            >>> model
+            <Model MyModel>
+
+    Adding Spaces:
+        Create child spaces to organize cells and nested structures::
+
+            >>> space = model.new_space('Calculations')
+            >>> space
+            <UserSpace Calculations in MyModel>
+
+    Global References:
+        Set global references accessible from all spaces in the model::
+
+            >>> import numpy as np
+            >>> model.np = np
+            >>> model.discount_rate = 0.05
+
+    Persistence:
+        Models can be saved and loaded in multiple formats::
+
+            >>> # Save as directory structure with text files
+            >>> model.write('path/to/model')
+
+            >>> # Save as zip archive
+            >>> model.zip('path/to/model.zip')
+
+            >>> # Load a saved model
+            >>> loaded = mx.read_model('path/to/model')
+
+    Memory Management:
+        Clear calculated values to free memory::
+
+            >>> model.clear_all()  # Clear all cells and dynamic spaces in the model
+
+    Multiple Models:
+        Multiple models can coexist in the same session::
+
+            >>> model1 = mx.new_model('Model1')
+            >>> model2 = mx.new_model('Model2')
+            >>> mx.get_models()
+            {'Model1': <Model Model1>, 'Model2': <Model Model2>}
+
+    Accessing Current Model:
+        Get the currently active model::
+
+            >>> mx.cur_model()
+            <Model Model2>
+
+    See Also:
+        :func:`~modelx.new_model`: Create a new model
+        :func:`~modelx.read_model`: Load a model from files
+        :func:`~modelx.get_models`: Get all models in the session
+        :func:`~modelx.cur_model`: Get the current model
+        :class:`~modelx.core.space.UserSpace`: Container for cells and nested spaces
+        :meth:`~modelx.core.model.Model.write`: Save model to files
+        :meth:`~modelx.core.model.Model.zip`: Save model to zip archive
+
+    .. versionchanged:: 0.18.0
+        Added pandas and module update operations
     """
 
     __slots__ = ()
