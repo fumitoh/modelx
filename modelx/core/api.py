@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2025 Fumito Hamamura <fumito.ham@gmail.com>
+# Copyright (c) 2017-2024 Fumito Hamamura <fumito.ham@gmail.com>
 
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -1000,3 +1000,18 @@ def export_members(space: _Space, module='__main__'):
     for name, member in _itertools.chain(
             space.cells.items(), space.refs.items(), space.spaces.items()):
         setattr(mod, name, member)
+
+def embed_model_as_space(target_model, source_model, name=None, **kwargs):
+    """Embed ``source_model`` into ``target_model`` as a Space.
+
+    Parameters
+    ----------
+    target_model : Model
+    source_model : Model
+    name : str, optional
+        Name of the container space.
+    **kwargs :
+        Forwarded to :meth:`Model.new_space_from_model`.
+    """
+    return target_model.new_space_from_model(source_model, name=name, **kwargs)
+
