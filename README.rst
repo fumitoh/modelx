@@ -25,6 +25,8 @@ modelx is best suited for implementing mathematical models expressed
 in a large system of recursive formulas,
 in such fields as actuarial science, quantitative finance and risk management.
 
+See also the `GitHub Copilot instructions for modelx <https://github.com/fumitoh/modelx/blob/main/.github/copilot-instructions.md>`_.
+
 Feature highlights
 ------------------
 **modelx** enables you to interactively
@@ -40,7 +42,9 @@ modelx allows you to:
 - Save models to text files and version-control with `Git`_
 - Save data such as pandas DataFrames in Excel or CSV files within models
 - Auto-document saved models by Python documentation generators, such as `Sphinx`_
-- Use Spyder with a plugin for modelx (spyder-modelx) to interface with modelx through GUI
+- Use Spyder with a plugin for modelx (`spyder-modelx`_) to interface with modelx through GUI
+- Export models as Python modules independent of modelx
+- Translate exported models to Cython optimized code and compile them for performance improvement using Cython through `modelx-cython`_ 
 
 .. _Numpy: https://numpy.org/
 .. _pandas: https://pandas.pydata.org/
@@ -48,6 +52,8 @@ modelx allows you to:
 .. _scikit-learn: https://scikit-learn.org/
 .. _Git: https://git-scm.com/
 .. _Sphinx: https://www.sphinx-doc.org
+.. _spyder-modelx: https://github.com/fumitoh/spyder-modelx
+.. _modelx-cython: https://github.com/fumitoh/modelx-cython
 
 
 modelx sites
