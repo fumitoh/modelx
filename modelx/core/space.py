@@ -108,7 +108,42 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def bases(self):
-        """List of base classes."""
+        """List of base spaces from which this space inherits.
+
+        Returns a list of :class:`UserSpace` objects that serve as base spaces
+        for this space. Spaces inherit cells and references from their base spaces,
+        following Python's Method Resolution Order (MRO) for multiple inheritance.
+
+        When a space has base spaces:
+
+        * Cells defined in base spaces are copied in the derived space
+        * References from base spaces are copied in the derived space
+        * Derived spaces can override inherited cells and references
+        * Multiple bases are resolved using C3 linearization algorithm
+
+        Returns:
+            list of :class:`UserSpace`: Base spaces in MRO order
+
+        Example:
+            .. code-block:: python
+
+                >>> base1 = model.new_space('Base1')
+                >>> base2 = model.new_space('Base2')
+                >>> derived = model.new_space('Derived')
+                >>> derived.add_bases(base1, base2)
+                >>> derived.bases
+                [<UserSpace Model1.Base1>, <UserSpace Model1.Base2>]
+
+                >>> base0 = model.new_space('Base0')
+                >>> base1.add_bases(base0)
+                >>> derived.bases
+                [<UserSpace Model1.Base1>, <UserSpace Model1.Base0>, <UserSpace Model1.Base2>]
+
+        See Also:
+            :meth:`~UserSpace.add_bases`: Add base spaces
+            :meth:`~UserSpace.remove_bases`: Remove base spaces
+            :attr:`_direct_bases`: Only directly added bases
+        """
         return get_interface_list(self._impl.bases)
 
     @property
@@ -139,21 +174,76 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def cells(self):
-        """A mapping of cells names to the cells objects in the space."""
+        """Read-only mapping of cells names to :class:`~modelx.core.cells.Cells` objects.
+
+        Returns a dictionary-like view of all cells in this space.
+
+        Returns:
+            CellsView: Dictionary-like mapping of names to Cells
+
+        Example:
+            .. code-block:: python
+
+                >>> space.cells
+                {'foo': <Cells Model1.Space1.foo(x)>,
+                'bar': <Cells Model1.Space1.bar(x, y)>}
+
+                >>> # Access individual cells
+                >>> space.cells['foo']
+                <Cells Model1.Space1.foo(x)>
+
+                >>> # Iterate over cell names
+                >>> list(space.cells.keys())
+                ['foo', 'bar']
+
+        See Also:
+            :meth:`~UserSpace.new_cells`: Create a new cells
+            :class:`~modelx.core.cells.Cells`: Cells class documentation
+        """
         return CellsView(self._impl.cells)
 
     _cells = cells
 
     @property
     def spaces(self):
-        """A mapping associating names to named spaces."""
+        """Read-only mapping of names to child :class:`UserSpace` objects.
+
+        Returns a dictionary-like view of all named child spaces in this space.
+        This does not include :class:`ItemSpace` objects,
+        which are accessed via :attr:`itemspaces`.
+
+        Returns:
+            SpaceView: Dictionary-like mapping of names to UserSpace objects
+
+        Example:
+            .. code-block:: python
+
+                >>> parent.spaces
+                {'Child1': <UserSpace Model1.Parent.Child1>,
+                'Child2': <UserSpace Model1.Parent.Child2>}
+
+                >>> parent.spaces['Child1']
+                <UserSpace Model1.Parent.Child1>
+
+        See Also:
+            :attr:`named_spaces`: Alias for this property
+            :attr:`itemspaces`: Dynamic parameterized spaces
+            :meth:`~UserSpace.new_space`: Create child spaces
+        """
         return SpaceView(self._impl.named_spaces)
 
     @property
     def named_spaces(self):
-        """A mapping associating names to named spaces.
+        """Read-only mapping of names to child :class:`UserSpace` objects.
 
-        Alias to :py:meth:`spaces`
+        This is an alias for the :attr:`spaces` property. Returns a dictionary-like
+        view of all static child spaces in this space.
+
+        Returns:
+            SpaceView: Dictionary-like mapping of names to UserSpace objects
+
+        See Also:
+            :attr:`spaces`: Primary property name
 
         .. versionadded:: 0.2.0
         """
@@ -172,10 +262,42 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def itemspaces(self):
-        """A mapping of arguments to :class:`ItemSpace` objects.
+        """Read-only mapping of parameter arguments to :class:`ItemSpace` objects.
 
-        A read-only mapping associating child :class:`ItemSpace` objects
-        as its values to  their arguments as its keys.
+        Returns a dictionary-like view of all :class:`ItemSpace` instances
+        created from this parameterized space. Each key is a tuple (or single value)
+        of arguments, and each value is the corresponding ItemSpace.
+
+        This property is only meaningful for spaces with parameters defined.
+        For spaces without parameters, this returns an empty mapping.
+
+        The keys are automatically "untuplized" for single-parameter spaces,
+        meaning a single value is used instead of a 1-tuple.
+
+        Returns:
+            MappingProxyType: Read-only mapping of arguments to ItemSpace objects
+
+        Example:
+            .. code-block:: python
+
+                >>> space.parameters = ('x', 'y')
+                >>> space[1, 2]  # Create ItemSpace
+                >>> space[3, 4]  # Create another ItemSpace
+                >>> space.itemspaces
+                {(1, 2): <ItemSpace Model1.Space1[1, 2]>,
+                (3, 4): <ItemSpace Model1.Space1[3, 4]>}
+
+                >>> # Single parameter - keys are not tuples
+                >>> space2.parameters = ('t',)
+                >>> space2[10]
+                >>> space2.itemspaces
+                {10: <ItemSpace Model1.Space2[10]>}
+
+        See Also:
+            :attr:`parameters`: Parameter names for this space
+            :class:`ItemSpace`: Dynamic parameterized space instances
+            :meth:`clear_at`: Delete specific ItemSpace
+            :meth:`clear_items`: Delete all ItemSpaces
         """
 
         def untuplize(k):
@@ -198,7 +320,39 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def parameters(self):
-        """A tuple of parameter strings."""
+        """Tuple of parameter names for this space, or None if not parameterized.
+
+        Returns the parameter names defined for this space. When parameters
+        are defined, the space becomes parameterized and can create
+        :class:`ItemSpace` instances by calling the space with arguments.
+
+        Returns:
+            tuple of str or None: Parameter names, or None if no parameters defined
+
+        Example:
+            .. code-block:: python
+
+                >>> space.parameters
+                None
+
+                >>> space.parameters = ('x', 'y')
+                >>> space.parameters
+                ('x', 'y')
+
+                >>> # Now the space can create ItemSpaces
+                >>> space[1, 2]
+                <ItemSpace Model1.Space1[1, 2]>
+
+        See Also:
+            :attr:`formula`: The formula that defines parameter behavior
+            :meth:`has_params`: Check if parameters are defined
+            :attr:`itemspaces`: Mapping of created ItemSpace instances
+
+        Note:
+            For :class:`UserSpace`, parameters can be set directly.
+            For :class:`DynamicSpace` and :class:`ItemSpace`, this reflects
+            the parameters of the base space.
+        """
         if self._impl.formula is not None:
             return tuple(self._impl.formula.parameters)
         else:
@@ -206,7 +360,50 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def refs(self):
-        """A map associating names to objects accessible by the names."""
+        """Read-only mapping of reference names to their values.
+
+        Returns a dictionary-like view of all references accessible in this space,
+        including:
+
+        * References defined in this space (for :class:`UserSpace`)
+        * References inherited from base spaces
+        * Global references defined at the model level
+        * System references (``_self``, ``_space``, ``_model``)
+
+        References provide access to external data, modules, or other modelx
+        objects from within cell formulas.
+
+        Returns:
+            RefView: Dictionary-like mapping of names to reference values
+
+        Example:
+            .. code-block:: python
+
+                >>> space.refs
+                {'data': <DataFrame...>,
+                 'discount_rate': 0.05,
+                 '_self': <Namespace...>,
+                 '_model': <Model Model1>}
+
+                >>> # Access a reference value
+                >>> space.refs['discount_rate']
+                0.05
+
+                >>> # Within formulas, references are accessed by name
+                >>> @mx.defcells
+                ... def present_value(t):
+                ...     return cashflow(t) / (1 + discount_rate) ** t
+
+        See Also:
+            :meth:`~UserSpace.set_ref`: Set a reference
+            :meth:`~UserSpace.absref`: Set absolute references
+            :meth:`~UserSpace.relref`: Set relative references
+            :attr:`~Model.refs`: Model-level global references
+
+        Note:
+            System references are excluded from this view. Use ``_impl.refs``
+            for the full internal reference mapping.
+        """
         return RefView(self._impl.refs_outer)
 
     @property
@@ -216,14 +413,82 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def formula(self):
-        """Property to get, set, delete formula."""
+        """The formula that defines parameter behavior for this space.
+
+        For parameterized spaces, the formula is a Python function that defines:
+
+        * The parameter names (from function signature)
+        * Optional logic for selecting base spaces for :class:`ItemSpace` instances
+        * Optional logic for setting references in ItemSpaces
+
+        The formula can return:
+
+        * ``None`` (default): Use this space as base with no extra refs
+        * ``dict``: Specify ``'base'`` space and/or ``'refs'`` to add
+
+        Returns:
+            Formula or None: The formula object, or None if not parameterized
+
+        Example:
+            ... code-block:: python
+
+                >>> # Simple parameterization
+                >>> space.formula = lambda x, y: None
+                >>> space.parameters
+                ('x', 'y')
+
+                >>> # Advanced: select base space dynamically
+                >>> @mx.defcells
+                ... def param_formula(product_type):
+                ...     if product_type == 'A':
+                ...         return {'base': BaseA}
+                ...     else:
+                ...         return {'base': BaseB}
+                >>> space.formula = param_formula
+
+        See Also:
+            :attr:`parameters`: Parameter names from the formula
+            :meth:`~UserSpace.set_formula`: Set the formula
+            :meth:`has_params`: Check if formula is defined
+
+        Note:
+            For :class:`UserSpace`, this can be get, set, or deleted.
+            For dynamic spaces, this reflects the base space's formula.
+        """
         return self._impl.formula
 
     # ----------------------------------------------------------------------
     # Manipulating subspaces
 
     def has_params(self):
-        """Check if the parameter function is set."""
+        """Check whether this space has parameters defined.
+
+        Returns :obj:`True` if the space has a parameter formula defined,
+        meaning it can create :class:`ItemSpace` instances when accessed
+        with arguments. Returns :obj:`False` otherwise.
+
+        Returns:
+            bool: True if parameters are defined, False otherwise
+
+        Example:
+            ... code-block:: python
+
+                >>> space.has_params()
+                False
+
+                >>> space.parameters = ('x', 'y')
+                >>> space.has_params()
+                True
+
+                >>> # Can now create ItemSpaces
+                >>> if space.has_params():
+                ...     item = space[1, 2]
+
+        See Also:
+            :attr:`parameters`: Get the parameter names
+            :attr:`formula`: The underlying formula object
+            :attr:`itemspaces`: Mapping of created ItemSpace instances
+        """
         # Outside formulas only
         return bool(self._impl.formula)
 
@@ -249,62 +514,111 @@ class BaseSpace(BaseParent, NodeFactory):
             raise KeyError(key)
 
     def clear_all(self):
-        """Clears :class:`~modelx.core.cells.Cells` and :class:`~modelx.core.space.ItemSpace`.
+        """Clear all cell values and delete all ItemSpaces recursively.
 
-        Clears both the input values and the calculated values of
-        all the recursive child :class:`~modelx.core.cells.Cells` in this space
-        and delete all the recursive child
-        :class:`~modelx.core.space.ItemSpace` objects in the space.
+        This method performs a comprehensive cleanup by:
 
-        .. seealso::
+        1. Clearing both **input** and **calculated** values from all cells
+        2. Processing cells in this space and all nested child spaces recursively
+        3. Deleting all :class:`ItemSpace` instances in this space and child spaces
 
-            * :meth:`Model.clear_all<modelx.core.model.Model.clear_all>`
-            * :meth:`clear_items`
-            * :meth:`clear_cells`
+        This is useful for:
 
-        .. versionchanged:: 0.16.0 Changed to delete child ItemSpaces
-            recursively and to clear recursive child Cells.
-            :meth:`clear_items` works the same as this method before change.
+        * Freeing memory by removing all cached calculations
+        * Resetting the model to a clean state
+        * Preparing for a new calculation with different input data
 
+        Example:
+            ... code-block:: python
+
+                >>> space.clear_all()
+                >>> # All cell values cleared, all ItemSpaces deleted
+                >>> len(space.itemspaces)
+                0
+
+        See Also:
+            :meth:`clear_cells`: Clear only cell values (keep ItemSpaces)
+            :meth:`clear_items`: Delete only ItemSpaces (keep cell values)
+            :meth:`Model.clear_all<modelx.core.model.Model.clear_all>`: Model-level clearing
+
+        Warning:
+            This operation cannot be undone. Input values that were set
+            programmatically will be lost and must be re-entered.
+
+        .. versionchanged:: 0.16.0
+            Changed to delete child ItemSpaces recursively and to clear
+            recursive child Cells. :meth:`clear_items` works the same
+            as this method before change.
         """
         self._impl.clear_all_cells(
             clear_input=True, recursive=True, del_items=True
         )
 
     def clear_items(self):
-        """Deletes all the child :class:`ItemSpace` objects.
+        """Delete all :class:`ItemSpace` objects in this space.
 
-        Deletes all the child :class:`ItemSpace` objects in this space.
-        This method does not delete :class:`ItemSpace` in child spaces
-        of this space.
+        Deletes all :class:`ItemSpace` instances that are direct children
+        of this space. 
 
-        .. seealso:: :meth:`clear_all`
+        Example:
+            ... code-block:: python
+
+                >>> space.parameters = ('x',)
+                >>> space[1], space[2], space[3]  # Create ItemSpaces
+                >>> len(space.itemspaces)
+                3
+
+                >>> space.clear_items()
+                >>> len(space.itemspaces)
+                0
+
+        See Also:
+            :meth:`clear_all`: Clear cells and delete ItemSpaces recursively
+            :meth:`clear_at`: Delete a specific ItemSpace
+            :attr:`itemspaces`: View all ItemSpace instances
 
         .. versionadded:: 0.16.0
         """
         self._impl.del_all_itemspaces()
 
     def clear_cells(self, clear_input=False, recursive=True):
-        """Clears child :class:`~modelx.core.cells.Cells`.
+        """Clear values from cells with flexible control over scope.
 
-        By default, clears all the calculated values of all the recursive child
-        :class:`~modelx.core.cells.Cells`.
-        If ``clear_input`` is :obj:`True`, all the input values of the child
-        cells are also cleared in addition to the calculated values.
-        If ``recursive`` is :obj:`False`, only the cells that are the direct
-        children of this Space are cleared, and cells in the recursive child
-        spaces are not cleared.
+        Provides fine-grained control over which cell values to clear:
+
+        * **Calculated values**: Always cleared (computed by formulas)
+        * **Input values**: Optionally cleared (set programmatically)
+        * **Scope**: Can be limited to this space or include all nested spaces
+
+        Unlike :meth:`clear_all`, this method does not delete :class:`ItemSpace`
+        instances, only clears values within cells.
 
         Args:
-            clear_input(:obj:`bool`): If :obj:`True`, input values
-                of the Cells are also cleared. Defaults to :obj:`False`.
+            clear_input (bool, optional): If :obj:`True`, input values
+                are also cleared. If :obj:`False`, only calculated values
+                are cleared. Defaults to :obj:`False`.
 
-            recursive(:obj:`bool`): If :obj:`True`, Cells in
-                the recursive child Spaces are also cleared.
-                If :obj:`False`, only the child Cells of this Space
-                are cleared.
+            recursive (bool, optional): If :obj:`True`, cells in all
+                nested child spaces are also cleared. If :obj:`False`,
+                only direct child cells of this space are cleared.
+                Defaults to :obj:`True`.
 
-        .. seealso:: :meth:`clear_all`
+        Example:
+            ... code-block:: python
+
+                >>> # Clear only calculated values in all nested spaces
+                >>> space.clear_cells()
+
+                >>> # Clear both input and calculated values, only in this space
+                >>> space.clear_cells(clear_input=True, recursive=False)
+
+                >>> # Clear only calculated values in this space
+                >>> space.clear_cells(clear_input=False, recursive=False)
+
+        See Also:
+            :meth:`clear_all`: Clear cells and delete ItemSpaces
+            :meth:`Cells.clear<modelx.core.cells.Cells.clear>`: Clear specific cells
+            :meth:`Cells.clear_at<modelx.core.cells.Cells.clear_at>`: Clear specific cell value
 
         .. versionadded:: 0.16.0
         """
@@ -321,7 +635,46 @@ class BaseSpace(BaseParent, NodeFactory):
     # Conversion to Pandas objects
 
     def to_frame(self, *args):
-        """Convert the space itself into a Pandas DataFrame object."""
+        """Convert cells in this space to a pandas DataFrame.
+
+        Creates a DataFrame with:
+
+        * **Columns**: One column per cell in the space
+        * **Index**: Cell parameter values (if cells share parameters)
+        * **Values**: Computed or stored cell values
+
+        This is useful for:
+
+        * Viewing all cell values in tabular format
+        * Exporting model results to pandas for analysis
+        * Comparing values across different cells
+
+        Args:
+            *args: Optional iterable of argument tuples to include.
+                If not provided, all available values are included.
+
+        Returns:
+            pandas.DataFrame: DataFrame containing cell values
+
+        Example:
+            ... code-block:: python
+
+                >>> # Space with cells foo(x) and bar(x)
+                >>> space.to_frame()
+                    foo  bar
+                x
+                1     10   20
+                2     11   22
+                3     12   24
+
+        See Also:
+            :attr:`frame`: Property alias for to_frame()
+            :meth:`Cells.to_frame<modelx.core.cells.Cells.to_frame>`: Convert single cells
+
+        Note:
+            Cells must have shareable parameters (same names in same order)
+            for this to work properly.
+        """
         return self._impl.to_frame(args)
 
     @property
