@@ -301,6 +301,7 @@ class Model(IOSpecOperation, EditableParent):
 
     .. versionchanged:: 0.18.0
         Added pandas and module update operations
+
     """
 
     __slots__ = ()
@@ -835,6 +836,176 @@ class Model(IOSpecOperation, EditableParent):
             print("Formula (normalized):")
             print(normalized_formula)
             print("\n" + "-"*60 + "\n")
+
+
+    def new_space_from_model(
+        self,
+        source_model,
+        name=None,
+        *,
+        refs_strategy="copy",
+        refs_prefix=None,
+        defined_only=False,
+    ):
+        """Create a top-level UserSpace from another Model.
+
+        This method creates a new :class:`~modelx.core.space.UserSpace` in the model
+        and copies all top-level spaces from ``source_model`` into the created space.
+        The space acts as a namespace wrapper, allowing the source model's
+        structure to be migrated within the target model.
+
+        The method provides control over how references are handled during the migration
+        process through the ``refs_strategy`` parameter, and allows filtering of
+        the copied content through the ``defined_only`` parameter.
+
+        Args:
+            source_model (:class:`~modelx.core.model.Model`): The model whose top-level
+                spaces will be copied into this model. Cannot be the same as the
+                target model (``self``).
+            name (:obj:`str`, optional): Name of the container space in the target model.
+                If not specified, defaults to ``source_model.name``.
+            refs_strategy (:obj:`str`, optional): Strategy for handling global references
+                from ``source_model``. Must be one of:
+
+                * ``"copy"`` (default) - Copy all global references from ``source_model``
+                  (except ``__builtins__``) into the container space's references.
+                  References are propagated to all descendant spaces.
+                * ``"ignore"`` - Do not copy any references from ``source_model``.
+                  Only the spaces and cells structure is copied.
+                * ``"shadow"`` - Copy references from ``source_model`` only if they
+                  don't already exist in the target model's global references.
+                  Existing references in the target model take precedence.
+
+            refs_prefix (:obj:`str`, optional): If specified, prefix to apply to reference
+                names when copying from ``source_model``. For example, if
+                ``refs_prefix="src_"``, a reference named ``data`` in ``source_model``
+                will be copied as ``src_data`` in the container space. The original
+                name is also preserved as an alias. Only applicable when
+                ``refs_strategy`` is ``"copy"`` or ``"shadow"``.
+            defined_only (:obj:`bool`, optional): If :obj:`True`, only defined (non-derived)
+                :class:`~modelx.core.cells.Cells` and
+                :class:`~modelx.core.space.UserSpace` objects are copied.
+                Derived cells and spaces resulting from inheritance are excluded.
+                Defaults to :obj:`False`.
+
+        Returns:
+            :class:`~modelx.core.space.UserSpace`: The created container space containing
+            all copied spaces from ``source_model``.
+
+        Raises:
+            ValueError: If ``source_model`` is the same as the target model (``self``).
+
+        Example:
+
+            Create two models and embed one into the other::
+
+                >>> import modelx as mx
+
+                >>> # Create source model with spaces and references
+                >>> source = mx.new_model("SourceModel")
+                >>> source.param = 100
+                >>> space1 = source.new_space("Space1")
+
+                >>> @mx.defcells
+                ... def calc(x):
+                ...     return x * _model.param
+
+                >>> # Create target model
+                >>> target = mx.new_model("TargetModel")
+
+                >>> # Embed source model as a space
+                >>> container = target.new_space_from_model(source, name="Embedded")
+
+                >>> # Access embedded content
+                >>> container.Space1.calc(5)
+                500
+
+            Using ``refs_prefix`` to avoid name conflicts::
+
+                >>> target.rate = 0.05  # Global reference in target
+                >>> source.rate = 0.03  # Global reference in source
+
+                >>> # Embed with prefix to distinguish references
+                >>> container = target.new_space_from_model(
+                ...     source,
+                ...     name="Embedded",
+                ...     refs_prefix="src_"
+                ... )
+
+                >>> # References are available with prefix
+                >>> container.src_rate
+                0.03
+                >>> target.rate  # Target's original reference unchanged
+                0.05
+
+            Copy only defined cells and spaces::
+
+                >>> base_space = source.new_space("Base")
+                >>> derived_space = source.new_space("Derived")
+                >>> derived_space.add_bases(base_space)
+
+                >>> # Copy only defined content (excludes derived)
+                >>> container = target.new_space_from_model(
+                ...     source,
+                ...     defined_only=True
+                ... )
+
+        See Also:
+            * :meth:`~modelx.core.model.Model.new_space`
+            * :meth:`~modelx.core.space.UserSpace.new_space`
+            * :meth:`~modelx.core.space.UserSpace.add_bases`
+
+        .. versionadded:: 0.26.0
+
+        """
+        if source_model is self:
+            raise ValueError("Cannot embed a model into itself")
+
+        if name is None:
+            name = source_model.name
+
+        refs = None
+        if refs_strategy in ("copy", "shadow"):
+            refs = {}
+            for k, ref in source_model._impl.global_refs.items():
+                if k == "__builtins__":
+                    continue
+                new_key = (f"{refs_prefix}{k}" if refs_prefix else k)
+                if refs_strategy == "shadow" and new_key in self._impl.global_refs:
+                    continue
+                # Always include the original name as well; prefixed name is an alias
+                if refs_prefix:
+                    refs[k] = ref.interface
+                refs[new_key] = ref.interface
+
+        container_impl = self._impl.model.updater.new_space(
+            parent=self._impl,
+            name=name,
+            refs=refs
+        )
+        container = container_impl.interface
+
+        for child in source_model._impl.named_spaces.values():
+            self._impl.model.updater.copy_space(
+                parent=container_impl,
+                source=child,
+                name=child.name,
+                defined_only=defined_only
+            )
+
+
+        # Propagate container refs into each descendant space so formulas can resolve names
+        if refs_strategy in ("copy", "shadow") and refs:
+            def _propagate(space_impl):
+                # Add missing refs without overriding existing ones
+                for rk, rv in refs.items():
+                    if rk not in space_impl.own_refs:
+                        self._impl.model.spmgr.new_ref(space_impl, rk, rv, refmode="auto")
+                for child_impl in space_impl.named_spaces.values():
+                    _propagate(child_impl)
+            _propagate(container_impl)
+
+        return container
 
 
 class ModelNamespace(BaseNamespace):

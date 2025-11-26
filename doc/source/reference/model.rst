@@ -65,6 +65,7 @@ Child Space operations
   ~Model.new_space_from_excel
   ~Model.new_space_from_module
   ~Model.new_space_from_pandas
+  ~Model.new_space_from_model
   ~Model.compare_cells
 
 
