@@ -140,9 +140,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 [<UserSpace Model1.Base1>, <UserSpace Model1.Base0>, <UserSpace Model1.Base2>]
 
         See Also:
-            :meth:`~UserSpace.add_bases`: Add base spaces
-            :meth:`~UserSpace.remove_bases`: Remove base spaces
-            :attr:`_direct_bases`: Only directly added bases
+            * :meth:`~UserSpace.add_bases`: Add base spaces
+            * :meth:`~UserSpace.remove_bases`: Remove base spaces
+            * :attr:`_direct_bases`: Only directly added bases
         """
         return get_interface_list(self._impl.bases)
 
@@ -197,8 +197,8 @@ class BaseSpace(BaseParent, NodeFactory):
                 ['foo', 'bar']
 
         See Also:
-            :meth:`~UserSpace.new_cells`: Create a new cells
-            :class:`~modelx.core.cells.Cells`: Cells class documentation
+            * :meth:`~UserSpace.new_cells`: Create a new cells
+            * :class:`~modelx.core.cells.Cells`: Cells class documentation
         """
         return CellsView(self._impl.cells)
 
@@ -226,9 +226,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 <UserSpace Model1.Parent.Child1>
 
         See Also:
-            :attr:`named_spaces`: Alias for this property
-            :attr:`itemspaces`: Dynamic parameterized spaces
-            :meth:`~UserSpace.new_space`: Create child spaces
+            * :attr:`named_spaces`: Alias for this property
+            * :attr:`itemspaces`: Dynamic parameterized spaces
+            * :meth:`~UserSpace.new_space`: Create child spaces
         """
         return SpaceView(self._impl.named_spaces)
 
@@ -294,10 +294,10 @@ class BaseSpace(BaseParent, NodeFactory):
                 {10: <ItemSpace Model1.Space2[10]>}
 
         See Also:
-            :attr:`parameters`: Parameter names for this space
-            :class:`ItemSpace`: Dynamic parameterized space instances
-            :meth:`clear_at`: Delete specific ItemSpace
-            :meth:`clear_items`: Delete all ItemSpaces
+            * :attr:`parameters`: Parameter names for this space
+            * :class:`ItemSpace`: Dynamic parameterized space instances
+            * :meth:`clear_at`: Delete specific ItemSpace
+            * :meth:`clear_items`: Delete all ItemSpaces
         """
 
         def untuplize(k):
@@ -344,9 +344,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 <ItemSpace Model1.Space1[1, 2]>
 
         See Also:
-            :attr:`formula`: The formula that defines parameter behavior
-            :meth:`has_params`: Check if parameters are defined
-            :attr:`itemspaces`: Mapping of created ItemSpace instances
+            * :attr:`formula`: The formula that defines parameter behavior
+            * :meth:`has_params`: Check if parameters are defined
+            * :attr:`itemspaces`: Mapping of created ItemSpace instances
 
         Note:
             For :class:`UserSpace`, parameters can be set directly.
@@ -368,7 +368,6 @@ class BaseSpace(BaseParent, NodeFactory):
         * References defined in this space (for :class:`UserSpace`)
         * References inherited from base spaces
         * Global references defined at the model level
-        * System references (``_self``, ``_space``, ``_model``)
 
         References provide access to external data, modules, or other modelx
         objects from within cell formulas.
@@ -381,9 +380,7 @@ class BaseSpace(BaseParent, NodeFactory):
 
                 >>> space.refs
                 {'data': <DataFrame...>,
-                 'discount_rate': 0.05,
-                 '_self': <Namespace...>,
-                 '_model': <Model Model1>}
+                 'discount_rate': 0.05}
 
                 >>> # Access a reference value
                 >>> space.refs['discount_rate']
@@ -395,14 +392,12 @@ class BaseSpace(BaseParent, NodeFactory):
                 ...     return cashflow(t) / (1 + discount_rate) ** t
 
         See Also:
-            :meth:`~UserSpace.set_ref`: Set a reference
-            :meth:`~UserSpace.absref`: Set absolute references
-            :meth:`~UserSpace.relref`: Set relative references
-            :attr:`~Model.refs`: Model-level global references
 
-        Note:
-            System references are excluded from this view. Use ``_impl.refs``
-            for the full internal reference mapping.
+            * :meth:`~UserSpace.set_ref`: Set a reference
+            * :meth:`~UserSpace.absref`: Set absolute references
+            * :meth:`~UserSpace.relref`: Set relative references
+            * :attr:`~modelx.core.model.Model.refs`: Model-level global references
+
         """
         return RefView(self._impl.refs_outer)
 
@@ -430,7 +425,7 @@ class BaseSpace(BaseParent, NodeFactory):
             Formula or None: The formula object, or None if not parameterized
 
         Example:
-            ... code-block:: python
+            .. code-block:: python
 
                 >>> # Simple parameterization
                 >>> space.formula = lambda x, y: None
@@ -447,9 +442,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 >>> space.formula = param_formula
 
         See Also:
-            :attr:`parameters`: Parameter names from the formula
-            :meth:`~UserSpace.set_formula`: Set the formula
-            :meth:`has_params`: Check if formula is defined
+            * :attr:`parameters`: Parameter names from the formula
+            * :meth:`~UserSpace.set_formula`: Set the formula
+            * :meth:`has_params`: Check if formula is defined
 
         Note:
             For :class:`UserSpace`, this can be get, set, or deleted.
@@ -471,7 +466,7 @@ class BaseSpace(BaseParent, NodeFactory):
             bool: True if parameters are defined, False otherwise
 
         Example:
-            ... code-block:: python
+            .. code-block:: python
 
                 >>> space.has_params()
                 False
@@ -485,9 +480,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 ...     item = space[1, 2]
 
         See Also:
-            :attr:`parameters`: Get the parameter names
-            :attr:`formula`: The underlying formula object
-            :attr:`itemspaces`: Mapping of created ItemSpace instances
+            * :attr:`parameters`: Get the parameter names
+            * :attr:`formula`: The underlying formula object
+            * :attr:`itemspaces`: Mapping of created ItemSpace instances
         """
         # Outside formulas only
         return bool(self._impl.formula)
@@ -529,7 +524,7 @@ class BaseSpace(BaseParent, NodeFactory):
         * Preparing for a new calculation with different input data
 
         Example:
-            ... code-block:: python
+            .. code-block:: python
 
                 >>> space.clear_all()
                 >>> # All cell values cleared, all ItemSpaces deleted
@@ -537,9 +532,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 0
 
         See Also:
-            :meth:`clear_cells`: Clear only cell values (keep ItemSpaces)
-            :meth:`clear_items`: Delete only ItemSpaces (keep cell values)
-            :meth:`Model.clear_all<modelx.core.model.Model.clear_all>`: Model-level clearing
+            * :meth:`clear_cells`: Clear only cell values (keep ItemSpaces)
+            * :meth:`clear_items`: Delete only ItemSpaces (keep cell values)
+            * :meth:`Model.clear_all<modelx.core.model.Model.clear_all>`: Model-level clearing
 
         Warning:
             This operation cannot be undone. Input values that were set
@@ -561,7 +556,7 @@ class BaseSpace(BaseParent, NodeFactory):
         of this space. 
 
         Example:
-            ... code-block:: python
+            .. code-block:: python
 
                 >>> space.parameters = ('x',)
                 >>> space[1], space[2], space[3]  # Create ItemSpaces
@@ -573,9 +568,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 0
 
         See Also:
-            :meth:`clear_all`: Clear cells and delete ItemSpaces recursively
-            :meth:`clear_at`: Delete a specific ItemSpace
-            :attr:`itemspaces`: View all ItemSpace instances
+            * :meth:`clear_all`: Clear cells and delete ItemSpaces recursively
+            * :meth:`clear_at`: Delete a specific ItemSpace
+            * :attr:`itemspaces`: View all ItemSpace instances
 
         .. versionadded:: 0.16.0
         """
@@ -604,7 +599,7 @@ class BaseSpace(BaseParent, NodeFactory):
                 Defaults to :obj:`True`.
 
         Example:
-            ... code-block:: python
+            .. code-block:: python
 
                 >>> # Clear only calculated values in all nested spaces
                 >>> space.clear_cells()
@@ -616,9 +611,9 @@ class BaseSpace(BaseParent, NodeFactory):
                 >>> space.clear_cells(clear_input=False, recursive=False)
 
         See Also:
-            :meth:`clear_all`: Clear cells and delete ItemSpaces
-            :meth:`Cells.clear<modelx.core.cells.Cells.clear>`: Clear specific cells
-            :meth:`Cells.clear_at<modelx.core.cells.Cells.clear_at>`: Clear specific cell value
+            * :meth:`clear_all`: Clear cells and delete ItemSpaces
+            * :meth:`Cells.clear<modelx.core.cells.Cells.clear>`: Clear specific cells
+            * :meth:`Cells.clear_at<modelx.core.cells.Cells.clear_at>`: Clear specific cell value
 
         .. versionadded:: 0.16.0
         """
@@ -657,7 +652,7 @@ class BaseSpace(BaseParent, NodeFactory):
             pandas.DataFrame: DataFrame containing cell values
 
         Example:
-            ... code-block:: python
+            .. code-block:: python
 
                 >>> # Space with cells foo(x) and bar(x)
                 >>> space.to_frame()
@@ -668,8 +663,8 @@ class BaseSpace(BaseParent, NodeFactory):
                 3     12   24
 
         See Also:
-            :attr:`frame`: Property alias for to_frame()
-            :meth:`Cells.to_frame<modelx.core.cells.Cells.to_frame>`: Convert single cells
+            * :attr:`frame`: Property alias for to_frame()
+            * :meth:`Cells.to_frame<modelx.core.cells.Cells.to_frame>`: Convert single cells
 
         Note:
             Cells must have shareable parameters (same names in same order)
@@ -770,65 +765,227 @@ class UserSpace(BaseSpace, EditableParent):
     # Manipulating cells
 
     def new_cells(self, name=None, formula=None, is_cached=True):
-        """Create a cells in the space.
+        """Create a new :class:`~modelx.core.cells.Cells` object in this space.
+
+        Creates a cells object that acts as a callable formula with automatic
+        result caching. The formula can be defined by passing a Python function,
+        lambda expression, or formula string.
 
         Args:
-            name: If omitted, the model is named automatically ``CellsN``,
-                where ``N`` is an available number.
-            func: The function to define the formula of the cells.
-            is_cached(optional): Whether to cache the results. :obj:`True` by default.
+            name (str, optional): Name for the cells. If omitted,
+                the name of the function is used. If the function name is not valid
+                for a cells name, an automatic
+                name is assigned in the format ``CellsN`` where ``N`` is an
+                available number. Must be a valid Python identifier, and must not
+                start with an underscore.
+            formula (callable or str, optional): The formula definition. Can be:
+                
+                * A Python function (def or lambda)
+                * A string containing a lambda expression
+                * None to create an empty cells
+                
+            is_cached (bool, optional): Whether to cache calculation results.
+                If :obj:`True` (default), results are cached by arguments.
+                If :obj:`False`, the formula is recalculated on every call.
 
         Returns:
-            The new cells.
+            :class:`~modelx.core.cells.Cells`: The newly created cells object
 
-        .. seealso::
+        Example:
+            Creating a cells object using new_cells::
 
-            * :attr:`~modelx.core.cells.Cells.is_cached`
+                >>> space = model.new_space('MySpace')
+
+                >>> def present_value(t):
+                ...     return cashflow(t) / (1 + rate) ** t
+
+                >>> space.new_cells(formula=present_value)
+                <Cells Model1.MySpace.present_value(t)>
+
+            Above is equivalent to creating cells using a decorator::
+            
+                >>> @mx.defcells
+                ... def present_value(t):
+                ...     return cashflow(t) / (1 + rate) ** t
+                <Cells Model1.MySpace.present_value(t)>
+
+            Creating a cells from a lambda function::
+            
+                >>> space.new_cells('double', lambda x: x * 2)
+                <Cells Model1.MySpace.double(x)>
+            
+            Creating a cells without caching from a lambda function::
+
+                >>> space.new_cells('triple', lambda: x: x * 3, is_cached=False)
+                <Cells Model1.MySpace.triple(x)>
+
+        See Also:
+            * :meth:`new_cells_from_module`: Create multiple cells from a module
+            * :attr:`~modelx.core.cells.Cells.is_cached`: Control caching behavior
+            * :meth:`~modelx.core.cells.Cells.set_formula`: Modify formula after creation
         """
         # Outside formulas only
         return self._impl.spmgr.new_cells(
             self._impl, name, formula, is_cached=is_cached).interface
 
     def copy(self, parent, name=None, defined_only=False):
-        """Make a copy of itself
+        """Create a copy of this space in a different parent.
 
-        Create a new :class:`UserSpace` in ``parent`` by copying itself.
-        If ``name`` is given, the copied :class:`UserSpace`
-        is named ``name`` in stead of the original name.
+        Creates a new :class:`UserSpace` in the specified ``parent`` by copying
+        this space's structure, including cells, child spaces, references.
 
         Args:
-            parent(:class:`UserSpace`): parent of the copied :class:`UserSpace`
-            name(:obj:`str`, optional): name of the copied :class:`UserSpace`
-            defined_only(:obj:`bool`, optional): If ``True``, only defined
-                Spaces are copied. Defaults to ``False``.
+            parent (:class:`UserSpace` or :class:`~modelx.core.model.Model`):
+                The parent object that will contain the copied space.
+            name (str, optional): Name for the copied space. If not provided,
+                uses the original space's name. Must be unique within the parent.
+            defined_only (bool, optional): If :obj:`True`, only copies spaces
+                that are explicitly defined (not inherited from base spaces).
+                Defaults to :obj:`False`.
+
+        Returns:
+            :class:`UserSpace`: The newly created copy of this space
+
+        Example:
+
+            .. code-block:: python
+
+                >>> space1 = model.new_space('Original')
+                >>> space1.new_cells('foo', lambda x: x * 2)
+                
+                >>> # Copy to the model with different name
+                >>> space2 = space1.copy(model, 'Copy')
+                >>> space2.foo(5)
+                10
+                
+                >>> # Copy to another space
+                >>> parent_space = model.new_space('Parent')
+                >>> space3 = space1.copy(parent_space)
+
+        See Also:
+            :meth:`rename`: Rename a space in place
         """
         return self._impl.model.updater.copy_space(
             parent._impl, self._impl, name, defined_only).interface
 
     def rename(self, name):
-        """Rename the space
+        """Rename this space to a new name.
 
-        Rename the UserSpace itself to ``name``.
-        A UserSpace cannot be renamed if it is subsequently derived
-        by its recursive parent's inheritance.
+        Changes the name of this :class:`UserSpace` to the specified ``name``.
+              
+        All cell values (both input and calculated) in the space are cleared recursively
+        and all :class:`ItemSpace` instances in the space are deleted recursively
 
-        When the UserSpace is renamed, all the values, including input values,
-        of the recursive child Cells in the UserSpace are cleared
-        and all the recursive child ItemSpaces are deleted.
+        **Restrictions:**
+        
+        * Cannot rename if the space is inherited by a recursive parent
+        * New name must be a valid Python identifier
+        * New name must not conflict with existing names in the parent
 
-        If the UserSpace has subsequently derived sub spaces, these
-        sub spaces are also renamed.
+        Args:
+            name (str): The new name for this space. Must be a valid Python
+                identifier and unique within the parent.
+
+        Raises:
+            ValueError: If the name is invalid or would create a conflict
+
+        Example:
+
+            .. code-block:: python
+
+                >>> space = model.new_space('OldName')
+                >>> space.new_cells('foo', lambda x: x * 2)
+                >>> space.foo(5)
+                10
+            
+                >>> space.rename('NewName')
+                >>> model.NewName.foo(5)  # Values were cleared
+                10
+
+        Warning:
+            This operation clears all values and deletes all ItemSpaces.
+            Use with caution on spaces with significant computed data.
+
+        See Also:
+            :meth:`copy`: Create a copy with a different name
 
         .. versionadded:: 0.16.0
         """
         self._impl.spmgr.rename_space(self._impl, name)
 
     def add_bases(self, *bases):
-        """Add base spaces."""
+        """Add base spaces for inheritance.
+
+        Adds one or more :class:`UserSpace` objects as base spaces for this space.
+        This space will inherit cells and references from the base spaces, following
+        Python's Method Resolution Order (MRO) for multiple inheritance.
+
+        When base spaces are added:
+        
+        * Cells and references from base spaces are copied into this space
+        * Inherited items can be overridden by defining them in this space
+        * Multiple bases are resolved using C3 linearization
+
+        Args:
+            *bases: One or more :class:`UserSpace` objects to use as bases.
+                Can be passed as individual arguments: ``add_bases(base1, base2)``
+
+        Example:
+            .. code-block:: python
+
+                >>> base1 = model.new_space('Base1')
+                >>> base1.new_cells('calc', lambda x: x * 2)
+                
+                >>> base2 = model.new_space('Base2')
+                >>> base2.new_cells('other', lambda x: x + 10)
+                
+                >>> derived = model.new_space('Derived')
+                >>> derived.add_bases(base1, base2)
+                
+                >>> derived.calc(5)  # Inherited from Base1
+                10
+                >>> derived.other(5)  # Inherited from Base2
+                15
+
+        See Also:
+            * :meth:`remove_bases`: Remove base spaces
+            * :attr:`bases`: View current base spaces
+        """
         return self._impl.model.updater.add_bases(self._impl, get_impl_list(bases))
 
     def remove_bases(self, *bases):
-        """Remove base spaces."""
+        """Remove base spaces from inheritance hierarchy.
+
+        Removes one or more :class:`UserSpace` objects from this space's list
+        of base spaces. After removal, cells and references that were inherited
+        from these bases are deleted (unless inherited from other
+        remaining bases, in which case their definitions are inherited from
+        the remaining bases).
+
+        Args:
+            *bases: One or more :class:`UserSpace` objects to remove from bases.
+                Can be passed as individual arguments: ``remove_bases(base1, base2)``
+
+        Example:
+
+            .. code-block:: python
+
+                >>> base1 = model.new_space('Base1')
+                >>> base1.new_cells('calc', lambda x: x * 2)
+                
+                >>> derived = model.new_space('Derived')
+                >>> derived.add_bases(base1)
+                >>> derived.calc(5)
+                10
+                
+                >>> derived.remove_bases(base1)
+                >>> derived.calc(5)  # No longer accessible
+                AttributeError: 'calc' not found
+
+        See Also:
+            * :meth:`add_bases`: Add base spaces
+            * :attr:`bases`: View current base spaces
+        """
         return self._impl.model.updater.remove_bases(
             self._impl, get_impl_list(bases))
 
@@ -842,9 +999,48 @@ class UserSpace(BaseSpace, EditableParent):
         return get_interface_dict(newcells)
 
     def new_cells_from_module(self, module):
-        """Create a cells from a module.
+        """Create multiple cells from functions defined in a Python module.
 
-        Alias to :py:meth:`import_funcs`.
+        Scans the specified module for function definitions and creates a
+        :class:`~modelx.core.cells.Cells` object for each function found.
+        The cells are named after their corresponding functions.
+
+        This is useful for organizing formulas in separate Python files and
+        importing them into modelx spaces.
+
+        Args:
+            module (module or :obj:`str`): Either a Python module object or the
+                module name as a string. If a string, the module is imported.
+
+        Returns:
+            dict: Dictionary mapping cell names to :class:`~modelx.core.cells.Cells`
+                objects for all functions found in the module.
+
+        Example:
+            Create a file ``formulas.py``:
+            
+            .. code-block:: python
+            
+                def present_value(t):
+                    return cashflow(t) / (1 + rate) ** t
+                
+                def future_value(t):
+                    return cashflow(t) * (1 + rate) ** t
+            
+            Import the functions::
+            
+                >>> space = model.new_space('Projection')
+                >>> space.new_cells_from_module('formulas')
+                {'present_value': <Cells present_value(t)>,
+                'future_value': <Cells future_value(t)>}
+
+        See Also:
+            * :meth:`new_cells`: Create a single cells
+            * :meth:`import_funcs`: Deprecated alias for this method
+
+        Note:
+            Only top-level function definitions are imported. Nested functions,
+            lambda expressions, and class methods are not included.
         """
         # Outside formulas only
         newcells = self._impl.new_cells_from_module(module)
@@ -1082,10 +1278,10 @@ class UserSpace(BaseSpace, EditableParent):
         )
 
     def sort_cells(self):
-        """Sort child cells alphabetically
+        """Sort child cells alphabetically by name.
 
         Cells in the sub space that are inherited from this space,
-        exept for those that are inherited from other base spaces
+        except for those that are inherited from other base spaces
         prior to this space, are sorted as well.
 
         Example:
@@ -1136,15 +1332,44 @@ class UserSpace(BaseSpace, EditableParent):
     # Checking containing subspaces and cells
 
     def __contains__(self, item):
-        """Check if item is in the space.
+        """Check if an item exists in this space.
 
-        item can be either a cells or space.
+        Tests whether a cells, space, or reference name is a direct member of
+        this space. Supports the ``in`` operator for convenient membership testing.
 
         Args:
-            item: a cells or space to check.
+            item (str, :class:`~modelx.core.cells.Cells`, or :class:`UserSpace`):
+                The item to check. Can be:
+                
+                * A string name of a cells, space, or reference
+                * A :class:`~modelx.core.cells.Cells` object
+                * A :class:`UserSpace` object
 
         Returns:
-            True if item is a direct child of the space, False otherwise.
+            bool: :obj:`True` if the item is a direct child of this space,
+                :obj:`False` otherwise.
+
+        Example:
+            .. code-block:: python
+
+                >>> space = model.new_space('MySpace')
+                >>> space.new_cells('foo', lambda x: x * 2)
+                >>> child = space.new_space('Child')
+                
+                >>> # Check by name
+                >>> 'foo' in space
+                True
+                >>> 'Child' in space
+                True
+                >>> 'nonexistent' in space
+                False
+                
+                >>> # Check by object
+                >>> space.foo in space
+                True
+                >>> space.Child in space
+                True
+
         """
         if isinstance(item, str):
             return self._impl.get_attr(item) is not None
@@ -1162,97 +1387,179 @@ class UserSpace(BaseSpace, EditableParent):
     # Getting and setting attributes
 
     def absref(self, **kwargs):
-        """Set absolute References
+        """Set references in absolute mode.
 
-        Set References in the *absolute* reference mode by passing a pair
-        of the References' names and values as keyword arguments.
+        Creates references that maintain fixed bindings regardless of inheritance
+        or space derivation. Absolute references always point to the exact object
+        specified, even when accessed from derived spaces.
+        The mode of a reference is relevant only when modelx objects, 
+        such as cells or spaces, are assigned to the reference.
 
-        Setting a Reference by this method is equivalent to
-        calling :meth:`set_ref` by passing "absolute" to ``refmode``.
+        This is a convenience method equivalent to calling :meth:`set_ref` with
+        ``refmode="absolute"`` for each reference.
+
+        **Absolute vs Relative:**
+        
+        * **Absolute**: Reference always points to the same object
+        * **Relative**: Reference adjusts based on inheritance context
+
+        Args:
+            **kwargs: Keyword arguments where each key is the reference name
+                and each value is the object to reference. Multiple references
+                can be set in a single call.
 
         Example:
-            ``A`` and ``B`` are UserSpaces and ``foo`` is a Cells in ``B``.
-            The code blow assigns the Cells to References with
-            the same names as the Cells in Space ``A``::
 
-                >>> A.absref(foo=B.foo)
+            In the example below, a cells ``foo`` is defined in Space ``S``.
+            ``abs_foo`` in Space ``S`` is defined as an absolute reference
+            to ``foo``, while ``rel_foo`` is defined as a relative reference.
+ 
+            When Space ``S`` is inherited by ``S[y]``, ``abs_foo`` continues to point to ``S.foo``,
+            while ``rel_foo`` points to ``S[y].foo``, which uses the parameter ``y`` in stead of ``S.y``::
 
-                >>> A.foo
-                <Cells foo(x) in Model1.B>
+                >>> import modelx as mx
 
-            By passing multiple keyword assignments, multiple References
-            can be assigned.
-            Below ``bar`` and ``baz`` are Cells in ``B``::
+                >>> s  = mx.new_space('S')
 
-                >>> A.absref(bar=B.bar, baz=B.baz)
+                >>> @mx.defcells
+                ... def foo(x):
+                ...     return x + y
 
-                >>> A.bar
-                <Cells bar(x) in Model1.B>
+                >>> s.absref(abs_foo=foo)
+                >>> s.relref(rel_foo=foo)
+                >>> s.y = 0
 
-                >>> A.baz
-                <Cells baz(x) in Model1.B>
+                >>> s.parameters = 'y'
+
+                >>> s[1].abs_foo(10)  # Absolute reference to S.foo
+                10
+
+                >>> s[1].rel_foo(10)  # Relative reference to S[1].foo
+                11
+
 
         See Also:
-            :meth:`set_ref`
-            :meth:`relref`
 
+            * :meth:`relref`: Set references in relative mode
+            * :meth:`set_ref`: Set individual reference with explicit mode
+            * :attr:`refs`: View all references
         """
         for name, value in kwargs.items():
             self.set_ref(name, value, refmode="absolute")
 
     def relref(self, **kwargs):
-        """Set relative References
+        """Set references in relative mode.
 
-        Set References in the *relative* reference mode by passing a pair
-        of the References' names and values as keyword arguments.
+        Creates references that adjust their bindings based on inheritance context.
+        When a space with relative references is inherited, the references are
+        resolved relative to the derived space's position in the hierarchy.
+        The mode of a reference is relevant only when modelx objects, 
+        such as cells or spaces, are assigned to the reference.
+        
+        This is useful for creating reusable space templates where references
+        should point to "local" versions of objects in derived contexts.
 
-        Setting a Reference by this method is equivalent to
-        calling :meth:`set_ref` by passing "relative" to ``refmode``.
+        This is a convenience method equivalent to calling :meth:`set_ref` with
+        ``refmode="relative"`` for each reference.
+
+        **Relative vs Absolute:**
+        
+        * **Relative**: Reference adjusts based on inheritance context
+        * **Absolute**: Reference always points to the same object
+
+        Args:
+            **kwargs: Keyword arguments where each key is the reference name
+                and each value is the object to reference. Multiple references
+                can be set in a single call.
 
         Example:
-            ``A`` and ``B`` are UserSpaces and ``foo`` is a Cells in ``B``.
-            The code blow assigns the Cells to References with
-            the same names as the Cells in Space ``A``::
+            In the example below, a cells ``foo`` is defined in Space ``S``.
+            ``abs_foo`` in Space ``S`` is defined as an absolute reference
+            to ``foo``, while ``rel_foo`` is defined as a relative reference.
+ 
+            When Space ``S`` is inherited by ``S[y]``, ``abs_foo`` continues to point to ``S.foo``,
+            while ``rel_foo`` points to ``S[y].foo``, which uses the parameter ``y`` in stead of ``S.y``::
 
-                >>> A.absref(foo=B.foo)
+                >>> import modelx as mx
 
-                >>> A.foo
-                <Cells foo(x) in Model1.B>
+                >>> s  = mx.new_space('S')
 
-            By passing multiple keyword assignments, multiple References
-            can be assigned.
-            Below ``bar`` and ``baz`` are Cells in ``B``::
+                >>> @mx.defcells
+                ... def foo(x):
+                ...     return x + y
 
-                >>> A.absref(bar=B.bar, baz=B.baz)
+                >>> s.absref(abs_foo=foo)
+                >>> s.relref(rel_foo=foo)
+                >>> s.y = 0
 
-                >>> A.bar
-                <Cells bar(x) in Model1.B>
+                >>> s.parameters = 'y'
 
-                >>> A.baz
-                <Cells baz(x) in Model1.B>
+                >>> s[1].abs_foo(10)  # Absolute reference to S.foo
+                10
+
+                >>> s[1].rel_foo(10)  # Relative reference to S[1].foo
+                11
 
         See Also:
-            :meth:`set_ref`
-            :meth:`absref`
 
+            * :meth:`absref`: Set references in absolute mode
+            * :meth:`set_ref`: Set individual reference with explicit mode
+            * :attr:`refs`: View all references
         """
         for name, value in kwargs.items():
             self.set_ref(name, value, refmode="relative")
 
     def set_ref(self, name, value, refmode):
-        """Set a Reference
+        """Set a reference with explicit mode control.
 
-        Set a Reference that assigns ``value`` to ``name`` in this Space.
+        Creates or updates a reference that makes an object accessible
+        as a global variable within this space's formulas. 
+        The reference mode determines how
+        the reference behaves in inheritance contexts.
+
+        **Reference Modes:**
+        
+        * **"auto"**: Automatically choose based on scope (default)
+        * **"absolute"**: Fixed binding, never adjusts for inheritance
+        * **"relative"**: Binding adjusts based on derived space context
 
         Args:
-            name: Reference name
-            value: Reference value
-            refmode: "auto", "absolute" or "relative" to indicate
-                reference mode
+            name (str): Name for the reference. Must be a valid Python identifier
+                and not conflict with existing cells or spaces.
+            value: The object to reference. Can be any Python object including
+                cells, spaces, data structures, modules, etc.
+            refmode (str): Reference mode - must be "auto", "absolute", or "relative".
+
+        Raises:
+            AttributeError: If ``name`` conflicts with an existing attribute
+            ValueError: If ``refmode`` is not a valid mode
+
+        Example:
+
+            .. code-block:: python
+
+                >>> import pandas as pd
+                >>> space = model.new_space('Analysis')
+                
+                >>> # Set reference to data
+                >>> df = pd.DataFrame({'A': [1, 2, 3]})
+                >>> space.set_ref('data', df, refmode='auto')
+                
+                >>> # Set reference to another cells
+                >>> other_space = model.new_space('Other')
+                >>> other_space.new_cells('calc', lambda x: x * 2)
+                >>> space.set_ref('external_calc', other_space.calc, refmode='absolute')
+                
+                >>> # Use references in formulas
+                >>> @mx.defcells(space=space)
+                ... def process():
+                ...     return data['A'].sum() + external_calc(10)
 
         See Also:
-            :meth:`relref`
-            :meth:`absref`
+
+            * :meth:`absref`: Convenience method for absolute references
+            * :meth:`relref`: Convenience method for relative references
+            * :attr:`refs`: View all references in this space
         """
         if hasattr(type(self), name):
             raise AttributeError("'%s' is already defined" % name)
@@ -1283,7 +1590,67 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.del_formula()
 
     def set_formula(self, formula):
-        """Set if the parameter function."""
+        """Set the parameter formula for this space.
+
+        Defines a formula that determines how this space creates :class:`ItemSpace`
+        instances when accessed with arguments. The formula's parameters become
+        the space's parameters, and its return value can control ItemSpace creation.
+
+        **Formula Return Values:**
+        
+        * **None** (default): Use this space as base with default behavior
+        * **dict**: Specify ``'base'`` space and/or ``'refs'`` for ItemSpace
+
+        .. warning::
+            Controlling base space and references via the return value of the formula
+            is experimental and may lead to unexpected behavior.
+            This feature is not reflected in exported models.
+
+        Args:
+            formula (callable or :obj:`str`): A function or lambda expression that defines
+                the parameters. Can return None or a dict with 'base' and 'refs' keys.
+
+        Example:
+
+            Below is an example of setting a parameter formula by ``set_formula``::
+
+                >>> space = model.new_space('Projection')
+                
+                >>> space.set_formula(lambda product, scenario: None)
+                >>> space.parameters
+                ('product', 'scenario')
+                >>> item = space['ProductA', 'Base']
+
+            This is equivalent to setting the formula via the ``parameters`` property::
+
+                >>> spce.parameters = ('product', 'scenario')
+                >>> space.parameters
+                ('product', 'scenario')
+                >>> space.formula
+                lambda product, scenario: None
+
+            The formula can also return a dict to control ItemSpace creation.
+            This is an exprimental feature and not supported in exported models::
+
+                >>> space.new_space('BaseA')
+                >>> space.new_space('BaseB')
+                 
+                >>> def select_base(product_type):
+                ...     if product_type == 'A':
+                ...         return {'base': BaseA}
+                ...     else:
+                ...         return {'base': BaseB}
+                 
+                >>> space.set_formula(select_base)
+                >>> item_a = space['A']  # Uses BaseA as base space
+                >>> item_b = space['B']  # Uses BaseB as base space
+
+        See Also:
+
+            * :meth:`del_formula`: Remove the parameter formula
+            * :attr:`formula`: Access the formula object
+            * :attr:`parameters`: View parameter names
+        """
         self._impl.set_formula(formula)
 
     @BaseSpace.parameters.setter
@@ -1297,7 +1664,38 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.del_formula()
 
     def del_formula(self):
-        """Delete formula"""
+        """Delete the parameter formula from this space.
+
+        Removes the parameter formula, converting this space from a parameterized
+        space back to a regular non-parameterized space. All existing
+        child :class:`ItemSpace` instances are deleted.
+
+        After deletion:
+        
+        * :attr:`~BaseSpace.parameters` returns None
+        * :attr:`~BaseSpace.itemspaces` is empty
+        * The space can no longer be called with arguments
+
+        Example:
+            .. code-block:: python
+
+                >>> space = model.new_space('MySpace')
+                >>> space.parameters = ('x', 'y')
+                >>> space[1, 2]  # Creates ItemSpace
+                >>> space.parameters
+                ('x', 'y')
+                
+                >>> space.del_formula()
+                >>> space.parameters
+                None
+                >>> len(space.itemspaces)
+                0
+
+        See Also:
+            * :meth:`set_formula`: Set a parameter formula
+            * :attr:`formula`: Access the formula object
+            * :meth:`clear_items`: Delete ItemSpaces without removing formula
+        """
         self._impl.del_formula()
 
     @Interface.doc.setter

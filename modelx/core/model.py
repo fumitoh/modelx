@@ -955,7 +955,7 @@ class Model(IOSpecOperation, EditableParent):
             * :meth:`~modelx.core.space.UserSpace.new_space`
             * :meth:`~modelx.core.space.UserSpace.add_bases`
 
-        .. versionadded:: 0.26.0
+        .. versionadded:: 0.29.2
 
         """
         if source_model is self:
