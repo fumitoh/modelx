@@ -1802,10 +1802,8 @@ class SpaceUpdater(SharedSpaceOperations):
             formula=None,
             refs=None,
             source=None,
-            is_derived=False,
             prefix="",
-            doc=None,
-            container=None
+            doc=None
     ):
         """Create a new child space.
 
@@ -1862,13 +1860,10 @@ class SpaceUpdater(SharedSpaceOperations):
         for n in nx.descendants(self._graph, node):
             self._graph.get_mro(n)
 
-        if container is None:
-            container = parent.named_spaces
-
         space = UserSpaceImpl(
             parent,
             name,
-            container,
+            container=parent.named_spaces,
             formula=formula,
             refs=refs,
             source=source,
@@ -1886,7 +1881,7 @@ class SpaceUpdater(SharedSpaceOperations):
         try:
             self._instructions.execute()
         except BaseException:
-            del container[name]
+            del parent.named_spaces[name]
             raise
 
         self._update_manager()
@@ -2030,10 +2025,8 @@ class SpaceUpdater(SharedSpaceOperations):
             formula=source.formula,
             refs={k: v.interface for k, v in source.own_refs.items()},
             source=source.source,
-            is_derived=False,
             prefix="",
-            doc=source.doc,
-            container=None
+            doc=source.doc
         )
 
         for cells in source.cells.values():
