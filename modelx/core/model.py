@@ -36,7 +36,7 @@ from modelx.core.parent import (
     EditableParent,
 )
 from modelx.core.space import UserSpaceImpl
-from modelx.core.binding.namespace import BaseNamespace
+from modelx.core.binding.namespace import BaseNamespace, NamespaceServer
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.execution.trace import TraceManager
@@ -1869,6 +1869,10 @@ class SpaceUpdater(SharedSpaceOperations):
             source=source,
             doc=doc
         )
+
+        if isinstance(parent, NamespaceServer):
+            parent.on_notify(parent.named_spaces)   # Fix: bug GH203
+
         self._graph.nodes[node]["space"] = space
         self._graph.nodes[node]["state"] = "created"
 
