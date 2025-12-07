@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import types
 from collections.abc import Callable
 
 from modelx.core.base import (
@@ -169,7 +170,6 @@ class MacroImpl(Impl):
         func = self.formula.func
         
         # Create a new function with the correct globals
-        import types
         new_func = types.FunctionType(
             func.__code__,
             namespace,

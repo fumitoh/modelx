@@ -18,6 +18,7 @@ import sys
 import textwrap
 import types
 import pprint
+import inspect
 try:
     from functools import cached_property
 except ImportError:     # - Python 3.7
@@ -659,8 +660,13 @@ class MacroTranslator:
             if formula and formula.source:
                 result.append(formula.source)
             else:
-                # If no source, create a stub
-                result.append(f"def {name}():\n    pass")
+                # If no source, create a stub with original signature
+                try:
+                    sig = inspect.signature(formula.func if formula else lambda: None)
+                    result.append(f"def {name}{sig}:\n    pass")
+                except (ValueError, TypeError):
+                    # Fallback if signature inspection fails
+                    result.append(f"def {name}():\n    pass")
         
         return "\n\n".join(result)
 
