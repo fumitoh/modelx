@@ -666,6 +666,9 @@ class MacroTranslator:
                     result.append(f"def {name}{sig}:\n    pass")
                 except (ValueError, TypeError):
                     # Fallback if signature inspection fails
+                    # Note: This creates a parameter-less stub, which may not match
+                    # the original function signature. This is a known limitation
+                    # when source code is unavailable (e.g., in REPL contexts).
                     result.append(f"def {name}():\n    pass")
         
         return "\n\n".join(result)

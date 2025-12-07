@@ -35,7 +35,10 @@ class MacroMaker:
     def create_or_change_macro(self, func):
         self.name = func.__name__ if self.name is None else self.name
         
-        if is_valid_name(self.name) and self.name in self.model.macros:
+        if not is_valid_name(self.name):
+            raise ValueError(f"Invalid macro name: {self.name}")
+        
+        if self.name in self.model.macros:
             # Update existing macro
             macro = self.model.macros[self.name]
             macro.set_formula(func)

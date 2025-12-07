@@ -1246,6 +1246,8 @@ class ModelImpl(*_model_impl_base):
         Returns:
             MacroImpl instance
         """
+        if not is_valid_name(name):
+            raise ValueError(f"Invalid macro name: {name}")
         if name in self._macros:
             raise ValueError(f"Macro '{name}' already exists")
         if name in self.spaces or name in self.global_refs:
