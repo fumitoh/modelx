@@ -8,13 +8,13 @@
 
 ### Impl/Interface Pattern
 
-modelx uses a strict separation between implementation and interface classes:
+modelx separates the interface of its component classes from their implementation using the Impl/Interface pattern:
 
-- **Interface classes** (`Model`, `UserSpace`, `Cells`, etc.) - User-facing API with clean public methods
-- **Impl classes** (`ModelImpl`, `UserSpaceImpl`, `CellsImpl`, etc.) - Internal implementation containing actual logic
+- **Interface classes** (`Model`, `UserSpace`, `Cells`) - User-facing API with clean public methods
+- **Impl classes** (`ModelImpl`, `UserSpaceImpl`, `CellsImpl`, `ReferenceImpl`) - Internal implementation containing actual logic
 
 **Key principles:**
-- All user-visible objects are Interface instances
+- All user-visible component objects are Interface instances, except for References (which expose their values directly)
 - Interface classes delegate to their `_impl` attribute (the Impl instance)
 - Impl classes contain `interface` attribute pointing back to the Interface
 - Impl classes expose internal attributes and methods hidden from users
@@ -34,20 +34,28 @@ assert space_impl.interface is space  # Bidirectional reference
 
 ```
 Model (top-level container)
+│
 ├── UserSpace (static/editable spaces)
+│   │
 │   ├── Cells (formulas with caching)
 │   ├── References (data, modules, objects)
-│   └── Child UserSpaces (nested structure)
-│       └── (recursively contains Cells, Refs, Spaces)
-└── ItemSpace (dynamic parameterized instances)
-    └── DynamicSpace (read-only derived spaces)
+│   ├── Child UserSpaces (nested structure)
+│   │   └── (recursively contains Cells, Refs, Spaces, ItemSpaces)
+│   │
+│   └── ItemSpace (dynamic parameterized instances)
+│       ├── Dynamic Cells (formulas with caching)
+│       ├── Dynamic References (data, modules, objects)
+│       └── DynamicSpace (read-only derived spaces)
+│           └── (recursively contains dynamic Cells, Refs, Spaces, ItemSpaces)
+│
+└── References (global references accessible from all spaces)
 ```
 
-**Model** - Top-level container, manages global references and persistence
-**UserSpace** - Editable container for cells, child spaces, and references
-**ItemSpace** - Root dynamic space created from parameterized UserSpace
-**DynamicSpace** - Non-root dynamic spaces within ItemSpace hierarchy
-**Cells** - Callable formulas with automatic caching and dependency tracking
+* **Model** - Top-level container, manages global references and persistence
+* **UserSpace** - Editable container for cells, child spaces, and references
+* **ItemSpace** - Root dynamic space created from parameterized UserSpace
+* **DynamicSpace** - Non-root dynamic spaces within ItemSpace hierarchy
+* **Cells** - Callable formulas with automatic caching and dependency tracking
 
 ### Space Types
 
