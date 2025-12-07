@@ -226,6 +226,14 @@ class SpaceView(BaseView):
         space.model.updater.del_defined_space(space)
 
 
+class MacroView(BaseView):
+    """A mapping of macro names to macro objects."""
+    
+    def __delitem__(self, name):
+        macro = self._impls[name]
+        macro.parent.del_macro(name)
+
+
 class RefView(BaseView):
 
     @property

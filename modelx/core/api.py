@@ -35,6 +35,7 @@ from contextlib import contextmanager
 
 from modelx.core import mxsys as _system
 from modelx.core.cells import CellsMaker as _CellsMaker
+from modelx.core.macro import MacroMaker as _MacroMaker
 from modelx.core.space import BaseSpace as _Space
 from modelx.core.model import Model as _Model
 from modelx.core.base import get_interface_dict as _get_interfaces
@@ -272,6 +273,114 @@ def uncached(space=None, name=None, *funcs):
     .. versionadded:: 0.27.0
     """
     return defcells(space, name, is_cached=False, *funcs)
+
+
+def defmacro(model=None, name=None, *funcs):
+    """Decorator to create or update a macro from a Python function.
+    
+    This convenience function serves as a decorator to create a new macro or
+    update an existing macro directly from a Python function definition.
+    Macros are Python functions that can be saved within a Model and executed
+    to manipulate or query the model.
+    
+    All macros in a model share the same dedicated global namespace.
+    In the namespace, the model is defined as a global variable, ``mx_model``
+    as well as by its model name.
+    
+    Examples:
+    
+        **1. As a decorator without arguments**
+        
+        The code below creates a macro in the current model.
+        If a macro with the same name already exists, updates its formula.
+        
+        If the current model does not exist, a new model is created::
+        
+            >>> import modelx as mx
+            
+            >>> m = mx.new_model('MyModel')
+            
+            >>> @mx.defmacro
+            ... def get_model_name():
+            ...     return mx_model.name
+            
+            >>> get_model_name
+            <Macro MyModel.get_model_name>
+            
+            >>> m.get_model_name()
+            'MyModel'
+        
+        **2. As a decorator with arguments**
+        
+        The code below creates a macro in a specified model with the specified name::
+        
+            >>> m = mx.new_model('MyModel')
+            
+            >>> @mx.defmacro(model=m, name='print_name')
+            ... def print_model_name(message):
+            ...     print(f"{message} {get_model_name()}")
+            
+            >>> print_model_name
+            <Macro MyModel.print_name>
+            
+            >>> m.print_name("This model is")
+            This model is MyModel
+        
+        **3. As a function**
+        
+        Creates multiple macros from multiple function definitions::
+        
+            def foo():
+                return mx_model.name
+            
+            def bar():
+                return foo()
+            
+            foo, bar = defmacro(foo, bar)
+    
+    Args:
+        model (optional): For usage 2, specifies the model to create the macro in.
+            Defaults to the current model.
+        name (optional): For usage 2, specifies the name of the created macro.
+            Defaults to the function name.
+        *funcs: For usage 3, function objects. (``model`` and ``name`` can also
+            accept function objects for this usage.)
+    
+    Returns:
+        For usage 1 and 2, the newly created single macro is returned.
+        For usage 3, a list of newly created macros is returned.
+    
+    .. versionadded:: 0.30.0
+    """
+    if isinstance(model, _FunctionType) and name is None:
+        # called as a function decorator
+        func = model
+        cur_model_obj = cur_model()
+        if cur_model_obj is None:
+            cur_model_obj = new_model()
+        return _MacroMaker(
+            model=cur_model_obj._impl, name=func.__name__
+        ).create_or_change_macro(func)
+    
+    elif (isinstance(model, _Model) or model is None) and (
+        isinstance(name, str) or name is None
+    ):
+        # return decorator itself
+        if model is None:
+            cur_model_obj = cur_model()
+            if cur_model_obj is None:
+                cur_model_obj = new_model()
+            model = cur_model_obj
+        
+        return _MacroMaker(model=model._impl, name=name)
+    
+    elif all(
+        isinstance(func, _FunctionType) for func in (model, name) + funcs
+    ):
+        return [defmacro(func) for func in (model, name) + funcs]
+    
+    else:
+        raise TypeError("invalid defmacro arguments")
 
 
 def get_models():
