@@ -250,3 +250,73 @@ def test_macro_error_duplicate_name():
     assert len(m.macros) == 1
     
     m.close()
+
+
+def test_new_macro_basic(simple_model):
+    """Test basic macro creation using new_macro"""
+    m = simple_model
+    
+    def get_name():
+        return mx_model.name
+    
+    macro = m.new_macro(formula=get_name)
+    
+    assert 'get_name' in m.macros
+    assert macro is m.macros['get_name']
+    assert m.get_name() == 'TestModel'
+
+
+def test_new_macro_with_name(simple_model):
+    """Test macro creation with custom name using new_macro"""
+    m = simple_model
+    
+    def original_func():
+        return mx_model.name
+    
+    macro = m.new_macro(name='custom_name', formula=original_func)
+    
+    assert 'custom_name' in m.macros
+    assert macro is m.macros['custom_name']
+    assert m.custom_name() == 'TestModel'
+
+
+def test_new_macro_with_params(simple_model):
+    """Test macro with parameters using new_macro"""
+    m = simple_model
+    
+    macro = m.new_macro('add_numbers', lambda a, b: a + b)
+    
+    assert m.add_numbers(2, 3) == 5
+    assert m.add_numbers(10, 20) == 30
+
+
+def test_new_macro_no_formula_error(simple_model):
+    """Test that new_macro raises error when formula is None"""
+    m = simple_model
+    
+    with pytest.raises(ValueError, match="formula must be provided"):
+        m.new_macro(name='test')
+
+
+def test_new_macro_no_name_error(simple_model):
+    """Test that new_macro raises error when name is None and formula has no __name__"""
+    m = simple_model
+    
+    # Create a callable object without __name__
+    class CallableWithoutName:
+        def __call__(self):
+            return 42
+    
+    with pytest.raises(ValueError, match="name must be provided"):
+        m.new_macro(formula=CallableWithoutName())
+
+
+def test_new_macro_lambda_with_name(simple_model):
+    """Test that new_macro works with lambda and explicit name"""
+    m = simple_model
+    
+    macro = m.new_macro('my_lambda', lambda x: x * 3)
+    
+    assert 'my_lambda' in m.macros
+    assert m.my_lambda(5) == 15
+

@@ -337,6 +337,86 @@ class Model(IOSpecOperation, EditableParent):
         """Close the model."""
         self._impl.system.close_model(self._impl)
 
+    def new_macro(self, name=None, formula=None):
+        """Create a new :class:`~modelx.core.macro.Macro` in this model.
+
+        Creates a macro that acts as a callable Python function saved within
+        the model. Macros share a dedicated global namespace that includes
+        the model itself as both ``mx_model`` and by the model's name.
+
+        Args:
+            name (str, optional): Name for the macro. If omitted and a function
+                is provided, the function's name is used. If the function name
+                is not valid for a macro name, an error is raised. Must be a
+                valid Python identifier, and must not start with an underscore.
+            formula (callable, optional): The function definition. Can be:
+                
+                * A Python function (def or lambda)
+                * None to create an empty macro (not recommended)
+                
+        Returns:
+            :class:`~modelx.core.macro.Macro`: The newly created macro object
+
+        Example:
+            Creating a macro using new_macro::
+
+                >>> model = mx.new_model('MyModel')
+
+                >>> def get_model_info():
+                ...     return f"Model: {mx_model.name}"
+
+                >>> model.new_macro(formula=get_model_info)
+                <Macro MyModel.get_model_info>
+
+                >>> model.get_model_info()
+                'Model: MyModel'
+
+            Above is equivalent to creating a macro using the decorator::
+            
+                >>> @mx.defmacro
+                ... def get_model_info():
+                ...     return f"Model: {mx_model.name}"
+                <Macro MyModel.get_model_info>
+
+            Creating a macro with a custom name from a lambda function::
+            
+                >>> model.new_macro('double', lambda x: x * 2)
+                <Macro MyModel.double>
+                
+                >>> model.double(5)
+                10
+
+            Macros can call other macros in the same model::
+
+                >>> @mx.defmacro
+                ... def helper():
+                ...     return 42
+                
+                >>> @mx.defmacro
+                ... def main():
+                ...     return helper() * 2
+                
+                >>> model.main()
+                84
+
+        See Also:
+            * :func:`~modelx.defmacro`: Decorator to create macros
+            * :attr:`~modelx.core.model.Model.macros`: Access all macros
+            * :meth:`~modelx.core.model.Model.export`: Export model with macros
+        
+        .. versionadded:: 0.30.0
+        """
+        if formula is None:
+            raise ValueError("formula must be provided")
+        
+        if name is None:
+            if hasattr(formula, '__name__'):
+                name = formula.__name__
+            else:
+                raise ValueError("name must be provided when formula has no __name__")
+        
+        return self._impl.new_macro(name, formula).interface
+
     @Interface.doc.setter
     def doc(self, value):
         self._impl.doc = value
