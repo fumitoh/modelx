@@ -302,7 +302,7 @@ def defmacro(model=None, name=None, *funcs):
             
             >>> @mx.defmacro
             ... def get_model_name():
-            ...     return mx_model.name
+            ...     return mx_model._name
             
             >>> get_model_name
             <Macro MyModel.get_model_name>
@@ -331,7 +331,7 @@ def defmacro(model=None, name=None, *funcs):
         Creates multiple macros from multiple function definitions::
         
             def foo():
-                return mx_model.name
+                return mx_model._name
             
             def bar():
                 return foo()

@@ -64,7 +64,7 @@ class Macro(Interface, Callable):
             
             >>> @mx.defmacro
             ... def get_model_name():
-            ...     return mx_model.name
+            ...     return mx_model._name
             
             >>> @mx.defmacro(model=m, name='print_name')
             ... def print_model_name(message):

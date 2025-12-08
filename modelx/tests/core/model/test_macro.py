@@ -17,7 +17,7 @@ def test_defmacro_basic(simple_model):
     
     @mx.defmacro
     def get_name():
-        return mx_model.name
+        return mx_model._name
     
     assert 'get_name' in m.macros
     assert get_name is m.macros['get_name']
@@ -30,7 +30,7 @@ def test_defmacro_with_args(simple_model):
     
     @mx.defmacro(model=m, name='custom_name')
     def original_name():
-        return mx_model.name
+        return mx_model._name
     
     assert 'custom_name' in m.macros
     assert original_name is m.macros['custom_name']
@@ -75,7 +75,7 @@ def test_macro_access_model_as_mx_model():
     
     @mx.defmacro
     def get_model_via_mx_model():
-        return mx_model.name
+        return mx_model._name
     
     assert m.get_model_via_mx_model() == 'AccessTest'
     
@@ -257,7 +257,7 @@ def test_new_macro_basic(simple_model):
     m = simple_model
     
     def get_name():
-        return mx_model.name
+        return mx_model._name
     
     macro = m.new_macro(formula=get_name)
     
@@ -271,7 +271,7 @@ def test_new_macro_with_name(simple_model):
     m = simple_model
     
     def original_func():
-        return mx_model.name
+        return mx_model._name
     
     macro = m.new_macro(name='custom_name', formula=original_func)
     

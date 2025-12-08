@@ -12,7 +12,7 @@ def macro_model():
     
     @mx.defmacro
     def get_model_name():
-        return mx_model.name
+        return mx_model._name
     
     @mx.defmacro
     def add_numbers(a, b):

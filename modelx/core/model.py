@@ -363,7 +363,7 @@ class Model(IOSpecOperation, EditableParent):
                 >>> model = mx.new_model('MyModel')
 
                 >>> def get_model_info():
-                ...     return f"Model: {mx_model.name}"
+                ...     return f"Model: {mx_model._name}"
 
                 >>> model.new_macro(formula=get_model_info)
                 <Macro MyModel.get_model_info>
@@ -375,7 +375,7 @@ class Model(IOSpecOperation, EditableParent):
             
                 >>> @mx.defmacro
                 ... def get_model_info():
-                ...     return f"Model: {mx_model.name}"
+                ...     return f"Model: {mx_model._name}"
                 <Macro MyModel.get_model_info>
 
             Creating a macro with a custom name from a lambda function::
@@ -602,7 +602,7 @@ class Model(IOSpecOperation, EditableParent):
             
             >>> @mx.defmacro
             ... def get_name():
-            ...     return mx_model.name
+            ...     return mx_model._name
             
             >>> m.macros
             {'get_name': <Macro MyModel.get_name>}

@@ -21,11 +21,6 @@ class BaseParent(BaseMxObject):
     _parent: 'BaseParent'
     _model: 'BaseModel'
     _name: str
-    
-    @property
-    def name(self):
-        """Return the name of this object"""
-        return self._name
 
     def _mx_walk(self, skip_self: bool = False):
         """Generator yielding spaces in breadth-first order"""
