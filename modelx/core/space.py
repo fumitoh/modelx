@@ -863,7 +863,7 @@ class UserSpace(BaseSpace, EditableParent):
                 >>> space3 = space1.copy(parent_space)
 
         See Also:
-            :meth:`rename`: Rename a space in place
+            * :meth:`rename`: Rename a space in place
         """
         return self._impl.model.updater.copy_space(
             parent._impl, self._impl, name, defined_only).interface
@@ -907,7 +907,7 @@ class UserSpace(BaseSpace, EditableParent):
             Use with caution on spaces with significant computed data.
 
         See Also:
-            :meth:`copy`: Create a copy with a different name
+            * :meth:`copy`: Create a copy with a different name
 
         .. versionadded:: 0.16.0
         """

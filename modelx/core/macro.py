@@ -93,9 +93,9 @@ class Macro(Interface, Callable):
         models and exported models.
     
     See Also:
-        :func:`~modelx.defmacro`: Decorator to create macros
-        :attr:`~modelx.core.model.Model.macros`: Access model's macros
-        :meth:`~modelx.core.model.Model.export`: Export model as Python package
+        * :func:`~modelx.defmacro`: Decorator to create macros
+        * :attr:`~modelx.core.model.Model.macros`: Access model's macros
+        * :meth:`~modelx.core.model.Model.export`: Export model as Python package
     
     .. versionadded:: 0.30.0
     """

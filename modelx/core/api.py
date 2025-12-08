@@ -500,9 +500,9 @@ def start_stacktrace(maxlen=10000):
             exceeding, records are removed from the oldest. Defaults to 10000.
 
     See Also:
-        :func:`stop_stacktrace`
-        :func:`get_stacktrace`
-        :func:`clear_stacktrace`
+        * :func:`stop_stacktrace`: Deactivate stack tracing
+        * :func:`get_stacktrace`: Retrieve recorded stack trace
+        * :func:`clear_stacktrace`: Clear stack trace records
 
     .. versionchanged:: 0.1.0 `maxlen` parameter is added.
     .. versionadded:: 0.0.25
@@ -518,9 +518,9 @@ def stop_stacktrace():
     If the tracing is not active, a runtime error is raised.
 
     See Also:
-        :func:`start_stacktrace`
-        :func:`get_stacktrace`
-        :func:`clear_stacktrace`
+        * :func:`start_stacktrace`: Activate stack tracing
+        * :func:`get_stacktrace`: Retrieve recorded stack trace
+        * :func:`clear_stacktrace`: Clear stack trace records
 
     .. versionadded:: 0.0.25
     """
@@ -533,9 +533,9 @@ def clear_stacktrace():
     If the tracing is not active, a runtime error is raised.
 
     See Also:
-        :func:`start_stacktrace`
-        :func:`stop_stacktrace`
-        :func:`get_stacktrace`
+        * :func:`start_stacktrace`: Activate stack tracing
+        * :func:`stop_stacktrace`: Deactivate stack tracing
+        * :func:`get_stacktrace`: Retrieve recorded stack trace
 
     .. versionadded:: 0.0.25
     """
@@ -634,9 +634,9 @@ def get_stacktrace(summarize=False):
         ====================== ======== ======================= ======================= =====================
 
     See Also:
-        :func:`start_stacktrace`
-        :func:`stop_stacktrace`
-        :func:`clear_stacktrace`
+        * :func:`start_stacktrace`: Activate stack tracing
+        * :func:`stop_stacktrace`: Deactivate stack tracing
+        * :func:`clear_stacktrace`: Clear stack trace records
 
     .. versionchanged:: 0.11.0 `summarize` parameter is added.
     .. versionadded:: 0.0.25
@@ -800,8 +800,8 @@ def get_recalc():
     Returns:
         bool: `True` if dependents are recalculated, `False` if cleared.
 
-    See also:
-        :func:`set_recalc`
+    See Also:
+        * :func:`set_recalc`: Set the recalculation option
     """
     return _system._recalc_dependents
 
@@ -819,8 +819,8 @@ def set_recalc(recalc):
         recalc(bool):  :obj:`True` to recalculate, :obj:`False`
             to clear values.
 
-    See also:
-        :func:`get_recalc`
+    See Also:
+        * :func:`get_recalc`: Get the current recalculation option
     """
     _system._recalc_dependents = bool(recalc)
 

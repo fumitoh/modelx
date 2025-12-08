@@ -18,9 +18,9 @@ from modelx.core.execution.trace import OBJ, KEY, get_node, TraceObject, ParentT
 class BaseNode:
     """Base class for all Node classes
 
-    .. seealso::
-
-        :class:`ItemNode`, :class:`~modelx.core.reference.ReferenceNode`
+    See Also:
+        * :class:`ItemNode`: Node representing a cells evaluation
+        * :class:`~modelx.core.reference.ReferenceNode`: Node representing a reference
 
     .. versionadded:: 0.15.0
 

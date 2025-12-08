@@ -438,7 +438,7 @@ class Interface:
 
 
         See Also:
-            :meth:`Cells.set_doc<modelx.core.cells.Cells.set_doc>`
+            * :meth:`Cells.set_doc<modelx.core.cells.Cells.set_doc>`: Set docstring programmatically
 
         .. versionchanged:: 0.14.0
         """

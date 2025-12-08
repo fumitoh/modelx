@@ -242,7 +242,8 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         - For clearing a value for specific arguments, use :meth:`clear_at`.
 
         See Also:
-            :meth:`celar_all`, :meth:`clear_at`
+            * :meth:`clear_all`: Clear both input and calculated values
+            * :meth:`clear_at`: Clear value for specific arguments
         """
         return self._impl.clear_all_values(clear_input=False)
 
@@ -254,7 +255,8 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         .. versionadded:: 0.1.0
 
         See Also:
-            :meth:`celar`, :meth:`clear_at`
+            * :meth:`clear`: Clear only calculated values
+            * :meth:`clear_at`: Clear value for specific arguments
         """
         return self._impl.clear_all_values(clear_input=True)
 
@@ -266,8 +268,8 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         .. versionadded:: 0.1.0
 
         See Also:
-            * :meth:`celar`
-            * :meth:`clear_all`
+            * :meth:`clear`: Clear all calculated values
+            * :meth:`clear_all`: Clear both input and calculated values
         """
         node = get_node(self._impl, args, kwargs)
         return self._impl.clear_value_at(node[KEY])

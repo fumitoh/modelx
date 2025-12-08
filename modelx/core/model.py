@@ -88,8 +88,8 @@ class IOSpecOperation:
         .. versionadded:: 0.18.0
 
         See Also:
-            * :meth:`new_pandas`
-            * :class:`~modelx.io.pandasio.PandasData`
+            * :meth:`new_pandas`: Create a reference to pandas data
+            * :class:`~modelx.io.pandasio.PandasData`: IOSpec for pandas objects
 
         """
         return self._impl.model.refmgr.update_value(old_data, new_data)
@@ -127,8 +127,8 @@ class IOSpecOperation:
         .. versionadded:: 0.18.0
 
         See Also:
-            * :meth:`new_module`
-            * :class:`~modelx.io.moduleio.ModuleData`
+            * :meth:`new_module`: Create a reference to a module
+            * :class:`~modelx.io.moduleio.ModuleData`: IOSpec for module objects
 
         """
         if not isinstance(old_module, ModuleType):
@@ -145,9 +145,9 @@ class IOSpecOperation:
         If no *IOSpec* is associated with `data`, an error is raised.
 
         See Also:
-            * :meth:`~modelx.core.model.Model.del_spec`
-            * :class:`~modelx.io.baseio.BaseIOSpec`
-            * :attr:`~modelx.core.model.Model.iospecs`
+            * :meth:`~modelx.core.model.Model.del_spec`: Delete IOSpec for data
+            * :class:`~modelx.io.baseio.BaseIOSpec`: Base class for IOSpec objects
+            * :attr:`~modelx.core.model.Model.iospecs`: List all IOSpecs
         """
         spec = self._impl.refmgr.get_spec(data)
         if spec is None:
@@ -164,9 +164,9 @@ class IOSpecOperation:
         :class:`~modelx.io.baseio.BaseIOSpec`.
 
         See Also:
-            * :meth:`~modelx.core.model.Model.get_spec`
-            * :class:`~modelx.io.baseio.BaseIOSpec`
-            * :attr:`~modelx.core.model.Model.iospecs`
+            * :meth:`~modelx.core.model.Model.get_spec`: Get IOSpec for data
+            * :class:`~modelx.io.baseio.BaseIOSpec`: Base class for IOSpec objects
+            * :attr:`~modelx.core.model.Model.iospecs`: List all IOSpecs
         """
         self._impl.refmgr._manager.del_spec(self.get_spec(data))
 
@@ -195,13 +195,13 @@ class IOSpecOperation:
         method.
 
         See Also:
-            * :meth:`~modelx.core.model.Model.get_spec`
-            * :class:`~modelx.io.excelio.ExcelRange`
-            * :class:`~modelx.io.pandasio.PandasData`
-            * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`
-            * :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`
-            * :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`
-            * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`
+            * :meth:`~modelx.core.model.Model.get_spec`: Get IOSpec for data
+            * :class:`~modelx.io.excelio.ExcelRange`: IOSpec for Excel ranges
+            * :class:`~modelx.io.pandasio.PandasData`: IOSpec for pandas objects
+            * :meth:`UserSpace.new_excel_range<modelx.core.space.UserSpace.new_excel_range>`: Create Excel range in space
+            * :meth:`Model.new_excel_range<modelx.core.model.Model.new_excel_range>`: Create Excel range in model
+            * :meth:`UserSpace.new_pandas<modelx.core.space.UserSpace.new_pandas>`: Create pandas reference in space
+            * :meth:`Model.new_pandas<modelx.core.model.Model.new_pandas>`: Create pandas reference in model
 
         .. versionchanged:: 0.20.0 renamed to ``iospecs`` from ``dataspecs``
         .. versionchanged:: 0.18.0 the property name is changed
@@ -292,13 +292,13 @@ class Model(IOSpecOperation, EditableParent):
             <Model Model2>
 
     See Also:
-        :func:`~modelx.new_model`: Create a new model
-        :func:`~modelx.read_model`: Load a model from files
-        :func:`~modelx.get_models`: Get all models in the session
-        :func:`~modelx.cur_model`: Get the current model
-        :class:`~modelx.core.space.UserSpace`: Container for cells and nested spaces
-        :meth:`~modelx.core.model.Model.write`: Save model to files
-        :meth:`~modelx.core.model.Model.zip`: Save model to zip archive
+        * :func:`~modelx.new_model`: Create a new model
+        * :func:`~modelx.read_model`: Load a model from files
+        * :func:`~modelx.get_models`: Get all models in the session
+        * :func:`~modelx.cur_model`: Get the current model
+        * :class:`~modelx.core.space.UserSpace`: Container for cells and nested spaces
+        * :meth:`~modelx.core.model.Model.write`: Save model to files
+        * :meth:`~modelx.core.model.Model.zip`: Save model to zip archive
 
     .. versionchanged:: 0.18.0
         Added pandas and module update operations
@@ -611,8 +611,8 @@ class Model(IOSpecOperation, EditableParent):
             'MyModel'
         
         See Also:
-            :func:`~modelx.defmacro`: Decorator to create macros
-            :class:`~modelx.core.macro.Macro`: Macro class documentation
+            * :func:`~modelx.defmacro`: Decorator to create macros
+            * :class:`~modelx.core.macro.Macro`: Macro class documentation
         
         .. versionadded:: 0.30.0
         """
