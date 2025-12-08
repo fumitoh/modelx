@@ -41,7 +41,8 @@ from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.execution.trace import TraceManager
 from modelx.core.chainmap import CustomChainMap
-from modelx.core.views import RefView
+from modelx.core.views import RefView, MacroView
+from modelx.core.macro import MacroImpl
 
 
 class IOSpecOperation:
@@ -336,6 +337,86 @@ class Model(IOSpecOperation, EditableParent):
         """Close the model."""
         self._impl.system.close_model(self._impl)
 
+    def new_macro(self, name=None, formula=None):
+        """Create a new :class:`~modelx.core.macro.Macro` in this model.
+
+        Creates a macro that acts as a callable Python function saved within
+        the model. Macros share a dedicated global namespace that includes
+        the model itself as both ``mx_model`` and by the model's name.
+
+        Args:
+            name (str, optional): Name for the macro. If omitted and a function
+                is provided, the function's name is used. If the function name
+                is not valid for a macro name, an error is raised. Must be a
+                valid Python identifier, and must not start with an underscore.
+            formula (callable, optional): The function definition. Can be:
+                
+                * A Python function (def or lambda)
+                * None to create an empty macro (not recommended)
+                
+        Returns:
+            :class:`~modelx.core.macro.Macro`: The newly created macro object
+
+        Example:
+            Creating a macro using new_macro::
+
+                >>> model = mx.new_model('MyModel')
+
+                >>> def get_model_info():
+                ...     return f"Model: {mx_model._name}"
+
+                >>> model.new_macro(formula=get_model_info)
+                <Macro MyModel.get_model_info>
+
+                >>> model.get_model_info()
+                'Model: MyModel'
+
+            Above is equivalent to creating a macro using the decorator::
+            
+                >>> @mx.defmacro
+                ... def get_model_info():
+                ...     return f"Model: {mx_model._name}"
+                <Macro MyModel.get_model_info>
+
+            Creating a macro with a custom name from a lambda function::
+            
+                >>> model.new_macro('double', lambda x: x * 2)
+                <Macro MyModel.double>
+                
+                >>> model.double(5)
+                10
+
+            Macros can call other macros in the same model::
+
+                >>> @mx.defmacro
+                ... def helper():
+                ...     return 42
+                
+                >>> @mx.defmacro
+                ... def main():
+                ...     return helper() * 2
+                
+                >>> model.main()
+                84
+
+        See Also:
+            * :func:`~modelx.defmacro`: Decorator to create macros
+            * :attr:`~modelx.core.model.Model.macros`: Access all macros
+            * :meth:`~modelx.core.model.Model.export`: Export model with macros
+        
+        .. versionadded:: 0.30.0
+        """
+        if formula is None:
+            raise ValueError("formula must be provided")
+        
+        if name is None:
+            if hasattr(formula, '__name__'):
+                name = formula.__name__
+            else:
+                raise ValueError("name must be provided when formula has no __name__")
+        
+        return self._impl.new_macro(name, formula).interface
+
     @Interface.doc.setter
     def doc(self, value):
         self._impl.doc = value
@@ -493,7 +574,9 @@ class Model(IOSpecOperation, EditableParent):
         self._impl.del_attr(name)
 
     def __dir__(self):
-        return list(self._impl._namespace)
+        result = list(self._impl._namespace)
+        result.extend(self._impl._macros.keys())
+        return result
 
     @property
     def tracegraph(self):
@@ -504,6 +587,36 @@ class Model(IOSpecOperation, EditableParent):
     def refs(self):
         """Return a mapping of global references."""
         return RefView(self._impl.global_refs)
+    
+    @property
+    def macros(self):
+        """Return a mapping of macros.
+        
+        Returns a dictionary-like view of all macros defined in the model.
+        Macros are Python functions that can be saved within the model and
+        executed to manipulate or query the model.
+        
+        Example:
+            >>> import modelx as mx
+            >>> m = mx.new_model('MyModel')
+            
+            >>> @mx.defmacro
+            ... def get_name():
+            ...     return mx_model._name
+            
+            >>> m.macros
+            {'get_name': <Macro MyModel.get_name>}
+            
+            >>> m.get_name()
+            'MyModel'
+        
+        See Also:
+            :func:`~modelx.defmacro`: Decorator to create macros
+            :class:`~modelx.core.macro.Macro`: Macro class documentation
+        
+        .. versionadded:: 0.30.0
+        """
+        return MacroView(self._impl._macros)
 
     def _get_from_name(self, name):
         """Get object by named id"""
@@ -1057,6 +1170,8 @@ class ModelImpl(*_model_impl_base):
         "_namespace",
         "_global_refs",
         "_property_refs",
+        "_macros",
+        "_macro_namespace",
         "currentspace",
         "path",
         "refmgr"
@@ -1083,6 +1198,8 @@ class ModelImpl(*_model_impl_base):
         self._property_refs["path"] = ReferenceImpl(
             self, "path", self.path, container=self._property_refs,
             set_item=False)
+        self._macros = {}
+        self._macro_namespace = None
         self.named_spaces = {}
         self._namespace = CustomChainMap(self.named_spaces, self._global_refs)
         self.namespace = ModelNamespace(self)
@@ -1169,6 +1286,8 @@ class ModelImpl(*_model_impl_base):
             return self.spaces[name].interface
         elif name in self.global_refs:
             return self.global_refs[name].interface
+        elif name in self._macros:
+            return self._macros[name].interface
         else:
             raise AttributeError(
                 "Model '{0}' does not have '{1}'".format(self.name, name)
@@ -1177,6 +1296,8 @@ class ModelImpl(*_model_impl_base):
     def set_attr(self, name, value, refmode=None):
         if name in self.spaces:
             raise KeyError("Space named '%s' already exist" % self.name)
+        elif name in self._macros:
+            raise KeyError("Macro named '%s' already exists" % name)
         elif name in self.global_refs:
             self.refmgr.change_ref(self, name, value)
         else:
@@ -1186,10 +1307,78 @@ class ModelImpl(*_model_impl_base):
 
         if name in self.named_spaces:
             self.updater.del_defined_space(self.named_spaces[name])
+        elif name in self._macros:
+            self.del_macro(name)
         elif name in self.global_refs:
             self.refmgr.del_ref(self, name)
         else:
             raise KeyError("Name '%s' not defined" % name)
+    
+    # Macro methods
+    
+    def new_macro(self, name, formula):
+        """Create a new macro
+        
+        Args:
+            name: Name of the macro
+            formula: Formula object or callable
+            
+        Returns:
+            MacroImpl instance
+        """
+        if not is_valid_name(name):
+            raise ValueError(f"Invalid macro name: {name}")
+        if name in self._macros:
+            raise ValueError(f"Macro '{name}' already exists")
+        if name in self.spaces or name in self.global_refs:
+            raise ValueError(f"Name '{name}' already used")
+        
+        macro = MacroImpl(
+            system=self.system,
+            parent=self,
+            name=name,
+            formula=formula
+        )
+        self._macros[name] = macro
+        return macro
+    
+    def del_macro(self, name):
+        """Delete a macro
+        
+        Args:
+            name: Name of the macro to delete
+        """
+        if name not in self._macros:
+            raise KeyError(f"Macro '{name}' not found")
+        
+        macro = self._macros[name]
+        macro.on_delete()
+        del self._macros[name]
+    
+    def get_macro_namespace(self):
+        """Get the namespace for macro execution
+        
+        Returns a namespace dict with mx_model and the model's name
+        pointing to the model interface.
+        """
+        if self._macro_namespace is None:
+            self._macro_namespace = {}
+        
+        # Always update to ensure it has the current state
+        self._macro_namespace['mx_model'] = self.interface
+        self._macro_namespace[self.name] = self.interface
+        self._macro_namespace['__builtins__'] = builtins
+        
+        # Add all macros to the namespace so they can call each other
+        for macro_name, macro_impl in self._macros.items():
+            self._macro_namespace[macro_name] = macro_impl.interface
+        
+        return self._macro_namespace
+
+    @property
+    def macros(self):
+        """Return the macros dictionary"""
+        return self._macros
 
     def to_node(self):
         return ObjectNode(get_node(self, None, None))

@@ -13,6 +13,7 @@ Reference Guide
    model
    space/index
    cells
+   macro
    reference
    view
    iospec

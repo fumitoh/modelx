@@ -18,6 +18,7 @@ import sys
 import textwrap
 import types
 import pprint
+import inspect
 try:
     from functools import cached_property
 except ImportError:     # - Python 3.7
@@ -42,6 +43,7 @@ MODEL_VAR = 'mx_model'
 MODEL_MODULE = '_mx_model'
 SPACE_MODULE = '_mx_classes'
 DATA_MODULE = '_mx_io'  # _mx_io is hard-coded in _mx_sys
+MACRO_MODULE = '_mx_macros'
 SPACE_PKG_PREFIX = '_m_'
 SPACE_CLS_PREFIX = '_c_'
 
@@ -71,11 +73,21 @@ class Exporter:
 
         # Write _mx_sys.py
         copy_file(this_dir / '_mx_sys.py', self.path / '_mx_sys.py')
+        
+        # Write _mx_macros.py if macros exist
+        if self.model.macros:
+            write_str_utf8(
+                MacroTranslator(self.model).code,
+                self.path / (MACRO_MODULE + '.py'))
 
         for parent in self.gen_parents():
 
             if parent is self.model:
                 init_line = f'from .{MODEL_MODULE} import ({MODEL_VAR}, {self.model.name})'
+                if self.model.macros:
+                    # Add macros to __init__.py imports
+                    macro_names = ', '.join(self.model.macros.keys())
+                    init_line += f'\nfrom .{MACRO_MODULE} import ({macro_names})'
             else:
                 init_line = f"from . import {SPACE_MODULE}"
 
@@ -615,3 +627,49 @@ class SpaceTranslator(ParentTranslator):
             return ''.join(str_elm)
         else:
             return ''
+
+
+class MacroTranslator:
+    """Translator for macros to _mx_macros.py"""
+    
+    module_template = textwrap.dedent("""\
+    from .{MODEL_MODULE} import ({MODEL_VAR}, {model_name})
+    
+    {macro_defs}
+    """)
+    
+    def __init__(self, model: Model):
+        self.model = model
+    
+    @cached_property
+    def code(self):
+        return self.module_template.format(
+            MODEL_MODULE=MODEL_MODULE,
+            MODEL_VAR=MODEL_VAR,
+            model_name=self.model.name,
+            macro_defs=self.macro_defs
+        )
+    
+    @cached_property
+    def macro_defs(self):
+        """Generate function definitions for all macros"""
+        result = []
+        for name, macro in self.model.macros.items():
+            # Get the source code of the macro's formula
+            formula = macro.formula
+            if formula and formula.source:
+                result.append(formula.source)
+            else:
+                # If no source, create a stub with original signature
+                try:
+                    sig = inspect.signature(formula.func if formula else lambda: None)
+                    result.append(f"def {name}{sig}:\n    pass")
+                except (ValueError, TypeError):
+                    # Fallback if signature inspection fails
+                    # Note: This creates a parameter-less stub, which may not match
+                    # the original function signature. This is a known limitation
+                    # when source code is unavailable (e.g., in REPL contexts).
+                    result.append(f"def {name}():\n    pass")
+        
+        return "\n\n".join(result)
+

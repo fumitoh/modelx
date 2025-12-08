@@ -23,6 +23,7 @@ Model properties
   ~Model.properties
   ~Model.spaces
   ~Model.refs
+  ~Model.macros
   ~Model.iospecs
   ~Model.tracegraph
 
@@ -36,6 +37,16 @@ Model operations
   ~Model.close
   ~Model.rename
   ~Model.set_property
+
+
+Macro operations
+----------------
+
+.. autosummary::
+  :toctree: generated/
+  :template: mxbase.rst
+
+  ~Model.new_macro
 
 
 Saving operations

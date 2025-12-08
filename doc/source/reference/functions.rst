@@ -36,6 +36,7 @@ Creating objects
    ~new_model
    ~new_space
    ~defcells
+   ~defmacro
    ~uncached
    ~cached
 
