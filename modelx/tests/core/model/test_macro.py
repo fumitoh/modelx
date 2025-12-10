@@ -143,9 +143,15 @@ def test_macro_delete(simple_model):
     
     assert 'to_delete' in m.macros
     
+    # Call macro to ensure namespace is created
+    m.to_delete()
+    assert 'to_delete' in m._impl._macro_namespace
+    
     del m.to_delete
     
     assert 'to_delete' not in m.macros
+    # Verify macro is also removed from the namespace (bug fix)
+    assert 'to_delete' not in m._impl._macro_namespace
     with pytest.raises(AttributeError):
         m.to_delete()
 

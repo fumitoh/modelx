@@ -1354,6 +1354,10 @@ class ModelImpl(*_model_impl_base):
         macro = self._macros[name]
         macro.on_delete()
         del self._macros[name]
+        
+        # Remove from macro namespace if it exists
+        if self._macro_namespace is not None and name in self._macro_namespace:
+            del self._macro_namespace[name]
     
     def get_macro_namespace(self):
         """Get the namespace for macro execution
