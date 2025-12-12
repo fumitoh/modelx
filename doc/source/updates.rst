@@ -12,6 +12,9 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *12 December 2025:*
+  modelx v0.30.0 is released. See :doc:`releases/relnotes_v0_30_0`.
+
 * *6 December 2025:*
   modelx v0.29.2 is released. See :doc:`releases/relnotes_v0_29_2`.
 
