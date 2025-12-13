@@ -38,15 +38,6 @@ class TraceObject:
         raise NotImplementedError
 
 
-class ParentTraceObject(TraceObject):
-
-    __slots__ = ()
-    __mixin_slots = ()
-
-    def get_nodes_for(self, key: TraceKey):
-        raise NotImplementedError
-
-
 TraceNode = Tuple[TraceObject, TraceKey]
 
 OBJ = 0

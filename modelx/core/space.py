@@ -47,7 +47,7 @@ from modelx.core.execution.trace import (
 )
 from modelx.core.node import (
     NodeFactory,
-    ParentNodeFactoryImpl,
+    NodeFactoryImpl,
 )
 from modelx.core.parent import (
     BaseParent,
@@ -1703,7 +1703,7 @@ class UserSpace(BaseSpace, EditableParent):
         self._impl.doc = value
 
 
-class ItemSpaceParent(ParentNodeFactoryImpl, AlteredFunction):
+class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
 
     __slots__ = ()
     __mixin_slots = (
@@ -2017,22 +2017,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
         for k, v in self.cells.items():
             self._ns_dict[k] = v.call
 
-    # ----------------------------------------------------------------------
-    # ParentTraceObject implementation
-
-    def get_nodes_for(self, key):
-        root = self.param_spaces[key]
-        queue = deque()
-        queue.append(root)
-        while queue:
-            obj = queue.popleft()
-            for c in obj.cells.values():
-                for key in c.data:
-                    yield c, key
-            for k, _ in obj.param_spaces.items():
-                yield obj, k
-            for child in obj.named_spaces.values():
-                queue.append(child)
 
     def __getstate__(self):
         d = {attr: getattr(self, attr)
