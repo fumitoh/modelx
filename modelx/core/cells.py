@@ -758,10 +758,6 @@ class CellsImpl(*_cells_impl_base):
         self.is_altfunc_updated = False
 
     @property
-    def namespace(self):
-        return self._namespace.fresh
-
-    @property
     def doc(self):
         if not self.formula._is_lambda:
             return self.formula.func.__doc__
