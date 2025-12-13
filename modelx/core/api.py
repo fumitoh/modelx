@@ -43,81 +43,272 @@ from modelx.core.util import is_valid_name as _is_valid_name
 import modelx.serialize as _serialize
 
 def configure_python():
-    """Configure Python ``sys`` settings for modelx.
+    """Configure Python system settings for modelx.
 
-    This function is called implicitly when importing modelx.
-    To restore the Python settings, call :py:func:`restore_python`
+    This function modifies Python's ``sys`` module settings to optimize
+    modelx behavior, particularly for recursion limits and error handling.
+    It is called automatically when importing modelx, so users typically
+    don't need to call it manually.
+
+    The configuration includes:
+
+    * Adjusting recursion limits for formula calculations
+    * Setting up custom exception handling
+    * Configuring stack inspection settings
+
+    Note:
+        This function is called automatically during ``import modelx``.
+        Manual invocation is rarely needed except when restoring settings
+        after calling :func:`restore_python`.
+
+    See Also:
+        * :func:`restore_python`: Restore original Python settings
+        * :func:`set_recursion`: Set formula recursion limit
+
+    .. versionadded:: 0.0.1
     """
     _system.configure_python()
 
 
 def restore_python():
-    """Restore Python ``sys`` settings for modelx.
+    """Restore Python system settings to their original state.
 
-    Restore ``sys`` settings to the original states before
-    importing modelx.
+    Reverts all modifications made by :func:`configure_python` to Python's
+    ``sys`` module, restoring settings to their state before modelx was imported.
+
+    This is useful when:
+
+    * Debugging issues that may be caused by modelx's sys modifications
+    * Running code that conflicts with modelx's settings
+    * Cleaning up before unloading modelx
+
+    After calling this function, modelx may not function correctly until
+    :func:`configure_python` is called again.
+
+    Example:
+        >>> import modelx as mx
+        >>> mx.restore_python()  # Restore original settings
+        >>> # ... run other code ...
+        >>> mx.configure_python()  # Re-enable modelx settings
+
+    See Also:
+        * :func:`configure_python`: Configure Python settings for modelx
+
+    .. versionadded:: 0.0.1
     """
     _system.restore_python()
 
 
 def setup_ipython():
-    """Set up IPython shell for modelx.
+    """Configure IPython shell for modelx error handling.
 
-    Suppress IPython's default traceback messages upon error.
+    Customizes IPython's exception display to provide modelx-specific
+    traceback information when formula errors occur. This enhances the
+    debugging experience by showing formula call stacks and context.
+
+    When enabled:
+
+    * Formula errors show modelx-specific traceback
+    * Cell call chains are displayed clearly
+    * Local variables in formulas can be inspected
+
+    This function is automatically called when using modelx in IPython,
+    Jupyter notebooks, or Spyder with spyder-modelx plugin.
+
+    Example:
+        >>> import modelx as mx
+        >>> mx.setup_ipython()
+        # Now formula errors show modelx-enhanced tracebacks
+
+    See Also:
+        * :func:`restore_ipython`: Restore IPython's default error display
+        * :func:`get_traceback`: Get detailed formula traceback
+
     """
     _system.setup_ipython()
 
 
 def restore_ipython():
-    """Restore IPython' default error message.
+    """Restore IPython's default error display.
 
-    Bring back IPython's default traceback message upon error for debugging.
+    Reverts IPython's exception handling to its default behavior,
+    removing modelx-specific traceback customizations applied by
+    :func:`setup_ipython`.
+
+    This is useful when:
+
+    * You want standard Python tracebacks instead of modelx-enhanced ones
+    * Debugging modelx itself rather than models
+    * Working with other libraries that have their own traceback customizations
+
+    Example:
+        >>> import modelx as mx
+        >>> mx.restore_ipython()
+        # Now errors show standard IPython tracebacks
+
+    See Also:
+        * :func:`setup_ipython`: Set up modelx error display in IPython
+
     """
     _system.restore_ipython()
 
 
 def set_recursion(maxdepth=1000):
-    """Set formula recursion limit.
+    """Set the maximum recursion depth for formula calculations.
+
+    Controls how deeply formulas can call other formulas before raising
+    a recursion error. This is separate from Python's recursion limit
+    and applies specifically to modelx formula execution.
+
+    The default value of 1000 is suitable for most models. Increase it
+    for models with very deep call chains, or decrease it to catch
+    infinite recursion errors earlier.
 
     Args:
-        maxdepth: The maximum depth of the modelx interpreter stack.
+        maxdepth (int): Maximum depth of the modelx call stack.
+            Must be a positive integer. Defaults to 1000.
+
+    Example:
+        >>> import modelx as mx
+        >>> mx.set_recursion(2000)  # Allow deeper recursion
+        >>> 
+        >>> @mx.defcells
+        ... def factorial(n):
+        ...     return n * factorial(n-1) if n > 1 else 1
+        >>> 
+        >>> factorial(1500)  # Would fail with default limit
+
+    Warning:
+        Setting this too high may cause Python to run out of stack space
+        before modelx detects the recursion limit.
+
+    See Also:
+        * :func:`get_recursion`: Get current recursion limit
+
     """
     _system.callstack.maxdepth = maxdepth
 
 
 def get_recursion():
-    """Returns formula recursion limit"""
+    """Get the current formula recursion limit.
+
+    Returns the maximum depth allowed for formula call chains,
+    as set by :func:`set_recursion`.
+
+    Returns:
+        int: Current maximum recursion depth for formulas.
+
+    Example:
+        >>> import modelx as mx
+        >>> mx.get_recursion()
+        1000
+        >>> mx.set_recursion(2000)
+        >>> mx.get_recursion()
+        2000
+
+    See Also:
+        * :func:`set_recursion`: Set the recursion limit
+
+    """
     return _system.callstack.maxdepth
 
 
 def new_model(name=None):
-    """Create and return a new model.
+    """Create a new model.
 
-    The current model is set set to the created model.
+    Creates a new :class:`~modelx.core.model.Model` object, which serves as
+    the top-level container for spaces, cells, and references. The newly
+    created model automatically becomes the current model.
+
+    Models are independent namespaces that can be saved, loaded, and
+    managed separately. Multiple models can exist simultaneously.
 
     Args:
-        name (:obj:`str`, optional): The name of the model to create.
-            Defaults to ``ModelN``, with ``N``
-            being an automatically assigned integer.
+        name (str, optional): Name for the model. Must be a valid Python
+            identifier. If not provided, an automatic name is assigned
+            in the format ``ModelN`` where ``N`` is an integer (e.g.,
+            ``Model1``, ``Model2``, etc.).
 
     Returns:
-        :class:`~modelx.core.model.Model`: The new model.
+        :class:`~modelx.core.model.Model`: The newly created model.
+
+    Example:
+        >>> import modelx as mx
+        >>> 
+        >>> # Create model with automatic name
+        >>> m1 = mx.new_model()
+        >>> m1.name
+        'Model1'
+        >>> 
+        >>> # Create model with specific name
+        >>> m2 = mx.new_model('MyModel')
+        >>> m2.name
+        'MyModel'
+        >>> 
+        >>> # The new model becomes current
+        >>> mx.cur_model() is m2
+        True
+
+    See Also:
+        * :func:`cur_model`: Get or set the current model
+        * :func:`get_models`: Get all models as a dictionary
+        * :func:`read_model`: Load a model from files
+
     """
     return _system.new_model(name).interface
 
 
 def new_space(name=None, bases=None, formula=None):
-    """Create and return a new space in the current model.
+    """Create a new space in the current model.
 
-    The ``currentspace`` of the current model is set to the created model.
+    Creates a new :class:`~modelx.core.space.UserSpace` in the current model.
+    If no current model exists, a new model is created automatically.
+    The newly created space becomes the current space.
+
+    Spaces are containers for cells (formulas), child spaces, and references.
+    They can inherit from base spaces and can be parameterized to create
+    dynamic space instances.
 
     Args:
-        name (:obj:`str`, optional): The name of the space to create.
-            Defaults to ``SpaceN``, with ``N``
-            being an automatically assigned integer.
+        name (str, optional): Name for the space. Must be a valid Python
+            identifier. If not provided, an automatic name is assigned
+            in the format ``SpaceN`` where ``N`` is an integer.
+        bases (optional): Base space(s) for inheritance. Can be:
+            
+            * A single :class:`~modelx.core.space.UserSpace`
+            * A sequence of :class:`~modelx.core.space.UserSpace` objects
+            
+        formula (callable or str, optional): Parameter formula for creating
+            dynamic space instances. If provided, the space becomes parameterized.
 
     Returns:
-        The new space.
+        :class:`~modelx.core.space.UserSpace`: The newly created space.
+
+    Example:
+        >>> import modelx as mx
+        >>> 
+        >>> # Create space with automatic name
+        >>> s1 = mx.new_space()
+        >>> s1.name
+        'Space1'
+        >>> 
+        >>> # Create space with specific name
+        >>> s2 = mx.new_space('Projection')
+        >>> 
+        >>> # Create space with inheritance
+        >>> base = mx.new_space('Base')
+        >>> derived = mx.new_space('Derived', bases=base)
+        >>> 
+        >>> # Create parameterized space
+        >>> s3 = mx.new_space('Analysis', formula=lambda product: None)
+        >>> s3.parameters
+        ('product',)
+
+    See Also:
+        * :func:`cur_space`: Get or set the current space
+        * :meth:`~modelx.core.model.Model.new_space`: Model method for creating spaces
+        * :class:`~modelx.core.space.UserSpace`: Space class documentation
+
     """
     if cur_model() is None:
         new_model()
@@ -384,10 +575,40 @@ def defmacro(model=None, name=None, *funcs):
 
 
 def get_models():
-    """Returns a dict that maps model names to models.
+    """Get all models as a dictionary.
 
-    From Python 3.7, :attr:`modelx.models` attribute of :mod:`modelx` module
-    is available as an alias for this function.
+    Returns a dictionary mapping model names to their corresponding
+    :class:`~modelx.core.model.Model` objects. This includes all models
+    that have been created in the current Python session and haven't
+    been deleted.
+
+    Returns:
+        dict: Dictionary with model names as keys and Model objects as values.
+
+    Example:
+        >>> import modelx as mx
+        >>> 
+        >>> m1 = mx.new_model('Model1')
+        >>> m2 = mx.new_model('Model2')
+        >>> 
+        >>> models = mx.get_models()
+        >>> models
+        {'Model1': <Model Model1>, 'Model2': <Model Model2>}
+        >>> 
+        >>> # Access specific model
+        >>> models['Model1']
+        <Model Model1>
+
+    Note:
+        In Python 3.7+, you can also access models via the ``modelx.models``
+        attribute or directly as ``modelx.ModelName``.
+
+    See Also:
+        * :func:`new_model`: Create a new model
+        * :func:`cur_model`: Get or set the current model
+        * :func:`read_model`: Load a model from files
+        * :attr:`modelx.models`: Attribute for accessing models dictionary
+
     """
     return _get_interfaces(_system.models)
 
@@ -408,7 +629,50 @@ if _sys.version_info >= (3, 7):
 
 
 def get_object(name: str, as_proxy=False):
-    """Get a modelx object from its full name."""
+    """Get a modelx object by its full dotted name.
+
+    Retrieves a modelx object (model, space, cells, or reference) using
+    its complete dotted name path. This is useful for accessing objects
+    programmatically when you have their string representation.
+
+    Args:
+        name (str): Full dotted name of the object, such as:
+            
+            * ``'Model1'`` for a model
+            * ``'Model1.Space1'`` for a space
+            * ``'Model1.Space1.foo'`` for cells or reference
+            
+        as_proxy (bool, optional): If :obj:`True`, return references
+            as proxy objects instead of their actual values.
+            Defaults to :obj:`False`.
+
+    Returns:
+        The requested modelx object.
+
+    Raises:
+        AttributeError: If the object doesn't exist.
+
+    Example:
+        >>> import modelx as mx
+        >>> 
+        >>> m = mx.new_model('MyModel')
+        >>> s = m.new_space('MySpace')
+        >>> c = s.new_cells('foo', lambda x: x * 2)
+        >>> 
+        >>> # Get objects by name
+        >>> mx.get_object('MyModel')
+        <Model MyModel>
+        >>> 
+        >>> mx.get_object('MyModel.MySpace')
+        <UserSpace MyModel.MySpace>
+        >>> 
+        >>> mx.get_object('MyModel.MySpace.foo')
+        <Cells MyModel.MySpace.foo(x)>
+
+    See Also:
+        * :func:`get_models`: Get all models
+
+    """
     return _system.get_object(name, as_proxy)
 
 
@@ -426,11 +690,50 @@ def _get_node(name: str, args: str):
 
 
 def cur_model(model=None):
-    """Get and/or set the current model.
+    """Get or set the current model.
 
-    If ``model`` is given, set the current model to ``model`` and return it.
-    ``model`` can be the name of a model object, or a model object itself.
-    If ``model`` is not given, the current model is returned.
+    When called without arguments, returns the current model. When called
+    with a model argument, sets that model as current and returns it.
+
+    The current model is used as the default model for operations like
+    :func:`new_space`, :func:`defcells`, and other functions that operate
+    on models.
+
+    Args:
+        model (str or :class:`~modelx.core.model.Model`, optional):
+            The model to set as current. Can be:
+            
+            * A :class:`~modelx.core.model.Model` object
+            * A string with the model name
+            * :obj:`None` (default) to just get the current model
+
+    Returns:
+        :class:`~modelx.core.model.Model` or None: The current model,
+        or :obj:`None` if no model exists.
+
+    Example:
+        >>> import modelx as mx
+        >>> 
+        >>> m1 = mx.new_model('Model1')
+        >>> m2 = mx.new_model('Model2')
+        >>> 
+        >>> # Get current model
+        >>> mx.cur_model()
+        <Model Model2>
+        >>> 
+        >>> # Set current model by object
+        >>> mx.cur_model(m1)
+        <Model Model1>
+        >>> 
+        >>> # Set current model by name
+        >>> mx.cur_model('Model2')
+        <Model Model2>
+
+    See Also:
+        * :func:`new_model`: Create a new model
+        * :func:`cur_space`: Get or set current space
+        * :func:`get_models`: Get all models
+
     """
     if model is None:
         if _system.currentmodel is not None:
@@ -447,12 +750,52 @@ def cur_model(model=None):
 
 
 def cur_space(space=None):
-    """Get and/or set the current space of the current model.
+    """Get or set the current space of the current model.
 
-    If ``name`` is given, the current space of the current model is
-    set to ``name`` and return it.
-    If ``name`` is not given, the current space of the current model
-    is returned.
+    When called without arguments, returns the current space. When called
+    with a space argument, sets that space as current and returns it.
+
+    The current space is used as the default space for operations like
+    :func:`defcells` decorator and determines where new cells are created
+    when no space is explicitly specified.
+
+    Setting a space as current also sets its parent model as the current model.
+
+    Args:
+        space (str or :class:`~modelx.core.space.UserSpace`, optional):
+            The space to set as current. Can be:
+            
+            * A :class:`~modelx.core.space.UserSpace` object
+            * A string with the space name (relative to current model)
+            * :obj:`None` (default) to just get the current space
+
+    Returns:
+        :class:`~modelx.core.space.UserSpace` or None: The current space,
+        or :obj:`None` if no current space exists.
+
+    Example:
+        >>> import modelx as mx
+        >>> 
+        >>> m = mx.new_model('Model1')
+        >>> s1 = m.new_space('Space1')
+        >>> s2 = m.new_space('Space2')
+        >>> 
+        >>> # Get current space
+        >>> mx.cur_space()
+        <UserSpace Model1.Space2>
+        >>> 
+        >>> # Set current space by object
+        >>> mx.cur_space(s1)
+        <UserSpace Model1.Space1>
+        >>> 
+        >>> # Set current space by name
+        >>> mx.cur_space('Space2')
+        <UserSpace Model1.Space2>
+
+    See Also:
+        * :func:`new_space`: Create a new space
+        * :func:`cur_model`: Get or set current model
+
     """
     if space is None:
         if _system.currentmodel is not None:
@@ -683,12 +1026,6 @@ def write_model(model, model_path, backup=True, log_input=False, version=None):
 
     Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
 
-    .. versionchanged:: 0.8.0 ``log_input`` parameter is added.
-
-    .. versionchanged:: 0.1.0 ``version`` parameter is added.
-
-    .. versionadded:: 0.0.22
-
     Warning:
         The order of members of each type (Space, Cells, Ref)
         is not preserved by :func:`write_model` and :func:`read_model`.
@@ -704,6 +1041,12 @@ def write_model(model, model_path, backup=True, log_input=False, version=None):
         version(int, optional): Format version to write model.
             Defaults to the most recent version.
 
+    .. versionchanged:: 0.8.0 ``log_input`` parameter is added.
+
+    .. versionchanged:: 0.1.0 ``version`` parameter is added.
+
+    .. versionadded:: 0.0.22            
+
     """
     return _serialize.write_model(
         _system, model, model_path, is_zip=False,
@@ -717,11 +1060,6 @@ def zip_model(model, model_path, backup=True, log_input=False,
 
     Write ``model`` to a single zip file. The contents are the
     same as the directory tree output by the :func:`write_model` function.
-
-    .. versionchanged:: 0.9.0
-        ``compression`` and ``compresslevel`` parameters are added.
-
-    .. versionadded:: 0.8.0
 
     Args:
         model: Model object to archive.
@@ -757,6 +1095,12 @@ def zip_model(model, model_path, backup=True, log_input=False,
 
     See Also:
         :func:`write_model`
+
+    .. versionchanged:: 0.9.0
+        ``compression`` and ``compresslevel`` parameters are added.
+
+    .. versionadded:: 0.8.0
+
     """
     return _serialize.write_model(
         _system, model, model_path, is_zip=True,
@@ -774,8 +1118,6 @@ def read_model(model_path, name=None):
     :py:func:`~write_model`
     or :py:meth:`Model.zip<modelx.core.model.Model.zip>`.
 
-    .. versionadded:: 0.0.22
-
     Args:
         model_path(str): Path to a model folder or a zipped model file.
         name(str, optional): Model name to overwrite the saved name.
@@ -783,6 +1125,7 @@ def read_model(model_path, name=None):
     Returns:
         A Model object constructed from the files.
 
+    .. versionadded:: 0.0.22
     """
     return _serialize.read_model(_system, model_path, name=name)
 
@@ -887,9 +1230,10 @@ def get_traceback(show_locals=False):
             [(Model1.Space1.foo(x=1), 3, {'x': 1, 'a': 1}),
              (Model1.Space1.bar(y=1), 3, {'y': 1, 'b': 2})]
 
+    .. seealso:: :func:`trace_locals`             
     .. versionchanged:: 0.22.0 ``show_locals`` option is added.
     .. versionchanged:: 0.21.0 The 3rd element is added.
-    .. seealso:: :func:`trace_locals`
+
     """
     if _system.executor.errorstack:
         return _system.executor.errorstack.get_traceback(show_locals)
