@@ -65,7 +65,6 @@ def configure_python():
         * :func:`restore_python`: Restore original Python settings
         * :func:`set_recursion`: Set formula recursion limit
 
-    .. versionadded:: 0.0.1
     """
     _system.configure_python()
 
@@ -94,7 +93,6 @@ def restore_python():
     See Also:
         * :func:`configure_python`: Configure Python settings for modelx
 
-    .. versionadded:: 0.0.1
     """
     _system.restore_python()
 
