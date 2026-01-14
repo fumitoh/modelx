@@ -94,6 +94,7 @@ class BaseNode:
             "obj": self.obj._get_attrdict(extattrs, recursive),
             "args": self.args,
             "value": self.value if self.has_value() else None,
+            "valid": id(self.value) if self.has_value() else None,
             "predslen": len(self.preds),
             "succslen": len(self.succs),
             "precedentslen": len(self.precedents),
