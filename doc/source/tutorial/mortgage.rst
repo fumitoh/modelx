@@ -173,7 +173,7 @@ As a Python function, the formula above can be expressed as follows::
     def Balance(t):
 
         if t > 0:
-            return Balance(t-1) * (1+Rate) - Payment
+            return Balance(t-1) * (1+Rate) - Payment()
         else:
             return Principle
 
@@ -214,7 +214,7 @@ you should get the following error message:
     NameError: name 'Principal' is not defined
 
     Formula traceback:
-    0: Mortgage.FixedRate.Payment(), line 3
+    0: Mortgage.Fixed.Payment(), line 3
 
     Formula source:
     def Payment():
@@ -330,11 +330,11 @@ You should get the following error, as there is a typo in the formula.
     NameError: name 'Principle' is not defined
 
     Formula traceback:
-    0: Mortgage.FixedRate.Balance(t=30), line 4
+    0: Mortgage.Fixed.Balance(t=30), line 4
     ...
-    28: Mortgage.FixedRate.Balance(t=2), line 4
-    29: Mortgage.FixedRate.Balance(t=1), line 4
-    30: Mortgage.FixedRate.Balance(t=0), line 6
+    28: Mortgage.Fixed.Balance(t=2), line 4
+    29: Mortgage.Fixed.Balance(t=1), line 4
+    30: Mortgage.Fixed.Balance(t=0), line 6
 
     Formula source:
     def Balance(t):
@@ -345,9 +345,9 @@ You should get the following error, as there is a typo in the formula.
             return Principle
 
 The error message tells you that a :obj:`NameError` is raised
-in ``Mortgage.FixedRate.Balance(t=0)`` at line 6,
+in ``Mortgage.Fixed.Balance(t=0)`` at line 6,
 because the name ``Principle`` is not found in the namespace in which
-``Mortgage.FixedRate.Balance(t=0)`` is executed.
+``Mortgage.Fixed.Balance(t=0)`` is executed.
 
 Correct the typo by going to *MxExplorer* and
 changing ``Principle`` to ``Principal`` in the *Formula* pane.
