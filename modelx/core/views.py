@@ -104,18 +104,18 @@ class BaseView(Mapping):
 
         return result
 
-    def _to_attrdict(self, attrs=None):
-        """Used by spyder-modelx"""
-
-        result = {"type": type(self).__name__}
-        try:
-            result["items"] = {
-                name: item._to_attrdict(attrs) for name, item in self.items()
-            }
-        except:
-            raise RuntimeError("%s literadict raised an error" % self)
-
-        return result
+    # def _to_attrdict(self, attrs=None):
+    #     """Used by spyder-modelx"""
+    #
+    #     result = {"type": type(self).__name__}
+    #     try:
+    #         result["items"] = {
+    #             name: item._to_attrdict(attrs) for name, item in self.items()
+    #         }
+    #     except:
+    #         raise RuntimeError("%s literadict raised an error" % self)
+    #
+    #     return result
 
     def _get_attrdict(self, extattrs=None, recursive=True):
         """Get extra attributes"""

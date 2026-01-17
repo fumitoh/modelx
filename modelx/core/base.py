@@ -542,21 +542,21 @@ class Interface:
 
         return result
 
-    def _to_attrdict(self, attrs=None):
-        """Get extra attributes"""
-        result = self._baseattrs
-
-        for name in attrs:
-            if hasattr(self, name):
-                attr = getattr(self, name)
-                if hasattr(attr, "_to_attrdict"):
-                    result[name] = attr._to_attrdict(attrs)
-                elif callable(attr):
-                    result[name] = attr()
-                else:
-                    result[name] = attr
-
-        return result
+    # def _to_attrdict(self, attrs=None):
+    #     """Get extra attributes"""
+    #     result = self._baseattrs
+    #
+    #     for name in attrs:
+    #         if hasattr(self, name):
+    #             attr = getattr(self, name)
+    #             if hasattr(attr, "_to_attrdict"):
+    #                 result[name] = attr._to_attrdict(attrs)
+    #             elif callable(attr):
+    #                 result[name] = attr()
+    #             else:
+    #                 result[name] = attr
+    #
+    #     return result
 
     def _get_attrdict(self, extattrs=None, recursive=True):
         """Get attributes in a dict"""

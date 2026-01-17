@@ -428,8 +428,8 @@ class Formula:
 
         return self
 
-    def _to_attrdict(self, attrs=None):
-        return {"source": self.source}
+    # def _to_attrdict(self, attrs=None):
+    #     return {"source": self.source}
 
     def _get_attrdict(self, extattrs=None, recursive=True):
         return {"source": self.source}
