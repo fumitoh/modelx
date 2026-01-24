@@ -1,6 +1,6 @@
 networkx == ${NETWORKX_VERSION}
 asttokens
-pandas
+pandas < 3.0.0
 numpy >= 1.16.5
 openpyxl
 -e git+https://github.com/fumitoh/lifelib.git#egg=lifelib
