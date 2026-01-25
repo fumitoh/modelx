@@ -12,6 +12,9 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *25 January 2026:*
+  spyder-modelx v0.15.0 is released. See :ref:`release-mxplugin-v0.15.0`.
+
 * *24 January 2026:*
   modelx v0.30.1 is released. See :doc:`releases/relnotes_v0_30_1`.
 
