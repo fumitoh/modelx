@@ -36,12 +36,12 @@ def space_with_string_index():
     def f0(strind):
         return strind
 
-    def f1():
+    def f1(strind):
         return 3
 
     mx.defcells(f0, f1)
 
-    return space
+    yield space
     model._impl._check_sanity()
     model.close()
 
@@ -148,11 +148,11 @@ def test_space_with_string_index_to_frame(space_with_string_index):
 
     s = space_with_string_index
     s.f0("foo")
-    s.f1()
+    s.f1("qux") # index values are sorted lexicographically by merge outer join
 
     df = pd.DataFrame(
         data={"f0": ["foo", np.nan], "f1": [np.nan, 3.0]},
-        index=pd.Index(["foo", np.nan], name="strind"),
+        index=pd.Index(["foo", "qux"], name="strind"),
     )
 
     assert s.frame.equals(df)

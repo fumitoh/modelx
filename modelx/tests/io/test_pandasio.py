@@ -394,7 +394,7 @@ def test_update_pandas_no_new_value(parent_type, has_spec):
     assert s_base.foo() == 1
     assert s_sub.foo() == 1
 
-    df['col1'][0] = 5
+    df.loc[0, 'col1'] = 5
     m.update_pandas(df)
 
     assert s_base.foo() == 5
