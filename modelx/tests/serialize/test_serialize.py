@@ -280,3 +280,30 @@ def test_false_value(tmp_path, write_method):
     s.a = False
     getattr(mx, write_method)(m, tmp_path / "model")
     m2 = mx.read_model(tmp_path / "model")
+
+
+def test_pseudo_python_header(tmp_path):
+    from modelx.serialize.serializer_6 import PSEUDO_PYTHON_HEADER
+    m = mx.new_model("HeaderTest")
+    s = m.new_space("Space1")
+
+    @mx.defcells
+    def foo(x):
+        return x
+
+    mx.write_model(m, tmp_path / "model")
+
+    # Check model __init__.py
+    model_init = (tmp_path / "model" / "__init__.py").read_text()
+    assert model_init.startswith(PSEUDO_PYTHON_HEADER)
+
+    # Check space __init__.py
+    space_init = (tmp_path / "model" / "Space1" / "__init__.py").read_text()
+    assert space_init.startswith(PSEUDO_PYTHON_HEADER)
+
+    # Verify the model can be read back correctly
+    m2 = mx.read_model(tmp_path / "model")
+    assert m2.name == "HeaderTest"
+    assert m2.Space1.foo(3) == 3
+    m2.close()
+    m.close()
