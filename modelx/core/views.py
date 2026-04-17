@@ -155,20 +155,20 @@ class SelectedView(BaseView):
     def _set_keys(self, keys=None):
 
         if keys is None:
-            self.__keys = None
+            self._keys = None
         else:
-            self.__keys = list(keys)
+            self._keys = list(keys)
 
     def __len__(self):
         return len(list(iter(self)))
 
     def __iter__(self):
         def newiter():
-            for key in self.__keys:
+            for key in self._keys:
                 if key in self._impls:
                     yield key
 
-        if self.__keys is None:
+        if self._keys is None:
             return BaseView.__iter__(self)
         else:
             return newiter()
@@ -214,8 +214,12 @@ class CellsView(SelectedView):
             args(optional): multiple arguments,
                or an iterator of arguments to the cells.
         """
-        return _to_frame_inner(self._impls, args)
-
+        if self._keys is None:
+            return _to_frame_inner(self._impls, args)
+        else:
+            return _to_frame_inner(
+                {key: self._impls[key] for key in self._keys}, args
+            )
 
 class SpaceView(BaseView):
     """A mapping of space names to space objects."""
