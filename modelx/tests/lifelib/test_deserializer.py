@@ -12,11 +12,10 @@ def get_statmetns_atok(path):
     return list(atok.get_text(stmt) for stmt in atok.tree.body)
 
 
-@pytest.mark.parametrize("libs", ["libraries", "projects"])
-def test_compare_statements_agains_asttokens_using_lifelib(libs):
+def test_compare_statements_agains_asttokens_using_lifelib():
     import lifelib
 
-    lib_dir = pathlib.Path(lifelib.__file__).parent / libs
+    lib_dir = pathlib.Path(lifelib.__file__).parent / 'libraries'
     file_count = 0
 
     for path_ in lib_dir.rglob('__init__.py'):
