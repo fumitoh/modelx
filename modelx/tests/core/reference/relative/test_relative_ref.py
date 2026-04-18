@@ -125,49 +125,6 @@ def derived_relref2():
     m._impl._check_sanity()
     m.close()
 
-@pytest.mark.skip
-def test_ref_assign2(derived_relref2):
-
-    m = derived_relref2
-
-    m.Base.Child.GChild.GGChild.Ref = m.Base.Child
-    assert (m.GSub.SubChild.SubGChild.GGChild.Ref
-            is m.Base.Child)
-
-    m.Base.Child.GChild.GGChild.Ref = m.Base.Child.GChild
-    assert (m.GSub.SubChild.SubGChild.GGChild.Ref
-            is m.GSub.SubChild.SubGChild)
-
-
-@pytest.mark.skip
-def test_derived_relref3():
-    """
-        Base----Child-------GChild----GGChild---Ref<-GChild
-                  |
-        Sub----SubChild-----GChild----GGChild
-                                         |
-                                       GSub
-    """
-    import modelx as mx
-    m = mx.new_model()
-
-    GGChild = m.new_space('Base').new_space(
-        'Child').new_space('GChild').new_space('GGChild')
-
-    GGChild.Ref = m.Base.Child.GChild.GGChild
-    SubChild = m.new_space('Sub').new_space('SubChild')
-    GSub = m.new_space('GSub')
-    SubChild.add_bases(m.Base.Child)
-    GSub.add_bases(m.Sub.SubChild.GChild.GGChild)
-
-    assert GSub.Ref is GSub
-
-    GGChild.Ref = m.Base.Child.GChild
-
-    assert GSub.Ref is GGChild.Ref
-    assert SubChild.GChild.GGChild.Ref is SubChild.GChild
-    m._impl._check_sanity()
-    m.close()
 
 def test_inherit_mutual_reference():
     """
