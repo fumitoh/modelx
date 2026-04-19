@@ -603,6 +603,12 @@ class Interface:
     def _is_valid(self):
         return not isinstance(self._impl, NullImpl)
 
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
+
 
 null_interface = Interface(null_impl)
 

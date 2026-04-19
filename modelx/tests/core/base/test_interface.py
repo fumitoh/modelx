@@ -1,3 +1,5 @@
+import copy
+
 import modelx as mx
 import pytest
 
@@ -42,3 +44,13 @@ def test_baseattrs(model_obj_pair):
 
     for key in baseattrs:
         assert baseattrs[key] == result[key]
+
+
+def test_copy(model_obj_pair):
+    _, obj = model_obj_pair
+    assert copy.copy(obj) is obj
+
+
+def test_deepcopy(model_obj_pair):
+    _, obj = model_obj_pair
+    assert copy.deepcopy(obj) is obj
