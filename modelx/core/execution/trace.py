@@ -106,7 +106,7 @@ def get_node_repr(node: TraceNode) -> str:
         "%s=%s" % (param, arg) for param, arg in zip(params, key)
     )
 
-    if key in obj.data:
+    if obj.is_cached and key in obj.data:
         return name + "(" + arglist + ")" + "=" + str(obj.data[key])
     else:
         return name + "(" + arglist + ")"

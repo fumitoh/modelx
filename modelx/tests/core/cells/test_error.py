@@ -49,6 +49,37 @@ def test_none_returned_error():
     m.close()
 
 
+def test_formula_error_uncached_unhashable():
+    """Regression: formula traceback formatting must not assume keys are
+    hashable when is_cached=False (formulas with unhashable args, e.g.
+    lists, would crash get_node_repr with TypeError otherwise)."""
+
+    errfunc = dedent(
+        """\
+        def raise_zerodiv(x):
+            return 1 / 0"""
+    )
+
+    m = mx.new_model(name="ErrModelUncached")
+    space = m.new_space(name="ErrSpace")
+    cells = space.new_cells(formula=errfunc)
+    cells.is_cached = False
+
+    with ConfigureExecutor():
+        with pytest.raises(ZeroDivisionError):
+            cells([1, 2, 3])
+
+    with pytest.raises(FormulaError) as errinfo:
+        cells([1, 2, 3])
+
+    assert "ErrModelUncached.ErrSpace.raise_zerodiv(x=[1, 2, 3])" in (
+        errinfo.value.args[0]
+    )
+
+    m._impl._check_sanity()
+    m.close()
+
+
 def test_zerodiv():
 
     zerodiv = dedent(
