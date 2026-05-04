@@ -366,4 +366,27 @@ def test_space_properties(tmp_path_factory):
 
     finally:
         sys.path.pop(0)
+
+
+def test_model_level_ref(tmp_path):
+    """Model-level (global) references have refmode=None.
+
+    Regression test: Exporter.ref_copies must accept refmode=None for refs
+    owned by the Model when the space inherits them as global refs.
+    """
+    nomx_path = tmp_path / 'model'
+    m = mx.read_model(sample_dir / 'ConstExample')
+    try:
+        m.export(nomx_path / 'ConstExample_nomx')
+
+        sys.path.insert(0, str(nomx_path))
+        from ConstExample_nomx import mx_model as nomx
+
+        assert nomx.Foo.foo('TERM') == 1
+        assert nomx.Foo.foo('WL') == 2
+        assert nomx.Foo.foo('ENDW') == 3
+        assert nomx.ProductID is nomx.Consts.ProductID
+        assert nomx.Foo.ProductID is nomx.Consts.ProductID
+    finally:
+        sys.path.pop(0)
         m.close()
