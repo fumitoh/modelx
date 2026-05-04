@@ -240,11 +240,15 @@ class ParentTranslator:
 
             if isinstance(v, (Cells, BaseSpace)):
 
-                refmode = parent._get_object(k, as_proxy=True).refmode
+                proxy = parent._get_object(k, as_proxy=True)
+                refmode = proxy.refmode
                 if refmode == 'auto' or refmode == 'relative':
                     if_clause = 'if ' + (base_k + '.__self__' if isinstance(v, Cells) else base_k) + '._mx_is_in(base_root) else ' + base_k
                     result.append(self_k + ' = ' + self.ref_value(parent, v) + ' ' + if_clause)
-                elif refmode == 'absolute':
+                elif refmode == 'absolute' or (
+                        refmode is None and isinstance(proxy.parent, Model)):
+                    # refmode is None for model-level (global) references,
+                    # which are inherited unchanged across spaces.
                     result.append(self_k + ' = ' + base_k)
                 else:
                     raise RuntimeError('must not happen')
