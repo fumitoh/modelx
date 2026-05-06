@@ -36,12 +36,6 @@ from .custom_pickle import (
     IOSpecUnpickler, ModelUnpickler,
     IOSpecPickler, ModelPickler)
 
-PSEUDO_PYTHON_HEADER = """\
-# modelx: pseudo-python
-# This file is part of a modelx model.
-# It can be imported as a Python module, but functions defined herein
-# are model formulas and may not be executable as standard Python."""
-
 
 class TupleID(tuple):
 
@@ -461,7 +455,7 @@ class ModelEncoder(BaseEncoder):
         )
 
     def encode(self):
-        lines = [PSEUDO_PYTHON_HEADER]
+        lines = []
         if self.model.doc is not None:
             lines.append("\"\"\"" + self.model.doc + "\"\"\"")
 
@@ -519,7 +513,7 @@ class SpaceEncoder(BaseEncoder):
 
     def encode(self):
 
-        lines = [PSEUDO_PYTHON_HEADER]
+        lines = []
         if self.space.doc is not None:
             lines.append("\"\"\"" + self.space.doc + "\"\"\"")
 
@@ -1043,11 +1037,12 @@ class DocstringParser(BaseNodeParser):
     """Docstring at module level"""
     @classmethod
     def condition(cls, stmt: StatementTokens):
-        # stmt has 1 element that is STRING.
+        # stmt has 1 element that is STRING and starts at line 1.
         if stmt.section == "DEFAULT" and len(stmt) == 1:
             elm = stmt[0]
             if elm.type == tokenize.STRING:
-                return True
+                if elm.start[0] == 1:
+                    return True
 
         return False
 

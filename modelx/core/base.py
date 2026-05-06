@@ -464,7 +464,7 @@ class Interface:
     def __reduce__(self):
         if self._is_valid() and self._impl.system.serializing:
 
-            if self._impl.system.serializing.version in (3, 4, 5, 6):
+            if self._impl.system.serializing.version in (3, 4, 5, 6, 7):
                 return self._reduce_serialize_3()
             else:
                 raise ValueError("invalid serializer version")
