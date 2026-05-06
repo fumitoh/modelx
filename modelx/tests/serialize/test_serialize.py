@@ -283,7 +283,7 @@ def test_false_value(tmp_path, write_method):
 
 
 def test_pseudo_python_header(tmp_path):
-    from modelx.serialize.serializer_6 import PSEUDO_PYTHON_HEADER
+    from modelx.serialize.serializer_7 import PSEUDO_PYTHON_HEADER
     m = mx.new_model("HeaderTest")
     s = m.new_space("Space1")
 
