@@ -118,14 +118,27 @@ def read_model(system, model_path, name=None):
 
     kwargs = {"name": name} if name else {}
     path = pathlib.Path(model_path)
+
+    if not path.exists():
+        raise FileNotFoundError(
+            "No such file or directory: %r" % str(model_path))
+    if not (path.is_dir() or zipfile.is_zipfile(path)):
+        raise ValueError(
+            "%r is not a modelx model: not a directory or zip file"
+            % str(model_path))
+
     params = _get_model_metadata(path)
 
     if params:
         serializer = _get_serializer(params["serializer_version"])
         if "modelx_version" in params:
             kwargs["modelx_version"] = tuple(params["modelx_version"])
-    else:
+    elif ziputil.exists(path / "_model.py"):
         serializer = _get_serializer(1)
+    else:
+        raise ValueError(
+            "%r is not a modelx model: missing '_system.json' at root"
+            % str(model_path))
 
     model = serializer.ModelReader(system, path).read_model(**kwargs)
     model.path = path
