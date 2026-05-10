@@ -130,3 +130,38 @@ def test_unhashable_arg():
     assert foo.precedents(0)[0].args is None
 
     m.close()
+
+
+@pytest.mark.parametrize("method", ["preds", "succs", "precedents"])
+def test_no_cached_value_error(method):
+    """preds/succs/precedents on a cells without a cached value for the key
+    raises a clear ValueError instead of a NetworkXError.
+    """
+    m = mx.new_model()
+    s = m.new_space()
+
+    @mx.defcells(space=s)
+    def foo(t):
+        return t * 2
+
+    with pytest.raises(ValueError, match="no cached value"):
+        getattr(foo, method)(0)
+
+    m.close()
+
+
+@pytest.mark.parametrize("method", ["preds", "succs", "precedents"])
+def test_uncached_cells_error(method):
+    """preds/succs/precedents on an uncached cells raises a clear ValueError."""
+    m = mx.new_model()
+    s = m.new_space()
+
+    @mx.defcells(space=s, is_cached=False)
+    def foo(t):
+        return t * 2
+
+    foo(0)
+    with pytest.raises(ValueError, match="not cached"):
+        getattr(foo, method)(0)
+
+    m.close()

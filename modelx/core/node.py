@@ -12,7 +12,9 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-from modelx.core.execution.trace import OBJ, KEY, get_node, TraceObject
+from modelx.core.execution.trace import (
+    OBJ, KEY, get_node, get_node_repr, TraceObject
+)
 
 
 class BaseNode:
@@ -345,13 +347,28 @@ class BaseNodeFactoryImpl:
     # ----------------------------------------------------------------------
     # Dependency
 
+    def _check_cached(self, node):
+        obj = node[OBJ]
+        if not obj.is_cached:
+            raise ValueError(
+                "%s is not cached"
+                % obj.get_repr(fullname=True, add_params=False)
+            )
+        if not obj.has_node(node[KEY]):
+            raise ValueError(
+                "%s has no cached value for the given arguments"
+                % get_node_repr(node)
+            )
+
     def predecessors(self, args, kwargs):
         node = get_node(self, args, kwargs)
+        self._check_cached(node)
         preds = self.model.tracegraph.predecessors(node)
         return [ObjectNode(n) if len(n) < 2 else ItemNode(n) for n in preds]
 
     def successors(self, args, kwargs):
         node = get_node(self, args, kwargs)
+        self._check_cached(node)
         succs = self.model.tracegraph.successors(node)
         return [ItemNode(n) for n in succs]
 
