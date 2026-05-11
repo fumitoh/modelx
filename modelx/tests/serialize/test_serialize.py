@@ -282,6 +282,38 @@ def test_false_value(tmp_path, write_method):
     m2 = mx.read_model(tmp_path / "model")
 
 
+@pytest.mark.parametrize(
+    "doc",
+    [
+        "\\",                              # single backslash
+        "path\\to\\file",                  # multiple backslashes
+        '"""triple quotes"""',             # triple quotes inside doc
+        'ends with quote"',                # trailing double quote
+        "has 'single' quotes",             # single quotes
+        "normal text",                     # plain text (uses triple-quote form)
+    ],
+)
+def test_doc_special_characters(tmp_path, doc):
+    # https://github.com/fumitoh/modelx/issues/227
+    m = mx.new_model("DocTest")
+    s = m.new_space("Space1")
+    c = s.new_cells(name="bar", formula=lambda x: x)
+
+    m.doc = doc
+    s.doc = doc
+    c.doc = doc
+
+    mx.write_model(m, tmp_path / "model")
+    m2 = mx.read_model(tmp_path / "model")
+
+    assert m2.doc == doc
+    assert m2.Space1.doc == doc
+    assert m2.Space1.bar.doc == doc
+
+    m2.close()
+    m.close()
+
+
 def test_pseudo_python_header(tmp_path):
     from modelx.serialize.serializer_7 import PSEUDO_PYTHON_HEADER
     m = mx.new_model("HeaderTest")

@@ -282,6 +282,23 @@ class CompoundInstruction(BaseInstruction):
 # --------------------------------------------------------------------------
 # Model Writing
 
+def _format_docstring(doc):
+    """Return a Python string literal representing ``doc``.
+
+    Uses the triple-quoted form when ``doc`` contains no characters that
+    would break that form (backslashes, ``\"\"\"``, or a trailing ``\"``);
+    otherwise falls back to :func:`repr` so the resulting source is always a
+    valid Python string literal.
+    """
+    if (
+        "\\" not in doc
+        and '"""' not in doc
+        and not doc.endswith('"')
+    ):
+        return '"""' + doc + '"""'
+    return repr(doc)
+
+
 def output_input(obj, key):
 
     name = obj._get_repr(fullname=True, add_params=False)
@@ -457,7 +474,7 @@ class ModelEncoder(BaseEncoder):
     def encode(self):
         lines = []
         if self.model.doc is not None:
-            lines.append("\"\"\"" + self.model.doc + "\"\"\"")
+            lines.append(_format_docstring(self.model.doc))
 
         lines.append("from modelx.serialize.jsonvalues import *")
         lines.append("_name = \"%s\"" % self.model.name)
@@ -515,7 +532,7 @@ class SpaceEncoder(BaseEncoder):
 
         lines = []
         if self.space.doc is not None:
-            lines.append("\"\"\"" + self.space.doc + "\"\"\"")
+            lines.append(_format_docstring(self.space.doc))
 
         lines.append("from modelx.serialize.jsonvalues import *")
 
@@ -659,7 +676,7 @@ class CellsEncoder(BaseEncoder):
             if self.target.formula.source[:6] == "lambda":
                 line = self.target.name + " = " + self.target.formula.source
                 if self.target.doc:
-                    line += "\n" + ("\"\"\"%s\"\"\"" % self.target.doc)
+                    line += "\n" + _format_docstring(self.target.doc)
                 lines.append(line)
             else:
                 lines.append(self.target.formula.source)
