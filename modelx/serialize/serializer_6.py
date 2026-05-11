@@ -285,18 +285,14 @@ class CompoundInstruction(BaseInstruction):
 def _format_docstring(doc):
     """Return a Python string literal representing ``doc``.
 
-    Uses the triple-quoted form when ``doc`` contains no characters that
-    would break that form (backslashes, ``\"\"\"``, or a trailing ``\"``);
-    otherwise falls back to :func:`repr` so the resulting source is always a
-    valid Python string literal.
+    Uses the triple-quoted form when it can be made safe by escaping
+    backslashes; falls back to :func:`repr` only when the content contains
+    an embedded ``\"\"\"`` or ends with ``\"``, which a triple-quoted string
+    cannot represent.
     """
-    if (
-        "\\" not in doc
-        and '"""' not in doc
-        and not doc.endswith('"')
-    ):
-        return '"""' + doc + '"""'
-    return repr(doc)
+    if '"""' in doc or doc.endswith('"'):
+        return repr(doc)
+    return '"""' + doc.replace("\\", "\\\\") + '"""'
 
 
 def output_input(obj, key):

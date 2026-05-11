@@ -314,6 +314,34 @@ def test_doc_special_characters(tmp_path, doc):
     m.close()
 
 
+def test_doc_roundtrip_file_stable(tmp_path):
+    # A second write of a model that already round-trips through modelx
+    # should produce a byte-identical __init__.py. This guards against
+    # encoder format drift for docs containing backslashes.
+    m = mx.new_model("StableDoc")
+    m.doc = (
+        "Multi-line docstring with a backslash escape: \\require{enclose}.\n"
+        "Second line with \\overline{A}_{x}.\n"
+    )
+    s = m.new_space("Space1")
+    s.doc = "Space doc with \\alpha and \\beta."
+
+    mx.write_model(m, tmp_path / "first")
+    m1 = mx.read_model(tmp_path / "first")
+    mx.write_model(m1, tmp_path / "second")
+
+    first_model = (tmp_path / "first" / "__init__.py").read_bytes()
+    second_model = (tmp_path / "second" / "__init__.py").read_bytes()
+    assert first_model == second_model
+
+    first_space = (tmp_path / "first" / "Space1" / "__init__.py").read_bytes()
+    second_space = (tmp_path / "second" / "Space1" / "__init__.py").read_bytes()
+    assert first_space == second_space
+
+    m1.close()
+    m.close()
+
+
 def test_pseudo_python_header(tmp_path):
     from modelx.serialize.serializer_7 import PSEUDO_PYTHON_HEADER
     m = mx.new_model("HeaderTest")
