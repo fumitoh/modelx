@@ -151,8 +151,8 @@ class MacroImpl(Impl):
         )
         
         if not isinstance(formula, Formula):
-            formula = Formula(formula)
-        
+            formula = Formula(formula, name=name)
+
         self.formula = formula
         self._namespace = None
     
@@ -190,7 +190,7 @@ class MacroImpl(Impl):
             func: New function to use as the formula
         """
         if not isinstance(func, Formula):
-            func = Formula(func)
+            func = Formula(func, name=self.name)
         self.formula = func
     
     def repr_parent(self):

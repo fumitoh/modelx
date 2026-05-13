@@ -38,6 +38,24 @@ PSEUDO_PYTHON_HEADER = """\
 # are model formulas and may not be executable as standard Python."""
 
 
+MACROS_FILE = "_macros.py"
+
+
+class MacroEncoder(serializer_6.BaseEncoder):
+    """Encode a single ``MacroImpl`` as Python source.
+
+    Mirrors :class:`serializer_6.CellsEncoder` but writes to ``_macros.py``
+    instead of a space's ``__init__.py``. ``self.target`` is the Macro
+    interface (``model.macros[name]``).
+    """
+
+    def encode(self):
+        src = self.target.formula.source
+        if src[:6] == "lambda":
+            return self.target.name + " = " + src
+        return src
+
+
 class ModelEncoder(serializer_6.ModelEncoder):
 
     def encode(self):
@@ -108,6 +126,7 @@ class ModelWriter(serializer_6.ModelWriter):
                 self.temp_root / "_data")
 
             self._write_recursive(encoder)
+            self._write_macros()
             self.write_pickledata()
             self.system.iomanager.write_ios(self.model, root=self.work_dir)
 
@@ -153,6 +172,94 @@ class ModelWriter(serializer_6.ModelWriter):
 
         encoder.instruct().execute()
 
+    def _write_macros(self):
+        macros = self.model.macros
+        if not macros:
+            return
+
+        parts = [PSEUDO_PYTHON_HEADER]
+        for macro in macros.values():
+            parts.append(MacroEncoder(self, macro).encode())
+
+        ziputil.write_str_utf8(
+            "\n\n".join(parts) + "\n",
+            self.temp_root / MACROS_FILE,
+            compression=self.compression,
+            compresslevel=self.compresslevel,
+        )
+
+
+class MacroFuncDefParser(serializer_6.FunctionDefParser):
+    """``def name(...):`` at top level of ``_macros.py``."""
+
+    METHOD = "new_macro"
+
+    @classmethod
+    def condition(cls, stmt):
+        # No section filter: every top-level def in _macros.py is a macro.
+        return super(MacroFuncDefParser, cls).condition(stmt)
+
+    @property
+    def macroname(self):
+        return self.stmt[1].string
+
+    def set_instruction(self):
+        inst = serializer_6.Instruction.from_method(
+            obj=self.obj._impl,
+            method="new_macro",
+            kwargs={"name": self.macroname,
+                    "formula": self.get_funcdef()},
+        )
+        self.instructions.append(inst)
+        return inst
+
+
+class MacroLambdaAssignParser(serializer_6.BaseAssignParser):
+    """``name = lambda ...`` at top level of ``_macros.py``."""
+
+    @classmethod
+    def condition(cls, stmt):
+        if not super(MacroLambdaAssignParser, cls).condition(stmt):
+            return False
+        if len(stmt) < 3:
+            return False
+        return stmt[2].type == tokenize.NAME and stmt[2].string == "lambda"
+
+    @property
+    def macroname(self):
+        return self.stmt[0].string
+
+    def set_instruction(self):
+        # Reconstruct the lambda expression text in the same shape as
+        # serializer_6.LambdaAssignParser.set_instruction.
+        expr = ""
+        first_token = True
+        first_line = 0
+        for tok in self.stmt[2:]:
+            if first_token:
+                expr += tok.line[tok.start[1]:]
+                first_line = tok.start[0]
+                first_token = False
+            elif tok.start[0] == first_line:
+                continue
+            else:
+                expr += tok.line
+
+        inst = serializer_6.Instruction.from_method(
+            obj=self.obj._impl,
+            method="new_macro",
+            kwargs={"name": self.macroname, "formula": expr},
+        )
+        self.instructions.append(inst)
+        return inst
+
+
+class MacroParserSelector(serializer_6.BaseSelector):
+    classes = [
+        MacroLambdaAssignParser,
+        MacroFuncDefParser,
+    ]
+
 
 class ModelReader(serializer_6.ModelReader):
 
@@ -165,3 +272,38 @@ class ModelReader(serializer_6.ModelReader):
                 stmt, self, obj, srcpath=path_
             )
             parser.set_instruction()
+
+    def parse_macros(self):
+        macro_path = self.path / MACROS_FILE
+        if not ziputil.exists(macro_path):
+            return
+        for stmt in get_statement_tokens(macro_path):
+            parser_cls = MacroParserSelector.select(stmt)
+            if parser_cls is None:
+                continue
+            parser = parser_cls(stmt, self, self.model, srcpath=macro_path)
+            parser.set_instruction()
+
+    def _read_model_inner(self):
+        model = self.parse_dir()
+        self.parse_macros()
+        self.instructions.execute_selected_methods([
+            "doc",
+            "set_formula",
+            "set_property",
+            "_new_cells_keep_source",
+            "new_cells",
+            "set_doc",
+            "new_macro",
+        ])
+        self.instructions.execute_selected_methods(["add_bases"])
+        self.read_pickledata()
+        self.instructions.execute_selected_methods(["load_pickledata"])
+        self.instructions.execute_selected_methods(
+            ["__setattr__", "set_ref"])
+        self.instructions.execute_selected_methods(
+            ["_set_dynamic_inputs"])
+
+        assert not self.instructions
+
+        return model
