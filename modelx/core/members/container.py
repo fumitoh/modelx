@@ -15,22 +15,24 @@
 """Step A keystone: the mediated membership container.
 
 A ``MemberContainer`` owns the members of ONE category (cells, own_refs,
-named_spaces, ...) for one space. It replaces the raw dicts currently held
-directly on ``BaseSpaceImpl`` (``self.cells``, ``self.own_refs``,
-``self.named_spaces``) so that composition (parent.py), inheritance
-(``UserSpaceImpl.on_inherit``) and namespace assembly
-(``BaseSpaceImpl.on_update_ns``) all mutate/observe through one surface
-instead of poking dicts and faking notifications via
+named_spaces) for one space/model. It replaces the raw dicts currently held
+directly on ``BaseSpaceImpl``/``ModelImpl`` so that composition (parent.py),
+inheritance (``UserSpaceImpl.on_inherit``) and namespace assembly
+(``BaseSpaceImpl.on_update_ns``) eventually mutate/observe through one
+surface instead of poking dicts and faking notifications via
 ``self.on_notify(self.cells)``.
 
-It is a real ``Subject``: mutations call ``notify()``, and the
-``NamespaceServer`` / ``AlteredFunction`` become ordinary ``Observer``s of
-the relevant containers. This removes the namespace content rule from
-space.py (step B) and gives the inheritance updater a call-based API
-instead of in-place dict surgery (step C).
+It subclasses ``dict`` so step A is byte-for-byte behavior-preserving:
+every existing call site (``d[name]``, ``del d[name]``, ``d.pop``,
+``dict.__setitem__`` in ``_rename_item``, ``sort_dict``, use as a
+``CustomChainMap`` layer, the file serializers, pickling) keeps working
+unchanged. The notifying mutation API (``set``/``remove``/``move_to_end``/
+``sort``/``rename``/``flush``) and the ``Subject`` nature are *additive* and
+are adopted by step C; in step A the existing explicit
+``self.on_notify(...)`` calls remain the notification path.
 """
 
-from typing import Iterator, Optional, Sequence
+from typing import Optional, Sequence
 
 from modelx.core.base import (
     Subject,
@@ -41,118 +43,85 @@ from modelx.core.base import (
 )
 
 
-class MemberContainer(Subject):
+class MemberContainer(dict, Subject):
     """Ordered, defined/derived-aware, observable map of one member category.
 
     Members are ``Derivable`` impls (CellsImpl / ReferenceImpl / SpaceImpl).
-    Iteration order is significant and mirrors today's dict ordering rules:
-    derived members are introduced in base order, defined members are kept
-    after them (see ``move_to_end`` / ``sort``).
+    Iteration order is significant and is whatever the caller arranges, via
+    ``move_to_end``/``sort`` (step C drives these exactly as ``on_inherit``
+    does today).
     """
 
-    __slots__ = ("_data", "_owner", "_category") + get_mixin_slots(Subject)
+    __slots__ = ("_owner", "_category") + get_mixin_slots(Subject)
 
     def __init__(self, owner, category: str):
+        dict.__init__(self)
         Subject.__init__(self)
-        self._owner = owner          # the SpaceImpl that owns this category
+        self._owner = owner          # owning SpaceImpl/ModelImpl
         self._category = category    # "cells" | "own_refs" | "named_spaces"
-        self._data = {}
-
-    # -- read surface (drop-in for the current dict reads) ----------------
-
-    def __getitem__(self, name: str):
-        return self._data[name]
-
-    def __contains__(self, name: str) -> bool:
-        return name in self._data
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._data)
-
-    def __len__(self) -> int:
-        return len(self._data)
-
-    def get(self, name: str, default=None):
-        return self._data.get(name, default)
-
-    def keys(self):
-        return self._data.keys()
-
-    def values(self):
-        return self._data.values()
-
-    def items(self):
-        return self._data.items()
 
     # -- defined / derived views -----------------------------------------
     # Replaces inline ``bm[name].is_defined()`` filtering in on_inherit and
-    # the ``name in self.is_derived()`` checks in del_ref/del_cells.
+    # the ``name in self.is_derived()``-style checks in del_ref/del_cells.
 
     def is_derived(self, name: str) -> bool:
-        return self._data[name].is_derived()
+        return self[name].is_derived()
 
     def defined_names(self) -> list:
-        return [k for k, v in self._data.items() if v.is_defined()]
+        return [k for k, v in self.items() if v.is_defined()]
 
     def derived_names(self) -> list:
-        return [k for k, v in self._data.items() if v.is_derived()]
+        return [k for k, v in self.items() if v.is_derived()]
 
-    # -- mutation surface (the single seam) ------------------------------
-    # Every mutation notifies. ``silent=True`` batches a sequence of
-    # changes (the inheritance updater applies many at once) and the caller
-    # calls ``flush()`` once at the end.
+    # -- notifying mutation surface (adopted by step C) ------------------
+    # Bare dict ops (``d[x]=``, ``del d[x]``, ``d.pop``) keep plain dict
+    # semantics so step A changes no behavior. These methods add the single
+    # notify seam. ``silent=True`` batches; call ``flush()`` once at the end.
 
     def set(self, name: str, member, *, silent: bool = False) -> None:
-        """Insert or replace ``name``. Replaces ``selfdict[name] = member``."""
-        self._data[name] = member
+        dict.__setitem__(self, name, member)
         self._touched(silent)
 
     def remove(self, name: str, *, silent: bool = False):
-        """Delete and return ``name``. Replaces ``del self.cells[name]``."""
-        member = self._data.pop(name)
+        member = dict.pop(self, name)
         self._touched(silent)
         return member
 
     def rename(self, old: str, new: str, *, silent: bool = False) -> None:
-        """Position-preserving rename. Wraps base._rename_item."""
-        _rename_item(self._data, old, new)
+        _rename_item(self, old, new)
         self._touched(silent)
 
     def move_to_end(self, name: str, *, silent: bool = False) -> None:
-        """Reassert ordering. Replaces ``d[name] = d.pop(name)`` in
-        on_inherit (used to keep defined members after derived ones)."""
-        self._data[name] = self._data.pop(name)
+        dict.__setitem__(self, name, dict.pop(self, name))
         self._touched(silent)
 
     def sort(self, names: Optional[Sequence[str]] = None,
              *, silent: bool = False) -> None:
-        """Sort all (``names is None``) or a consecutive run. Replaces
-        ``sort_dict(self.cells, keys)`` driven by on_sort_cells."""
         if names is None:
-            _sort_all(self._data)
+            _sort_all(self)
         else:
-            _sort_partial(self._data, list(names))
+            _sort_partial(self, list(names))
         self._touched(silent)
 
     def flush(self) -> None:
         """Emit one notification after a ``silent=True`` batch."""
         self.notify()
 
-    # -- internal --------------------------------------------------------
-
     def _touched(self, silent: bool) -> None:
         if not silent:
             self.notify()
 
-    # Slot-walking serialization (mirrors BaseSpaceImpl.__getstate__);
-    # observers are re-attached by the owner on rebuild, not pickled.
+    # -- pickling --------------------------------------------------------
+    # dict subclass + __slots__: rely on the protocol-2 two-phase reduce
+    # (__new__ -> memoize -> set items -> __setstate__) so the space<->
+    # container reference cycle resolves. Slots go through __getstate__;
+    # dict items are pickled by the default reduce. Observers are
+    # re-attached by the owner on rebuild, not pickled.
+
     def __getstate__(self):
-        return {"_owner": self._owner,
-                "_category": self._category,
-                "_data": self._data}
+        return {"_owner": self._owner, "_category": self._category}
 
     def __setstate__(self, state):
         self._owner = state["_owner"]
         self._category = state["_category"]
-        self._data = state["_data"]
         self.observers = []

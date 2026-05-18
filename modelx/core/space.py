@@ -21,6 +21,7 @@ from collections.abc import Sequence, Mapping
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.binding.namespace import NamespaceServer, BaseNamespace
 from modelx.core.binding.boundfunc import AlteredFunction
+from modelx.core.members import MemberContainer
 from modelx.core.chainmap import CustomChainMap
 from modelx.core.views import CellsView, SpaceView, RefView, _to_frame_inner
 
@@ -1968,9 +1969,9 @@ class BaseSpaceImpl(*_base_space_impl_base):
         # ------------------------------------------------------------------
         # Construct member containers
 
-        self.own_refs = {}
-        self.cells = {}
-        self.named_spaces = {}
+        self.own_refs = MemberContainer(self, "own_refs")
+        self.cells = MemberContainer(self, "cells")
+        self.named_spaces = MemberContainer(self, "named_spaces")
         self.sys_refs = {}
         self._init_refs(arguments)
 

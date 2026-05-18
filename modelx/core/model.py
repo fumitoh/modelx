@@ -37,6 +37,7 @@ from modelx.core.parent import (
 )
 from modelx.core.space import UserSpaceImpl
 from modelx.core.binding.namespace import BaseNamespace, NamespaceServer
+from modelx.core.members import MemberContainer
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.execution.trace import TraceManager
@@ -1200,7 +1201,7 @@ class ModelImpl(*_model_impl_base):
             set_item=False)
         self._macros = {}
         self._macro_namespace = None
-        self.named_spaces = {}
+        self.named_spaces = MemberContainer(self, "named_spaces")
         self._namespace = CustomChainMap(self.named_spaces, self._global_refs)
         self.namespace = ModelNamespace(self)
         self.allow_none = False
