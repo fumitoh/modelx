@@ -31,6 +31,7 @@ special case in the server.
 from typing import Callable
 
 from modelx.core.base import Observer, get_mixin_slots
+from modelx.core.binding.namespace import BaseNamespace, NamespaceServer
 from modelx.core.members.container import MemberContainer
 
 
@@ -70,12 +71,62 @@ def layered_sources(chainmap, project: Callable) -> list:
     return [NamespaceSource(m, m, project) for m in reversed(chainmap.maps)]
 
 
+# -- per-kind projections (the value rule extracted from on_update_ns) ----
+
+def project_space(member):
+    return member._namespace
+
+
+def project_cells(member):
+    return member.call
+
+
+def project_ref(member):
+    # Byte-for-byte the isinstance ladder from BaseSpaceImpl.on_update_ns.
+    if isinstance(member, BaseNamespace):
+        return member
+    elif isinstance(member, NamespaceServer):
+        return member._namespace
+    else:
+        return member.interface
+
+
+def space_namespace_sources(space) -> list:
+    """Ordered (lowest priority first) source list for a space namespace.
+
+    Reproduces exactly the three-phase assembly previously hardcoded in
+    ``BaseSpaceImpl.on_update_ns``: named_spaces, then the (collapsed) refs
+    chainmap, then cells -- cells override refs override spaces. The refs
+    chainmap's own ``.items()`` already collapses its layers by priority
+    (own > sys > base/global, and the dynamic-space arg layers), so passing
+    it directly is identical to the old ``for k, v in self.refs.items()``.
+    """
+    return [
+        container_source(space.named_spaces, project_space),
+        NamespaceSource(space.refs, space.refs, project_ref),
+        container_source(space.cells, project_cells),
+    ]
+
+
+def fill_space_namespace(space, ns_dict: dict) -> None:
+    """Drop-in replacement body for ``BaseSpaceImpl.on_update_ns``.
+
+    Step B keeps the existing invalidation path (the explicit
+    ``on_notify`` calls drive ``_is_ns_updated = False``); only the content
+    rule moves here. Sources are assembled per call -- the persistent
+    composer/observer wiring belongs to step C, once container mutations
+    notify through ``MemberContainer.set``/``remove``.
+    """
+    for source in space_namespace_sources(space):
+        source.contribute(ns_dict)
+
+
 class NamespaceComposer(Observer):
     """Observes its sources; rebuilds ns_dict in priority order.
 
-    Intended to back ``NamespaceServer.on_update_ns`` so that file no longer
-    knows the namespace is "spaces + refs + cells". Sources are supplied
-    lowest-priority first; later sources override earlier names.
+    Reserved for step C: once container mutations notify, the space holds a
+    persistent composer that observes its sources instead of reassembling
+    the source list on every ``on_update_ns`` call.
     """
 
     __slots__ = ("_sources", "_server") + get_mixin_slots(Observer)
@@ -90,9 +141,11 @@ class NamespaceComposer(Observer):
         self._server._is_ns_updated = False
         self._server.notify()
 
-    def build(self) -> dict:
-        """Replacement body for BaseSpaceImpl.on_update_ns()."""
-        ns_dict = {}
+    def build_into(self, ns_dict: dict) -> None:
         for source in self._sources:
             source.contribute(ns_dict)
+
+    def build(self) -> dict:
+        ns_dict = {}
+        self.build_into(ns_dict)
         return ns_dict

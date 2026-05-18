@@ -21,7 +21,7 @@ from collections.abc import Sequence, Mapping
 from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.binding.namespace import NamespaceServer, BaseNamespace
 from modelx.core.binding.boundfunc import AlteredFunction
-from modelx.core.members import MemberContainer
+from modelx.core.members import MemberContainer, fill_space_namespace
 from modelx.core.chainmap import CustomChainMap
 from modelx.core.views import CellsView, SpaceView, RefView, _to_frame_inner
 
@@ -2006,17 +2006,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
             NamespaceServer.on_notify(self, subject)
 
     def on_update_ns(self):
-        for k, v in self.named_spaces.items():
-            self._ns_dict[k] = v._namespace
-        for k, v in self.refs.items():
-            if isinstance(v, BaseNamespace):
-                self._ns_dict[k] = v
-            elif isinstance(v, NamespaceServer):
-                self._ns_dict[k] = v._namespace
-            else:
-                self._ns_dict[k] = v.interface
-        for k, v in self.cells.items():
-            self._ns_dict[k] = v.call
+        fill_space_namespace(self, self._ns_dict)
 
 
     def __getstate__(self):

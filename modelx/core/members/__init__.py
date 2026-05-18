@@ -18,6 +18,11 @@ from modelx.core.members.source import (
     NamespaceComposer,
     container_source,
     layered_sources,
+    fill_space_namespace,
+    space_namespace_sources,
+    project_space,
+    project_cells,
+    project_ref,
 )
 
 __all__ = [
@@ -26,4 +31,9 @@ __all__ = [
     "NamespaceComposer",
     "container_source",
     "layered_sources",
+    "fill_space_namespace",
+    "space_namespace_sources",
+    "project_space",
+    "project_cells",
+    "project_ref",
 ]
