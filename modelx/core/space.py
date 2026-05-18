@@ -1987,6 +1987,13 @@ class BaseSpaceImpl(*_base_space_impl_base):
         ItemSpaceParent.__init__(self, formula)
         AlteredFunction.__init__(self, self)
 
+        # Step C: the space observes its own member containers so that the
+        # notifying MemberContainer API (set/remove) drives the existing
+        # NamespaceServer.on_notify invalidation, replacing the manual
+        # ``self.on_notify(self.cells)`` calls in the inheritance/ref hooks.
+        self.observe(self.cells, notify=False)
+        self.observe(self.own_refs, notify=False)
+
         container[name] = self
 
         # ------------------------------------------------------------------
@@ -2019,6 +2026,10 @@ class BaseSpaceImpl(*_base_space_impl_base):
         for k, v in state.items():
             setattr(self, k, v)
         self.dynamic_cache = weakref.WeakValueDictionary()
+        # MemberContainer.__setstate__ resets observers; re-establish the
+        # space->container observation dropped by (de)serialization.
+        self.observe(self.cells, notify=False)
+        self.observe(self.own_refs, notify=False)
 
     def _init_refs(self, arguments=None):
         raise NotImplementedError
@@ -2452,8 +2463,7 @@ class UserSpaceImpl(*_user_space_impl_base):
     def on_del_cells(self, name):
         cells = self.cells[name]
         self.model.clear_obj(cells)
-        del self.cells[name]
-        self.on_notify(self.cells)
+        self.cells.remove(name)     # pop + notify (== del + on_notify)
         cells.on_delete()
 
     def on_sort_cells(self, space):
@@ -2504,15 +2514,13 @@ class UserSpaceImpl(*_user_space_impl_base):
                             is_derived=is_derived,
                             refmode=refmode,
                             set_item=False)
-        self.own_refs[name] = ref
-        self.on_notify(self.own_refs)
+        self.own_refs.set(name, ref)    # insert + notify
         return ref
 
     def on_del_ref(self, name):
         self.model.clear_attr_referrers(self.own_refs[name])
         self.own_refs[name].on_delete()
-        del self.own_refs[name]
-        self.on_notify(self.own_refs)
+        self.own_refs.remove(name)      # pop + notify
 
     def on_rename(self, name):
         self.model.clear_obj(self)
