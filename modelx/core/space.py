@@ -22,6 +22,7 @@ from types import FunctionType, ModuleType, MappingProxyType
 from modelx.core.binding.namespace import NamespaceServer, BaseNamespace
 from modelx.core.binding.boundfunc import AlteredFunction
 from modelx.core.members import MemberContainer, fill_space_namespace
+from modelx.core.inheritance import inherit_members
 from modelx.core.chainmap import CustomChainMap
 from modelx.core.views import CellsView, SpaceView, RefView, _to_frame_inner
 
@@ -2413,52 +2414,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.cells[name].reload(module=modsrc)
 
     def on_inherit(self, updater, bases, attr):
-
-        attrs = {
-            "cells": self.on_del_cells,
-            "own_refs": self.on_del_ref
-        }
-
-        selfdict = getattr(self, attr)
-        basedict = CustomChainMap(*[getattr(b, attr) for b in bases])
-        selfkeys = list(selfdict)
-
-        for name in basedict: # ChainMap iterates from the last map
-
-            bs = [bm[name] for bm in basedict.maps
-                  if name in bm and bm[name].is_defined()]
-
-            if name not in selfdict:
-
-                if attr == "cells":
-                    selfdict[name] = UserCellsImpl(
-                        space=self, name=name, formula=None,
-                        is_derived=True)
-
-                elif attr == "own_refs":
-                    selfdict[name] = ReferenceImpl(
-                        self, name, None,
-                        container=self.own_refs,
-                        is_derived=True,
-                        refmode=bs[0].refmode,
-                        set_item=False
-                    )
-                else:
-                    raise RuntimeError("must not happen")
-
-            else:
-                # Remove & add back for reorder
-                selfdict[name] = selfdict.pop(name)
-                selfkeys.remove(name)
-
-            if selfdict[name].is_derived():
-                selfdict[name].on_inherit(updater, bs)
-
-        for name in selfkeys:
-            if selfdict[name].is_derived():
-                attrs[attr](name)
-            else:   # defined
-                selfdict[name] = selfdict.pop(name)
+        inherit_members(self, updater, bases, attr)
 
     def on_del_cells(self, name):
         cells = self.cells[name]
