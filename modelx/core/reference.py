@@ -22,6 +22,7 @@ from modelx.core.base import (
     Derivable, Impl, Interface, get_mixin_slots)
 from modelx.io.baseio import BaseIOSpec
 from modelx.core.node import ObjectNode, get_node, OBJ
+from modelx.core.execution.invalidation import invalidate_attr_referrers
 
 
 class ReferenceImpl(Derivable, Impl):
@@ -79,7 +80,7 @@ class ReferenceImpl(Derivable, Impl):
 
     def on_inherit(self, updater, bases):
 
-        self.model.clear_attr_referrers(self)
+        invalidate_attr_referrers(self.model, self)
         if bases[0].has_interface():
 
             if self.refmode == "absolute":

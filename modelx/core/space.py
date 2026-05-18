@@ -47,6 +47,10 @@ from modelx.core.execution.trace import (
     key_to_node,
     KEY
 )
+from modelx.core.execution.invalidation import (
+    invalidate_object,
+    invalidate_attr_referrers,
+)
 from modelx.core.node import (
     NodeFactory,
     NodeFactoryImpl,
@@ -2418,14 +2422,14 @@ class UserSpaceImpl(*_user_space_impl_base):
 
     def on_del_cells(self, name):
         cells = self.cells[name]
-        self.model.clear_obj(cells)
+        invalidate_object(self.model, cells)
         self.cells.remove(name)     # pop + notify (== del + on_notify)
         cells.on_delete()
 
     def on_sort_cells(self, space):
 
         for c in space.cells.values():
-            self.model.clear_obj(c)
+            invalidate_object(self.model, c)
 
         if self.bases:
 
@@ -2460,7 +2464,7 @@ class UserSpaceImpl(*_user_space_impl_base):
         ref = self.own_refs[name]
         self.on_del_ref(name)
         self.on_create_ref(name, value, is_derived, refmode)
-        self.model.clear_attr_referrers(ref)
+        invalidate_attr_referrers(self.model, ref)
         self.change_dynsub_refs(name)
         return ref
 
@@ -2474,12 +2478,12 @@ class UserSpaceImpl(*_user_space_impl_base):
         return ref
 
     def on_del_ref(self, name):
-        self.model.clear_attr_referrers(self.own_refs[name])
+        invalidate_attr_referrers(self.model, self.own_refs[name])
         self.own_refs[name].on_delete()
         self.own_refs.remove(name)      # pop + notify
 
     def on_rename(self, name):
-        self.model.clear_obj(self)
+        invalidate_object(self.model, self)
         self.clear_all_cells(clear_input=True, recursive=True, del_items=True)
         old_name = self.name
         self.name = name

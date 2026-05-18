@@ -22,6 +22,7 @@ from modelx.core.base import (
 from modelx.core.execution.trace import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node
 )
+from modelx.core.execution.invalidation import invalidate_object
 from modelx.core.formula import (
     Formula, NullFormula, NULL_FORMULA, replace_docstring
 )
@@ -751,7 +752,7 @@ class CellsImpl(*_cells_impl_base):
             raise ValueError("%s not a scalar" % self.name)
 
     def on_inherit(self, updater, bases):
-        self.model.clear_obj(self)
+        invalidate_object(self.model, self)
         self.formula = bases[0].formula
         self.allow_none = bases[0].allow_none
         self.is_cached = bases[0].is_cached
