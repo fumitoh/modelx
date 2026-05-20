@@ -32,6 +32,19 @@ def test_info_header_for_item_space(testmodel):
     assert first == 'ItemSpace: Model1.Space1[1, 0]'
 
 
+def test_info_shows_bases(testmodel):
+    m = testmodel
+    # The base UserSpace has no bases
+    lines = repr(m.Space1.Child.info).splitlines()
+    assert lines[1] == 'bases: []'
+
+    # A derived space lists its base spaces
+    derived = m.new_space('Derived', bases=m.Space1)
+    lines2 = repr(derived.info).splitlines()
+    assert lines2[1].startswith('bases: [')
+    assert 'Space1' in lines2[1]
+
+
 def test_info_parameters_format(testmodel):
     m = testmodel
     text = repr(m.Space1.info)

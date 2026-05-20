@@ -31,6 +31,20 @@ def test_info_header_uses_class_name_and_signature(testmodel):
     assert first == 'Cells: Model1.Space1[1].foo(t, i=0)'
 
 
+def test_info_shows_is_derived(testmodel):
+    m = testmodel
+    text = repr(m.Space1.foo.info)
+    lines = text.splitlines()
+    # _is_derived appears as the second item (right after the header)
+    assert lines[1] == '_is_derived: False'
+
+    # Build a derived cells via space inheritance
+    derived = m.new_space('Derived', bases=m.Space1)
+    text2 = repr(derived.foo.info)
+    lines2 = text2.splitlines()
+    assert lines2[1] == '_is_derived: True'
+
+
 def test_info_shows_is_cached_and_allow_none(testmodel):
     m = testmodel
     cells = m.Space1.foo

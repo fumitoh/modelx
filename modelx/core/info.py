@@ -95,6 +95,7 @@ class CellsInfo(_InterfaceInfo):
         cells = self._interface
         impl = cells._impl
         lines = []
+        lines.append("_is_derived: " + repr(cells._is_derived()))
         lines.append("is_cached: " + repr(cells.is_cached))
         lines.append("allow_none: " + repr(cells.allow_none))
 
@@ -129,6 +130,8 @@ class SpaceInfo(_InterfaceInfo):
     def _body_lines(self):
         space = self._interface
         lines = []
+
+        lines.append("bases: " + repr(space.bases))
 
         formula = getattr(space._impl, "formula", None)
         if formula is not None:
