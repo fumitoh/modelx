@@ -23,17 +23,24 @@ _INDENT = "    "
 _MAX_ITEMS = 5
 
 
+def _format_key(key):
+    """Render a cells data key. Single-argument tuples are unwrapped."""
+    if isinstance(key, tuple) and len(key) == 1:
+        return repr(key[0])
+    return repr(key)
+
+
 def _format_kv_items(items, indent=_INDENT, max_items=_MAX_ITEMS):
     """Format key-value items as indented lines, truncating long lists."""
     items = list(items)
     lines = []
     if len(items) <= max_items:
         for key, value in items:
-            lines.append(indent + repr(key) + ": " + repr(value))
+            lines.append(indent + _format_key(key) + ": " + repr(value))
     else:
         head = max_items - 1
         for key, value in items[:head]:
-            lines.append(indent + repr(key) + ": " + repr(value))
+            lines.append(indent + _format_key(key) + ": " + repr(value))
         lines.append(indent + "...")
     return lines
 
@@ -95,7 +102,7 @@ class CellsInfo(_InterfaceInfo):
         cells = self._interface
         impl = cells._impl
         lines = []
-        lines.append("_is_derived: " + repr(cells._is_derived()))
+        lines.append("is_derived: " + repr(cells._is_derived()))
         lines.append("is_cached: " + repr(cells.is_cached))
         lines.append("allow_none: " + repr(cells.allow_none))
 
@@ -131,7 +138,8 @@ class SpaceInfo(_InterfaceInfo):
         space = self._interface
         lines = []
 
-        lines.append("bases: " + repr(space.bases))
+        base_names = [b.fullname for b in space.bases]
+        lines.append("bases: [" + ", ".join(base_names) + "]")
 
         formula = getattr(space._impl, "formula", None)
         if formula is not None:

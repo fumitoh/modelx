@@ -38,11 +38,12 @@ def test_info_shows_bases(testmodel):
     lines = repr(m.Space1.Child.info).splitlines()
     assert lines[1] == 'bases: []'
 
-    # A derived space lists its base spaces
+    # A derived space lists base spaces using their dotted fullnames
     derived = m.new_space('Derived', bases=m.Space1)
     lines2 = repr(derived.info).splitlines()
-    assert lines2[1].startswith('bases: [')
-    assert 'Space1' in lines2[1]
+    assert lines2[1] == 'bases: [Model1.Space1]'
+    # Plain dotted names, no <UserSpace ...> wrappers
+    assert '<UserSpace' not in lines2[1]
 
 
 def test_info_parameters_format(testmodel):

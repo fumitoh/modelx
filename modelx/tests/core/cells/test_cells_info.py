@@ -35,14 +35,14 @@ def test_info_shows_is_derived(testmodel):
     m = testmodel
     text = repr(m.Space1.foo.info)
     lines = text.splitlines()
-    # _is_derived appears as the second item (right after the header)
-    assert lines[1] == '_is_derived: False'
+    # is_derived appears as the second item (right after the header)
+    assert lines[1] == 'is_derived: False'
 
     # Build a derived cells via space inheritance
     derived = m.new_space('Derived', bases=m.Space1)
     text2 = repr(derived.foo.info)
     lines2 = text2.splitlines()
-    assert lines2[1] == '_is_derived: True'
+    assert lines2[1] == 'is_derived: True'
 
 
 def test_info_shows_is_cached_and_allow_none(testmodel):
@@ -131,7 +131,29 @@ def test_info_with_scalar_cells():
         assert first.endswith('S.scalar()')
         assert first.startswith('Cells: ')
         assert 'cached values: 1' in text
+        # Scalar cells keep the empty-tuple key (no single argument to unwrap)
         assert '(): 42' in text
+    finally:
+        m._impl._check_sanity()
+        m.close()
+
+
+def test_info_unwraps_single_arg_keys():
+    m = mx.new_model()
+    try:
+        s = m.new_space('S')
+        s.new_cells('bar', formula=lambda x: x * 2)
+        s.bar(3)
+        s.bar(5)
+        s.bar[10] = 100
+        text = repr(s.bar.info)
+        # Single-argument keys are shown without the (,) tuple form
+        assert '3: 6' in text
+        assert '5: 10' in text
+        assert '10: 100' in text
+        assert '(3,)' not in text
+        assert '(5,)' not in text
+        assert '(10,)' not in text
     finally:
         m._impl._check_sanity()
         m.close()
