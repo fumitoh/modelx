@@ -23,7 +23,7 @@ _INDENT = "    "
 _MAX_ITEMS = 5
 
 
-def _format_items(items, indent=_INDENT, max_items=_MAX_ITEMS):
+def _format_kv_items(items, indent=_INDENT, max_items=_MAX_ITEMS):
     """Format key-value items as indented lines, truncating long lists."""
     items = list(items)
     lines = []
@@ -34,8 +34,25 @@ def _format_items(items, indent=_INDENT, max_items=_MAX_ITEMS):
         head = max_items - 1
         for key, value in items[:head]:
             lines.append(indent + repr(key) + ": " + repr(value))
-        lines.append(indent + "... (%d more)" % (len(items) - head))
+        lines.append(indent + "...")
     return lines
+
+
+def _format_keys_list(keys, max_items=_MAX_ITEMS):
+    """Format ``keys`` as a single-line abbreviated list literal."""
+    keys = list(keys)
+    if len(keys) <= max_items:
+        return "[" + ", ".join(repr(k) for k in keys) + "]"
+    head = max_items - 1
+    return "[" + ", ".join(repr(k) for k in keys[:head]) + ", ...]"
+
+
+def _signature_str(formula):
+    """Return ``formula``'s signature without the outer parentheses."""
+    s = str(formula.signature)
+    if s.startswith("(") and s.endswith(")"):
+        s = s[1:-1]
+    return s
 
 
 class _InterfaceInfo:
@@ -46,6 +63,9 @@ class _InterfaceInfo:
     def __init__(self, interface):
         self._interface = interface
 
+    def _class_name(self):
+        return type(self._interface).__name__
+
     def _header(self):
         return self._interface._get_repr(fullname=True, add_params=True)
 
@@ -53,7 +73,7 @@ class _InterfaceInfo:
         return []
 
     def __repr__(self):
-        lines = ["<%s %s>" % (type(self).__name__, self._header())]
+        lines = ["%s: %s" % (self._class_name(), self._header())]
         lines.extend(self._body_lines())
         return "\n".join(lines)
 
@@ -87,8 +107,17 @@ class CellsInfo(_InterfaceInfo):
             lines.append(_INDENT + "(source not available)")
 
         data = impl.data
-        lines.append("cached values: " + str(len(data)))
-        lines.extend(_format_items(data.items()))
+        input_keys = impl.input_keys
+        cached_items = [(k, v) for k, v in data.items() if k not in input_keys]
+        input_items = [(k, v) for k, v in data.items() if k in input_keys]
+
+        lines.append("cached values: " + str(len(cached_items)))
+        lines.extend(_format_kv_items(cached_items))
+
+        if input_items:
+            lines.append("input values: " + str(len(input_items)))
+            lines.extend(_format_kv_items(input_items))
+
         return lines
 
 
@@ -97,19 +126,18 @@ class SpaceInfo(_InterfaceInfo):
 
     __slots__ = ()
 
-    def _header(self):
-        return self._interface._get_repr(fullname=True, add_params=True)
-
     def _body_lines(self):
         space = self._interface
         lines = []
-        params = space.parameters
-        if params is not None:
-            lines.append("parameters: " + repr(params))
+
+        formula = getattr(space._impl, "formula", None)
+        if formula is not None:
+            lines.append("parameters: " + _signature_str(formula))
 
         itemspaces = dict(space.itemspaces)
         lines.append("itemspaces: " + str(len(itemspaces)))
-        lines.extend(_format_items(itemspaces.items()))
+        if itemspaces:
+            lines.append(_INDENT + _format_keys_list(itemspaces.keys()))
         return lines
 
 
@@ -124,7 +152,8 @@ class ModelInfo(_InterfaceInfo):
     def _body_lines(self):
         spaces = dict(self._interface.spaces)
         lines = ["spaces: " + str(len(spaces))]
-        lines.extend(_format_items(spaces.items()))
+        if spaces:
+            lines.append(_INDENT + _format_keys_list(spaces.keys()))
         return lines
 
 

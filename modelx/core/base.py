@@ -458,20 +458,23 @@ class Interface:
           :attr:`~modelx.core.cells.Cells.is_cached`,
           :attr:`allow_none`, the source of the
           :attr:`~modelx.core.cells.Cells.formula`,
-          the number of cached values, and an abbreviated listing of
-          cached key-value pairs.
+          the number of cached values together with an abbreviated listing
+          of cached key-value pairs, and -- when any input values have been
+          assigned -- the number of input values along with an abbreviated
+          listing of input key-value pairs.
 
         * For spaces: the space's fully-qualified representation
           (e.g., ``Model1.Space1[1]``),
-          :attr:`~modelx.core.space.BaseSpace.parameters` (when defined),
+          :attr:`~modelx.core.space.BaseSpace.parameters` (when defined,
+          shown as a signature string such as ``i, j=0``),
           the number of :class:`~modelx.core.space.ItemSpace` children,
-          and an abbreviated listing of those item spaces.
+          and an abbreviated list of the item-space keys.
 
         Example:
             .. code-block:: python
 
                 >>> print(space.foo.info)
-                <CellsInfo Model.Space.foo(t)>
+                Cells: Model.Space.foo(t)
                 is_cached: True
                 allow_none: None
                 formula:
