@@ -444,6 +444,49 @@ class Interface:
         """
         return self._impl.doc
 
+    @property
+    def info(self):
+        """An object whose ``repr`` summarizes this Interface.
+
+        Returns a lightweight wrapper whose string representation displays
+        a human-readable snapshot of this object. The exact fields depend
+        on the concrete type:
+
+        * For :class:`~modelx.core.cells.Cells`: the cells' fully-qualified
+          representation including its signature
+          (e.g., ``Model1.Space1[1].foo(t, i=0)``),
+          :attr:`~modelx.core.cells.Cells.is_cached`,
+          :attr:`allow_none`, the source of the
+          :attr:`~modelx.core.cells.Cells.formula`,
+          the number of cached values together with an abbreviated listing
+          of cached key-value pairs, and -- when any input values have been
+          assigned -- the number of input values along with an abbreviated
+          listing of input key-value pairs.
+
+        * For spaces: the space's fully-qualified representation
+          (e.g., ``Model1.Space1[1]``),
+          :attr:`~modelx.core.space.BaseSpace.parameters` (when defined,
+          shown as a signature string such as ``i, j=0``),
+          the number of :class:`~modelx.core.space.ItemSpace` children,
+          and an abbreviated list of the item-space keys.
+
+        Example:
+            .. code-block:: python
+
+                >>> print(space.foo.info)
+                Cells: Model.Space.foo(t)
+                is_cached: True
+                allow_none: None
+                formula:
+                    def foo(t):
+                        return t * 2
+                cached values: 2
+                    (0,): 0
+                    (1,): 2
+        """
+        from modelx.core.info import build_info
+        return build_info(self)
+
     def __repr__(self):
         type_ = self.__class__.__name__
 
