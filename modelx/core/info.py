@@ -31,16 +31,32 @@ def _format_key(key):
 
 
 def _format_kv_items(items, indent=_INDENT, max_items=_MAX_ITEMS):
-    """Format key-value items as indented lines, truncating long lists."""
+    """Format key-value items as indented lines, truncating long lists.
+
+    When a value's ``repr`` spans multiple lines (e.g. a ``pandas``
+    ``Series`` or ``DataFrame``) the value is placed on its own lines
+    starting immediately after the key, so the multi-line layout
+    survives intact.
+    """
     items = list(items)
     lines = []
+
+    def add(key, value):
+        key_str = _format_key(key)
+        val_repr = repr(value)
+        if "\n" in val_repr:
+            lines.append(indent + key_str + ": ")
+            lines.extend(val_repr.splitlines())
+        else:
+            lines.append(indent + key_str + ": " + val_repr)
+
     if len(items) <= max_items:
         for key, value in items:
-            lines.append(indent + _format_key(key) + ": " + repr(value))
+            add(key, value)
     else:
         head = max_items - 1
         for key, value in items[:head]:
-            lines.append(indent + _format_key(key) + ": " + repr(value))
+            add(key, value)
         lines.append(indent + "...")
     return lines
 

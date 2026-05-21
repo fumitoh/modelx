@@ -138,6 +138,51 @@ def test_info_with_scalar_cells():
         m.close()
 
 
+def test_info_breaks_line_for_multiline_value():
+    pd = pytest.importorskip('pandas')
+    m = mx.new_model()
+    try:
+        s = m.new_space('S')
+        s.pd = pd
+
+        def make_df():
+            return pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+
+        s.new_cells('make_df', formula=make_df)
+        s.make_df()
+
+        text = repr(s.make_df.info)
+        lines = text.splitlines()
+        # Find the cached-values key line
+        key_line_idx = next(
+            i for i, ln in enumerate(lines) if ln.strip().startswith('():'))
+        key_line = lines[key_line_idx]
+        next_line = lines[key_line_idx + 1]
+        # The value's repr is broken onto subsequent lines, so the key
+        # line ends with ": " (no value content) and the following line
+        # contains part of the DataFrame's repr.
+        assert key_line.rstrip() == '    ():'
+        df_repr_lines = repr(s.make_df()).splitlines()
+        assert next_line == df_repr_lines[0]
+    finally:
+        m._impl._check_sanity()
+        m.close()
+
+
+def test_info_keeps_single_line_value_inline():
+    m = mx.new_model()
+    try:
+        s = m.new_space('S')
+        s.new_cells('scal', formula=lambda: 42)
+        s.scal()
+        text = repr(s.scal.info)
+        # Inline format preserved for single-line values
+        assert '(): 42' in text
+    finally:
+        m._impl._check_sanity()
+        m.close()
+
+
 def test_info_unwraps_single_arg_keys():
     m = mx.new_model()
     try:
