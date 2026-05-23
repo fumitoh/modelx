@@ -31,6 +31,8 @@ jobs:
             os: "macos-latest"
           - python-version: {py: "3.7", nx: "2.4"}
             os: "ubuntu-latest"
+          - python-version: {py: "3.8", nx: "2.5"}
+            os: "macos-latest"
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version.py }}
