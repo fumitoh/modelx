@@ -15,3 +15,4 @@ Basic properties
 
   ~Macro.formula
   ~Macro.parent
+  ~Macro.info

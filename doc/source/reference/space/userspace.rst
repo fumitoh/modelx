@@ -22,6 +22,7 @@ Basic properties
   ~UserSpace.refs
   ~UserSpace.has_params
   ~UserSpace.set_property
+  ~UserSpace.info
 
 Space operations
 ----------------

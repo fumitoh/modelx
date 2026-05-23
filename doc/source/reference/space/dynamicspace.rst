@@ -22,6 +22,7 @@ Basic properties
   ~DynamicSpace.refs
   ~DynamicSpace.has_params
   ~DynamicSpace.set_property
+  ~DynamicSpace.info
 
 Inheritance operations
 ----------------------
