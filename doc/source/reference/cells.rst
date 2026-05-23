@@ -23,6 +23,7 @@ Basic properties
   ~Cells.properties
   ~Cells.set_property
   ~Cells.is_cached
+  ~Cells.info
 
 
 Cells operations

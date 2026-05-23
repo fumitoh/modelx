@@ -24,6 +24,7 @@ Basic properties
   ~ItemSpace.cur_space
   ~ItemSpace.has_params
   ~ItemSpace.set_property
+  ~ItemSpace.info
 
 
 Inheritance properties

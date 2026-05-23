@@ -26,6 +26,7 @@ Model properties
   ~Model.macros
   ~Model.iospecs
   ~Model.tracegraph
+  ~Model.info
 
 Model operations
 ----------------
