@@ -473,7 +473,7 @@ class Interface:
         Example:
             .. code-block:: python
 
-                >>> print(space.foo.info)
+                >>> space.foo.info
                 Cells: Model.Space.foo(t)
                 is_cached: True
                 allow_none: None
@@ -481,8 +481,8 @@ class Interface:
                     def foo(t):
                         return t * 2
                 cached values: 2
-                    (0,): 0
-                    (1,): 2
+                    0: 0
+                    1: 2
         """
         from modelx.core.info import build_info
         return build_info(self)
