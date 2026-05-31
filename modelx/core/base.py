@@ -448,13 +448,33 @@ class Interface:
     def info(self):
         """An object whose ``repr`` summarizes this Interface.
 
+        .. warning::
+
+           This is an experimental feature. Its output format and
+           behavior may change in future releases without notice.
+
         Returns a lightweight wrapper whose string representation displays
         a human-readable snapshot of this object. The exact fields depend
         on the concrete type:
 
+        * For :class:`~modelx.core.model.Model`: the model's name,
+          the number of top-level spaces and an abbreviated list of their
+          names.
+
+        * For spaces (:class:`~modelx.core.space.UserSpace`,
+          :class:`~modelx.core.space.ItemSpace`,
+          :class:`~modelx.core.space.DynamicSpace`): the space's
+          fully-qualified representation (e.g., ``Model1.Space1[1]``),
+          the list of base spaces' fullnames,
+          :attr:`~modelx.core.space.BaseSpace.parameters` (when defined,
+          shown as a signature string such as ``i, j=0``),
+          the number of :class:`~modelx.core.space.ItemSpace` children,
+          and an abbreviated list of the item-space keys.
+
         * For :class:`~modelx.core.cells.Cells`: the cells' fully-qualified
           representation including its signature
           (e.g., ``Model1.Space1[1].foo(t, i=0)``),
+          whether the cells is derived from a base space,
           :attr:`~modelx.core.cells.Cells.is_cached`,
           :attr:`allow_none`, the source of the
           :attr:`~modelx.core.cells.Cells.formula`,
@@ -463,26 +483,56 @@ class Interface:
           assigned -- the number of input values along with an abbreviated
           listing of input key-value pairs.
 
-        * For spaces: the space's fully-qualified representation
-          (e.g., ``Model1.Space1[1]``),
-          :attr:`~modelx.core.space.BaseSpace.parameters` (when defined,
-          shown as a signature string such as ``i, j=0``),
-          the number of :class:`~modelx.core.space.ItemSpace` children,
-          and an abbreviated list of the item-space keys.
+        Examples:
+            For a :class:`~modelx.core.model.Model`:
 
-        Example:
             .. code-block:: python
 
-                >>> space.foo.info
-                Cells: Model.Space.foo(t)
+                >>> model.info
+                Model: Model1
+                spaces: 1
+                    ['Space1']
+
+            For a :class:`~modelx.core.space.UserSpace`:
+
+            .. code-block:: python
+
+                >>> model.Space1.info
+                UserSpace: Model1.Space1
+                bases: []
+                parameters: i, j=0
+                itemspaces: 2
+                    [(1, 0), (2, 0)]
+
+            For an :class:`~modelx.core.space.ItemSpace`:
+
+            .. code-block:: python
+
+                >>> model.Space1[1].info
+                ItemSpace: Model1.Space1[1, 0]
+                bases: []
+                itemspaces: 0
+
+            For a :class:`~modelx.core.space.DynamicSpace`, the layout
+            matches :class:`~modelx.core.space.ItemSpace` but the header
+            class name is ``DynamicSpace``.
+
+            For :class:`~modelx.core.cells.Cells`:
+
+            .. code-block:: python
+
+                >>> model.Space1[1].foo.info
+                Cells: Model1.Space1[1].foo(t, i=0)
+                is_derived: False
                 is_cached: True
                 allow_none: None
                 formula:
-                    def foo(t):
-                        return t * 2
-                cached values: 2
-                    0: 0
-                    1: 2
+                    def foo(t, i=0):
+                        if t == 0:
+                            return i
+                        return foo(t - 1, i) + 1
+                cached values: 1
+                    (0, 0): 0
         """
         from modelx.core.info import build_info
         return build_info(self)
