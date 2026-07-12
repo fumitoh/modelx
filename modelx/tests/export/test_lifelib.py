@@ -92,15 +92,16 @@ def test_annuallife(tmp_path_factory):
     lifelib.create(library, tmp)
 
     model = mx.read_model(tmp / name)
-    nomx_path = tmp_path_factory.mktemp('nomx_models')
-    model.export(nomx_path / (name + '_nomx'))
 
-    # The model reads input.xlsx from its parent directory at run time,
-    # so the exported model needs a copy next to it as well.
-    shutil.copy(tmp / 'input.xlsx', nomx_path / 'input.xlsx')
+    # Export next to the source model so that input.xlsx, which the model
+    # reads from its parent directory at run time, is found by the exported
+    # model as well. Remove a bundled copy of the exported model if any.
+    nomx_dir = tmp / (name + '_nomx')
+    shutil.rmtree(nomx_dir, ignore_errors=True)
+    model.export(nomx_dir)
 
     try:
-        sys.path.insert(0, str(nomx_path))
+        sys.path.insert(0, str(tmp))
         nomx = importlib.import_module(name + '_nomx').mx_model
         for i in (0, 299):
             assert math.isclose(
