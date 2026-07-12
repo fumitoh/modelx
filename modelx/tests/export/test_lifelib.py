@@ -1,4 +1,5 @@
 import importlib
+import shutil
 import sys
 import math
 
@@ -78,6 +79,35 @@ def test_appliedlife(tmp_path_factory):
             nomx.Run[1].GMXB.result_sample()
         )
 
+    finally:
+        sys.path.pop(0)
+        model.close()
+
+
+def test_annuallife(tmp_path_factory):
+    import lifelib
+    library, name = 'annuallife', 'TradLife_A_EX1'
+
+    tmp = tmp_path_factory.mktemp('tmp') / library
+    lifelib.create(library, tmp)
+
+    model = mx.read_model(tmp / name)
+
+    # Export next to the source model so that input.xlsx, which the model
+    # reads from its parent directory at run time, is found by the exported
+    # model as well. Remove a bundled copy of the exported model if any.
+    nomx_dir = tmp / (name + '_nomx')
+    shutil.rmtree(nomx_dir, ignore_errors=True)
+    model.export(nomx_dir)
+
+    try:
+        sys.path.insert(0, str(tmp))
+        nomx = importlib.import_module(name + '_nomx').mx_model
+        for i in (0, 299):
+            assert math.isclose(
+                model.Projection[i].risk_margin(0),
+                nomx.Projection[i].risk_margin(0)
+            )
     finally:
         sys.path.pop(0)
         model.close()
