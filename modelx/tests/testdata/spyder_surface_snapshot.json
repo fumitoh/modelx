@@ -1,0 +1,1560 @@
+{
+ "attrdict": {
+  "fullname": "SerializerCompat",
+  "id": 0,
+  "name": "SerializerCompat",
+  "namedid": "",
+  "refs": {
+   "items": {
+    "gref": {
+     "fullname": "SerializerCompat.gref",
+     "id": 0,
+     "name": "gref",
+     "namedid": "gref",
+     "repr": "gref",
+     "type": "Reference",
+     "value_type": "int"
+    }
+   },
+   "type": "RefView"
+  },
+  "repr": "SerializerCompat",
+  "spaces": {
+   "items": {
+    "Base": {
+     "_named_itemspaces": {
+      "items": {},
+      "keys": [],
+      "type": "SpaceView"
+     },
+     "bases": [],
+     "cells": {
+      "items": {
+       "bar": {
+        "fullname": "SerializerCompat.Base.bar",
+        "id": 0,
+        "name": "bar",
+        "namedid": "Base.bar",
+        "parameters": [
+         "x"
+        ],
+        "repr": "bar(x)",
+        "type": "Cells"
+       },
+       "foo": {
+        "fullname": "SerializerCompat.Base.foo",
+        "id": 0,
+        "name": "foo",
+        "namedid": "Base.foo",
+        "parameters": [
+         "x"
+        ],
+        "repr": "foo(x)",
+        "type": "Cells"
+       }
+      },
+      "keys": [
+       "foo",
+       "bar"
+      ],
+      "type": "CellsView"
+     },
+     "fullname": "SerializerCompat.Base",
+     "id": 0,
+     "name": "Base",
+     "named_spaces": {
+      "items": {
+       "Child": {
+        "_named_itemspaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "bases": [],
+        "cells": {
+         "items": {
+          "baz": {
+           "fullname": "SerializerCompat.Base.Child.baz",
+           "id": 0,
+           "name": "baz",
+           "namedid": "Base.Child.baz",
+           "parameters": [
+            "y"
+           ],
+           "repr": "baz(y)",
+           "type": "Cells"
+          }
+         },
+         "keys": [
+          "baz"
+         ],
+         "type": "CellsView"
+        },
+        "fullname": "SerializerCompat.Base.Child",
+        "id": 0,
+        "name": "Child",
+        "named_spaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "namedid": "Base.Child",
+        "parameters": null,
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Child",
+        "spaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "type": "UserSpace"
+       }
+      },
+      "keys": [
+       "Child"
+      ],
+      "type": "SpaceView"
+     },
+     "namedid": "Base",
+     "parameters": null,
+     "refs": {
+      "items": {
+       "dct": {
+        "fullname": "SerializerCompat.Base.dct",
+        "id": 0,
+        "name": "dct",
+        "namedid": "Base.dct",
+        "repr": "dct",
+        "type": "Reference",
+        "value_type": "dict"
+       },
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "lst": {
+        "fullname": "SerializerCompat.Base.lst",
+        "id": 0,
+        "name": "lst",
+        "namedid": "Base.lst",
+        "repr": "lst",
+        "type": "Reference",
+        "value_type": "list"
+       },
+       "m": {
+        "fullname": "SerializerCompat.Base.m",
+        "id": 0,
+        "name": "m",
+        "namedid": "Base.m",
+        "repr": "m",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "s": {
+        "fullname": "SerializerCompat.Base.s",
+        "id": 0,
+        "name": "s",
+        "namedid": "Base.s",
+        "repr": "s",
+        "type": "Reference",
+        "value_type": "str"
+       },
+       "self_space": {
+        "fullname": "SerializerCompat.Base.self_space",
+        "id": 0,
+        "name": "self_space",
+        "namedid": "Base.self_space",
+        "repr": "self_space",
+        "type": "Reference",
+        "value_type": "UserSpace"
+       },
+       "the_cells": {
+        "fullname": "SerializerCompat.Base.the_cells",
+        "id": 0,
+        "name": "the_cells",
+        "namedid": "Base.the_cells",
+        "repr": "the_cells",
+        "type": "Reference",
+        "value_type": "Cells"
+       },
+       "the_model": {
+        "fullname": "SerializerCompat.Base.the_model",
+        "id": 0,
+        "name": "the_model",
+        "namedid": "Base.the_model",
+        "repr": "the_model",
+        "type": "Reference",
+        "value_type": "Model"
+       },
+       "tpl": {
+        "fullname": "SerializerCompat.Base.tpl",
+        "id": 0,
+        "name": "tpl",
+        "namedid": "Base.tpl",
+        "repr": "tpl",
+        "type": "Reference",
+        "value_type": "tuple"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Base",
+     "spaces": {
+      "items": {
+       "Child": {
+        "_named_itemspaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "bases": [],
+        "cells": {
+         "items": {
+          "baz": {
+           "fullname": "SerializerCompat.Base.Child.baz",
+           "id": 0,
+           "name": "baz",
+           "namedid": "Base.Child.baz",
+           "parameters": [
+            "y"
+           ],
+           "repr": "baz(y)",
+           "type": "Cells"
+          }
+         },
+         "keys": [
+          "baz"
+         ],
+         "type": "CellsView"
+        },
+        "fullname": "SerializerCompat.Base.Child",
+        "id": 0,
+        "name": "Child",
+        "named_spaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "namedid": "Base.Child",
+        "parameters": null,
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Child",
+        "spaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "type": "UserSpace"
+       }
+      },
+      "keys": [
+       "Child"
+      ],
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    },
+    "Params": {
+     "_named_itemspaces": {
+      "items": {
+       "__Space1": {
+        "_named_itemspaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "bases": [
+         "Params"
+        ],
+        "cells": {
+         "items": {
+          "qux": {
+           "fullname": "SerializerCompat.Params.__Space1.qux",
+           "id": 0,
+           "name": "qux",
+           "namedid": "Params.__Space1.qux",
+           "parameters": [
+            "t"
+           ],
+           "repr": "qux(t)",
+           "type": "Cells"
+          }
+         },
+         "keys": [
+          "qux"
+         ],
+         "type": "CellsView"
+        },
+        "fullname": "SerializerCompat.Params.__Space1",
+        "id": 0,
+        "name": "__Space1",
+        "named_spaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "namedid": "Params.__Space1",
+        "parameters": [
+         "i"
+        ],
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          },
+          "i": {
+           "fullname": "SerializerCompat.Params.__Space1.i",
+           "id": 0,
+           "name": "i",
+           "namedid": "Params.__Space1.i",
+           "repr": "i",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Params[3]",
+        "spaces": {
+         "items": {},
+         "keys": [],
+         "type": "SpaceView"
+        },
+        "type": "ItemSpace"
+       }
+      },
+      "keys": [
+       "__Space1"
+      ],
+      "type": "SpaceView"
+     },
+     "bases": [],
+     "cells": {
+      "items": {
+       "qux": {
+        "fullname": "SerializerCompat.Params.qux",
+        "id": 0,
+        "name": "qux",
+        "namedid": "Params.qux",
+        "parameters": [
+         "t"
+        ],
+        "repr": "qux(t)",
+        "type": "Cells"
+       }
+      },
+      "keys": [
+       "qux"
+      ],
+      "type": "CellsView"
+     },
+     "fullname": "SerializerCompat.Params",
+     "id": 0,
+     "name": "Params",
+     "named_spaces": {
+      "items": {},
+      "keys": [],
+      "type": "SpaceView"
+     },
+     "namedid": "Params",
+     "parameters": [
+      "i"
+     ],
+     "refs": {
+      "items": {
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Params",
+     "spaces": {
+      "items": {},
+      "keys": [],
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    },
+    "Sub": {
+     "_named_itemspaces": {
+      "items": {},
+      "keys": [],
+      "type": "SpaceView"
+     },
+     "bases": [
+      "Base"
+     ],
+     "cells": {
+      "items": {
+       "bar": {
+        "fullname": "SerializerCompat.Sub.bar",
+        "id": 0,
+        "name": "bar",
+        "namedid": "Sub.bar",
+        "parameters": [
+         "x"
+        ],
+        "repr": "bar(x)",
+        "type": "Cells"
+       },
+       "foo": {
+        "fullname": "SerializerCompat.Sub.foo",
+        "id": 0,
+        "name": "foo",
+        "namedid": "Sub.foo",
+        "parameters": [
+         "x"
+        ],
+        "repr": "foo(x)",
+        "type": "Cells"
+       }
+      },
+      "keys": [
+       "foo",
+       "bar"
+      ],
+      "type": "CellsView"
+     },
+     "fullname": "SerializerCompat.Sub",
+     "id": 0,
+     "name": "Sub",
+     "named_spaces": {
+      "items": {},
+      "keys": [],
+      "type": "SpaceView"
+     },
+     "namedid": "Sub",
+     "parameters": null,
+     "refs": {
+      "items": {
+       "dct": {
+        "fullname": "SerializerCompat.Sub.dct",
+        "id": 0,
+        "name": "dct",
+        "namedid": "Sub.dct",
+        "repr": "dct",
+        "type": "Reference",
+        "value_type": "dict"
+       },
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "lst": {
+        "fullname": "SerializerCompat.Sub.lst",
+        "id": 0,
+        "name": "lst",
+        "namedid": "Sub.lst",
+        "repr": "lst",
+        "type": "Reference",
+        "value_type": "list"
+       },
+       "m": {
+        "fullname": "SerializerCompat.Sub.m",
+        "id": 0,
+        "name": "m",
+        "namedid": "Sub.m",
+        "repr": "m",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "s": {
+        "fullname": "SerializerCompat.Sub.s",
+        "id": 0,
+        "name": "s",
+        "namedid": "Sub.s",
+        "repr": "s",
+        "type": "Reference",
+        "value_type": "str"
+       },
+       "self_space": {
+        "fullname": "SerializerCompat.Sub.self_space",
+        "id": 0,
+        "name": "self_space",
+        "namedid": "Sub.self_space",
+        "repr": "self_space",
+        "type": "Reference",
+        "value_type": "UserSpace"
+       },
+       "the_cells": {
+        "fullname": "SerializerCompat.Sub.the_cells",
+        "id": 0,
+        "name": "the_cells",
+        "namedid": "Sub.the_cells",
+        "repr": "the_cells",
+        "type": "Reference",
+        "value_type": "Cells"
+       },
+       "the_model": {
+        "fullname": "SerializerCompat.Sub.the_model",
+        "id": 0,
+        "name": "the_model",
+        "namedid": "Sub.the_model",
+        "repr": "the_model",
+        "type": "Reference",
+        "value_type": "Model"
+       },
+       "tpl": {
+        "fullname": "SerializerCompat.Sub.tpl",
+        "id": 0,
+        "name": "tpl",
+        "namedid": "Sub.tpl",
+        "repr": "tpl",
+        "type": "Reference",
+        "value_type": "tuple"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Sub",
+     "spaces": {
+      "items": {},
+      "keys": [],
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    }
+   },
+   "keys": [
+    "Base",
+    "Sub",
+    "Params"
+   ],
+   "type": "SpaceView"
+  },
+  "type": "Model"
+ },
+ "model_baseattrs": {
+  "fullname": "SerializerCompat",
+  "id": 0,
+  "name": "SerializerCompat",
+  "namedid": "",
+  "repr": "SerializerCompat",
+  "spaces": {
+   "items": {
+    "Base": {
+     "bases": [],
+     "cells": {
+      "items": {
+       "bar": {
+        "fullname": "SerializerCompat.Base.bar",
+        "id": 0,
+        "name": "bar",
+        "namedid": "Base.bar",
+        "params": "x",
+        "repr": "bar(x)",
+        "type": "Cells"
+       },
+       "foo": {
+        "fullname": "SerializerCompat.Base.foo",
+        "id": 0,
+        "name": "foo",
+        "namedid": "Base.foo",
+        "params": "x",
+        "repr": "foo(x)",
+        "type": "Cells"
+       }
+      },
+      "type": "CellsView"
+     },
+     "dynamic_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "fullname": "SerializerCompat.Base",
+     "id": 0,
+     "name": "Base",
+     "named_itemspaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "named_spaces": {
+      "items": {
+       "Child": {
+        "bases": [],
+        "cells": {
+         "items": {
+          "baz": {
+           "fullname": "SerializerCompat.Base.Child.baz",
+           "id": 0,
+           "name": "baz",
+           "namedid": "Base.Child.baz",
+           "params": "y",
+           "repr": "baz(y)",
+           "type": "Cells"
+          }
+         },
+         "type": "CellsView"
+        },
+        "dynamic_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "fullname": "SerializerCompat.Base.Child",
+        "id": 0,
+        "name": "Child",
+        "named_itemspaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "named_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "namedid": "Base.Child",
+        "params": "",
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Child",
+        "spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "static_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "type": "UserSpace"
+       }
+      },
+      "type": "SpaceView"
+     },
+     "namedid": "Base",
+     "params": "",
+     "refs": {
+      "items": {
+       "dct": {
+        "fullname": "SerializerCompat.Base.dct",
+        "id": 0,
+        "name": "dct",
+        "namedid": "Base.dct",
+        "repr": "dct",
+        "type": "Reference",
+        "value_type": "dict"
+       },
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "lst": {
+        "fullname": "SerializerCompat.Base.lst",
+        "id": 0,
+        "name": "lst",
+        "namedid": "Base.lst",
+        "repr": "lst",
+        "type": "Reference",
+        "value_type": "list"
+       },
+       "m": {
+        "fullname": "SerializerCompat.Base.m",
+        "id": 0,
+        "name": "m",
+        "namedid": "Base.m",
+        "repr": "m",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "s": {
+        "fullname": "SerializerCompat.Base.s",
+        "id": 0,
+        "name": "s",
+        "namedid": "Base.s",
+        "repr": "s",
+        "type": "Reference",
+        "value_type": "str"
+       },
+       "self_space": {
+        "fullname": "SerializerCompat.Base.self_space",
+        "id": 0,
+        "name": "self_space",
+        "namedid": "Base.self_space",
+        "repr": "self_space",
+        "type": "Reference",
+        "value_type": "UserSpace"
+       },
+       "the_cells": {
+        "fullname": "SerializerCompat.Base.the_cells",
+        "id": 0,
+        "name": "the_cells",
+        "namedid": "Base.the_cells",
+        "repr": "the_cells",
+        "type": "Reference",
+        "value_type": "Cells"
+       },
+       "the_model": {
+        "fullname": "SerializerCompat.Base.the_model",
+        "id": 0,
+        "name": "the_model",
+        "namedid": "Base.the_model",
+        "repr": "the_model",
+        "type": "Reference",
+        "value_type": "Model"
+       },
+       "tpl": {
+        "fullname": "SerializerCompat.Base.tpl",
+        "id": 0,
+        "name": "tpl",
+        "namedid": "Base.tpl",
+        "repr": "tpl",
+        "type": "Reference",
+        "value_type": "tuple"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Base",
+     "spaces": {
+      "items": {
+       "Child": {
+        "bases": [],
+        "cells": {
+         "items": {
+          "baz": {
+           "fullname": "SerializerCompat.Base.Child.baz",
+           "id": 0,
+           "name": "baz",
+           "namedid": "Base.Child.baz",
+           "params": "y",
+           "repr": "baz(y)",
+           "type": "Cells"
+          }
+         },
+         "type": "CellsView"
+        },
+        "dynamic_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "fullname": "SerializerCompat.Base.Child",
+        "id": 0,
+        "name": "Child",
+        "named_itemspaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "named_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "namedid": "Base.Child",
+        "params": "",
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Child",
+        "spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "static_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "type": "UserSpace"
+       }
+      },
+      "type": "SpaceView"
+     },
+     "static_spaces": {
+      "items": {
+       "Child": {
+        "bases": [],
+        "cells": {
+         "items": {
+          "baz": {
+           "fullname": "SerializerCompat.Base.Child.baz",
+           "id": 0,
+           "name": "baz",
+           "namedid": "Base.Child.baz",
+           "params": "y",
+           "repr": "baz(y)",
+           "type": "Cells"
+          }
+         },
+         "type": "CellsView"
+        },
+        "dynamic_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "fullname": "SerializerCompat.Base.Child",
+        "id": 0,
+        "name": "Child",
+        "named_itemspaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "named_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "namedid": "Base.Child",
+        "params": "",
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Child",
+        "spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "static_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "type": "UserSpace"
+       }
+      },
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    },
+    "Params": {
+     "bases": [],
+     "cells": {
+      "items": {
+       "qux": {
+        "fullname": "SerializerCompat.Params.qux",
+        "id": 0,
+        "name": "qux",
+        "namedid": "Params.qux",
+        "params": "t",
+        "repr": "qux(t)",
+        "type": "Cells"
+       }
+      },
+      "type": "CellsView"
+     },
+     "dynamic_spaces": {
+      "items": {
+       "__Space1": {
+        "bases": [
+         "Params"
+        ],
+        "cells": {
+         "items": {
+          "qux": {
+           "fullname": "SerializerCompat.Params.__Space1.qux",
+           "id": 0,
+           "name": "qux",
+           "namedid": "Params.__Space1.qux",
+           "params": "t",
+           "repr": "qux(t)",
+           "type": "Cells"
+          }
+         },
+         "type": "CellsView"
+        },
+        "dynamic_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "fullname": "SerializerCompat.Params.__Space1",
+        "id": 0,
+        "name": "__Space1",
+        "named_itemspaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "named_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "namedid": "Params.__Space1",
+        "params": "i",
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          },
+          "i": {
+           "fullname": "SerializerCompat.Params.__Space1.i",
+           "id": 0,
+           "name": "i",
+           "namedid": "Params.__Space1.i",
+           "repr": "i",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Params[3]",
+        "spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "static_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "type": "ItemSpace"
+       }
+      },
+      "type": "SpaceView"
+     },
+     "fullname": "SerializerCompat.Params",
+     "id": 0,
+     "name": "Params",
+     "named_itemspaces": {
+      "items": {
+       "__Space1": {
+        "bases": [
+         "Params"
+        ],
+        "cells": {
+         "items": {
+          "qux": {
+           "fullname": "SerializerCompat.Params.__Space1.qux",
+           "id": 0,
+           "name": "qux",
+           "namedid": "Params.__Space1.qux",
+           "params": "t",
+           "repr": "qux(t)",
+           "type": "Cells"
+          }
+         },
+         "type": "CellsView"
+        },
+        "dynamic_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "fullname": "SerializerCompat.Params.__Space1",
+        "id": 0,
+        "name": "__Space1",
+        "named_itemspaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "named_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "namedid": "Params.__Space1",
+        "params": "i",
+        "refs": {
+         "items": {
+          "gref": {
+           "fullname": "SerializerCompat.gref",
+           "id": 0,
+           "name": "gref",
+           "namedid": "gref",
+           "repr": "gref",
+           "type": "Reference",
+           "value_type": "int"
+          },
+          "i": {
+           "fullname": "SerializerCompat.Params.__Space1.i",
+           "id": 0,
+           "name": "i",
+           "namedid": "Params.__Space1.i",
+           "repr": "i",
+           "type": "Reference",
+           "value_type": "int"
+          }
+         },
+         "type": "RefView"
+        },
+        "repr": "Params[3]",
+        "spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "static_spaces": {
+         "items": {},
+         "type": "SpaceView"
+        },
+        "type": "ItemSpace"
+       }
+      },
+      "type": "SpaceView"
+     },
+     "named_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "namedid": "Params",
+     "params": "i",
+     "refs": {
+      "items": {
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Params",
+     "spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "static_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    },
+    "Sub": {
+     "bases": [
+      "Base"
+     ],
+     "cells": {
+      "items": {
+       "bar": {
+        "fullname": "SerializerCompat.Sub.bar",
+        "id": 0,
+        "name": "bar",
+        "namedid": "Sub.bar",
+        "params": "x",
+        "repr": "bar(x)",
+        "type": "Cells"
+       },
+       "foo": {
+        "fullname": "SerializerCompat.Sub.foo",
+        "id": 0,
+        "name": "foo",
+        "namedid": "Sub.foo",
+        "params": "x",
+        "repr": "foo(x)",
+        "type": "Cells"
+       }
+      },
+      "type": "CellsView"
+     },
+     "dynamic_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "fullname": "SerializerCompat.Sub",
+     "id": 0,
+     "name": "Sub",
+     "named_itemspaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "named_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "namedid": "Sub",
+     "params": "",
+     "refs": {
+      "items": {
+       "dct": {
+        "fullname": "SerializerCompat.Sub.dct",
+        "id": 0,
+        "name": "dct",
+        "namedid": "Sub.dct",
+        "repr": "dct",
+        "type": "Reference",
+        "value_type": "dict"
+       },
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "lst": {
+        "fullname": "SerializerCompat.Sub.lst",
+        "id": 0,
+        "name": "lst",
+        "namedid": "Sub.lst",
+        "repr": "lst",
+        "type": "Reference",
+        "value_type": "list"
+       },
+       "m": {
+        "fullname": "SerializerCompat.Sub.m",
+        "id": 0,
+        "name": "m",
+        "namedid": "Sub.m",
+        "repr": "m",
+        "type": "Reference",
+        "value_type": "int"
+       },
+       "s": {
+        "fullname": "SerializerCompat.Sub.s",
+        "id": 0,
+        "name": "s",
+        "namedid": "Sub.s",
+        "repr": "s",
+        "type": "Reference",
+        "value_type": "str"
+       },
+       "self_space": {
+        "fullname": "SerializerCompat.Sub.self_space",
+        "id": 0,
+        "name": "self_space",
+        "namedid": "Sub.self_space",
+        "repr": "self_space",
+        "type": "Reference",
+        "value_type": "UserSpace"
+       },
+       "the_cells": {
+        "fullname": "SerializerCompat.Sub.the_cells",
+        "id": 0,
+        "name": "the_cells",
+        "namedid": "Sub.the_cells",
+        "repr": "the_cells",
+        "type": "Reference",
+        "value_type": "Cells"
+       },
+       "the_model": {
+        "fullname": "SerializerCompat.Sub.the_model",
+        "id": 0,
+        "name": "the_model",
+        "namedid": "Sub.the_model",
+        "repr": "the_model",
+        "type": "Reference",
+        "value_type": "Model"
+       },
+       "tpl": {
+        "fullname": "SerializerCompat.Sub.tpl",
+        "id": 0,
+        "name": "tpl",
+        "namedid": "Sub.tpl",
+        "repr": "tpl",
+        "type": "Reference",
+        "value_type": "tuple"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Sub",
+     "spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "static_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    }
+   },
+   "type": "SpaceView"
+  },
+  "type": "Model"
+ },
+ "space_baseattrs": {
+  "bases": [],
+  "cells": {
+   "items": {
+    "bar": {
+     "fullname": "SerializerCompat.Base.bar",
+     "id": 0,
+     "name": "bar",
+     "namedid": "Base.bar",
+     "params": "x",
+     "repr": "bar(x)",
+     "type": "Cells"
+    },
+    "foo": {
+     "fullname": "SerializerCompat.Base.foo",
+     "id": 0,
+     "name": "foo",
+     "namedid": "Base.foo",
+     "params": "x",
+     "repr": "foo(x)",
+     "type": "Cells"
+    }
+   },
+   "type": "CellsView"
+  },
+  "dynamic_spaces": {
+   "items": {},
+   "type": "SpaceView"
+  },
+  "fullname": "SerializerCompat.Base",
+  "id": 0,
+  "name": "Base",
+  "named_itemspaces": {
+   "items": {},
+   "type": "SpaceView"
+  },
+  "named_spaces": {
+   "items": {
+    "Child": {
+     "bases": [],
+     "cells": {
+      "items": {
+       "baz": {
+        "fullname": "SerializerCompat.Base.Child.baz",
+        "id": 0,
+        "name": "baz",
+        "namedid": "Base.Child.baz",
+        "params": "y",
+        "repr": "baz(y)",
+        "type": "Cells"
+       }
+      },
+      "type": "CellsView"
+     },
+     "dynamic_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "fullname": "SerializerCompat.Base.Child",
+     "id": 0,
+     "name": "Child",
+     "named_itemspaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "named_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "namedid": "Base.Child",
+     "params": "",
+     "refs": {
+      "items": {
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Child",
+     "spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "static_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    }
+   },
+   "type": "SpaceView"
+  },
+  "namedid": "Base",
+  "params": "",
+  "refs": {
+   "items": {
+    "dct": {
+     "fullname": "SerializerCompat.Base.dct",
+     "id": 0,
+     "name": "dct",
+     "namedid": "Base.dct",
+     "repr": "dct",
+     "type": "Reference",
+     "value_type": "dict"
+    },
+    "gref": {
+     "fullname": "SerializerCompat.gref",
+     "id": 0,
+     "name": "gref",
+     "namedid": "gref",
+     "repr": "gref",
+     "type": "Reference",
+     "value_type": "int"
+    },
+    "lst": {
+     "fullname": "SerializerCompat.Base.lst",
+     "id": 0,
+     "name": "lst",
+     "namedid": "Base.lst",
+     "repr": "lst",
+     "type": "Reference",
+     "value_type": "list"
+    },
+    "m": {
+     "fullname": "SerializerCompat.Base.m",
+     "id": 0,
+     "name": "m",
+     "namedid": "Base.m",
+     "repr": "m",
+     "type": "Reference",
+     "value_type": "int"
+    },
+    "s": {
+     "fullname": "SerializerCompat.Base.s",
+     "id": 0,
+     "name": "s",
+     "namedid": "Base.s",
+     "repr": "s",
+     "type": "Reference",
+     "value_type": "str"
+    },
+    "self_space": {
+     "fullname": "SerializerCompat.Base.self_space",
+     "id": 0,
+     "name": "self_space",
+     "namedid": "Base.self_space",
+     "repr": "self_space",
+     "type": "Reference",
+     "value_type": "UserSpace"
+    },
+    "the_cells": {
+     "fullname": "SerializerCompat.Base.the_cells",
+     "id": 0,
+     "name": "the_cells",
+     "namedid": "Base.the_cells",
+     "repr": "the_cells",
+     "type": "Reference",
+     "value_type": "Cells"
+    },
+    "the_model": {
+     "fullname": "SerializerCompat.Base.the_model",
+     "id": 0,
+     "name": "the_model",
+     "namedid": "Base.the_model",
+     "repr": "the_model",
+     "type": "Reference",
+     "value_type": "Model"
+    },
+    "tpl": {
+     "fullname": "SerializerCompat.Base.tpl",
+     "id": 0,
+     "name": "tpl",
+     "namedid": "Base.tpl",
+     "repr": "tpl",
+     "type": "Reference",
+     "value_type": "tuple"
+    }
+   },
+   "type": "RefView"
+  },
+  "repr": "Base",
+  "spaces": {
+   "items": {
+    "Child": {
+     "bases": [],
+     "cells": {
+      "items": {
+       "baz": {
+        "fullname": "SerializerCompat.Base.Child.baz",
+        "id": 0,
+        "name": "baz",
+        "namedid": "Base.Child.baz",
+        "params": "y",
+        "repr": "baz(y)",
+        "type": "Cells"
+       }
+      },
+      "type": "CellsView"
+     },
+     "dynamic_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "fullname": "SerializerCompat.Base.Child",
+     "id": 0,
+     "name": "Child",
+     "named_itemspaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "named_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "namedid": "Base.Child",
+     "params": "",
+     "refs": {
+      "items": {
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Child",
+     "spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "static_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    }
+   },
+   "type": "SpaceView"
+  },
+  "static_spaces": {
+   "items": {
+    "Child": {
+     "bases": [],
+     "cells": {
+      "items": {
+       "baz": {
+        "fullname": "SerializerCompat.Base.Child.baz",
+        "id": 0,
+        "name": "baz",
+        "namedid": "Base.Child.baz",
+        "params": "y",
+        "repr": "baz(y)",
+        "type": "Cells"
+       }
+      },
+      "type": "CellsView"
+     },
+     "dynamic_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "fullname": "SerializerCompat.Base.Child",
+     "id": 0,
+     "name": "Child",
+     "named_itemspaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "named_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "namedid": "Base.Child",
+     "params": "",
+     "refs": {
+      "items": {
+       "gref": {
+        "fullname": "SerializerCompat.gref",
+        "id": 0,
+        "name": "gref",
+        "namedid": "gref",
+        "repr": "gref",
+        "type": "Reference",
+        "value_type": "int"
+       }
+      },
+      "type": "RefView"
+     },
+     "repr": "Child",
+     "spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "static_spaces": {
+      "items": {},
+      "type": "SpaceView"
+     },
+     "type": "UserSpace"
+    }
+   },
+   "type": "SpaceView"
+  },
+  "type": "UserSpace"
+ }
+}
