@@ -33,7 +33,9 @@ class ReferenceImpl(Derivable, Impl):
     ) + get_mixin_slots(Derivable, Impl)
 
     def __init__(self, parent, name, value, container, is_derived=False,
-                 refmode=None, set_item=True):
+                 refmode=None):
+        # Side-effect-free: the caller registers self into ``container``
+        # (D-11; registration happens in the pipeline's apply stage).
         Impl.__init__(
             self,
             system=parent.system,
@@ -45,9 +47,6 @@ class ReferenceImpl(Derivable, Impl):
         Derivable.__init__(self, is_derived)
 
         self.container = container
-        if set_item:
-            container.set_item(name, self)
-
         self.refmode = refmode
         if refmode == "absolute":
             self.is_relative = False
@@ -77,34 +76,59 @@ class ReferenceImpl(Derivable, Impl):
         return (isinstance(self.interface, Interface)
                 and self.interface._is_valid())
 
-    def on_inherit(self, updater, bases):
+    def on_inherit(self, updater, bases, txn=None):
+        """Re-derive self from ``bases[0]``.
 
-        self.model.clear_attr_referrers(self)
+        Without ``txn``, mutates self immediately and clears the trace
+        graph (pre-pipeline behavior, still used by SpaceUpdater).
+        With ``txn``, the resolution is computed first (so an
+        out-of-scope error aborts the edit before any state change),
+        writes are journaled, and trace clearing is deferred to the
+        pipeline finalize stage — and skipped entirely when the binding
+        is unchanged.
+        """
+        if txn is None:
+            self.model.clear_attr_referrers(self)
+
         if bases[0].has_interface():
 
             if self.refmode == "absolute":
-                self.interface = bases[0].interface
-                self.is_relative = False
+                is_relative = False
+                interface = bases[0].interface
             else:
                 is_relative, interface = updater.get_relative_interface(
                     self.parent,
                     bases[0])
                 if self.refmode == "auto":
-                    self.is_relative = is_relative
-                    self.interface = interface
+                    pass
                 elif self.refmode == "relative":
-                    if is_relative:
-                        self.is_relative = is_relative
-                        self.interface = interface
-                    else:
+                    if not is_relative:
                         raise ValueError(
                             "Relative reference %s out of scope" %
                             self.get_fullname()
                         )
                 else:
                     raise ValueError("must not happen")
+
+            if txn is None:
+                self.is_relative = is_relative
+                self.interface = interface
+            elif (interface is not self.interface
+                    or is_relative != self.is_relative):
+                txn.set_attr(self, "is_relative", is_relative)
+                txn.set_attr(self, "interface", interface)
+                txn.add_modified(self)
+                # Ref values are baked into ns_dict, so a rebind must
+                # invalidate the namespaces seeing this ref.
+                txn.mark_dirty(self.parent, "own_refs")
         else:
-            self.interface = bases[0].interface
+            interface = bases[0].interface
+            if txn is None:
+                self.interface = interface
+            elif interface is not self.interface:
+                txn.set_attr(self, "interface", interface)
+                txn.add_modified(self)
+                txn.mark_dirty(self.parent, "own_refs")
 
 
 class NameSpaceReferenceImpl(ReferenceImpl):

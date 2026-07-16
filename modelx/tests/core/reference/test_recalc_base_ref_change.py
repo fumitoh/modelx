@@ -111,21 +111,16 @@ def test_recalc_on_override_delete_direct(inheritance_chain):
     assert Mid.foo(3) == 6
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="UserSpaceImpl.on_inherit rewrites sub containers without"
-           " on_notify: after deleting a mid-chain override, deeper subs"
-           " re-derive the ref value but their namespaces stay stale"
-           " (CoreRefactorDesign.md problem 3; fixed by the pipeline's"
-           " batched notify)",
-)
 def test_recalc_on_override_delete_deeper_sub(inheritance_chain):
     """Deleting an overriding ref must also re-expose the base value in
     subs further down the chain.
 
-    Currently Leaf's own_refs['mult'] is correctly re-derived to 2, but
-    Leaf.foo keeps evaluating with the stale namespace binding (3) —
-    even after clearing its values.
+    Was xfail(strict=True) before Phase 4: the pre-pipeline
+    ``UserSpaceImpl.on_inherit`` rewrote sub containers without
+    ``on_notify``, so Leaf's ``own_refs['mult']`` was re-derived to 2
+    but Leaf.foo kept evaluating with the stale namespace binding (3).
+    The pipeline's batched notify (CoreRefactorDesign.md §5.4) marks
+    rebound refs' containers dirty and invalidates their namespaces.
     """
     m, Base, Mid, Leaf = inheritance_chain
 
@@ -135,7 +130,7 @@ def test_recalc_on_override_delete_deeper_sub(inheritance_chain):
     del Mid.mult
 
     assert Leaf._impl.own_refs["mult"].interface == 2   # ref re-derived
-    assert Leaf.foo(3) == 6                             # stale: still 9
+    assert Leaf.foo(3) == 6
 
 
 def test_recalc_on_global_ref_change():

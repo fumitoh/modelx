@@ -33,12 +33,14 @@ class ValueRegistry:
     """Tracks non-Interface values assigned to References (Phase 3).
 
     Successor to ``ReferenceManager``. The ``register``/``unregister``/
-    ``rebind`` hooks below are pure bookkeeping: the callers
-    (``ModelImpl.set_attr``/``del_attr``, ``UserSpaceImpl.set_attr``/
-    ``del_ref``) invoke the spmgr/ModelImpl mutators directly and then
-    the hooks. The one remaining mutation path is ``update_value``,
-    which rebinds refs through ``parent.on_update_ref``; it is slated
-    to become an Edit in Phase 4.
+    ``rebind`` hooks below are pure bookkeeping, invoked by the edit
+    pipeline's finalize stage (Phase 4): the ref Edits carry
+    ``register``/``rebind``/``unregister`` directives recorded in the
+    ChangeSet. The one remaining mutation path here is
+    ``update_value``, which rebinds refs through
+    ``parent.on_update_ref`` (each rebinding runs a ChangeRef edit);
+    reimplementing it as a single Edit is deferred until recalculation
+    targeting moves into the pipeline (design §5.8).
 
     Only refs assigned through those attribute-access paths are
     registered; derived refs and refs created by

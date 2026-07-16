@@ -750,12 +750,25 @@ class CellsImpl(*_cells_impl_base):
         else:
             raise ValueError("%s not a scalar" % self.name)
 
-    def on_inherit(self, updater, bases):
-        self.model.clear_obj(self)
-        self.formula = bases[0].formula
-        self.allow_none = bases[0].allow_none
-        self.is_cached = bases[0].is_cached
-        self.is_altfunc_updated = False
+    def on_inherit(self, updater, bases, txn=None):
+        if txn is None:
+            self.model.clear_obj(self)
+            self.formula = bases[0].formula
+            self.allow_none = bases[0].allow_none
+            self.is_cached = bases[0].is_cached
+            self.is_altfunc_updated = False
+        elif (self.formula is not bases[0].formula
+                or self.allow_none != bases[0].allow_none
+                or self.is_cached != bases[0].is_cached):
+            # Journaled writes; clear_obj is deferred to the pipeline
+            # finalize stage and skipped when nothing changed. The
+            # namespace entry (the bound ``call``) is unaffected by an
+            # in-place rebind, so no container is marked dirty.
+            txn.set_attr(self, "formula", bases[0].formula)
+            txn.set_attr(self, "allow_none", bases[0].allow_none)
+            txn.set_attr(self, "is_cached", bases[0].is_cached)
+            txn.set_attr(self, "is_altfunc_updated", False)
+            txn.add_modified(self)
 
     @property
     def doc(self):

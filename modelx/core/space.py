@@ -1978,9 +1978,9 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
         NamespaceServer.__init__(self)
         self.sys_refs.update(
-            _self=NameSpaceReferenceImpl(self, '_self', self._namespace, self.sys_refs, set_item=False),
-            _space=NameSpaceReferenceImpl(self, '_space', self._namespace, self.sys_refs, set_item=False),
-            _model=NameSpaceReferenceImpl(self, '_model', self.model.namespace, self.sys_refs, set_item=False)
+            _self=NameSpaceReferenceImpl(self, '_self', self._namespace, self.sys_refs),
+            _space=NameSpaceReferenceImpl(self, '_space', self._namespace, self.sys_refs),
+            _model=NameSpaceReferenceImpl(self, '_model', self.model.namespace, self.sys_refs)
         )
 
         ItemSpaceParent.__init__(self, formula)
@@ -1997,7 +1997,7 @@ class BaseSpaceImpl(*_base_space_impl_base):
         if refs is not None:
             for key, value in refs.items():
                 self.own_refs[key] = ReferenceImpl(self, key, value, container=self.own_refs,
-                              refmode="auto", set_item=False)
+                              refmode="auto")
 
 
     def on_update_ns(self):
@@ -2143,12 +2143,6 @@ class DynamicBase(BaseSpaceImpl):
         for r in {s.rootspace: True for s in self._dynamic_subs}:
             r.parent.del_all_itemspaces()
         BaseSpaceImpl.on_notify(self, subject)
-
-    def change_dynsub_refs(self, name):
-
-        for dynsub in self._dynamic_subs:
-            baseref = self.own_refs[name]
-            dynsub._dynbase_refs.set_item(name, baseref)
 
     def clear_subs_rootitems(self):
         for dynsub in self._dynamic_subs.copy():
@@ -2323,12 +2317,11 @@ class UserSpaceImpl(*_user_space_impl_base):
         if self.get_attr(name) is not None:
             if name in self.refs:
                 if name in self.own_refs:
-                    prev_ref = self.own_refs[name]
-                    self.model.spmgr.change_ref(self, name, value, refmode)
-                    self.model.valreg.rebind(prev_ref, self.own_refs[name])
+                    self.model.spmgr.change_ref(self, name, value, refmode,
+                                                rebind=True)
                 elif self.refs[name].parent is self.model:
-                    ref = self.model.spmgr.new_ref(self, name, value, refmode)
-                    self.model.valreg.register(ref)
+                    self.model.spmgr.new_ref(self, name, value, refmode,
+                                             register=True)
                 else:
                     raise RuntimeError("must not happen")
 
@@ -2340,8 +2333,8 @@ class UserSpaceImpl(*_user_space_impl_base):
             else:
                 raise ValueError
         else:
-            ref = self.model.spmgr.new_ref(self, name, value, refmode)
-            self.model.valreg.register(ref)
+            self.model.spmgr.new_ref(self, name, value, refmode,
+                                     register=True)
 
     def del_attr(self, name):
         """Implementation of attribute deletion
@@ -2369,9 +2362,7 @@ class UserSpaceImpl(*_user_space_impl_base):
     def del_ref(self, name):
 
         if name in self.own_refs:
-            ref = self.own_refs[name]
-            self.model.spmgr.del_ref(self, name)
-            self.model.valreg.unregister(ref)
+            self.model.spmgr.del_ref(self, name, unregister=True)
         elif name in self.is_derived():
             raise KeyError("Derived ref '%s' cannot be deleted" % name)
         elif name in self.arguments:
@@ -2421,8 +2412,15 @@ class UserSpaceImpl(*_user_space_impl_base):
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
 
-    def on_inherit(self, updater, bases, attr):
+    def on_inherit(self, updater, bases, attr, txn=None):
+        """Reconcile ``attr`` ('cells' or 'own_refs') against ``bases``.
 
+        Without ``txn``: pre-pipeline behavior (immediate writes, used
+        by SpaceUpdater). With ``txn``: container writes are journaled,
+        notification/trace/deletion side effects are deferred to the
+        pipeline finalize stage. Phase 5 absorbs this reconciliation
+        into InheritanceSync.
+        """
         attrs = {
             "cells": self.on_del_cells,
             "own_refs": self.on_del_ref
@@ -2440,34 +2438,62 @@ class UserSpaceImpl(*_user_space_impl_base):
             if name not in selfdict:
 
                 if attr == "cells":
-                    selfdict[name] = UserCellsImpl(
-                        space=self, name=name, formula=None,
-                        is_derived=True)
+                    if txn is None:
+                        selfdict[name] = UserCellsImpl(
+                            space=self, name=name, formula=None,
+                            is_derived=True)
+                    else:
+                        cells = UserCellsImpl(
+                            space=self, name=name, formula=None,
+                            is_derived=True, add_to_space=False)
+                        # The constructor registered the cells as an
+                        # observer of self; undo that on rollback.
+                        txn.add_undo(self.remove_observer, cells)
+                        txn.set_item(selfdict, name, cells)
+                        txn.add_created(cells)
+                        txn.mark_dirty(self, attr)
 
                 elif attr == "own_refs":
-                    selfdict[name] = ReferenceImpl(
+                    ref = ReferenceImpl(
                         self, name, None,
                         container=self.own_refs,
                         is_derived=True,
-                        refmode=bs[0].refmode,
-                        set_item=False
+                        refmode=bs[0].refmode
                     )
+                    if txn is None:
+                        selfdict[name] = ref
+                    else:
+                        txn.set_item(selfdict, name, ref)
+                        txn.add_created(ref)
+                        txn.mark_dirty(self, attr)
                 else:
                     raise RuntimeError("must not happen")
 
             else:
                 # Remove & add back for reorder
-                selfdict[name] = selfdict.pop(name)
+                if txn is None:
+                    selfdict[name] = selfdict.pop(name)
+                else:
+                    txn.move_to_end(selfdict, name)
                 selfkeys.remove(name)
 
             if selfdict[name].is_derived():
-                selfdict[name].on_inherit(updater, bs)
+                selfdict[name].on_inherit(updater, bs, txn=txn)
 
         for name in selfkeys:
             if selfdict[name].is_derived():
-                attrs[attr](name)
+                if txn is None:
+                    attrs[attr](name)
+                else:
+                    member = selfdict[name]
+                    txn.del_item(selfdict, name)
+                    txn.add_removed(member)
+                    txn.mark_dirty(self, attr)
             else:   # defined
-                selfdict[name] = selfdict.pop(name)
+                if txn is None:
+                    selfdict[name] = selfdict.pop(name)
+                else:
+                    txn.move_to_end(selfdict, name)
 
     def on_del_cells(self, name):
         cells = self.cells[name]
@@ -2508,25 +2534,6 @@ class UserSpaceImpl(*_user_space_impl_base):
             keys = None
 
         sort_dict(self.cells, keys)
-
-    def on_change_ref(self, name, value, is_derived, refmode,
-                      is_relative):
-        ref = self.own_refs[name]
-        self.on_del_ref(name)
-        self.on_create_ref(name, value, is_derived, refmode)
-        self.model.clear_attr_referrers(ref)
-        self.change_dynsub_refs(name)
-        return ref
-
-    def on_create_ref(self, name, value, is_derived, refmode):
-        ref = ReferenceImpl(self, name, value,
-                            container=self.own_refs,
-                            is_derived=is_derived,
-                            refmode=refmode,
-                            set_item=False)
-        self.own_refs[name] = ref
-        self.on_notify(self.own_refs)
-        return ref
 
     def on_del_ref(self, name):
         self.model.clear_attr_referrers(self.own_refs[name])
@@ -2843,7 +2850,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
     def _init_refs(self, arguments=None):
         args = {}
         for k, v in arguments.items():
-            args[k] = ReferenceImpl(self, k, v, container=args, set_item=False)
+            args[k] = ReferenceImpl(self, k, v, container=args)
         self._arguments = args
         DynamicSpaceImpl._init_refs(self)
 

@@ -22,7 +22,6 @@ from modelx.core.base import (
     Derivable,
     null_impl
 )
-from modelx.core.reference import ReferenceImpl
 from modelx.core.cells import CellsImpl, UserCellsImpl
 from modelx.core.parent import EditableParentImpl
 from modelx.core.space import UserSpaceImpl
@@ -31,6 +30,7 @@ from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.inheritance.graph import SpaceGraph, split_node
 from modelx.core.edit.transaction import Instruction, InstructionList
+from modelx.core.edit.pipeline import NewRef, ChangeRef, DelRef
 
 
 class SharedSpaceOperations:
@@ -172,9 +172,9 @@ class SpaceManager(SharedSpaceOperations):
         space.on_del_cells(name)
         self.update_subs(space, skip_self=False)
 
-    def del_ref(self, space, name):
-        space.on_del_ref(name)
-        self.update_subs(space, skip_self=False)
+    def del_ref(self, space, name, unregister=False):
+        self.model.editor.execute(
+            DelRef(space, name, unregister=unregister))
 
     def new_cells(self, space, name=None, formula=None, data=None,
                   is_derived=False, is_cached=True, edit_source=True):
@@ -300,61 +300,14 @@ class SpaceManager(SharedSpaceOperations):
                             % (basevalue, subspace.idstr)
                         )
 
-    def new_ref(self, space, name, value, refmode):
+    def new_ref(self, space, name, value, refmode, register=False):
+        return self.model.editor.execute(
+            NewRef(space, name, value, refmode, register=register))
 
-        other = self._find_name_in_subs(space, name)
-        if other is not None:
-            if not isinstance(other, ReferenceImpl):
-                raise ValueError("Cannot create reference '%s'" % name)
-            elif other not in self.model.global_refs.values():
-                raise ValueError("Cannot create reference '%s'" % name)
-
-        self._check_subs_relrefs(space, name, value, refmode)
-        result = space.on_create_ref(name, value, is_derived=False,
-                            refmode=refmode)
-
-        for subspace in self._get_subs(space):
-            is_relative = False
-            if name in subspace.own_refs:
-                break
-            if isinstance(value, Interface) and value._is_valid():
-                if refmode == "auto" or refmode == "relative":
-                    is_relative, value = self.get_relative_interface(
-                        subspace, space.own_refs[name])
-            ref = subspace.on_create_ref(name, value, is_derived=True,
-                                   refmode=refmode)
-            ref.is_relative = is_relative
-
-        return result
-
-    def change_ref(self, space, name, value, refmode):
+    def change_ref(self, space, name, value, refmode, rebind=False):
         """Assigns a new value to an existing name."""
-
-        self._check_subs_relrefs(space, name, value, refmode)
-        # self._set_defined(space.idstr)
-        # space.set_defined()
-
-        is_relative = False if refmode == "absolute" else True
-
-        space.on_change_ref(name, value, is_derived=False, refmode=refmode,
-                            is_relative=is_relative)
-
-        for subspace in self._get_subs(space):
-            is_relative = False
-            subref = subspace.own_refs[name]
-            if subref.is_defined():
-                break
-            elif subref.defined_bases[0] is not space.own_refs[name]:
-                break
-            if isinstance(value, Interface) and value._is_valid():
-                if (refmode == "auto"
-                        or refmode == "relative"):
-                    is_relative, value = self.get_relative_interface(
-                        subspace, space.own_refs[name])
-            ref = subspace.on_change_ref(name, value,
-                                         is_derived=True, refmode=refmode,
-                                         is_relative=is_relative)
-            ref.is_relative = is_relative
+        self.model.editor.execute(
+            ChangeRef(space, name, value, refmode, rebind=rebind))
 
     def _check_sanity(self):
 
