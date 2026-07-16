@@ -234,7 +234,7 @@ class System:
             return m.currentspace
 
     def close_model(self, model):
-        model.refmgr.del_all_spec()
+        model.valreg.del_all_spec()
         del self.models[model.name]
         if self.currentmodel is model:
             self.currentmodel = None

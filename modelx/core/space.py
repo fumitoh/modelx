@@ -2323,9 +2323,12 @@ class UserSpaceImpl(*_user_space_impl_base):
         if self.get_attr(name) is not None:
             if name in self.refs:
                 if name in self.own_refs:
-                    self.model.refmgr.change_ref(self, name, value, refmode)
+                    prev_ref = self.own_refs[name]
+                    self.model.spmgr.change_ref(self, name, value, refmode)
+                    self.model.valreg.rebind(prev_ref, self.own_refs[name])
                 elif self.refs[name].parent is self.model:
-                    self.model.refmgr.new_ref(self, name, value, refmode)
+                    ref = self.model.spmgr.new_ref(self, name, value, refmode)
+                    self.model.valreg.register(ref)
                 else:
                     raise RuntimeError("must not happen")
 
@@ -2337,7 +2340,8 @@ class UserSpaceImpl(*_user_space_impl_base):
             else:
                 raise ValueError
         else:
-            self.model.refmgr.new_ref(self, name, value, refmode)
+            ref = self.model.spmgr.new_ref(self, name, value, refmode)
+            self.model.valreg.register(ref)
 
     def del_attr(self, name):
         """Implementation of attribute deletion
@@ -2365,7 +2369,9 @@ class UserSpaceImpl(*_user_space_impl_base):
     def del_ref(self, name):
 
         if name in self.own_refs:
-            self.model.refmgr.del_ref(self, name)
+            ref = self.own_refs[name]
+            self.model.spmgr.del_ref(self, name)
+            self.model.valreg.unregister(ref)
         elif name in self.is_derived():
             raise KeyError("Derived ref '%s' cannot be deleted" % name)
         elif name in self.arguments:
@@ -2378,6 +2384,11 @@ class UserSpaceImpl(*_user_space_impl_base):
             )
         else:
             raise KeyError("Ref '%s' does not exist" % name)
+
+    def on_update_ref(self, name, value, refmode):
+        """Rebind an own ref for ValueRegistry.update_value."""
+        self.model.spmgr.change_ref(self, name, value, refmode)
+        return self.own_refs[name]
 
     # ----------------------------------------------------------------------
     # Reloading

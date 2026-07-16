@@ -57,7 +57,7 @@ from modelx.core.inheritance.manager import (
     SpaceUpdater,
 )
 from modelx.core.edit.transaction import Instruction, InstructionList
-from modelx.core.refs import ReferenceManager
+from modelx.core.refs import ValueRegistry, ReferenceManager
 
 
 class IOSpecOperation:
@@ -107,7 +107,7 @@ class IOSpecOperation:
             * :class:`~modelx.io.pandasio.PandasData`: IOSpec for pandas objects
 
         """
-        return self._impl.model.refmgr.update_value(old_data, new_data)
+        return self._impl.model.valreg.update_value(old_data, new_data)
 
     def update_module(self, old_module, new_module=None):
         """Update an user-defined module assigned to References
@@ -148,7 +148,7 @@ class IOSpecOperation:
         """
         if not isinstance(old_module, ModuleType):
             raise ValueError("not a module object")
-        return self._impl.model.refmgr.update_value(old_module, new_module)
+        return self._impl.model.valreg.update_value(old_module, new_module)
 
     def get_spec(self, data):
         """Get *IOSpec* associated with ``data``
@@ -164,7 +164,7 @@ class IOSpecOperation:
             * :class:`~modelx.io.baseio.BaseIOSpec`: Base class for IOSpec objects
             * :attr:`~modelx.core.model.Model.iospecs`: List all IOSpecs
         """
-        spec = self._impl.refmgr.get_spec(data)
+        spec = self._impl.valreg.get_spec(data)
         if spec is None:
             raise ValueError("spec not found")
         else:
@@ -183,7 +183,7 @@ class IOSpecOperation:
             * :class:`~modelx.io.baseio.BaseIOSpec`: Base class for IOSpec objects
             * :attr:`~modelx.core.model.Model.iospecs`: List all IOSpecs
         """
-        self._impl.refmgr._manager.del_spec(self.get_spec(data))
+        self._impl.valreg._manager.del_spec(self.get_spec(data))
 
     @property
     def iospecs(self):
@@ -224,7 +224,7 @@ class IOSpecOperation:
         .. versionadded:: 0.9.0
 
         """
-        return list(self._impl.refmgr.specs)
+        return list(self._impl.valreg.specs)
 
 
 class Model(IOSpecOperation, EditableParent):
@@ -662,21 +662,21 @@ class Model(IOSpecOperation, EditableParent):
 
     def _get_refs(self, value):
         """Get references referring to a value"""
-        refs = self._impl.refmgr._valid_to_refs[id(value)]
+        refs = self._impl.valreg.get_refs(value)
         return [ReferenceProxy(impl) for impl in refs]
 
     def _get_assoc_values(self):
         """Get a list of values in the model with their associates"""
         result = []
 
-        for valid, refs in self._impl.refmgr._valid_to_refs.items():
+        for value in self._impl.valreg.values:
             info = {}
-            info["value"] = refs[0].interface
+            info["value"] = value
             info["spec"] = self._impl.system.iomanager.get_spec_from_value(
                 io_group=self,
-                value=refs[0].interface
+                value=value
             )
-            info["refs"] = self._get_refs(info["value"])
+            info["refs"] = self._get_refs(value)
             result.append(info)
 
         return result
@@ -1189,7 +1189,7 @@ class ModelImpl(*_model_impl_base):
         "_macro_namespace",
         "currentspace",
         "path",
-        "refmgr"
+        "valreg"
     ) + get_mixin_slots(*_model_impl_base)
 
     def __init__(self, *, system, name):
@@ -1219,7 +1219,7 @@ class ModelImpl(*_model_impl_base):
         self._namespace = CustomChainMap(self.named_spaces, self._global_refs)
         self.namespace = ModelNamespace(self)
         self.allow_none = False
-        self.refmgr = ReferenceManager(self, system.iomanager)
+        self.valreg = ValueRegistry(self, system.iomanager)
 
     def rename(self, name):
         """Rename self. Must be called only by its system."""
@@ -1266,10 +1266,15 @@ class ModelImpl(*_model_impl_base):
 
         for name, r in self.global_refs.items():
             if name != "__builtins__":
-                assert id(r.interface) in self.refmgr._valid_to_refs
+                assert self.valreg.has_value(r.interface)
 
-        self.refmgr._check_sanity()
+        self.valreg._check_sanity()
         self.spmgr._check_sanity()
+
+    @property
+    def refmgr(self):
+        """Backward-compat alias for :attr:`valreg` (D-10)."""
+        return self.valreg
 
     @property
     def updater(self):
@@ -1314,9 +1319,12 @@ class ModelImpl(*_model_impl_base):
         elif name in self._macros:
             raise KeyError("Macro named '%s' already exists" % name)
         elif name in self.global_refs:
-            self.refmgr.change_ref(self, name, value)
+            prev_ref = self.global_refs[name]
+            self.change_ref(name, value)
+            self.valreg.rebind(prev_ref, self.global_refs[name])
         else:
-            self.refmgr.new_ref(self, name, value, refmode)
+            ref = self.new_ref(name, value)
+            self.valreg.register(ref)
 
     def del_attr(self, name):
 
@@ -1325,9 +1333,16 @@ class ModelImpl(*_model_impl_base):
         elif name in self._macros:
             self.del_macro(name)
         elif name in self.global_refs:
-            self.refmgr.del_ref(self, name)
+            ref = self.global_refs[name]
+            self.del_ref(name)
+            self.valreg.unregister(ref)
         else:
             raise KeyError("Name '%s' not defined" % name)
+
+    def on_update_ref(self, name, value, refmode):
+        """Rebind a global ref for ValueRegistry.update_value."""
+        self.change_ref(name, value)
+        return self.global_refs[name]
     
     # Macro methods
     
