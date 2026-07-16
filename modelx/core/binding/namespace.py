@@ -54,6 +54,12 @@ class NamespaceServer(Subject):
 
     def on_notify(self, subject: Subject) -> None:
         self._is_ns_updated = False
+        # Invalidate this object's own namespace-dependent caches through a
+        # direct hook instead of having the object observe itself.
+        # NamespaceServer deliberately does not define on_ns_invalidated:
+        # it precedes AlteredFunction in BaseSpaceImpl's MRO, so defining a
+        # default here would shadow AlteredFunction's implementation.
+        self.on_ns_invalidated()
         self.notify()   # notify observers
 
     @property
@@ -89,8 +95,11 @@ class BaseNamespaceReferrer(Observer):
     
     ns_server: NamespaceServer
 
-    def __init__(self, server: NamespaceServer):
-        Observer.__init__(self, (server,))
+    def __init__(self, server: NamespaceServer, observe: bool = True):
+        # observe=False initializes state without registering as an observer;
+        # used when self IS the server (NamespaceServer.on_notify invalidates
+        # its own caches via on_ns_invalidated instead).
+        Observer.__init__(self, (server,) if observe else ())
         self.ns_server = server
 
     def on_notify(self, namspace: NamespaceServer):
