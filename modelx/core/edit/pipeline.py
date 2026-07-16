@@ -217,12 +217,21 @@ class DelRef(Edit):
         self.name = name
         self.unregister = unregister
 
+    def validate(self, model, txn):
+        ref = self.space.own_refs[self.name]
+        if ref.is_derived():
+            raise ValueError(
+                "cannot delete derived ref '%s'" % self.name)
+
     def apply(self, model, txn):
         ref = self.space.own_refs[self.name]
         txn.del_item(self.space.own_refs, self.name)
         txn.add_removed(ref)
         txn.mark_dirty(self.space, "own_refs")
-        if self.unregister:
+        if self.unregister and model.valreg.is_registered(ref):
+            # Defined refs created by new_space(refs=...) are never
+            # registered, so unconditional unregister would crash
+            # finalize post-commit.
             txn.changes.registry_ops.append(("unregister", ref))
 
     def derive(self, model, txn):

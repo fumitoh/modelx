@@ -109,6 +109,19 @@ class ValueRegistry:
     # ----------------------------------------------------------------------
     # Queries
 
+    def is_registered(self, ref):
+        """Return whether ``ref`` is registered for its value.
+
+        False for refs that never go through the attribute-access
+        paths, such as derived refs and refs created by
+        ``new_space(refs=...)``.
+        """
+        value = ref.interface
+        if isinstance(value, Interface):
+            return False
+        entry = self._entries.get(id(value))
+        return entry is not None and any(r is ref for r in entry.refs)
+
     def has_value(self, value):
         return id(value) in self._entries
 
