@@ -12,6 +12,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+from modelx.core.base import _rename_item, sort_dict
+
 
 class Instruction:
 
@@ -64,6 +66,8 @@ class ChangeSet:
         "modified",
         "dirty_containers",
         "dirty_spaces",
+        "cleared_subs",
+        "finalize_ops",
         "registry_ops"
     )
 
@@ -73,6 +77,15 @@ class ChangeSet:
         self.modified = []          # impls rebound/changed in place
         self.dirty_containers = {}  # (parent_impl, attr) -> None
         self.dirty_spaces = {}      # idstr -> None
+        self.cleared_subs = {}      # space_impl -> None: spaces whose
+                                    # dynamic subs' root itemspaces are
+                                    # cleared selectively in finalize
+                                    # (clear_subs_rootitems), as opposed
+                                    # to the nuke-all policy applied to
+                                    # dirty_containers
+        self.finalize_ops = []      # edit-specific zero-arg callables run
+                                    # post-commit, between deletions and
+                                    # the batched notify
         self.registry_ops = []      # ValueRegistry ops run in finalize:
                                     # ("register", ref) / ("unregister", ref)
                                     # / ("rebind", old_ref, new_ref)
@@ -122,6 +135,16 @@ class Transaction:
         self._journal.append(("move", container, key, index))
         container[key] = container.pop(key)
 
+    def rename_item(self, container, old_key, new_key):
+        """Rename ``old_key`` to ``new_key`` keeping its position."""
+        self._journal.append(("rename", container, old_key, new_key))
+        _rename_item(container, old_key, new_key)
+
+    def sort_items(self, container, sorted_keys=None):
+        """Sort ``container`` keys (all, or the ``sorted_keys`` part)."""
+        self._journal.append(("order", container, list(container)))
+        sort_dict(container, sorted_keys)
+
     def set_attr(self, obj, attr, value):
         self._journal.append(("attr", obj, attr, getattr(obj, attr)))
         setattr(obj, attr, value)
@@ -149,6 +172,10 @@ class Transaction:
         if not parent.is_model():
             self.changes.dirty_spaces[parent.idstr] = None
 
+    def add_cleared_subs(self, space):
+        self.changes.cleared_subs[space] = None
+        self.changes.dirty_spaces[space.idstr] = None
+
     # ----------------------------------------------------------------------
     # Outcome
 
@@ -172,6 +199,13 @@ class Transaction:
                 _, container, key, index = record
                 value = container.pop(key)
                 _insert_at(container, key, value, index)
+            elif kind == "rename":
+                _, container, old_key, new_key = record
+                _rename_item(container, new_key, old_key)
+            elif kind == "order":
+                _, container, keys = record
+                for k in keys:
+                    container[k] = container.pop(k)
             elif kind == "attr":
                 _, obj, attr, old = record
                 setattr(obj, attr, old)

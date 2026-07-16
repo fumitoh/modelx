@@ -191,9 +191,18 @@ class TraceManager:
             self.refgraph.remove_with_referred(n)
             n[OBJ].on_clear_trace(n[KEY])
 
-    def clear_obj(self, obj: TraceObject):
-        """Clear values and nodes of `obj` and their dependants."""
-        if not obj.is_cached:
+    def clear_obj(self, obj: TraceObject, is_cached=None):
+        """Clear values and nodes of `obj` and their dependants.
+
+        ``obj``'s values live in the trace graph when it is cached and in
+        the reference graph when it is not. ``is_cached`` overrides
+        ``obj.is_cached`` for selecting the graph, for callers that flip
+        the flag before a deferred clear (the values were recorded under
+        the pre-flip flag).
+        """
+        if is_cached is None:
+            is_cached = obj.is_cached
+        if not is_cached:
             self.clear_attr_referrers(obj)
             return
 
