@@ -57,6 +57,13 @@ from modelx.core.inheritance.manager import (
     SpaceUpdater,
 )
 from modelx.core.edit.transaction import Instruction, InstructionList
+from modelx.core.edit.pipeline import (
+    ModelEditor,
+    NewGlobalRef,
+    ChangeGlobalRef,
+    DelGlobalRef,
+)
+from modelx.core.itemspaces import ItemSpaceManager
 from modelx.core.refs import ValueRegistry, ReferenceManager
 
 
@@ -496,8 +503,8 @@ class Model(IOSpecOperation, EditableParent):
         self._impl.clear_attr_referrers(self._impl.property_refs["path"])
         self._impl.path = pathlib.Path(path)
         self._impl.property_refs['path'] = ReferenceImpl(
-            self._impl, "path", self._impl.path, container=self._impl._property_refs,
-            set_item=False)
+            self._impl, "path", self._impl.path,
+            container=self._impl._property_refs)
 
     def write(self, model_path, backup=True, log_input=False):
         """Write model to files.
@@ -1207,12 +1214,10 @@ class ModelImpl(*_model_impl_base):
         self.path = None
         self._global_refs = {}
         self._global_refs['__builtins__'] = ReferenceImpl(
-            self, '__builtins__', builtins, container=self._global_refs,
-            set_item=False)
+            self, '__builtins__', builtins, container=self._global_refs)
         self._property_refs = {}
         self._property_refs["path"] = ReferenceImpl(
-            self, "path", self.path, container=self._property_refs,
-            set_item=False)
+            self, "path", self.path, container=self._property_refs)
         self._macros = {}
         self._macro_namespace = None
         self.named_spaces = {}
@@ -1280,26 +1285,29 @@ class ModelImpl(*_model_impl_base):
     def updater(self):
         return SpaceUpdater(self.spmgr)
 
-    def del_ref(self, name):
-        ref = self.global_refs[name]
-        self.model.clear_attr_referrers(ref)
-        ref.on_delete()
-        del self.global_refs[name]
-        for space in self.yield_spaces():
-            space.on_notify(self.global_refs)
+    @property
+    def editor(self):
+        """The mutation pipeline entry point (CoreRefactorDesign §5.4).
 
-    def change_ref(self, name, value):
-        self.del_ref(name)
-        self.new_ref(name, value)
+        Stateless, so it is constructed per access instead of adding a
+        slot to pickled model state.
+        """
+        return ModelEditor(self)
 
-    def new_ref(self, name, value):
-        ref = ReferenceImpl(
-            self, name, value, container=self._global_refs,
-            set_item=False)
-        self._global_refs[name] = ref
-        for space in self.yield_spaces():
-            space.on_notify(self.global_refs)
-        return ref
+    @property
+    def itemspacemgr(self):
+        """Per-model itemspace invalidation policy (§5.8); stateless."""
+        return ItemSpaceManager(self)
+
+    def del_ref(self, name, unregister=False):
+        self.editor.execute(DelGlobalRef(self, name, unregister=unregister))
+
+    def change_ref(self, name, value, rebind=False):
+        self.editor.execute(ChangeGlobalRef(self, name, value, rebind=rebind))
+
+    def new_ref(self, name, value, register=False):
+        return self.editor.execute(
+            NewGlobalRef(self, name, value, register=register))
 
     def get_attr(self, name):
         if name in self.spaces:
@@ -1319,12 +1327,9 @@ class ModelImpl(*_model_impl_base):
         elif name in self._macros:
             raise KeyError("Macro named '%s' already exists" % name)
         elif name in self.global_refs:
-            prev_ref = self.global_refs[name]
-            self.change_ref(name, value)
-            self.valreg.rebind(prev_ref, self.global_refs[name])
+            self.change_ref(name, value, rebind=True)
         else:
-            ref = self.new_ref(name, value)
-            self.valreg.register(ref)
+            self.new_ref(name, value, register=True)
 
     def del_attr(self, name):
 
@@ -1333,9 +1338,7 @@ class ModelImpl(*_model_impl_base):
         elif name in self._macros:
             self.del_macro(name)
         elif name in self.global_refs:
-            ref = self.global_refs[name]
-            self.del_ref(name)
-            self.valreg.unregister(ref)
+            self.del_ref(name, unregister=True)
         else:
             raise KeyError("Name '%s' not defined" % name)
 

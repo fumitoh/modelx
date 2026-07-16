@@ -47,3 +47,140 @@ class InstructionList(list):
         if clear:
             self.clear()
         return result
+
+
+class ChangeSet:
+    """What one committed edit did to the model (CoreRefactorDesign §5.4).
+
+    Collected by :class:`Transaction` while an Edit runs and consumed by
+    ``ModelEditor._finalize`` after commit. ``dirty_containers`` and
+    ``dirty_spaces`` are dicts used as insertion-ordered sets so that
+    post-commit notification order is deterministic.
+    """
+
+    __slots__ = (
+        "created",
+        "removed",
+        "modified",
+        "dirty_containers",
+        "dirty_spaces",
+        "registry_ops"
+    )
+
+    def __init__(self):
+        self.created = []           # new impls, including derived ones
+        self.removed = []           # impls taken out of containers
+        self.modified = []          # impls rebound/changed in place
+        self.dirty_containers = {}  # (parent_impl, attr) -> None
+        self.dirty_spaces = {}      # idstr -> None
+        self.registry_ops = []      # ValueRegistry ops run in finalize:
+                                    # ("register", ref) / ("unregister", ref)
+                                    # / ("rebind", old_ref, new_ref)
+
+
+def _insert_at(container, key, value, index):
+    """Insert ``key: value`` into ``container`` at position ``index``."""
+    tail = [k for k in list(container) if k != key][index:]
+    container[key] = value
+    for k in tail:
+        container[k] = container.pop(k)
+
+
+class Transaction:
+    """Undo journal over container writes (CoreRefactorDesign §5.4).
+
+    Edits route every structural write through this object so that
+    ``rollback`` can restore the model bit-identically — including dict
+    ordering, which is observable through namespaces and serialization.
+    The shadow-graph half arrives with the graph-mutating edits
+    (Phase 6); the reference edits of Phase 4 do not touch the
+    inheritance graph.
+    """
+
+    def __init__(self, model):
+        self.model = model
+        self.changes = ChangeSet()
+        self._journal = []      # undo records, replayed in reverse
+
+    # ----------------------------------------------------------------------
+    # Journaled writes
+
+    def set_item(self, container, key, value):
+        if key in container:
+            self._journal.append(("replace", container, key, container[key]))
+        else:
+            self._journal.append(("add", container, key))
+        container[key] = value
+
+    def del_item(self, container, key):
+        index = list(container).index(key)
+        self._journal.append(("del", container, key, container[key], index))
+        del container[key]
+
+    def move_to_end(self, container, key):
+        index = list(container).index(key)
+        self._journal.append(("move", container, key, index))
+        container[key] = container.pop(key)
+
+    def set_attr(self, obj, attr, value):
+        self._journal.append(("attr", obj, attr, getattr(obj, attr)))
+        setattr(obj, attr, value)
+
+    def add_undo(self, func, *args):
+        """Journal an undo callback for a side effect the caller performed
+        outside the journaled writes (e.g. observer registration done by
+        a constructor)."""
+        self._journal.append(("undo", func, args))
+
+    # ----------------------------------------------------------------------
+    # ChangeSet bookkeeping
+
+    def add_created(self, impl):
+        self.changes.created.append(impl)
+
+    def add_removed(self, impl):
+        self.changes.removed.append(impl)
+
+    def add_modified(self, impl):
+        self.changes.modified.append(impl)
+
+    def mark_dirty(self, parent, attr):
+        self.changes.dirty_containers[(parent, attr)] = None
+        if not parent.is_model():
+            self.changes.dirty_spaces[parent.idstr] = None
+
+    # ----------------------------------------------------------------------
+    # Outcome
+
+    def rollback(self):
+        """Reverse-replay the journal; the model is bit-identical to the
+        state before the edit. No notify/trace/registry actions have run
+        (they are all post-commit)."""
+        while self._journal:
+            record = self._journal.pop()
+            kind = record[0]
+            if kind == "add":
+                _, container, key = record
+                del container[key]
+            elif kind == "replace":
+                _, container, key, old = record
+                container[key] = old
+            elif kind == "del":
+                _, container, key, old, index = record
+                _insert_at(container, key, old, index)
+            elif kind == "move":
+                _, container, key, index = record
+                value = container.pop(key)
+                _insert_at(container, key, value, index)
+            elif kind == "attr":
+                _, obj, attr, old = record
+                setattr(obj, attr, old)
+            elif kind == "undo":
+                _, func, args = record
+                func(*args)
+            else:
+                raise RuntimeError("must not happen")
+        self.changes = ChangeSet()
+
+    def commit(self):
+        self._journal.clear()
