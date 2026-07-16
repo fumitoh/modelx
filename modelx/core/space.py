@@ -2433,8 +2433,6 @@ class UserSpaceImpl(*_user_space_impl_base):
 
         if name in self.own_refs:
             self.model.spmgr.del_ref(self, name, unregister=True)
-        elif name in self.is_derived():
-            raise KeyError("Derived ref '%s' cannot be deleted" % name)
         elif name in self.arguments:
             raise ValueError("Argument cannot be deleted")
         elif name in self.sys_refs:
