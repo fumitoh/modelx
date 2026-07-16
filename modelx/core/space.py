@@ -31,7 +31,6 @@ from modelx.core.base import (
     get_mixin_slots,
     Interface,
     Impl,
-    sort_dict
 )
 from modelx.core.reference import (
     ReferenceImpl,
@@ -59,7 +58,6 @@ from modelx.core.formula import Formula, ModuleSource
 from modelx.core.cells import (
     Cells,
     DynamicCellsImpl,
-    UserCellsImpl,
     shareable_parameters,
 )
 from modelx.core.util import AutoNamer, is_valid_name, get_module
@@ -2412,89 +2410,6 @@ class UserSpaceImpl(*_user_space_impl_base):
         for name in cells_to_update:
             self.cells[name].reload(module=modsrc)
 
-    def on_inherit(self, updater, bases, attr, txn=None):
-        """Reconcile ``attr`` ('cells' or 'own_refs') against ``bases``.
-
-        Without ``txn``: pre-pipeline behavior (immediate writes, used
-        by SpaceUpdater). With ``txn``: container writes are journaled,
-        notification/trace/deletion side effects are deferred to the
-        pipeline finalize stage. Phase 5 absorbs this reconciliation
-        into InheritanceSync.
-        """
-        attrs = {
-            "cells": self.on_del_cells,
-            "own_refs": self.on_del_ref
-        }
-
-        selfdict = getattr(self, attr)
-        basedict = CustomChainMap(*[getattr(b, attr) for b in bases])
-        selfkeys = list(selfdict)
-
-        for name in basedict: # ChainMap iterates from the last map
-
-            bs = [bm[name] for bm in basedict.maps
-                  if name in bm and bm[name].is_defined()]
-
-            if name not in selfdict:
-
-                if attr == "cells":
-                    if txn is None:
-                        selfdict[name] = UserCellsImpl(
-                            space=self, name=name, formula=None,
-                            is_derived=True)
-                    else:
-                        cells = UserCellsImpl(
-                            space=self, name=name, formula=None,
-                            is_derived=True, add_to_space=False)
-                        # The constructor registered the cells as an
-                        # observer of self; undo that on rollback.
-                        txn.add_undo(self.remove_observer, cells)
-                        txn.set_item(selfdict, name, cells)
-                        txn.add_created(cells)
-                        txn.mark_dirty(self, attr)
-
-                elif attr == "own_refs":
-                    ref = ReferenceImpl(
-                        self, name, None,
-                        container=self.own_refs,
-                        is_derived=True,
-                        refmode=bs[0].refmode
-                    )
-                    if txn is None:
-                        selfdict[name] = ref
-                    else:
-                        txn.set_item(selfdict, name, ref)
-                        txn.add_created(ref)
-                        txn.mark_dirty(self, attr)
-                else:
-                    raise RuntimeError("must not happen")
-
-            else:
-                # Remove & add back for reorder
-                if txn is None:
-                    selfdict[name] = selfdict.pop(name)
-                else:
-                    txn.move_to_end(selfdict, name)
-                selfkeys.remove(name)
-
-            if selfdict[name].is_derived():
-                selfdict[name].on_inherit(updater, bs, txn=txn)
-
-        for name in selfkeys:
-            if selfdict[name].is_derived():
-                if txn is None:
-                    attrs[attr](name)
-                else:
-                    member = selfdict[name]
-                    txn.del_item(selfdict, name)
-                    txn.add_removed(member)
-                    txn.mark_dirty(self, attr)
-            else:   # defined
-                if txn is None:
-                    selfdict[name] = selfdict.pop(name)
-                else:
-                    txn.move_to_end(selfdict, name)
-
     def on_del_cells(self, name):
         cells = self.cells[name]
         self.model.clear_obj(cells)
@@ -2502,53 +2417,11 @@ class UserSpaceImpl(*_user_space_impl_base):
         self.on_notify(self.cells)
         cells.on_delete()
 
-    def on_sort_cells(self, space):
-
-        for c in space.cells.values():
-            self.model.clear_obj(c)
-
-        if self.bases:
-
-            # Select names in space but not in space's bases
-
-            bases = [self] + list(self.bases)    # bases lists space's bases
-            while True:
-                if bases.pop(0) is space:
-                    break
-
-            keys = list(space.cells)
-            d = {}
-            for b in bases:
-                d.update(b.cells)
-
-            for k in d:
-                try:
-                    keys.remove(k)
-                except ValueError:
-                    pass
-
-            keys = sorted(keys)
-
-        else:
-            assert self is space
-            keys = None
-
-        sort_dict(self.cells, keys)
-
     def on_del_ref(self, name):
         self.model.clear_attr_referrers(self.own_refs[name])
         self.own_refs[name].on_delete()
         del self.own_refs[name]
         self.on_notify(self.own_refs)
-
-    def on_rename(self, name):
-        self.model.clear_obj(self)
-        self.clear_all_cells(clear_input=True, recursive=True, del_items=True)
-        old_name = self.name
-        self.name = name
-        self.parent.named_spaces[name] = self.parent.named_spaces.pop(old_name)
-        if isinstance(self.parent, NamespaceServer):    # TODO: Refactor
-            self.parent.on_notify(self.parent.named_spaces)
 
 
 class DynamicSpace(BaseSpace):
@@ -2636,7 +2509,9 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
     def _init_cells(self):
         for base in self._dynbase.cells.values():
-            DynamicCellsImpl(space=self, base=base, is_derived=True)
+            cells = DynamicCellsImpl(space=self, base=base, is_derived=True)
+            self.cells[cells.name] = cells
+            self.on_notify(self.cells)
 
     def _init_refs(self, arguments=None):
         self._allargs = self._init_allargs()

@@ -22,15 +22,27 @@ from modelx.core.base import (
     Derivable,
     null_impl
 )
-from modelx.core.cells import CellsImpl, UserCellsImpl
+from modelx.core.cells import UserCellsImpl
 from modelx.core.parent import EditableParentImpl
 from modelx.core.space import UserSpaceImpl
 from modelx.core.binding.namespace import NamespaceServer
 from modelx.core.formula import NULL_FORMULA
 from modelx.core.util import is_valid_name
 from modelx.core.inheritance.graph import SpaceGraph, split_node
+from modelx.core.inheritance.sync import InheritanceSync
 from modelx.core.edit.transaction import Instruction, InstructionList
-from modelx.core.edit.pipeline import NewRef, ChangeRef, DelRef
+from modelx.core.edit.pipeline import (
+    NewRef,
+    ChangeRef,
+    DelRef,
+    NewCells,
+    CopyCells,
+    DelCells,
+    RenameCells,
+    SetCellsProperty,
+    SortCells,
+    RenameSpace,
+)
 
 
 class SharedSpaceOperations:
@@ -38,6 +50,13 @@ class SharedSpaceOperations:
     def __init__(self, model):
         self.model = model
         self._graph = SpaceGraph()
+
+    @property
+    def sync(self):
+        """Derived-member synchronization over this operation's graph
+        (CoreRefactorDesign §5.6). Stateless, so it is constructed per
+        access instead of adding a slot to pickled model state."""
+        return InheritanceSync(self)
 
     def _can_add(self, parent, name, klass):
         """Check name conflict for a given name.
@@ -102,13 +121,6 @@ class SharedSpaceOperations:
         preds = self._graph.ordered_preds(node)
         return [self._graph.to_space(n) for n in preds]
 
-    def update_subs(self, space, skip_self=True):
-
-        for attr in ("cells", "own_refs"):
-            for s in self._get_subs(space, skip_self):
-                b = self._get_space_bases(s, self._graph)
-                s.on_inherit(self, b, attr)
-
     def _get_subs(self, space, skip_self=True):
         idx = 1 if skip_self else 0
         return [
@@ -137,40 +149,10 @@ class SharedSpaceOperations:
 class SpaceManager(SharedSpaceOperations):
 
     def rename_space(self, space, name):
-
-        # Check name does not exit already
-        parent = space.parent
-        if not self._can_add(
-                parent, name, UserSpaceImpl):
-            raise ValueError("Cannot rename '%s' to '%s'" % (space.name, name))
-
-        # Create name mapping
-        mapping = {}
-        old_id = tuple(space.idstr.split("."))
-        new_id = old_id[:-1] + (name,)
-        for node in self._graph.visit_tree(
-                space.idstr, include_self=True):
-
-            old_child = tuple(node.split("."))
-            assert old_id == old_child[:len(old_id)]
-            mapping[node] = ".".join(new_id + old_child[len(new_id):])
-
-        if not space.parent.is_model():
-            # Clear parent's dynsub, not s's
-            space.parent.clear_subs_rootitems()
-
-        # Call on_rename callbacks
-        space.on_rename(name)
-
-        # Rename nodes
-        nx.relabel_nodes(self._graph, mapping, copy=False)
+        self.model.editor.execute(RenameSpace(space, name))
 
     def del_cells(self, space, name):
-        cells = space.cells[name]
-        if cells.is_derived():
-            raise ValueError("cannot delete derived")
-        space.on_del_cells(name)
-        self.update_subs(space, skip_self=False)
+        self.model.editor.execute(DelCells(space, name))
 
     def del_ref(self, space, name, unregister=False):
         self.model.editor.execute(
@@ -178,42 +160,10 @@ class SpaceManager(SharedSpaceOperations):
 
     def new_cells(self, space, name=None, formula=None, data=None,
                   is_derived=False, is_cached=True, edit_source=True):
-
-        # FIX: Creating a Cells of the same name in ``space``
-
-        if not self._can_add(space, name, CellsImpl):
-            raise ValueError("Cannot create cells '%s'" % name)
-
-        cells = UserCellsImpl(
-            space=space, name=name, formula=formula,
-            data=data, is_derived=is_derived, is_cached=is_cached, edit_source=edit_source)
-        space.clear_subs_rootitems()
-
-        name = cells.name   # If name is none, auto-named in __init__
-
-        for subspace in self._get_subs(space):
-            if name in subspace.cells:
-                continue
-            else:
-                subspace.clear_subs_rootitems()
-                derived = UserCellsImpl(
-                    space=subspace,
-                    base=cells, is_derived=True, add_to_space=False,
-                    is_cached=is_cached
-                )
-                base_cells = {}
-                for b in reversed(subspace.bases):
-                    base_cells.update(b.cells)
-
-                idx = list(base_cells).index(name)
-                cells_after = list(subspace.cells)[idx:]
-                subspace.cells[name] = derived
-                subspace.on_notify(subspace.cells)
-
-                for k in cells_after:
-                    subspace.cells[k] = subspace.cells.pop(k)
-
-        return cells
+        return self.model.editor.execute(NewCells(
+            space, name=name, formula=formula, data=data,
+            is_derived=is_derived, is_cached=is_cached,
+            edit_source=edit_source))
 
     def copy_cells(self, space: UserSpaceImpl,
                    source: UserCellsImpl, name=None):
@@ -222,31 +172,11 @@ class SpaceManager(SharedSpaceOperations):
         if space.model is not self.model:
             return space.spmgr.copy_cells(space, source, name)
 
-        if name is None:
-            name = source.name
-
-        data = {k: v for k, v in source.data.items() if k in source.input_keys}
-        return self.new_cells(space, name=name, formula=source.formula,
-                       data=data, is_derived=False)
+        return self.model.editor.execute(CopyCells(space, source, name))
 
     def rename_cells(self, cells, name):
         """Renames the Cells name"""
-        if not is_valid_name(name):
-            raise ValueError("name '%s' is invalid" % name)
-
-        if not self._can_add(cells.parent, name, CellsImpl):
-            raise ValueError("cannot create cells '%s'" % name)
-
-        if cells.bases:
-            raise ValueError("'%s' is a sub Cells of '%s'" % (
-                cells.get_repr(fullname=True, add_params=False),
-                cells.bases[0].get_repr(fullname=True, add_params=False)))
-
-        old_name = cells.name
-
-        for space in self._get_subs(cells.parent, skip_self=False):
-            space.clear_subs_rootitems()
-            space.cells[old_name].on_rename(name)
+        self.model.editor.execute(RenameCells(cells, name))
 
     def sort_cells(self, space):
         """Sort cells in a space
@@ -256,22 +186,12 @@ class SpaceManager(SharedSpaceOperations):
           are sorted and placed before the derived/overridden cells.
         - Derived/overridden cells in the sub spaces are also sorted.
         """
-        for subspace in self._get_subs(space, skip_self=False):
-            subspace.on_sort_cells(space=space)
+        self.model.editor.execute(SortCells(space))
 
     def set_cells_property(self, cells, flags, func, enable_cache):
         """Set formula and/or is_enabled"""
-        define = True
-        for space in self._get_subs(cells.parent, skip_self=False):
-            c = space.cells[cells.name]
-            if (c is not cells and c.is_defined() and
-                    self.get_deriv_bases(c, defined_only=True)[0] is cells):
-                continue   # Skip when c's base is not cells
-            space.clear_subs_rootitems()
-            space.cells[cells.name].on_set_property(
-                flags, define, func, enable_cache
-            )
-            define = False  # Do not define derived cells
+        self.model.editor.execute(
+            SetCellsProperty(cells, flags, func, enable_cache))
 
     def set_cells_formula(self, cells, func):
         self.set_cells_property(cells, UserCellsImpl.PROP_FORMULA, func, True)
@@ -342,7 +262,7 @@ class SpaceUpdater(SharedSpaceOperations):
     def _update_derived_space(self, node):
         space = self._graph.to_space(node)
         bases = self._get_space_bases(space, self._graph)
-        space.on_inherit(self, bases, 'cells')
+        self.sync.reconcile(space, bases, 'cells')
         self._instructions.append(
             Instruction(self._update_derived_refs, (node,))
         )
@@ -350,7 +270,7 @@ class SpaceUpdater(SharedSpaceOperations):
     def _update_derived_refs(self, node):
         space = self._graph.to_space(node)
         bases = self._get_space_bases(space, self._graph)
-        space.on_inherit(self, bases, 'own_refs')
+        self.sync.reconcile(space, bases, 'own_refs')
 
     def _remove_hook(self, graph, node):
 

@@ -3,6 +3,29 @@ from modelx.core.errors import DeletedObjectError
 import pytest
 
 
+def test_new_cells_invalid_formula_rolls_back():
+    """A new_cells whose formula fails to parse leaves the space intact:
+    no leftover cells, no half-built observer breaking later edits."""
+    m = mx.new_model()
+    s = m.new_space("A")
+    s.new_cells(name="good", formula=lambda: 1)
+
+    observers_before = list(s._impl.observers)
+
+    with pytest.raises(SyntaxError):
+        s.new_cells(name="bad", formula="this is not valid python")
+
+    assert list(s._impl.cells) == ["good"]
+    assert s._impl.observers == observers_before
+
+    # Subsequent edits work
+    s.new_cells(name="bar", formula="def bar(): return good() + 1")
+    assert s.bar() == 2
+
+    m._impl._check_sanity()
+    m.close()
+
+
 def test_new_cells_in_dynbase():
     """
         m----Parent----Parent[x]<--Base

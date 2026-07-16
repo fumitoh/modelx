@@ -24,6 +24,11 @@ class ItemSpaceManager:
     fan-out. Phase 7 replaces this with closure-based selective
     invalidation.
 
+    Edits that do not change namespaces (cells formula changes and
+    renames) instead record spaces in ``ChangeSet.cleared_subs``, which
+    applies the selective pre-pipeline ``clear_subs_rootitems`` policy:
+    only the root itemspaces of the space's dynamic subs are cleared.
+
     Stateless: constructed per access by ``ModelImpl.itemspacemgr`` so
     that no new slot enters pickled model state.
     """
@@ -32,6 +37,9 @@ class ItemSpaceManager:
         self.model = model
 
     def invalidate(self, changes):
+        for space in changes.cleared_subs:
+            space.clear_subs_rootitems()
+
         spaces = {}     # dict as insertion-ordered set
         for parent, attr in changes.dirty_containers:
             if parent.is_model():

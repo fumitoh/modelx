@@ -159,6 +159,21 @@ class SpaceGraph(nx.DiGraph):
     def to_space(self, node):
         return self.nodes[node]["space"]
 
+    def get_rename_mapping(self, node, name):
+        """Map ``node`` and its child tree to their names after renaming
+        ``node``'s last component to ``name``. Pure; does not mutate."""
+        mapping = {}
+        old_id = tuple(node.split("."))
+        new_id = old_id[:-1] + (name,)
+        for child in self.visit_tree(node, include_self=True):
+            old_child = tuple(child.split("."))
+            assert old_id == old_child[:len(old_id)]
+            mapping[child] = ".".join(new_id + old_child[len(new_id):])
+        return mapping
+
+    def relabel(self, mapping):
+        nx.relabel_nodes(self, mapping, copy=False)
+
     def get_relative(self, subspace, basespace, basevalue):
 
         shared_parent = get_shared_asc(basespace, basevalue)

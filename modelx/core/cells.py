@@ -17,7 +17,7 @@ from collections.abc import Mapping, Callable, Sequence
 from itertools import combinations
 
 from modelx.core.base import (
-    Impl, Derivable, Interface, get_mixin_slots, _rename_item
+    Impl, Derivable, Interface, get_mixin_slots
 )
 from modelx.core.execution.trace import (
     OBJ, KEY, get_node, get_node_repr, tuplize_key, key_to_node
@@ -662,8 +662,10 @@ class CellsImpl(*_cells_impl_base):
 
     def __init__(
         self, *, space, name=None, formula=None, data=None, base=None,
-        is_derived=False, add_to_space=True, is_cached=True, edit_source=True
+        is_derived=False, is_cached=True, edit_source=True
     ):
+        # Side-effect-free w.r.t. the parent's cells container (D-11):
+        # the caller registers self into ``space.cells``.
         formula_temp = None
         use_func_name = False
         # Determine name
@@ -691,35 +693,40 @@ class CellsImpl(*_cells_impl_base):
         )
         Derivable.__init__(self, is_derived)
 
-        if add_to_space:    # Assign to space before calling AlteredFunction.__init__ to avoid getting notified
-            space.cells[name] = self
-            space.on_notify(space.cells)
-
         AlteredFunction.__init__(self, space)
 
-        # Set formula
-        if base:
-            self.formula = base.formula
-        elif formula is None:
-            self.formula = NullFormula(NULL_FORMULA, name=name)
-        elif isinstance(formula, Formula):
-            self.formula = formula.__class__(formula, name=name)
-        elif use_func_name:
-            self.formula = formula_temp
-        else:
-            self.formula = Formula(formula, name=name, edit_source=edit_source)
+        try:
+            # Set formula
+            if base:
+                self.formula = base.formula
+            elif formula is None:
+                self.formula = NullFormula(NULL_FORMULA, name=name)
+            elif isinstance(formula, Formula):
+                self.formula = formula.__class__(formula, name=name)
+            elif use_func_name:
+                self.formula = formula_temp
+            else:
+                self.formula = Formula(
+                    formula, name=name, edit_source=edit_source)
 
-        if base:
-            self.is_cached = base.is_cached
-        else:
-            self.is_cached = is_cached
+            if base:
+                self.is_cached = base.is_cached
+            else:
+                self.is_cached = is_cached
 
-        # Set data
-        self.data = {}
-        if data is None:
-            data = {}
-        self.data.update(data)
-        self.input_keys = set(data.keys())
+            # Set data
+            self.data = {}
+            if data is None:
+                data = {}
+            self.data.update(data)
+            self.input_keys = set(data.keys())
+        except BaseException:
+            # Formula parsing can fail here; a half-built cells must not
+            # stay registered as an observer of the space (the caller's
+            # rollback journals the deregistration only after this
+            # constructor returns).
+            space.remove_observer(self)
+            raise
 
     def on_notify(self, namespace):
         AlteredFunction.on_notify(self, namespace)
@@ -764,11 +771,20 @@ class CellsImpl(*_cells_impl_base):
             # finalize stage and skipped when nothing changed. The
             # namespace entry (the bound ``call``) is unaffected by an
             # in-place rebind, so no container is marked dirty.
+            old_is_cached = self.is_cached
             txn.set_attr(self, "formula", bases[0].formula)
             txn.set_attr(self, "allow_none", bases[0].allow_none)
             txn.set_attr(self, "is_cached", bases[0].is_cached)
             txn.set_attr(self, "is_altfunc_updated", False)
-            txn.add_modified(self)
+            if old_is_cached != bases[0].is_cached:
+                # The deferred clear must dispatch on the pre-edit flag:
+                # clear_obj selects the graph to clear by is_cached, and
+                # the values were recorded under the old flag.
+                model = self.model
+                txn.changes.finalize_ops.append(
+                    lambda: model.clear_obj(self, is_cached=old_is_cached))
+            else:
+                txn.add_modified(self)
 
     @property
     def doc(self):
@@ -927,12 +943,11 @@ class UserCellsImpl(CellsImpl):
 
     def __init__(
         self, space, name=None, formula=None, data=None, base=None,
-        is_derived=False, add_to_space=True,
-        is_cached=True, edit_source=True
+        is_derived=False, is_cached=True, edit_source=True
     ):
         CellsImpl.__init__(
             self, space=space, name=name, formula=formula, data=data,
-            base=base, is_derived=is_derived, add_to_space=add_to_space,
+            base=base, is_derived=is_derived,
             is_cached=is_cached, edit_source=edit_source
         )
 
@@ -959,54 +974,67 @@ class UserCellsImpl(CellsImpl):
 
         self.spmgr.set_cells_formula(self, funcdef)
 
-    def on_rename(self, name):
+    def on_rename(self, name, txn):
         """Renames the Cells name
 
-        - Clears DynamicCells of self
-        - Updates the parent namespace
-        - Clears successors
-            - Clears DynamicCells of self
-        - Renames sub Cells (Repeats the above for the sub Cells)
+        Writes are journaled through ``txn``; trace clearing is deferred
+        to the pipeline finalize stage via the modified list.
         """
-        self.model.clear_obj(self)
         old_name = self.name
-        self.name = name
+        txn.set_attr(self, "name", name)
 
         # Change function name
         if not self.formula._is_lambda:
             if self.is_derived():
                 base = self.bases[0]
-                self.formula = base.formula
+                txn.set_attr(self, "formula", base.formula)
             else:
-                self.formula = Formula(self.formula, name=name)
+                txn.set_attr(self, "formula", Formula(self.formula, name=name))
 
-            self.is_altfunc_updated = False
+            txn.set_attr(self, "is_altfunc_updated", False)
 
-        _rename_item(self.parent.cells, old_name, name)
+        txn.rename_item(self.parent.cells, old_name, name)
+        txn.add_modified(self)
 
-    def on_set_property(self, flags, define, func, enable_cache):
-        """Set formula and/or is_cached"""
+    def on_set_property(self, flags, define, func, enable_cache, txn):
+        """Set formula and/or is_cached
 
-        self.model.clear_obj(self)
+        Writes are journaled through ``txn``; trace clearing is deferred
+        to the pipeline finalize stage via the modified list — except
+        when ``is_cached`` flips, where the deferred clear must dispatch
+        on the pre-edit flag (``clear_obj`` selects the graph to clear
+        by ``is_cached``, and the values were recorded under the old
+        flag), so it is queued explicitly with that flag instead.
+        """
+        cleared = False
 
         if self.is_derived() and define:
-            self.set_defined()
+            txn.set_attr(self, "_is_derived", False)    # set_defined
 
         if flags & self.PROP_FORMULA:
 
             if isinstance(func, NullFormula):
-                self.formula = NULL_FORMULA
+                txn.set_attr(self, "formula", NULL_FORMULA)
             else:
                 if isinstance(func, Formula):
                     cls = func.__class__
                 else:
                     cls = Formula
-                self.formula = cls(func, name=self.name)
+                txn.set_attr(self, "formula", cls(func, name=self.name))
 
-            self.is_altfunc_updated = False
+            txn.set_attr(self, "is_altfunc_updated", False)
 
         if flags & self.PROP_CACHE:
-            self.is_cached = enable_cache
+            old_is_cached = self.is_cached
+            if old_is_cached != enable_cache:
+                model = self.model
+                txn.changes.finalize_ops.append(
+                    lambda: model.clear_obj(self, is_cached=old_is_cached))
+                cleared = True
+            txn.set_attr(self, "is_cached", enable_cache)
+
+        if not cleared:
+            txn.add_modified(self)
 
 
 class DynamicCellsImpl(CellsImpl):

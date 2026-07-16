@@ -165,3 +165,56 @@ def test_uncached_cells_error(method):
         getattr(foo, method)(0)
 
     m.close()
+
+
+def test_disable_cache_clears_values():
+    """Toggling is_cached off clears the cells' values and dependents
+    recorded in the trace graph, so later formula changes propagate."""
+    m = mx.new_model()
+    s = m.new_space()
+
+    @mx.defcells(space=s)
+    def foo():
+        return 1
+
+    @mx.defcells(space=s)
+    def bar():
+        return foo() + 1
+
+    assert bar() == 2
+
+    foo.is_cached = False
+    assert foo._impl.data == {}
+    assert bar._impl.data == {}
+
+    foo.formula = lambda: 100
+    assert bar() == 101
+
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_enable_cache_clears_values():
+    """Toggling is_cached on clears dependents recorded in the reference
+    graph, so later formula changes propagate."""
+    m = mx.new_model()
+    s = m.new_space()
+
+    @mx.defcells(space=s, is_cached=False)
+    def foo():
+        return 1
+
+    @mx.defcells(space=s)
+    def bar():
+        return foo() + 1
+
+    assert bar() == 2
+
+    foo.is_cached = True
+    assert bar._impl.data == {}
+
+    foo.formula = lambda: 100
+    assert bar() == 101
+
+    m._impl._check_sanity()
+    m.close()
