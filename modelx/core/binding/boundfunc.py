@@ -59,17 +59,26 @@ class AlteredFunction(BaseNamespaceReferrer):
     _global_names: tuple
     _altfunc: FunctionType
 
-    def __init__(self, server):
+    def __init__(self, server, observe=True):
         """Create altered function from owner's formula.
 
         owner is a UserSpaceImpl or CellsImpl, which has formula, and
         namespace_impl as its members.
         """
-        BaseNamespaceReferrer.__init__(self, server)
+        BaseNamespaceReferrer.__init__(self, server, observe=observe)
         self.is_altfunc_updated = False
         self._is_global_updated = False
 
     def on_notify(self, subject: Subject):
+        self.on_ns_invalidated()
+
+    def on_ns_invalidated(self):
+        """Invalidate namespace-dependent caches.
+
+        Called directly by NamespaceServer.on_notify when self is the
+        server (spaces), or via on_notify when observing a separate
+        server (cells).
+        """
         self.is_altfunc_updated = False
         self._is_global_updated = False
 

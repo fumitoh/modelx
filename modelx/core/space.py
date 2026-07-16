@@ -1984,7 +1984,10 @@ class BaseSpaceImpl(*_base_space_impl_base):
         )
 
         ItemSpaceParent.__init__(self, formula)
-        AlteredFunction.__init__(self, self)
+        # observe=False: the space is its own namespace server; its caches
+        # are invalidated via the direct on_ns_invalidated hook (D-12)
+        # instead of the space observing itself.
+        AlteredFunction.__init__(self, self, observe=False)
 
         container[name] = self
 
@@ -1996,13 +1999,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
                 self.own_refs[key] = ReferenceImpl(self, key, value, container=self.own_refs,
                               refmode="auto", set_item=False)
 
-
-    def on_notify(self, subject):
-        if subject is self.ns_server:
-            assert subject is self
-            AlteredFunction.on_notify(self, subject)
-        else:
-            NamespaceServer.on_notify(self, subject)
 
     def on_update_ns(self):
         for k, v in self.named_spaces.items():
@@ -2027,6 +2023,10 @@ class BaseSpaceImpl(*_base_space_impl_base):
     def __setstate__(self, state):
         for k, v in state.items():
             setattr(self, k, v)
+        # Pickles from versions before the self-observation removal (D-12)
+        # contain the space in its own observer list; with the identity
+        # dispatch gone, that edge would recurse infinitely on notify.
+        self.observers = [obs for obs in self.observers if obs is not self]
         self.dynamic_cache = weakref.WeakValueDictionary()
 
     def _init_refs(self, arguments=None):
