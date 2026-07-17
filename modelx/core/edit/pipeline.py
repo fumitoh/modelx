@@ -95,9 +95,13 @@ class ModelEditor:
             if isinstance(impl, ReferenceImpl):
                 model.clear_attr_referrers(impl)
             elif isinstance(impl, UserSpaceImpl):
-                # Deleted spaces clear their cells' traces through
-                # on_delete below (pre-pipeline behavior).
-                pass
+                # Delete the space's own live itemspaces through the
+                # trace graph (clear_with_descs -> on_clear_trace ->
+                # _del_itemspace) while the removed tree is still
+                # alive; on_delete below clears cells' traces but not
+                # itemspaces, and ItemSpaceManager.invalidate reaches
+                # only live spaces.
+                impl.del_all_itemspaces()
             else:
                 model.clear_obj(impl)
         for impl in changes.modified:
