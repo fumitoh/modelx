@@ -1948,12 +1948,14 @@ class BaseSpaceImpl(*_base_space_impl_base):
         self,
         parent,
         name,
-        container,
         formula=None,
-        refs=None,
         arguments=None,
         doc=None
     ):
+        # Side-effect-free outside self (D-11): registration into the
+        # parent's container and initial-ref creation are performed by
+        # the caller — the pipeline's apply stage for UserSpaceImpl and
+        # DynamicSpaceImpl.__init__ for dynamic spaces.
         Impl.__init__(
             self,
             system=parent.system,
@@ -1986,17 +1988,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
         # are invalidated via the direct on_ns_invalidated hook (D-12)
         # instead of the space observing itself.
         AlteredFunction.__init__(self, self, observe=False)
-
-        container[name] = self
-
-        # ------------------------------------------------------------------
-        # Add initial refs members
-
-        if refs is not None:
-            for key, value in refs.items():
-                self.own_refs[key] = ReferenceImpl(self, key, value, container=self.own_refs,
-                              refmode="auto")
-
 
     def on_update_ns(self):
         for k, v in self.named_spaces.items():
@@ -2171,9 +2162,7 @@ class UserSpaceImpl(*_user_space_impl_base):
         self,
         parent,
         name,
-        container,
         formula=None,
-        refs=None,
         source=None,
         doc=None
     ):
@@ -2181,9 +2170,7 @@ class UserSpaceImpl(*_user_space_impl_base):
             self,
             parent=parent,
             name=name,
-            container=container,
             formula=formula,
-            refs=refs,
             doc=doc
         )
         DynamicBase.__init__(self)
@@ -2496,12 +2483,19 @@ class DynamicSpaceImpl(BaseSpaceImpl):
             self,
             parent,
             name,
-            container,
             base.formula,
-            refs,
             arguments,
             base.doc
         )
+
+        container[name] = self
+
+        if refs is not None:
+            for key, value in refs.items():
+                self.own_refs[key] = ReferenceImpl(
+                    self, key, value, container=self.own_refs,
+                    refmode="auto")
+
         self._init_cells()
 
     def _init_root(self, parent):

@@ -54,9 +54,7 @@ from modelx.core.inheritance.graph import (
 from modelx.core.inheritance.manager import (
     SharedSpaceOperations,
     SpaceManager,
-    SpaceUpdater,
 )
-from modelx.core.edit.transaction import Instruction, InstructionList
 from modelx.core.edit.pipeline import (
     ModelEditor,
     NewGlobalRef,
@@ -1283,7 +1281,13 @@ class ModelImpl(*_model_impl_base):
 
     @property
     def updater(self):
-        return SpaceUpdater(self.spmgr)
+        """Backward-compat alias for :attr:`spmgr` (D-10).
+
+        The graph-mutating operations that used to live on a
+        per-operation ``SpaceUpdater`` are facade methods on the
+        space manager since Phase 6.
+        """
+        return self.spmgr
 
     @property
     def editor(self):

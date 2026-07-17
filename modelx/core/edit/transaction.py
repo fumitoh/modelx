@@ -15,42 +15,6 @@
 from modelx.core.base import _rename_item, sort_dict
 
 
-class Instruction:
-
-    def __init__(self, func, args=(), arghook=None, kwargs=None):
-
-        self.func = func
-        self.args = args
-        self.arghook = arghook
-        self.kwargs = kwargs if kwargs else {}
-
-    def execute(self):
-        if self.arghook:
-            args, kwargs = self.arghook(self)
-        else:
-            args, kwargs = self.args, self.kwargs
-
-        return self.func(*args, **kwargs)
-
-    @property
-    def funcname(self):
-        return self.func.__name__
-
-    def __repr__(self):
-        return "<Instruction: %s>" % self.funcname
-
-
-class InstructionList(list):
-
-    def execute(self, clear=True):
-        result = None
-        for inst in self:
-            result = inst.execute()
-        if clear:
-            self.clear()
-        return result
-
-
 class ChangeSet:
     """What one committed edit did to the model (CoreRefactorDesign §5.4).
 
@@ -63,6 +27,7 @@ class ChangeSet:
     __slots__ = (
         "created",
         "removed",
+        "removed_spaces",
         "modified",
         "dirty_containers",
         "dirty_spaces",
@@ -74,6 +39,10 @@ class ChangeSet:
     def __init__(self):
         self.created = []           # new impls, including derived ones
         self.removed = []           # impls taken out of containers
+        self.removed_spaces = []    # spaces deleted by this edit (also
+                                    # in removed); lets ref re-derivation
+                                    # treat values inside the deleted
+                                    # trees as already invalid
         self.modified = []          # impls rebound/changed in place
         self.dirty_containers = {}  # (parent_impl, attr) -> None
         self.dirty_spaces = {}      # idstr -> None
@@ -105,15 +74,37 @@ class Transaction:
     Edits route every structural write through this object so that
     ``rollback`` can restore the model bit-identically — including dict
     ordering, which is observable through namespaces and serialization.
-    The shadow-graph half arrives with the graph-mutating edits
-    (Phase 6); the reference edits of Phase 4 do not touch the
-    inheritance graph.
+
+    Graph-mutating edits work on a shadow copy of the inheritance graph
+    obtained from :meth:`get_shadow_graph`: the pristine pre-edit graph
+    is kept aside and swapped back in on rollback, so the shadow can be
+    mutated freely without journaling individual graph writes.
     """
 
     def __init__(self, model):
         self.model = model
         self.changes = ChangeSet()
         self._journal = []      # undo records, replayed in reverse
+        self._old_graph = None  # pre-edit graph, kept for rollback
+
+    # ----------------------------------------------------------------------
+    # Shadow graph
+
+    def get_shadow_graph(self):
+        """The inheritance graph the edit reads and mutates.
+
+        On first access the manager's graph is copied and the copy is
+        installed as ``spmgr._graph``, so that all graph queries issued
+        while the edit runs (``_get_subs``, MRO and relative-reference
+        resolution in the derive stage) see the mutated state.
+        ``commit`` keeps the copy; ``rollback`` swaps the untouched
+        pre-edit graph back in.
+        """
+        spmgr = self.model.spmgr
+        if self._old_graph is None:
+            self._old_graph = spmgr._graph
+            spmgr._graph = self._old_graph.copy()
+        return spmgr._graph
 
     # ----------------------------------------------------------------------
     # Journaled writes
@@ -163,6 +154,21 @@ class Transaction:
 
     def add_removed(self, impl):
         self.changes.removed.append(impl)
+
+    def add_removed_space(self, space):
+        self.changes.removed.append(space)
+        self.changes.removed_spaces.append(space)
+
+    def is_in_removed_space(self, impl):
+        """True if ``impl`` is, or lives inside, a space this edit
+        removes. Deletions are finalized post-commit, so during the
+        derive stage such impls still look alive; refs targeting them
+        must nevertheless re-derive as if the target were already
+        deleted (pre-pipeline deletion order)."""
+        for space in self.changes.removed_spaces:
+            if impl is space or impl.has_ascendant(space):
+                return True
+        return False
 
     def add_modified(self, impl):
         self.changes.modified.append(impl)
@@ -214,7 +220,11 @@ class Transaction:
                 func(*args)
             else:
                 raise RuntimeError("must not happen")
+        if self._old_graph is not None:
+            self.model.spmgr._graph = self._old_graph
+            self._old_graph = None
         self.changes = ChangeSet()
 
     def commit(self):
         self._journal.clear()
+        self._old_graph = None

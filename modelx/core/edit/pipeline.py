@@ -20,11 +20,18 @@ any exception, and performs all side effects (trace invalidation,
 deletions, batched namespace notification, ValueRegistry/IOSpec
 bookkeeping, itemspace invalidation) post-commit in ``_finalize``.
 
-Phase 4 covered the reference mutations end-to-end; Phase 5 adds the
-cells and non-graph space mutations. The ``derive`` stages delegate to
-``InheritanceSync`` (``inheritance/sync.py``), the single home of
+Phase 4 covered the reference mutations end-to-end; Phase 5 added the
+cells and non-graph space mutations; Phase 6 adds the graph-mutating
+space edits (``NewSpace``, ``AddBases``, ``RemoveBases``, ``DelSpace``),
+which mutate the transaction's shadow graph so that a failed edit
+leaves the inheritance graph untouched. The ``derive`` stages delegate
+to ``InheritanceSync`` (``inheritance/sync.py``), the single home of
 derived-member creation.
 """
+
+import itertools
+
+import networkx as nx
 
 from modelx.core.binding.namespace import NamespaceServer
 from modelx.core.reference import ReferenceImpl
@@ -87,6 +94,10 @@ class ModelEditor:
         for impl in changes.removed:
             if isinstance(impl, ReferenceImpl):
                 model.clear_attr_referrers(impl)
+            elif isinstance(impl, UserSpaceImpl):
+                # Deleted spaces clear their cells' traces through
+                # on_delete below (pre-pipeline behavior).
+                pass
             else:
                 model.clear_obj(impl)
         for impl in changes.modified:
@@ -436,6 +447,227 @@ class RenameSpace(Edit):
         inverse = {new: old for old, new in self._mapping.items()}
         txn.add_undo(graph.relabel, inverse)
         graph.relabel(self._mapping)
+
+
+# ----------------------------------------------------------------------
+# Graph-mutating space edits (Phase 6)
+
+
+class NewSpace(Edit):
+    """Create a space, optionally derived from base spaces.
+
+    ``validate`` builds the new node and its base edges on the shadow
+    graph and checks acyclicity and MRO feasibility there, before any
+    component-dict write.
+    """
+
+    def __init__(self, parent, name=None, bases=None, formula=None,
+                 refs=None, source=None, prefix="", doc=None):
+        self.parent = parent
+        self.name = name
+        if bases is None:
+            bases = []
+        elif isinstance(bases, UserSpaceImpl):
+            bases = [bases]
+        self.bases = bases
+        self.formula = formula
+        self.refs = refs
+        self.source = source
+        self.prefix = prefix
+        self.doc = doc
+        self.node = None
+
+    def validate(self, model, txn):
+        parent, spmgr = self.parent, model.spmgr
+
+        if self.name is None:
+            while True:
+                name = parent.spacenamer.get_next(
+                    parent.namespace, self.prefix)
+                if spmgr._can_add(parent, name, UserSpaceImpl):
+                    break
+            self.name = name
+        elif not spmgr._can_add(parent, self.name, UserSpaceImpl):
+            raise ValueError("Cannot create space '%s'" % self.name)
+
+        if not self.prefix and not is_valid_name(self.name):
+            raise ValueError("Invalid name '%s'." % self.name)
+
+        node = (self.name if parent.is_model()
+                else parent.idstr + "." + self.name)
+        self.node = node
+
+        graph = txn.get_shadow_graph()
+        graph.add_node(node)
+
+        for b in self.bases:
+            graph.add_edge(
+                b.idstr,
+                node,
+                level=0,
+                index=graph.max_index(node) + 1
+            )
+
+        if not nx.is_directed_acyclic_graph(graph):
+            raise ValueError("cyclic inheritance")
+
+        graph.get_mro(node)  # Check if MRO is possible
+
+        # Check if MRO is possible for each node in sub graph
+        for n in nx.descendants(graph, node):
+            graph.get_mro(n)
+
+    def apply(self, model, txn):
+        parent = self.parent
+        space = UserSpaceImpl(
+            parent,
+            self.name,
+            formula=self.formula,
+            source=self.source,
+            doc=self.doc
+        )
+        txn.set_item(parent.named_spaces, self.name, space)
+        txn.add_created(space)
+        if not parent.is_model():
+            txn.mark_dirty(parent, "named_spaces")   # Fix: bug GH203
+
+        graph = txn.get_shadow_graph()
+        graph.nodes[self.node]["space"] = space
+        graph.nodes[self.node]["state"] = "created"
+
+        if self.refs is not None:
+            for key, value in self.refs.items():
+                create_ref(txn, space, key, value,
+                           is_derived=False, refmode="auto")
+
+        self.result = space
+
+    def derive(self, model, txn):
+        model.spmgr.sync.derive_subs(self.result, txn, skip_self=False)
+
+
+class AddBases(Edit):
+    """Add base spaces to a space."""
+
+    def __init__(self, space, bases):
+        self.space = space
+        self.bases = bases
+
+    def validate(self, model, txn):
+        graph = txn.get_shadow_graph()
+        node = self.space.idstr
+        basenodes = [base.idstr for base in self.bases]
+
+        for base in [node] + basenodes:
+            if base not in graph:
+                raise ValueError("Space '%s' not found" % base)
+
+        for b in basenodes:
+            graph.add_edge(
+                b,
+                node,
+                level=0,
+                index=graph.max_index(node) + 1
+            )
+
+        if not nx.is_directed_acyclic_graph(graph):
+            raise ValueError("cyclic inheritance")
+
+        affected = list(itertools.chain(
+            {node}, nx.descendants(graph, node)))
+
+        for n in affected:
+            graph.get_mro(n)
+
+        for desc in affected:
+            mro = graph.get_mro(desc)
+
+            # Union of inheritable member names across the MRO
+            members = set()
+            for attr in ("cells", "own_refs"):
+                for sname in mro:
+                    members.update(getattr(graph.to_space(sname), attr))
+
+            # Child spaces are not inherited into subs, so only a
+            # space's OWN child spaces can collide with the cells and
+            # refs it inherits; a base's child-space name never enters
+            # the sub's namespace. Including base named_spaces here
+            # would reject legitimate models — and make them unloadable,
+            # because deserialization replays bases via add_bases.
+            conflict = set(graph.to_space(desc).named_spaces) & members
+            if conflict:
+                raise NameError("name conflict: %s" % conflict)
+
+    def apply(self, model, txn):
+        pass
+
+    def derive(self, model, txn):
+        model.spmgr.sync.derive_subs(self.space, txn, skip_self=False)
+
+
+class RemoveBases(Edit):
+    """Remove base spaces from a space."""
+
+    def __init__(self, space, bases):
+        self.space = space
+        self.bases = bases
+
+    def validate(self, model, txn):
+        graph = txn.get_shadow_graph()
+        node = self.space.idstr
+        basenodes = [base.idstr for base in self.bases]
+
+        for base in [node] + basenodes:
+            if base not in graph:
+                raise ValueError("Space '%s' not found" % base)
+
+        for b in basenodes:
+            graph.remove_edge(b, node)
+
+    def apply(self, model, txn):
+        pass
+
+    def derive(self, model, txn):
+        model.spmgr.sync.derive_subs(self.space, txn, skip_self=False)
+
+
+class DelSpace(Edit):
+    """Delete a defined space together with its child space tree."""
+
+    def __init__(self, space):
+        self.space = space
+        self._affected = None
+
+    def validate(self, model, txn):
+        if self.space.idstr not in txn.get_shadow_graph():
+            raise ValueError("Space '%s' not found" % self.space.idstr)
+
+    def apply(self, model, txn):
+        graph = txn.get_shadow_graph()
+        node = self.space.idstr
+
+        removed_nodes = list(graph.visit_tree(node))
+        removed_set = set(removed_nodes)
+
+        # Inheritance subs losing a base; re-derived in the derive
+        # stage against their remaining bases.
+        self._affected = [
+            graph.to_space(n) for n in graph.ordered_subs(node)
+            if n not in removed_set
+        ]
+
+        for n in removed_nodes:
+            space = graph.to_space(n)
+            txn.del_item(space.parent.named_spaces, space.name)
+            txn.add_removed_space(space)
+
+        graph.remove_nodes_from(removed_nodes)
+
+        if self.space is model.currentspace:
+            txn.set_attr(model, "currentspace", None)
+
+    def derive(self, model, txn):
+        model.spmgr.sync.derive_spaces(self._affected, txn)
 
 
 # ----------------------------------------------------------------------
