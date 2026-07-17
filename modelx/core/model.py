@@ -36,25 +36,15 @@ from modelx.core.chainmap import CustomChainMap
 from modelx.core.views import RefView, MacroView
 from modelx.core.macro import MacroImpl
 
-# Import aliases for names moved out of this module in Phase 1 of the
-# core refactoring. Runtime pickles of live models record these classes
-# under their historical modelx.core.model paths, so the aliases for
-# pickle-relevant classes are permanent.
-from modelx.core.inheritance.graph import (
-    SpaceGraph,
-    split_node,
-    len_node,
-    trim_left,
-    trim_right,
-    _get_shared_part,
-    get_shared_asc,
-    get_shared_desc,
-    has_parent,
-)
-from modelx.core.inheritance.manager import (
-    SharedSpaceOperations,
-    SpaceManager,
-)
+# Permanent import aliases (Phase 8, CoreRefactorDesign §7): runtime
+# pickles of live models record classes by module path, so classes whose
+# instances appear in pickles keep aliases under their historical
+# modelx.core.model paths. SpaceManager is pickled as Impl.spmgr and
+# SpaceGraph inside it. The non-pickle-relevant Phase 1 aliases (the
+# idstr node helpers, SharedSpaceOperations, ReferenceManager) were
+# retired in Phase 8.
+from modelx.core.inheritance.graph import SpaceGraph
+from modelx.core.inheritance.manager import SpaceManager
 from modelx.core.edit.pipeline import (
     ModelEditor,
     NewGlobalRef,
@@ -62,7 +52,7 @@ from modelx.core.edit.pipeline import (
     DelGlobalRef,
 )
 from modelx.core.itemspaces import ItemSpaceManager
-from modelx.core.refs import ValueRegistry, ReferenceManager
+from modelx.core.refs import ValueRegistry
 
 
 class IOSpecOperation:
