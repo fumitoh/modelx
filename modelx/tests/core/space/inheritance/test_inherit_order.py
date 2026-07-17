@@ -1,13 +1,13 @@
 """Characterization tests for the two-phase inheritance order.
 
 Phase 0 of the core refactoring (devnotes/CoreRefactorDesign.md):
-``InstructionList.execute`` iterates a plain list while
-``SpaceUpdater._update_derived_space`` appends the ref-sync instructions
-mid-iteration, so all 'cells' syncs across the affected subgraph run
-before all 'own_refs' syncs.  Relative-reference resolution relies on the
-targets (derived cells) already existing when refs are derived.  Any
-replacement pipeline (Phase 6) must preserve this ordering explicitly;
-these tests freeze its observable effect.
+all 'cells' syncs across the affected subgraph run before all
+'own_refs' syncs.  Relative-reference resolution relies on the targets
+(derived cells) already existing when refs are derived.  The order,
+originally an emergent effect of the retired SpaceUpdater's
+self-appending instruction list, is preserved explicitly by
+``InheritanceSync.derive_spaces`` (Phase 6); these tests freeze its
+observable effect.
 """
 
 import modelx as mx

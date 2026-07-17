@@ -26,11 +26,9 @@ paths:
     (:meth:`derive_new_ref`/:meth:`derive_change_ref`).
 
 Member-level ``CellsImpl.on_inherit``/``ReferenceImpl.on_inherit``
-remain as callbacks invoked from here, with container writes routed
-through the transaction when one is given. Without a transaction the
-methods perform the pre-pipeline immediate writes; this path is used by
-``SpaceUpdater`` until the graph mutations move into the pipeline
-(Phase 6).
+remain as callbacks invoked from here, with all container writes routed
+through the transaction. Since the graph mutations moved into the
+pipeline (Phase 6), every derive path runs under a transaction.
 """
 
 from modelx.core.base import Interface
@@ -61,11 +59,11 @@ def replace_ref(txn, space, name, value, is_derived, refmode):
 class InheritanceSync:
     """The single home of derived-member creation (D-8).
 
-    ``ops`` is a ``SharedSpaceOperations`` instance (``SpaceManager`` or
-    ``SpaceUpdater``) providing the graph queries — subs, space bases and
-    relative-interface resolution — against the graph the operation is
-    running on. Stateless: constructed per access by the ``sync``
-    property of ``SharedSpaceOperations``.
+    ``ops`` is a ``SpaceManager`` providing the graph queries — subs,
+    space bases and relative-interface resolution — against the graph
+    the operation is running on (the transaction's shadow graph while a
+    graph-mutating edit is in progress). Stateless: constructed per
+    access by the ``sync`` property of ``SharedSpaceOperations``.
     """
 
     def __init__(self, ops):
@@ -74,20 +72,25 @@ class InheritanceSync:
     # ----------------------------------------------------------------------
     # Full reconciliation (from UserSpaceImpl.on_inherit)
 
-    def derive_subs(self, space, txn=None, skip_self=True):
-        """Reconcile all subs of ``space`` against their bases.
+    def derive_subs(self, space, txn, skip_self=True):
+        """Reconcile all subs of ``space`` against their bases."""
+        self.derive_spaces(self.ops._get_subs(space, skip_self), txn)
+
+    def derive_spaces(self, spaces, txn):
+        """Reconcile the given spaces against their bases.
 
         Keeps the two-phase inheritance order: all ``cells`` syncs across
         the affected subgraph run before all ``own_refs`` syncs, so that
         relative references resolve against derived spaces created in the
-        same edit (CoreRefactorDesign §2.1).
+        same edit (CoreRefactorDesign §2.1). ``spaces`` must be in
+        topological order, bases before subs.
         """
         for attr in ("cells", "own_refs"):
-            for s in self.ops._get_subs(space, skip_self):
+            for s in spaces:
                 bases = self.ops._get_space_bases(s)
-                self.reconcile(s, bases, attr, txn=txn)
+                self.reconcile(s, bases, attr, txn)
 
-    def reconcile(self, space, bases, attr, txn=None):
+    def reconcile(self, space, bases, attr, txn):
         """Reconcile ``attr`` ('cells' or 'own_refs') of ``space``
         against ``bases``.
 
@@ -96,11 +99,6 @@ class InheritanceSync:
         reordered to the bases' order and re-derived through their
         member-level ``on_inherit`` callbacks.
         """
-        attrs = {
-            "cells": space.on_del_cells,
-            "own_refs": space.on_del_ref
-        }
-
         selfdict = getattr(space, attr)
         basedict = CustomChainMap(*[getattr(b, attr) for b in bases])
         selfkeys = list(selfdict)
@@ -116,16 +114,12 @@ class InheritanceSync:
                     cells = UserCellsImpl(
                         space=space, name=name, formula=None,
                         is_derived=True)
-                    if txn is None:
-                        selfdict[name] = cells
-                        space.on_notify(space.cells)
-                    else:
-                        # The constructor registered the cells as an
-                        # observer of space; undo that on rollback.
-                        txn.add_undo(space.remove_observer, cells)
-                        txn.set_item(selfdict, name, cells)
-                        txn.add_created(cells)
-                        txn.mark_dirty(space, attr)
+                    # The constructor registered the cells as an
+                    # observer of space; undo that on rollback.
+                    txn.add_undo(space.remove_observer, cells)
+                    txn.set_item(selfdict, name, cells)
+                    txn.add_created(cells)
+                    txn.mark_dirty(space, attr)
 
                 elif attr == "own_refs":
                     ref = ReferenceImpl(
@@ -134,40 +128,28 @@ class InheritanceSync:
                         is_derived=True,
                         refmode=bs[0].refmode
                     )
-                    if txn is None:
-                        selfdict[name] = ref
-                    else:
-                        txn.set_item(selfdict, name, ref)
-                        txn.add_created(ref)
-                        txn.mark_dirty(space, attr)
+                    txn.set_item(selfdict, name, ref)
+                    txn.add_created(ref)
+                    txn.mark_dirty(space, attr)
                 else:
                     raise RuntimeError("must not happen")
 
             else:
                 # Remove & add back for reorder
-                if txn is None:
-                    selfdict[name] = selfdict.pop(name)
-                else:
-                    txn.move_to_end(selfdict, name)
+                txn.move_to_end(selfdict, name)
                 selfkeys.remove(name)
 
             if selfdict[name].is_derived():
-                selfdict[name].on_inherit(self.ops, bs, txn=txn)
+                selfdict[name].on_inherit(self.ops, bs, txn)
 
         for name in selfkeys:
             if selfdict[name].is_derived():
-                if txn is None:
-                    attrs[attr](name)
-                else:
-                    member = selfdict[name]
-                    txn.del_item(selfdict, name)
-                    txn.add_removed(member)
-                    txn.mark_dirty(space, attr)
+                member = selfdict[name]
+                txn.del_item(selfdict, name)
+                txn.add_removed(member)
+                txn.mark_dirty(space, attr)
             else:   # defined
-                if txn is None:
-                    selfdict[name] = selfdict.pop(name)
-                else:
-                    txn.move_to_end(selfdict, name)
+                txn.move_to_end(selfdict, name)
 
     # ----------------------------------------------------------------------
     # Member-creation fan-outs (from SpaceManager.new_cells and the

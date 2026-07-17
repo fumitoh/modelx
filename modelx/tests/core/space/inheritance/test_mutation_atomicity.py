@@ -4,10 +4,10 @@ Phase 0 of the core refactoring (devnotes/CoreRefactorDesign.md):
 a mutation that raises must leave the model bit-identical to its state
 before the edit.
 
-Currently only ``new_space`` rolls back (and does so completely for the
-scenarios below), while ``add_bases`` has no rollback at all.  The broken
-cases are marked ``xfail(strict=True)``; they become acceptance tests for
-Phase 6 (transactions), at which point the markers must be removed.
+The ``add_bases`` cases were marked ``xfail(strict=True)`` until the
+graph mutations moved into the transactional edit pipeline (Phase 6),
+which rolls back both the component dicts and the inheritance graph on
+failure.
 """
 
 import modelx as mx
@@ -101,12 +101,6 @@ def test_new_space_failed_can_recreate(base_with_bad_relref):
     assert m.D is D
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="add_bases has no rollback: phase-A derived cells and a"
-           " partially inherited ref survive the failed edit"
-           " (CoreRefactorDesign.md problem 1; fixed in Phase 6)",
-)
 def test_add_bases_failed_ref_inherit_atomic(base_with_bad_relref):
     """add_bases failing during ref inheritance must restore the model.
 
@@ -126,19 +120,12 @@ def test_add_bases_failed_ref_inherit_atomic(base_with_bad_relref):
     assert snapshot_model(m) == before
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="add_bases does not detect member-name conflicts: the check in"
-           " SpaceUpdater.add_bases is dead code, so a cells silently"
-           " shadows an existing child space"
-           " (CoreRefactorDesign.md problem 1; fixed in Phase 6)",
-)
 def test_add_bases_name_conflict_atomic():
     """add_bases with a cells/space name conflict must raise and leave
     the model unchanged.
 
-    Currently it neither raises nor rolls back: the sub ends up with
-    both a child space 'clash' and a derived cells 'clash'.
+    Without the check the sub would end up with both a child space
+    'clash' and a derived cells 'clash' silently shadowing it.
     """
     m = mx.new_model()
     base = m.new_space("base")
@@ -151,6 +138,31 @@ def test_add_bases_name_conflict_atomic():
         with pytest.raises((ValueError, NameError)):
             sub.add_bases(base)
         assert snapshot_model(m) == before
+        m._impl._check_sanity()
+    finally:
+        m.close()
+
+
+def test_add_bases_no_conflict_with_base_child_space():
+    """A base's child-space name may equal a sub's cells name.
+
+    Child spaces are not inherited into subs, so no namespace collision
+    arises. The conflict check must not fire here: deserialization
+    replays bases via add_bases, so rejecting this shape would make
+    legitimately saved models unloadable.
+    """
+    m = mx.new_model()
+    base = m.new_space("base")
+    base.new_space("x")
+    base.new_cells(name="foo", formula=lambda: 1)
+    sub = m.new_space("sub")
+    sub.new_cells(name="x", formula=lambda: 2)
+
+    try:
+        sub.add_bases(base)
+        assert sub.foo() == 1
+        assert sub.x() == 2
+        assert not sub.spaces
         m._impl._check_sanity()
     finally:
         m.close()

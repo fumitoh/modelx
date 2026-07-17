@@ -76,21 +76,21 @@ class ReferenceImpl(Derivable, Impl):
         return (isinstance(self.interface, Interface)
                 and self.interface._is_valid())
 
-    def on_inherit(self, updater, bases, txn=None):
+    def on_inherit(self, updater, bases, txn):
         """Re-derive self from ``bases[0]``.
 
-        Without ``txn``, mutates self immediately and clears the trace
-        graph (pre-pipeline behavior, still used by SpaceUpdater).
-        With ``txn``, the resolution is computed first (so an
-        out-of-scope error aborts the edit before any state change),
-        writes are journaled, and trace clearing is deferred to the
-        pipeline finalize stage — and skipped entirely when the binding
-        is unchanged.
-        """
-        if txn is None:
-            self.model.clear_attr_referrers(self)
+        The resolution is computed first (so an out-of-scope error
+        aborts the edit before any state change), writes are journaled,
+        and trace clearing is deferred to the pipeline finalize stage —
+        and skipped entirely when the binding is unchanged.
 
-        if bases[0].has_interface():
+        A value inside a space the edit is deleting still looks alive
+        here (deletion is finalized post-commit), but must be treated
+        as invalid so the deletion is not aborted by a failing relative
+        resolution (pre-pipeline deletion order).
+        """
+        if bases[0].has_interface() and not txn.is_in_removed_space(
+                bases[0].interface._impl):
 
             if self.refmode == "absolute":
                 is_relative = False
@@ -110,10 +110,7 @@ class ReferenceImpl(Derivable, Impl):
                 else:
                     raise ValueError("must not happen")
 
-            if txn is None:
-                self.is_relative = is_relative
-                self.interface = interface
-            elif (interface is not self.interface
+            if (interface is not self.interface
                     or is_relative != self.is_relative):
                 txn.set_attr(self, "is_relative", is_relative)
                 txn.set_attr(self, "interface", interface)
@@ -123,9 +120,7 @@ class ReferenceImpl(Derivable, Impl):
                 txn.mark_dirty(self.parent, "own_refs")
         else:
             interface = bases[0].interface
-            if txn is None:
-                self.interface = interface
-            elif interface is not self.interface:
+            if interface is not self.interface:
                 txn.set_attr(self, "interface", interface)
                 txn.add_modified(self)
                 txn.mark_dirty(self.parent, "own_refs")
