@@ -31,7 +31,7 @@ class ChangeSet:
         "modified",
         "dirty_containers",
         "dirty_spaces",
-        "cleared_subs",
+        "dirty_bases",
         "finalize_ops",
         "registry_ops"
     )
@@ -45,13 +45,20 @@ class ChangeSet:
                                     # trees as already invalid
         self.modified = []          # impls rebound/changed in place
         self.dirty_containers = {}  # (parent_impl, attr) -> None
-        self.dirty_spaces = {}      # idstr -> None
-        self.cleared_subs = {}      # space_impl -> None: spaces whose
-                                    # dynamic subs' root itemspaces are
-                                    # cleared selectively in finalize
-                                    # (clear_subs_rootitems), as opposed
-                                    # to the nuke-all policy applied to
-                                    # dirty_containers
+        self.dirty_spaces = {}      # idstr -> space_impl: spaces whose
+                                    # namespace bindings this edit
+                                    # changed (incl. removed spaces);
+                                    # intersected with the FULL closure
+                                    # (dynbases + MRO bases + parent
+                                    # chain) by the itemspace
+                                    # invalidation (§5.8)
+        self.dirty_bases = {}       # idstr -> space_impl: spaces whose
+                                    # members changed only in place
+                                    # (formula changes, renames);
+                                    # intersected with the recorded
+                                    # dynbases only, preserving the
+                                    # per-dynbase selectivity these
+                                    # edits always had
         self.finalize_ops = []      # edit-specific zero-arg callables run
                                     # post-commit, between deletions and
                                     # the batched notify
@@ -158,6 +165,9 @@ class Transaction:
     def add_removed_space(self, space):
         self.changes.removed.append(space)
         self.changes.removed_spaces.append(space)
+        # Itemspace trees whose closure contains the deleted space are
+        # stale and must be invalidated (§5.8).
+        self.changes.dirty_spaces[space.idstr] = space
 
     def is_in_removed_space(self, impl):
         """True if ``impl`` is, or lives inside, a space this edit
@@ -176,11 +186,13 @@ class Transaction:
     def mark_dirty(self, parent, attr):
         self.changes.dirty_containers[(parent, attr)] = None
         if not parent.is_model():
-            self.changes.dirty_spaces[parent.idstr] = None
+            self.changes.dirty_spaces[parent.idstr] = parent
 
-    def add_cleared_subs(self, space):
-        self.changes.cleared_subs[space] = None
-        self.changes.dirty_spaces[space.idstr] = None
+    def mark_dirty_base(self, space):
+        """Record ``space`` in ``dirty_bases``: for edits (formula
+        changes, renames) that alter no namespace binding but stale the
+        itemspace trees built on ``space``."""
+        self.changes.dirty_bases[space.idstr] = space
 
     # ----------------------------------------------------------------------
     # Outcome

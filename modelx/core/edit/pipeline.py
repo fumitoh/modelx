@@ -116,8 +116,8 @@ class ModelEditor:
             op()
 
         # 3. Batched notify: exactly one namespace invalidation per
-        #    dirty container. The itemspace-deletion half of
-        #    DynamicBase.on_notify is handled by ItemSpaceManager below.
+        #    dirty container. Itemspace deletion is ItemSpaceManager's
+        #    job below.
         for parent, attr in changes.dirty_containers:
             container = getattr(parent, attr)
             if parent.is_model():
@@ -137,7 +137,8 @@ class ModelEditor:
             else:
                 raise RuntimeError("must not happen")
 
-        # 5. Itemspace invalidation (verbatim pre-pipeline policy)
+        # 5. Itemspace invalidation (closure-based selective policy,
+        #    CoreRefactorDesign §5.8)
         model.itemspacemgr.invalidate(changes)
 
 
@@ -322,7 +323,7 @@ class RenameCells(Edit):
         old_name = self.cells.name
         for space in model.spmgr._get_subs(self.cells.parent,
                                            skip_self=False):
-            txn.add_cleared_subs(space)
+            txn.mark_dirty_base(space)
             space.cells[old_name].on_rename(self.name, txn)
 
 
@@ -344,7 +345,7 @@ class SetCellsProperty(Edit):
             if (c is not cells and c.is_defined() and
                     spmgr.get_deriv_bases(c, defined_only=True)[0] is cells):
                 continue   # Skip when c's base is not cells
-            txn.add_cleared_subs(space)
+            txn.mark_dirty_base(space)
             space.cells[cells.name].on_set_property(
                 self.flags, define, self.func, self.enable_cache, txn
             )
@@ -426,8 +427,9 @@ class RenameSpace(Edit):
         parent = space.parent
 
         if not parent.is_model():
-            # Clear parent's dynsub, not space's
-            txn.add_cleared_subs(parent)
+            # The parent's itemspace trees resolve the renamed space by
+            # name; dirty the parent, not the renamed space
+            txn.mark_dirty_base(parent)
 
         txn.add_modified(space)     # clear_obj in finalize
         txn.changes.finalize_ops.append(
