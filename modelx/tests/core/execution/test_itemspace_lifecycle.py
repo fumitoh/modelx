@@ -1,11 +1,15 @@
 """Characterization tests for the ItemSpace lifecycle.
 
-Phase 0 of the core refactoring (devnotes/CoreRefactorDesign.md):
-freezes how itemspaces are created and deleted through the trace graph
-(``clear_with_descs`` -> ``on_clear_trace`` -> ``_del_itemspace``),
-how ``dynamic_cache`` reuses interface objects, and which edits trigger
-``clear_subs_rootitems`` — before the invalidation policy moves to
-``ItemSpaceManager`` (Phases 4 and 7).
+Phase 0 of the core refactoring (devnotes/CoreRefactorDesign.md)
+froze how itemspaces are created and deleted through the trace graph
+(``clear_with_descs`` -> ``on_clear_trace`` -> ``_del_itemspace``) and
+how ``dynamic_cache`` reuses interface objects. Phase 7 replaced the
+nuke-at-parent invalidation policy with closure-based selective
+invalidation (``ItemSpaceManager``, CoreRefactorDesign §5.8): an
+itemspace is deleted iff an edit dirties a UserSpace in its closure
+(its dynamic tree's recorded dynbases, their MRO bases, or its
+parent's nearest UserSpace ancestor). The granularity tests at the
+bottom pin the selective policy per itemspace.
 """
 
 import modelx as mx
@@ -132,8 +136,7 @@ def test_dynamic_cache_reuses_nested_interfaces():
 
 
 # ----------------------------------------------------------------------------
-# clear_subs_rootitems triggers: edits on a dynbase clear the root
-# itemspaces of its dynamic subs
+# Dynbase edits clear the itemspaces whose dynamic trees use the dynbase
 
 @pytest.fixture
 def dynbase_model():
@@ -205,13 +208,13 @@ def test_rootitems_cleared_on_ref_change_in_dynbase(dynbase_model):
 
 
 # ----------------------------------------------------------------------------
-# Invalidation granularity: the current policy is nuke-at-parent for
-# namespace changes (``DynamicBase.on_notify`` calls
-# ``r.parent.del_all_itemspaces()``, space.py:2140-2145) but selective
-# per dynbase for formula changes (``clear_subs_rootitems``,
-# space.py:2153-2156).  Phase 4 must lift this policy verbatim; Phase 7
-# replaces it with closure-based selective invalidation.  These tests
-# pin the granularity so the two policies are distinguishable.
+# Invalidation granularity: under the closure policy (Phase 7), an edit
+# to one dynbase deletes only the itemspaces whose dynamic tree records
+# that dynbase (or a space inheriting from it); sibling itemspaces of
+# the same parent built on other dynbases survive, for structural
+# (cells/ref) edits and formula changes alike.  Before Phase 7,
+# structural edits nuked at parent granularity — these tests are the
+# observable behavior change of the approved spec change (D-5).
 
 @pytest.fixture
 def two_dynbase_model():
@@ -248,42 +251,46 @@ def two_dynbase_model():
     m.close()
 
 
-def test_new_cells_on_dynbase_nukes_at_parent(two_dynbase_model):
-    """new_cells on one dynbase deletes ALL itemspaces of the parents
-    using that dynbase -- including items built on other dynbases --
-    while itemspaces of unrelated parents survive."""
+def test_new_cells_on_dynbase_clears_selectively(two_dynbase_model):
+    """new_cells on one dynbase deletes only the itemspaces whose
+    dynamic tree is built on that dynbase; sibling itemspaces of the
+    same parent built on other dynbases survive (Phase 7; before, the
+    whole parent was nuked)."""
     m, Bs1, Bs2, Bs3, P, Q = two_dynbase_model
     p1, p2, q1 = P[1], P[2], Q[1]
 
     Bs1.new_cells(name="baz", formula=lambda x: x)
 
-    assert len(P._named_itemspaces) == 0    # P[2] deleted too
     assert not p1._is_valid()
-    assert not p2._is_valid()
+    assert p2._is_valid()                   # built on Bs2: survives
+    assert len(P._named_itemspaces) == 1
     assert len(Q._named_itemspaces) == 1    # unrelated parent untouched
     assert q1._is_valid()
+    assert P[1].baz(3) == 3                 # re-created on new Bs1
+    assert not hasattr(P[2], "baz")
 
 
-def test_ref_change_on_dynbase_nukes_at_parent(two_dynbase_model):
-    """A ref change on one dynbase likewise deletes all itemspaces of
-    the affected parent, not only those built on that dynbase."""
+def test_ref_change_on_dynbase_clears_selectively(two_dynbase_model):
+    """A ref change on one dynbase likewise deletes only the itemspaces
+    built on that dynbase (Phase 7; before, the whole parent was
+    nuked)."""
     m, Bs1, Bs2, Bs3, P, Q = two_dynbase_model
     p1, p2, q1 = P[1], P[2], Q[1]
 
     Bs1.mult = 5
 
-    assert len(P._named_itemspaces) == 0    # P[2] deleted too
     assert not p1._is_valid()
-    assert not p2._is_valid()
+    assert p2._is_valid()                   # built on Bs2: survives
+    assert len(P._named_itemspaces) == 1
     assert q1._is_valid()
     assert P[1].foo(3) == 15
+    assert P[2] is p2
     assert P[2].foo(3) == 6                 # Bs2.mult unchanged
 
 
 def test_formula_change_on_dynbase_clears_selectively(two_dynbase_model):
-    """A cells formula change flows through ``clear_subs_rootitems``,
-    which is selective: only itemspaces whose dynamic tree uses the
-    changed dynbase are deleted."""
+    """A cells formula change is likewise selective: only itemspaces
+    whose dynamic tree uses the changed dynbase are deleted."""
     m, Bs1, Bs2, Bs3, P, Q = two_dynbase_model
     p1, p2, q1 = P[1], P[2], Q[1]
 

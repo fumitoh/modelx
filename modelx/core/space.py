@@ -1731,12 +1731,6 @@ class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
             self.set_formula(formula)
 
     # ----------------------------------------------------------------------
-    # BaseNamespaceReferrer Implementation
-
-    def on_namespace_change(self):
-        self.del_all_itemspaces()
-
-    # ----------------------------------------------------------------------
     # Dynamic Space Operation
 
     @property
@@ -2120,23 +2114,19 @@ class BaseSpaceImpl(*_base_space_impl_base):
 
 
 class DynamicBase(BaseSpaceImpl):
+    """A space that dynamic spaces can be based on.
+
+    ``_dynamic_subs`` lists the live dynamic spaces whose ``_dynbase``
+    is this space. Itemspace invalidation no longer walks it (Phase 7:
+    ``ItemSpaceManager`` intersects each itemspace's recorded closure
+    with ``ChangeSet.dirty_spaces`` instead); namespace changes reach
+    this class as plain ``NamespaceServer.on_notify`` flag propagation.
+    """
 
     __slots__ = ("_dynamic_subs",) + get_mixin_slots(BaseSpaceImpl)
 
     def __init__(self):
         self._dynamic_subs = []
-
-    def on_notify(self, subject):
-        ItemSpaceParent.on_namespace_change(self)
-        # Use dict instead of list to avoid duplicates
-        for r in {s.rootspace: True for s in self._dynamic_subs}:
-            r.parent.del_all_itemspaces()
-        BaseSpaceImpl.on_notify(self, subject)
-
-    def clear_subs_rootitems(self):
-        for dynsub in self._dynamic_subs.copy():
-            root = dynsub.rootspace
-            root.parent.clear_itemspace_at(root.argvalues_if)
 
 
 _user_space_impl_base = (
@@ -2677,7 +2667,8 @@ class ItemSpaceImpl(DynamicSpaceImpl):
     __slots__ = (
         "_arguments",
         "argvalues",
-        "argvalues_if"
+        "argvalues_if",
+        "tree_dynbases"
     ) + get_mixin_slots(DynamicSpaceImpl)
 
     def __init__(
@@ -2704,6 +2695,7 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         self._bind_args(self.arguments)
         self._init_child_spaces(self)
         self._init_dynbaserefs()
+        self.tree_dynbases = tuple(self._iter_tree_dynbases(self))
 
     def _init_root(self, parent):
         self.rootspace = self
@@ -2715,6 +2707,36 @@ class ItemSpaceImpl(DynamicSpaceImpl):
             child = DynamicSpaceImpl(space, name, space.named_spaces, base, cache=cache)
             self._init_child_spaces(child)
             self.parent.dynamic_cache[dkey] = child.interface
+
+    # ----------------------------------------------------------------------
+    # Selective invalidation closure (CoreRefactorDesign §5.8, Phase 7)
+
+    @classmethod
+    def _iter_tree_dynbases(cls, space):
+        """Yield the ``_dynbase`` of each node of this itemspace's
+        dynamic tree (the root plus the ``_init_child_spaces``
+        recursion; nested itemspaces record their own trees)."""
+        yield space._dynbase
+        for child in space.named_spaces.values():
+            yield from cls._iter_tree_dynbases(child)
+
+    def get_tree_dynbases(self):
+        """The dynbases of this itemspace's tree, recorded at creation.
+
+        The impls are recorded rather than their idstrs so that the
+        closure follows renames of (and survives deletions of) the base
+        spaces; ``ItemSpaceManager`` resolves idstrs at invalidation
+        time. ``None`` marks a pre-Phase-7 pickle; the tree is immutable
+        after creation, so recording lazily gives the same result.
+        """
+        if self.tree_dynbases is None:
+            self.tree_dynbases = tuple(self._iter_tree_dynbases(self))
+        return self.tree_dynbases
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        if "tree_dynbases" not in state:    # pre-Phase-7 pickle
+            self.tree_dynbases = None
 
     def _init_refs(self, arguments=None):
         args = {}
