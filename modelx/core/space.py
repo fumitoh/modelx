@@ -2113,20 +2113,115 @@ class BaseSpaceImpl(*_base_space_impl_base):
         super().on_delete()
 
 
-class DynamicBase(BaseSpaceImpl):
-    """A space that dynamic spaces can be based on.
+class DynamicSpace(BaseSpace):
+    """Read-only space created dynamically as a child of another dynamic space.
 
-    ``_dynamic_subs`` lists the live dynamic spaces whose ``_dynbase``
-    is this space. Itemspace invalidation no longer walks it (Phase 7:
-    ``ItemSpaceManager`` intersects each itemspace's recorded closure
-    with ``ChangeSet.dirty_spaces`` instead); namespace changes reach
-    this class as plain ``NamespaceServer.on_notify`` flag propagation.
+    DynamicSpace objects are automatically created when accessing child spaces
+    within a parameterized space hierarchy. They mirror the structure of their
+    base UserSpace but exist within the context of specific parameter values.
+
+    Unlike :class:`ItemSpace` which represents the root of a parameterized space
+    instance, DynamicSpace represents nested child spaces within that instance.
+
+    Creation:
+        DynamicSpaces are created automatically when:
+
+        * An :class:`ItemSpace` is created from a parameterized UserSpace
+        * The base UserSpace contains child spaces
+        * These child spaces are accessed within the ItemSpace context
+
+    Key Characteristics:
+
+    * **Read-only**: Cannot add, modify, or remove cells, spaces, or references
+    * **Dynamic**: Created on-demand when parent ItemSpace is instantiated
+    * **Derived**: Mirrors the structure and formulas of a base UserSpace
+    * **Contextual**: Exists within a specific parameter context from parent ItemSpace
+
+    Example:
+        >>> space = model.new_space()
+        >>> space.parameters = ('x',)
+        >>> child = space.new_space('Child')  # UserSpace
+        >>> item = space[1]  # ItemSpace created
+        >>> item.Child  # DynamicSpace (not ItemSpace)
+        <DynamicSpace Child in Model1.space[1]>
+
+    See Also:
+        :class:`UserSpace`: The base space that DynamicSpace derives from
+        :class:`ItemSpace`: Root dynamic space with parameters
+        :class:`BaseSpace`: Base class for all space types
     """
+    __slots__ = ()
 
-    __slots__ = ("_dynamic_subs",) + get_mixin_slots(BaseSpaceImpl)
 
-    def __init__(self):
-        self._dynamic_subs = []
+class ItemSpace(DynamicSpace):
+    """Root dynamic space created by calling a parameterized UserSpace with arguments.
+
+    ItemSpace is a subclass of :class:`DynamicSpace` that represents
+    the top-level space instance for a specific set of parameter values.
+    When a UserSpace has a parameter formula defined, accessing it with
+    arguments (via ``[]`` subscription or ``()`` call) creates an ItemSpace
+    that serves as the root of a dynamic space hierarchy.
+
+    Each ItemSpace:
+
+    * Corresponds to a unique combination of parameter values
+    * Contains cells with formulas inherited from the base UserSpace
+    * Creates child DynamicSpaces for any nested spaces in the base
+    * Is cached and reused when accessed with the same arguments
+
+    Creation:
+        ItemSpaces are created automatically when a parameterized UserSpace
+        is accessed with arguments::
+
+            >>> space = model.new_space()
+            >>> space.parameters = ('x', 'y')
+            >>> space[1, 2]  # Creates ItemSpace with x=1, y=2
+            <ItemSpace space[1, 2] in Model1>
+
+    Key Characteristics:
+
+    * **Root dynamic space**: Top of the dynamic space hierarchy for given parameters
+    * **Parameterized**: Has specific argument values (accessible via :attr:`argvalues`)
+    * **Read-only**: Cannot be edited after creation
+    * **Cached**: Same arguments return the same ItemSpace instance
+    * **Deletable**: Can be removed via :meth:`~UserSpace.clear_at` or ``del space[args]``
+
+    The key distinction from :class:`DynamicSpace`:
+
+    * ItemSpace = root of dynamic hierarchy (has parameters)
+    * DynamicSpace = nested child within that hierarchy (no parameters)
+
+
+    See Also:
+        :class:`DynamicSpace`: Non-root dynamic spaces in the hierarchy
+        :class:`UserSpace`: The base space that ItemSpace derives from
+        :attr:`UserSpace.parameters`: Define parameters for a space
+
+    .. versionadded:: 0.0.21
+        Split from DynamicSpace class
+    """
+    __slots__ = ()
+
+    @property
+    def _idtuple(self):
+        return self.parent._idtuple + (self.argvalues,)
+
+    @property
+    def argvalues(self):
+        """A tuple containing the argument values used to create this ItemSpace."""
+        return self._impl.argvalues_if
+
+
+# Phase 8 (CoreRefactorDesign §5.1): the dynamic-space implementation
+# classes live in modelx.core.dynamic. This import is permanent, not a
+# deprecation-grace alias: runtime pickles of live models record these
+# classes under their historical modelx.core.space paths, and
+# UserSpaceImpl below inherits DynamicBase.
+from modelx.core.dynamic import (
+    DynamicBase,
+    DynamicSpaceImpl,
+    ItemSpaceImpl,
+)
 
 
 _user_space_impl_base = (
@@ -2399,385 +2494,3 @@ class UserSpaceImpl(*_user_space_impl_base):
         self.own_refs[name].on_delete()
         del self.own_refs[name]
         self.on_notify(self.own_refs)
-
-
-class DynamicSpace(BaseSpace):
-    """Read-only space created dynamically as a child of another dynamic space.
-
-    DynamicSpace objects are automatically created when accessing child spaces
-    within a parameterized space hierarchy. They mirror the structure of their
-    base UserSpace but exist within the context of specific parameter values.
-
-    Unlike :class:`ItemSpace` which represents the root of a parameterized space
-    instance, DynamicSpace represents nested child spaces within that instance.
-
-    Creation:
-        DynamicSpaces are created automatically when:
-
-        * An :class:`ItemSpace` is created from a parameterized UserSpace
-        * The base UserSpace contains child spaces
-        * These child spaces are accessed within the ItemSpace context
-
-    Key Characteristics:
-
-    * **Read-only**: Cannot add, modify, or remove cells, spaces, or references
-    * **Dynamic**: Created on-demand when parent ItemSpace is instantiated
-    * **Derived**: Mirrors the structure and formulas of a base UserSpace
-    * **Contextual**: Exists within a specific parameter context from parent ItemSpace
-
-    Example:
-        >>> space = model.new_space()
-        >>> space.parameters = ('x',)
-        >>> child = space.new_space('Child')  # UserSpace
-        >>> item = space[1]  # ItemSpace created
-        >>> item.Child  # DynamicSpace (not ItemSpace)
-        <DynamicSpace Child in Model1.space[1]>
-
-    See Also:
-        :class:`UserSpace`: The base space that DynamicSpace derives from
-        :class:`ItemSpace`: Root dynamic space with parameters
-        :class:`BaseSpace`: Base class for all space types
-    """
-    __slots__ = ()
-
-
-class DynamicSpaceImpl(BaseSpaceImpl):
-    """The implementation of Dynamic Space class."""
-
-    interface_cls = DynamicSpace
-
-    __slots__ = (
-        "_dynbase",
-        "_allargs",
-        "rootspace",
-        "_dynbase_refs"
-    ) + get_mixin_slots(BaseSpaceImpl)
-
-    def __init__(
-        self,
-        parent,
-        name,
-        container,
-        base,
-        refs=None,
-        arguments=None,
-        cache=None
-    ):
-        self._dynbase = base
-        base._dynamic_subs.append(self)
-        self._init_root(parent)
-        if cache:
-            cache._impl = self
-            self.interface = cache # must be set before Impl.__init__
-        BaseSpaceImpl.__init__(
-            self,
-            parent,
-            name,
-            base.formula,
-            arguments,
-            base.doc
-        )
-
-        container[name] = self
-
-        if refs is not None:
-            for key, value in refs.items():
-                self.own_refs[key] = ReferenceImpl(
-                    self, key, value, container=self.own_refs,
-                    refmode="auto")
-
-        self._init_cells()
-
-    def _init_root(self, parent):
-        self.rootspace = parent.rootspace
-
-    def _init_cells(self):
-        for base in self._dynbase.cells.values():
-            cells = DynamicCellsImpl(space=self, base=base, is_derived=True)
-            self.cells[cells.name] = cells
-            self.on_notify(self.cells)
-
-    def _init_refs(self, arguments=None):
-        self._allargs = self._init_allargs()
-        self._dynbase_refs = {}
-        self.refs = CustomChainMap(
-                *self._allargs.maps,     # underlying parent's _allargs
-                self.own_refs,
-                self.sys_refs,
-                self._dynbase_refs,
-                self.model._global_refs)
-
-        self.refs_outer = CustomChainMap(
-                *self._allargs.maps,     # underlying parent's _allargs
-                self.own_refs,
-                self._dynbase_refs,
-                self.model._global_refs)
-
-    def _init_dynbaserefs(self):
-        # Populate _dynbase_refs creating relative reference within
-        # the dynamic space tree.
-        # Called from ItemSpaceParent.__init__ at last.
-        for name, ref in self._dynbase.own_refs.items():
-            self._dynbase_refs[name] = self.wrap_impl(ref)
-
-        for space in self.named_spaces.values():
-            space._init_dynbaserefs()
-
-    def wrap_impl(self, value):
-
-        assert isinstance(value, ReferenceImpl)
-
-        if isinstance(value.interface, Interface) and value.interface._is_valid():
-
-            if value.is_relative:   # value.is_relative is set to True
-                                    # When value.is_defined and
-                                    # value.refmode == "relative"
-
-                impl = value.interface._impl.idstr
-                root = self.rootspace._dynbase.idstr
-                rootlen = len(root)
-
-                if root == impl:
-                    return self.rootspace
-                elif root == impl[:rootlen]:
-                    return self.rootspace.get_impl_from_name(
-                        impl[rootlen+1:]) # +1 to remove preceding dot
-                else:
-                    if value.refmode == "auto":
-                        if value.is_defined():
-                            return value
-                        else:
-                            return value.direct_bases[0]
-
-                    elif value.refmode == "relative":
-                        raise ValueError(
-                            "'%s' referred as '%s' is out of '%s'" %
-                            (impl, value.idstr, root)
-                        )
-                    else:
-                        raise RuntimeError("must not happen")
-
-            else:   # absolute
-                return value
-        else:
-            return value
-
-
-    def _init_allargs(self):
-        if isinstance(self.parent, UserSpaceImpl):
-            allargs = [self._arguments]
-        elif isinstance(self, ItemSpaceImpl):
-            allargs = [self._arguments, *self.parent._allargs.maps]
-        else:
-            allargs = [*self.parent._allargs.maps]
-
-        return CustomChainMap(*allargs)
-
-    def on_delete(self):
-        for space in list(self.named_spaces.values()):
-            space.on_delete()
-            del self.named_spaces[space.name]
-        self.del_all_itemspaces()
-        self._dynbase._dynamic_subs.remove(self)
-        super().on_delete()
-
-    @property
-    def arguments(self):
-        return self._arguments
-
-    def is_dynamic(self):
-        return True
-
-    @property
-    def dynamic_key(self):
-        # Non-ItemSpace
-        return self.parent.dynamic_key + (self.name,)
-
-    @property
-    def bases(self):
-        if self._dynbase:
-            return [self._dynbase]
-        else:
-            return []
-
-
-class ItemSpace(DynamicSpace):
-    """Root dynamic space created by calling a parameterized UserSpace with arguments.
-
-    ItemSpace is a subclass of :class:`DynamicSpace` that represents
-    the top-level space instance for a specific set of parameter values.
-    When a UserSpace has a parameter formula defined, accessing it with
-    arguments (via ``[]`` subscription or ``()`` call) creates an ItemSpace
-    that serves as the root of a dynamic space hierarchy.
-
-    Each ItemSpace:
-
-    * Corresponds to a unique combination of parameter values
-    * Contains cells with formulas inherited from the base UserSpace
-    * Creates child DynamicSpaces for any nested spaces in the base
-    * Is cached and reused when accessed with the same arguments
-
-    Creation:
-        ItemSpaces are created automatically when a parameterized UserSpace
-        is accessed with arguments::
-
-            >>> space = model.new_space()
-            >>> space.parameters = ('x', 'y')
-            >>> space[1, 2]  # Creates ItemSpace with x=1, y=2
-            <ItemSpace space[1, 2] in Model1>
-
-    Key Characteristics:
-
-    * **Root dynamic space**: Top of the dynamic space hierarchy for given parameters
-    * **Parameterized**: Has specific argument values (accessible via :attr:`argvalues`)
-    * **Read-only**: Cannot be edited after creation
-    * **Cached**: Same arguments return the same ItemSpace instance
-    * **Deletable**: Can be removed via :meth:`~UserSpace.clear_at` or ``del space[args]``
-
-    The key distinction from :class:`DynamicSpace`:
-
-    * ItemSpace = root of dynamic hierarchy (has parameters)
-    * DynamicSpace = nested child within that hierarchy (no parameters)
-
-
-    See Also:
-        :class:`DynamicSpace`: Non-root dynamic spaces in the hierarchy
-        :class:`UserSpace`: The base space that ItemSpace derives from
-        :attr:`UserSpace.parameters`: Define parameters for a space
-
-    .. versionadded:: 0.0.21
-        Split from DynamicSpace class
-    """
-    __slots__ = ()
-
-    @property
-    def _idtuple(self):
-        return self.parent._idtuple + (self.argvalues,)
-
-    @property
-    def argvalues(self):
-        """A tuple containing the argument values used to create this ItemSpace."""
-        return self._impl.argvalues_if
-
-
-class ItemSpaceImpl(DynamicSpaceImpl):
-
-    interface_cls = ItemSpace
-
-    __slots__ = (
-        "_arguments",
-        "argvalues",
-        "argvalues_if",
-        "tree_dynbases"
-    ) + get_mixin_slots(DynamicSpaceImpl)
-
-    def __init__(
-        self,
-        parent,
-        base,
-        name,
-        refs,
-        arguments,
-        cache
-    ):
-        if name is None:
-            name = parent.itemspacenamer.get_next(base.named_itemspaces)
-        elif (is_valid_name(name)
-              and name not in parent.namespace
-              and name not in parent.named_itemspaces):
-            pass
-        else:
-            raise ValueError("invalid name")
-
-        DynamicSpaceImpl.__init__(
-            self, parent, name, parent._named_itemspaces, base, refs, arguments, cache
-        )
-        self._bind_args(self.arguments)
-        self._init_child_spaces(self)
-        self._init_dynbaserefs()
-        self.tree_dynbases = tuple(self._iter_tree_dynbases(self))
-
-    def _init_root(self, parent):
-        self.rootspace = self
-
-    def _init_child_spaces(self, space):
-        for name, base in space._dynbase.named_spaces.items():
-            dkey = space.dynamic_key + (name,)
-            cache = self.dynamic_cache.get(dkey, None)
-            child = DynamicSpaceImpl(space, name, space.named_spaces, base, cache=cache)
-            self._init_child_spaces(child)
-            self.parent.dynamic_cache[dkey] = child.interface
-
-    # ----------------------------------------------------------------------
-    # Selective invalidation closure (CoreRefactorDesign §5.8, Phase 7)
-
-    @classmethod
-    def _iter_tree_dynbases(cls, space):
-        """Yield the ``_dynbase`` of each node of this itemspace's
-        dynamic tree (the root plus the ``_init_child_spaces``
-        recursion; nested itemspaces record their own trees)."""
-        yield space._dynbase
-        for child in space.named_spaces.values():
-            yield from cls._iter_tree_dynbases(child)
-
-    def get_tree_dynbases(self):
-        """The dynbases of this itemspace's tree, recorded at creation.
-
-        The impls are recorded rather than their idstrs so that the
-        closure follows renames of (and survives deletions of) the base
-        spaces; ``ItemSpaceManager`` resolves idstrs at invalidation
-        time. ``None`` marks a pre-Phase-7 pickle; the tree is immutable
-        after creation, so recording lazily gives the same result.
-        """
-        if self.tree_dynbases is None:
-            self.tree_dynbases = tuple(self._iter_tree_dynbases(self))
-        return self.tree_dynbases
-
-    def __setstate__(self, state):
-        super().__setstate__(state)
-        if "tree_dynbases" not in state:    # pre-Phase-7 pickle
-            self.tree_dynbases = None
-
-    def _init_refs(self, arguments=None):
-        args = {}
-        for k, v in arguments.items():
-            args[k] = ReferenceImpl(self, k, v, container=args)
-        self._arguments = args
-        DynamicSpaceImpl._init_refs(self)
-
-
-    def _bind_args(self, args):
-        boundargs = self.parent.formula.signature.bind(**args)
-        self.argvalues = tuple(boundargs.arguments.values())
-        self.argvalues_if = tuple(get_interface_list(self.argvalues))
-
-    # ----------------------------------------------------------------------
-    # repr methods
-
-    def repr_parent(self):
-        return self.parent.repr_parent()
-
-    def repr_self(self, add_params=True):
-
-        if add_params:
-            args = [repr(arg) for arg in get_interface_list(self.argvalues)]
-            param = ", ".join(args)
-            return "%s[%s]" % (self.parent.name, param)
-        else:
-            return self.name
-
-    @property
-    def evalrepr(self):
-        """TraceObject repr"""
-        args = [repr(arg) for arg in get_interface_list(self.argvalues)]
-        param = ", ".join(args)
-        return "%s(%s)" % (self.parent.evalrepr, param)
-
-    @property
-    def dynamic_key(self):
-        if self.parent.is_dynamic():
-            return self.parent.dynamic_key + (self.argvalues_if,)
-        else:
-            return (self.argvalues_if,)
-
-

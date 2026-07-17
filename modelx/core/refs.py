@@ -206,9 +206,3 @@ class ValueRegistry:
             if spec is not None:
                 assert entry.value is spec.value
                 spec._check_sanity()
-
-
-# Import alias: ReferenceManager was replaced by ValueRegistry in
-# Phase 3 of the core refactoring. Kept for compatibility with code
-# importing the old name.
-ReferenceManager = ValueRegistry
