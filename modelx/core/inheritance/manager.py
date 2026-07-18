@@ -42,7 +42,7 @@ from modelx.core.edit.pipeline import (
 )
 
 
-class SharedSpaceOperations:
+class SpaceManager:
 
     def __init__(self, model):
         self.model = model
@@ -142,8 +142,8 @@ class SharedSpaceOperations:
         else:
             return False, base.interface
 
-
-class SpaceManager(SharedSpaceOperations):
+    # ----------------------------------------------------------------------
+    # Mutation facades: constructing Edits for the pipeline (D-10)
 
     def rename_space(self, space, name):
         self.model.editor.execute(RenameSpace(space, name))

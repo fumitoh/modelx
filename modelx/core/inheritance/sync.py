@@ -63,7 +63,7 @@ class InheritanceSync:
     space bases and relative-interface resolution — against the graph
     the operation is running on (the transaction's shadow graph while a
     graph-mutating edit is in progress). Stateless: constructed per
-    access by the ``sync`` property of ``SharedSpaceOperations``.
+    access by the ``sync`` property of ``SpaceManager``.
     """
 
     def __init__(self, ops):
