@@ -688,8 +688,7 @@ class CellsImpl(*_cells_impl_base):
             self,
             system=space.system,
             parent=space,
-            name=name,
-            spmgr=space.spmgr
+            name=name
         )
         Derivable.__init__(self, is_derived)
 

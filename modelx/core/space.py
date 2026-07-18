@@ -1955,7 +1955,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
             system=parent.system,
             parent=parent,
             name=name,
-            spmgr=parent.spmgr,
             doc=doc
         )
 
@@ -2004,6 +2003,9 @@ class BaseSpaceImpl(*_base_space_impl_base):
         return d
 
     def __setstate__(self, state):
+        # Pickles from before the spmgr slot removal carry a 'spmgr'
+        # entry; it is now reached through ``model``.
+        state.pop("spmgr", None)
         for k, v in state.items():
             setattr(self, k, v)
         # Pickles from versions before the self-observation removal (D-12)

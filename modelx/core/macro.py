@@ -146,8 +146,7 @@ class MacroImpl(Impl):
             self,
             system=system,
             parent=parent,
-            name=name,
-            spmgr=parent.spmgr
+            name=name
         )
         
         if not isinstance(formula, Formula):
