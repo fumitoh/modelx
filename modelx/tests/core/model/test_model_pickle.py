@@ -132,6 +132,58 @@ def test_pickle_module(tmp_path):
     m.close()
 
 
+def test_spmgr_property_identity():
+    """impl.spmgr resolves to the model's SpaceManager for every kind
+    of Impl (spmgr slot removed from Impl, 2026-07-18)."""
+    m = mx.new_model()
+    s = m.new_space("Space1")
+    c = s.new_cells(name="Cells1", formula=lambda x: x)
+    s.ref1 = 3
+
+    spmgr = m._impl.spmgr
+    assert s._impl.spmgr is spmgr
+    assert c._impl.spmgr is spmgr
+    assert s._impl.own_refs["ref1"].spmgr is spmgr
+
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_legacy_spmgr_state():
+    """Pickled states from before the spmgr slot removal carry a
+    'spmgr' entry; __setstate__ must tolerate it (base.py, space.py)."""
+    m = mx.new_model()
+    s = m.new_space("Space1")
+    c = s.new_cells(name="Cells1", formula=lambda x: x)
+
+    spmgr = m._impl.spmgr
+
+    # Default-slot-pickling shape (cells, refs): (dictstate, slotstate)
+    c._impl.__setstate__((None, {"spmgr": spmgr}))  # must not raise
+    assert c._impl.spmgr is spmgr
+
+    # Custom dict shape (spaces); new pickles omit spmgr because the
+    # __getstate__ slot sweep no longer finds it in any __slots__
+    assert all("spmgr" not in getattr(cls, "__slots__", ())
+               for cls in type(s._impl).mro())
+    s._impl.__setstate__({"spmgr": spmgr})  # legacy entry; must not raise
+    assert s._impl.spmgr is spmgr
+
+    # ModelImpl branch: the legacy entry must be STORED into ModelImpl's
+    # own slot (every other impl's spmgr property reads it from there),
+    # not skipped like on the other impls
+    from modelx.core.inheritance.manager import SpaceManager
+    mgr2 = SpaceManager(m._impl)
+    m._impl.__setstate__((None, {"spmgr": mgr2}))
+    assert m._impl.spmgr is mgr2
+    assert c._impl.spmgr is mgr2                    # visible through children
+    m._impl.__setstate__((None, {"spmgr": spmgr}))  # restore the real one
+    assert m._impl.spmgr is spmgr
+
+    m._impl._check_sanity()
+    m.close()
+
+
 def test_null_object(tmp_path):
     """
         m---A---B

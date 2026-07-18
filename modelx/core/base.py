@@ -126,7 +126,6 @@ class Impl(BaseImpl):
         "interface",
         "parent",
         "name",
-        "spmgr",
         "model",
         "allow_none",
         "_doc"
@@ -134,7 +133,7 @@ class Impl(BaseImpl):
 
     interface_cls = None  # Override in sub classes if interface class exists
 
-    def __init__(self, system, parent, name, spmgr, interface=None, doc=None):
+    def __init__(self, system, parent, name, interface=None, doc=None):
 
         if hasattr(self, "interface"):
             pass
@@ -147,9 +146,39 @@ class Impl(BaseImpl):
         self.parent = parent
         self.model = parent.model if parent else self
         self.name = name
-        self.spmgr = spmgr
         self.allow_none = None
         self._doc = doc
+
+    @property
+    def spmgr(self):
+        """The model's SpaceManager.
+
+        Reached through ``model`` (``impl.spmgr is impl.model.spmgr``
+        always held while ``spmgr`` was a slot, so the slot was
+        redundant). ``ModelImpl`` shadows this property with a real
+        slot holding the instance.
+        """
+        return self.model.spmgr
+
+    def __setstate__(self, state):
+        # Default slot pickling passes ``(dictstate, slotstate)``.
+        if isinstance(state, tuple):
+            dictstate, slotstate = state
+        else:
+            dictstate, slotstate = None, state
+        if dictstate:
+            for k, v in dictstate.items():
+                setattr(self, k, v)
+        if slotstate:
+            for k, v in slotstate.items():
+                try:
+                    setattr(self, k, v)
+                except AttributeError:
+                    # Pickles from before the spmgr slot removal carry
+                    # a 'spmgr' entry; ModelImpl stores it in its own
+                    # slot, all other Impls reach it via ``model``.
+                    if k != "spmgr":
+                        raise
 
     def get_property(self, name):
         prop = getattr(self, name)

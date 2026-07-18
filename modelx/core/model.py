@@ -39,8 +39,8 @@ from modelx.core.macro import MacroImpl
 # Permanent import aliases (Phase 8, CoreRefactorDesign §7): runtime
 # pickles of live models record classes by module path, so classes whose
 # instances appear in pickles keep aliases under their historical
-# modelx.core.model paths. SpaceManager is pickled as Impl.spmgr and
-# SpaceGraph inside it. The non-pickle-relevant Phase 1 aliases (the
+# modelx.core.model paths. SpaceManager is pickled as ModelImpl.spmgr
+# and SpaceGraph inside it. The non-pickle-relevant Phase 1 aliases (the
 # idstr node helpers, SharedSpaceOperations, ReferenceManager) were
 # retired in Phase 8.
 from modelx.core.inheritance.graph import SpaceGraph
@@ -1184,7 +1184,8 @@ class ModelImpl(*_model_impl_base):
         "_macro_namespace",
         "currentspace",
         "path",
-        "valreg"
+        "valreg",
+        "spmgr"      # shadows Impl.spmgr property; the SpaceManager home
     ) + get_mixin_slots(*_model_impl_base)
 
     def __init__(self, *, system, name):
@@ -1194,7 +1195,8 @@ class ModelImpl(*_model_impl_base):
         elif not is_valid_name(name):
             raise ValueError("Invalid name '%s'." % name)
 
-        Impl.__init__(self, system=system, parent=None, name=name, spmgr=SpaceManager(self))
+        Impl.__init__(self, system=system, parent=None, name=name)
+        self.spmgr = SpaceManager(self)
         EditableParentImpl.__init__(self)
         TraceManager.__init__(self)
 

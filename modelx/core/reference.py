@@ -41,7 +41,6 @@ class ReferenceImpl(Derivable, Impl):
             system=parent.system,
             parent=parent,
             name=name,
-            spmgr=parent.spmgr,
             interface=value
         )
         Derivable.__init__(self, is_derived)
