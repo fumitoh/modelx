@@ -52,3 +52,26 @@ def test_rename_funcname():
 
     m._impl._check_sanity()
     m.close()
+
+
+def test_rename_invalidates_namespace():
+    model = mx.new_model()
+    space = model.new_space("Space")
+
+    @mx.defcells(space=space)
+    def foo(x):
+        return x * 2
+
+    @mx.defcells(space=space)
+    def bar(x):
+        return foo(x) + 1
+
+    assert space.bar(3) == 7
+
+    space.foo.rename("foo_renamed")
+
+    assert not space._impl._is_ns_updated
+    assert "foo" not in space._impl.ns_dict
+    assert space._impl.ns_dict["foo_renamed"](3) == 6
+
+    model.close()

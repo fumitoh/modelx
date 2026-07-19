@@ -337,6 +337,7 @@ class RenameCells(Edit):
         for space in model.spmgr._get_subs(self.cells.parent,
                                            skip_self=False):
             txn.mark_dirty_base(space)
+            txn.mark_dirty(space, "cells")
             space.cells[old_name].on_rename(self.name, txn)
 
 
