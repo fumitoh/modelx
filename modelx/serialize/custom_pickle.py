@@ -123,15 +123,25 @@ class ModelUnpickler(pickle.Unpickler):
         if reader.version >= 5:
             self.iospecs = reader.iospecs
 
+    def _find_iospec(self, sp_id):
+        # In the fast strict pass the error aborts the load and triggers
+        # the tolerant retry (tolerant_pickle), which catches this in its
+        # persistent_load and substitutes a placeholder.
+        iospecs = getattr(self, "iospecs", None)
+        if isinstance(iospecs, dict) and iospecs.get(sp_id) is not None:
+            return iospecs[sp_id]
+        raise KeyError(
+            "IO spec not found for pickled value (id: %s)" % sp_id)
+
     def persistent_load(self, pid):
 
         if pid[0] == "DataValue":
             _, sp_id = pid
-            return self.iospecs[sp_id].value
+            return self._find_iospec(sp_id).value
 
         elif pid[0] in ("BaseIOSpec", "BaseDataSpec"):  # renamed in v0.20
             _, sp_id = pid
-            return self.iospecs[sp_id]
+            return self._find_iospec(sp_id)
 
         elif pid[0] in ("BaseSharedIO", "BaseSharedData"):  # renamed in v0.20
 

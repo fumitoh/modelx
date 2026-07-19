@@ -17,6 +17,7 @@ import json, types, importlib, pathlib
 import ast
 import enum
 import shutil
+import warnings
 from collections import namedtuple
 import tokenize
 import token
@@ -1062,6 +1063,8 @@ class ModelReader:
         self.model = None
         self.pickledata = None
         self.temproot = None
+        self.error_ids = set()          # Keys of lost pickledata entries
+        self.unpickle_errors = []       # Errors caught while unpickling
 
     def read_model(self, **kwargs):
 
@@ -1164,6 +1167,13 @@ class ModelReader:
             self.instructions.extend(instructuions)
 
     def _set_dynamic_inputs(self, idtuple, keyid, valid, static_parent):
+        ids = [k for k in idtuple if isinstance(k, int)]
+        ids.extend((keyid, valid))
+        if any(not self.find_pickledata(i)[0] for i in ids):
+            warnings.warn(
+                "A dynamic input value in '%s' could not be restored "
+                "and was skipped" % static_parent.fullname)
+            return
         idtuple = TupleID.unpickle_args(idtuple, self.pickledata)
         if idtuple[0][0] == ".":    # Backward compatibility (-0.13.0)
             idtuple = rel_to_abs_tuple(idtuple, static_parent._idtuple)
@@ -1189,26 +1199,32 @@ class ModelReader:
             else:
                 self.instructions.append(ist)
 
+    def find_pickledata(self, key):
+        """Return (found, value); found is False when the value was lost."""
+        data = self.pickledata
+        if isinstance(data, dict) and key in data and key not in self.error_ids:
+            return True, data[key]
+        return False, None
+
     def read_pickledata(self):
 
         def custom_load(file):
             unpickler = ModelUnpickler(file, self)
             return unpickler.load()
 
-        def compat_load(file):
-            from .pandas_compat import CompatUnpickler
-            return CompatUnpickler(file, self).load()
-
         file = self.path / "_data/data.pickle"
         if ziputil.exists(file):
-            excs_to_catch = (
-                AttributeError, ImportError, ModuleNotFoundError, TypeError)
             try:
                 self.pickledata = ziputil.read_file_utf8(
                     custom_load, file, "b")
-            except excs_to_catch:
-                self.pickledata = ziputil.read_file_utf8(
-                    compat_load, file, "b")
+            except Exception:
+                from .tolerant_pickle import load_pickle_tolerantly
+                self.pickledata = load_pickle_tolerantly(
+                    self, file, kind="model")
+
+        if self.unpickle_errors:
+            from .tolerant_pickle import finalize_tolerant_read
+            finalize_tolerant_read(self)
 
 
 class BaseNodeParser:
@@ -1547,14 +1563,23 @@ class CellsInputDataMixin(BaseNodeParser):
     def load_pickledata(self):
         if ziputil.exists(self.datapath):
             data = {}
+            skipped = 0
             lines = ziputil.read_file_utf8(lambda f: f.readlines(),
                                       self.datapath,
                                       "t")
             for line in lines:
                 keyid, valid = ast.literal_eval(line)
-                key = self.reader.pickledata[keyid]
-                val = self.reader.pickledata[valid]
+                found_key, key = self.reader.find_pickledata(keyid)
+                found_val, val = self.reader.find_pickledata(valid)
+                if not (found_key and found_val):
+                    skipped += 1
+                    continue
                 data[key] = val
+            if skipped:
+                warnings.warn(
+                    "%d input value(s) of Cells '%s.%s' could not be "
+                    "restored and were skipped"
+                    % (skipped, self.obj.fullname, self.cellsname))
             self.set_values(data)
 
 
@@ -1762,6 +1787,11 @@ class TupleDecoder(ValueDecoder):
     def size(self):
         return len(self.node.elts)
 
+    def _warn_lost_ref(self):
+        warnings.warn(
+            "Reference '%s' in '%s' could not be restored "
+            "and is set to None" % (self.name, self.obj.fullname))
+
     @classmethod
     def condition(cls, node):
         if isinstance(node, ast.Tuple):
@@ -1777,10 +1807,12 @@ class InterfaceDecoder(TupleDecoder):
         return rel_to_abs(self.elm(1), self.obj.fullname)
 
     def restore(self):
-        decoded = TupleID.unpickle_args(
-            TupleID.tuplize(self.atok.get_text(self.node.elts[1])),
-            self.reader.pickledata
-        )
+        keys = TupleID.tuplize(self.atok.get_text(self.node.elts[1]))
+        if any(isinstance(k, int) and not self.reader.find_pickledata(k)[0]
+               for k in keys):
+            self._warn_lost_ref()
+            return None
+        decoded = TupleID.unpickle_args(keys, self.reader.pickledata)
         decoded = rel_to_abs_tuple(decoded, self.obj._idtuple)
         return mxsys.get_object_from_idtuple(decoded)
 
@@ -1792,7 +1824,10 @@ class DataClientDecoder(TupleDecoder):
         return self.elm(1)
 
     def restore(self):
-        spec = self.reader.pickledata[self.decode()]
+        found, spec = self.reader.find_pickledata(self.decode())
+        if not found:
+            self._warn_lost_ref()
+            return None
         if hasattr(spec, "_is_hidden") and spec._is_hidden:
             return spec.value
         else:
@@ -1813,7 +1848,10 @@ class PickleDecoder(TupleDecoder):
         return self.elm(1)
 
     def restore(self):
-        return self.reader.pickledata[self.decode()]
+        found, value = self.reader.find_pickledata(self.decode())
+        if not found:
+            self._warn_lost_ref()
+        return value
 
 
 class LiteralDecoder(ValueDecoder):
