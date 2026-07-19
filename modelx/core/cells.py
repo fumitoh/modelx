@@ -740,9 +740,6 @@ class CellsImpl(*_cells_impl_base):
         else:
             return self.name
 
-    def repr_parent(self):
-        return self.parent.repr_parent() + "." + self.parent.repr_self()
-
     def has_node(self, key):
         return key in self.data
 

@@ -192,13 +192,6 @@ class MacroImpl(Impl):
             func = Formula(func, name=self.name)
         self.formula = func
     
-    def repr_parent(self):
-        """Return parent representation"""
-        if self.parent.repr_parent():
-            return self.parent.repr_parent() + "." + self.parent.repr_self()
-        else:
-            return self.parent.repr_self()
-    
     def repr_self(self, add_params=True):
         """Return self representation"""
         return self.name
