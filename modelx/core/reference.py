@@ -58,12 +58,6 @@ class ReferenceImpl(Derivable, Impl):
     def to_node(self):
         return ReferenceNode(get_node(self, None, None))
 
-    def repr_parent(self):
-        if self.parent.repr_parent():
-            return self.parent.repr_parent() + "." + self.parent.repr_self()
-        else:
-            return self.parent.repr_self()
-
     def repr_self(self, add_params=True):
         return self.name
 

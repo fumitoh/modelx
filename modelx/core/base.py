@@ -253,7 +253,10 @@ class Impl(BaseImpl):
         raise NotImplementedError
 
     def repr_parent(self):
-        raise NotImplementedError
+        # ItemSpaceImpl overrides this to skip one level, because its
+        # repr_self embeds the parent's name ("Space[1]"); ModelImpl
+        # terminates the recursion with "".
+        return self.parent.get_repr(fullname=True)
 
     def get_repr(self, fullname=False, add_params=True):
 

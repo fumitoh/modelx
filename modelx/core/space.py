@@ -2096,12 +2096,6 @@ class BaseSpaceImpl(*_base_space_impl_base):
     def repr_self(self, add_params=True):
         return self.name
 
-    def repr_parent(self):
-        if self.parent.repr_parent():
-            return self.parent.repr_parent() + "." + self.parent.repr_self()
-        else:
-            return self.parent.repr_self()
-
     # ----------------------------------------------------------------------
     # Pandas, Module, Excel I/O
 
