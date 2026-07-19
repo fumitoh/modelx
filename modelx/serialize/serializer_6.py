@@ -36,6 +36,7 @@ from .deserializer import (
 from .custom_pickle import (
     IOSpecUnpickler, ModelUnpickler,
     IOSpecPickler, ModelPickler)
+from .reader_state import SystemStateSnapshot
 
 
 class TupleID(tuple):
@@ -875,6 +876,7 @@ class ModelReader:
 
     def read_model(self, **kwargs):
 
+        state = SystemStateSnapshot(self.system)
         try:
             self.system.serializing = self
             self.system.iomanager.serializing = True
@@ -908,6 +910,7 @@ class ModelReader:
                 # iomanager; closing the model cannot see them until their
                 # refs are registered in the model's ValueRegistry
                 self.system.iomanager.rollback_journal(io_group=self.model)
+            state.restore()
             raise
 
         finally:
