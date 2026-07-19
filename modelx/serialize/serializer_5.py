@@ -1059,12 +1059,14 @@ class ModelReader:
         self.temproot = None
         self.error_ids = set()          # Keys of lost pickledata entries
         self.unpickle_errors = []       # Errors caught while unpickling
+        self.io_journal_mark = 0        # Set on each strict unpickling attempt
 
     def read_model(self, **kwargs):
 
         try:
             self.system.serializing = self
             self.system.iomanager.serializing = True
+            self.system.iomanager.begin_journal()
             self.kwargs = kwargs
 
             if (sys.platform == "win32"
@@ -1086,13 +1088,20 @@ class ModelReader:
                 model = self._read_model_inner()
 
         except:
-            if self.model:
-                self.model.close()
+            try:
+                if self.model:
+                    self.model.close()
+            finally:
+                # Discard ios/specs this read registered in the global
+                # iomanager; closing the model cannot see them until their
+                # refs are registered in the model's ValueRegistry
+                self.system.iomanager.rollback_journal(io_group=self.model)
             raise
 
         finally:
             self.system.serializing = None
             self.system.iomanager.serializing = None
+            self.system.iomanager.end_journal()
 
         return model
 

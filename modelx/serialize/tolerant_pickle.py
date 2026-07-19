@@ -282,19 +282,6 @@ def sweep_pickledata(data, contaminated=()):
     return error_keys
 
 
-def _reset_model_ios(reader):
-    # Discard IOs (and specs attached to them) registered by an aborted
-    # unpickling attempt, so a retry does not duplicate the specs.
-    # IOs keyed by absolute path may be shared with other models and are
-    # left to delete_orphan_ios, which only removes spec-less ones.
-    manager = reader.system.iomanager
-    for io_ in list(manager.get_ios(reader.model).values()):
-        for spec in list(io_.specs.values()):
-            manager.del_spec(spec)
-        if not io_.specs:
-            manager._del_io(io_)
-
-
 def load_pickle_tolerantly(reader, path, kind):
     """Load a pickle file substituting None for unrestorable values.
 
@@ -303,11 +290,15 @@ def load_pickle_tolerantly(reader, path, kind):
     keys on the reader. Returns an empty dict if the file cannot be parsed
     at all (e.g. a truncated stream).
     """
+    manager = reader.system.iomanager
+
     if kind == "iospecs" or reader.version < 5:
         # The aborted strict attempt may have registered IOs and attached
         # specs (from iospecs.pickle, or from data.pickle in v4 models
-        # where specs are pickled by value); discard them before retrying
-        _reset_model_ios(reader)
+        # where specs are pickled by value); discard them before retrying,
+        # including specs attached to absolute-path IOs, whose stale
+        # presence would veto the retried specs and null their refs
+        manager.rollback_journal(reader.io_journal_mark, io_group=reader.model)
 
     cls = TolerantModelUnpickler if kind == "model" else TolerantIOSpecUnpickler
     unpickler = None
@@ -317,11 +308,16 @@ def load_pickle_tolerantly(reader, path, kind):
         unpickler = cls(file, reader)
         return unpickler.load()
 
+    mark = manager.journal_mark()
     try:
         data = ziputil.read_file_utf8(loadfunc, path, "b")
         if not isinstance(data, dict):
             raise TypeError("unexpected data in '%s': %r" % (path, data))
     except Exception as exc:
+        # The whole file's values are lost; ios/specs the aborted
+        # tolerant attempt registered would otherwise outlive the read
+        # (their refs load as None, so nothing else removes them)
+        manager.rollback_journal(mark, io_group=reader.model)
         reader.unpickle_errors.append(exc)
         warnings.warn(
             "'%s' could not be read (%r); "

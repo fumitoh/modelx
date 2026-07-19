@@ -150,6 +150,48 @@ class IOManager:
     def __init__(self):
         self.ios = BiDict({})
         self.serializing = None     # Set from external
+        self._journal = None        # Records additions during a model read
+
+    # ----------------------------------------------------------------------
+    # Journaling for rollback on failed model reads
+    #
+    # While a model is being read, IOs and specs enter ``self.ios`` before
+    # the refs that would make them reachable from the model's
+    # ValueRegistry, so closing the model cannot undo them. The reader
+    # journals every addition and rolls the journal back when the read
+    # fails, or up to a mark when a strict unpickling attempt is retried.
+
+    def begin_journal(self):
+        self._journal = []
+
+    def end_journal(self):
+        self._journal = None
+
+    def journal_mark(self):
+        return len(self._journal) if self._journal is not None else 0
+
+    def rollback_journal(self, mark=0, io_group=None):
+        """Undo io/spec registrations journaled after ``mark``.
+
+        Entries whose io is keyed under a group other than ``io_group``
+        or None are kept: they belong to another model mutated as a
+        side effect (e.g. by module code executed while unpickling).
+        Entries already removed by other cleanups, such as ``del_spec``
+        via the model's ValueRegistry, are skipped.
+        """
+        if self._journal is None:
+            return
+        while len(self._journal) > mark:
+            kind, obj = self._journal.pop()
+            a_io = obj if kind == "io" else obj._io
+            key = self.ios.inverse.get(a_io)
+            if (key is not None and key[0] is not None
+                    and key[0] is not io_group):
+                continue
+            if kind == "spec":
+                self.del_spec(obj)
+            elif not obj.specs:     # "io"; keep while specs remain attached
+                self._del_io(obj)
 
     def _check_sanity(self):
         assert len(self.ios) == len(set(id(v) for v in self.ios.values()))
@@ -173,6 +215,8 @@ class IOManager:
         a_io = cls(path, self, load_from, **kwargs)
         if not self._get_io(io_group, a_io.path):
             self.ios[self._get_io_key(io_group, a_io.path)] = a_io
+            if self._journal is not None:
+                self._journal.append(("io", a_io))
             return a_io
         else:
             raise RuntimeError("must not happen")
@@ -225,6 +269,8 @@ class IOManager:
         if id(spec) not in io_.specs:
             if io_._can_add_spec(spec):
                 io_._specs[id(spec)] = spec
+                if self._journal is not None:
+                    self._journal.append(("spec", spec))
             else:
                 raise ValueError("cannot add spec")
 
