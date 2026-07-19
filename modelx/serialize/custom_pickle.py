@@ -31,6 +31,9 @@ class IOSpecUnpickler(pickle.Unpickler):
         self.reader = reader
         self.manager = reader.system.iomanager
         self.model = reader.model
+        # Rollback point for load_pickle_tolerantly if this strict
+        # attempt aborts after registering ios/specs
+        reader.io_journal_mark = self.manager.journal_mark()
 
     def persistent_load(self, pid):
 
@@ -122,6 +125,9 @@ class ModelUnpickler(pickle.Unpickler):
         self.model = reader.model
         if reader.version >= 5:
             self.iospecs = reader.iospecs
+        # Rollback point for load_pickle_tolerantly if this strict
+        # attempt aborts after registering ios/specs
+        reader.io_journal_mark = self.manager.journal_mark()
 
     def _find_iospec(self, sp_id):
         # In the fast strict pass the error aborts the load and triggers
