@@ -59,6 +59,37 @@ def test_rollback_interleaved_ops(txn):
     assert list(d) == ["a", "b", "c"]
 
 
+def test_rollback_restores_renamed_key(txn):
+    d = {"a": 1, "b": 2, "c": 3}
+    txn.rename_item(d, "b", "x")
+    assert list(d) == ["a", "x", "c"]
+    txn.rollback()
+    assert d == {"a": 1, "b": 2, "c": 3}
+    assert list(d) == ["a", "b", "c"]
+
+
+def test_rename_item_rejects_existing_key(txn):
+    """The rename journal records keys only, so an overwrite could not
+    be rolled back; rename_item must refuse before mutating."""
+    d = {"a": 1, "b": 2}
+    with pytest.raises(RuntimeError):
+        txn.rename_item(d, "a", "b")
+    assert d == {"a": 1, "b": 2}
+    txn.rollback()      # nothing was journaled
+    assert d == {"a": 1, "b": 2}
+
+
+def test_rename_item_missing_key_leaves_journal_clean(txn):
+    """A failed rename must not journal: a poisoned record would crash
+    the reverse replay and strand every earlier write."""
+    d = {"a": 1}
+    txn.set_item(d, "b", 2)
+    with pytest.raises(ValueError):
+        txn.rename_item(d, "missing", "x")
+    txn.rollback()
+    assert d == {"a": 1}
+
+
 def test_rollback_restores_attrs_and_runs_undo_callbacks(txn):
     class Obj:
         pass

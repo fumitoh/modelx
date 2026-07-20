@@ -117,3 +117,114 @@ def test_rename_rebinds_sub_space_namespace(rename_ns_model):
         sub.bar(3)
 
     assert sub.foo_renamed(5) == 10
+
+
+def test_rename_to_sub_defined_cells_rejected(rename_ns_model):
+    """Renaming a base cells onto a name owned by a sub's own defined
+    cells must be rejected instead of silently destroying it."""
+    m = rename_ns_model
+    A = m.new_space("A")
+    A.new_cells(name="foo", formula=lambda x: x)
+    B = m.new_space("B", bases=A)
+    B.new_cells(name="baz", formula=lambda x: x + 100)
+    assert B.baz(1) == 101
+
+    with pytest.raises(
+            ValueError,
+            match=r"cannot rename '.*A\.foo' to 'baz': "
+                  r"'.*B\.baz' is already defined"):
+        A.foo.rename("baz")
+
+    assert B.baz(1) == 101
+    assert B.baz._impl.is_defined()
+    assert list(A._impl.cells) == ["foo"]
+    assert sorted(B._impl.cells) == ["baz", "foo"]
+
+
+def test_rename_to_other_base_cells_rejected(rename_ns_model):
+    """Renaming onto a name a sub derives from another base must be
+    rejected: the sub's derived copy would be overwritten and the
+    inheritance links left inconsistent."""
+    m = rename_ns_model
+    A = m.new_space("A")
+    A.new_cells(name="foo", formula=lambda x: x)
+    A2 = m.new_space("A2")
+    A2.new_cells(name="qux", formula=lambda x: x + 200)
+    B = m.new_space("B", bases=[A, A2])
+    assert B.qux(1) == 201
+
+    with pytest.raises(
+            ValueError,
+            match=r"cannot rename '.*A\.foo' to 'qux': "
+                  r"'.*B\.qux' is already defined"):
+        A.foo.rename("qux")
+
+    assert B.qux(1) == 201
+    assert list(A._impl.cells) == ["foo"]
+
+
+def test_rename_to_deep_sub_defined_cells_rejected(rename_ns_model):
+    """The collision check reaches subs of subs."""
+    m = rename_ns_model
+    A = m.new_space("A")
+    A.new_cells(name="foo", formula=lambda x: x)
+    B = m.new_space("B", bases=A)
+    C = m.new_space("C", bases=B)
+    C.new_cells(name="baz", formula=lambda x: x + 300)
+    assert C.baz(1) == 301
+
+    with pytest.raises(
+            ValueError,
+            match=r"cannot rename '.*A\.foo' to 'baz': "
+                  r"'.*C\.baz' is already defined"):
+        A.foo.rename("baz")
+
+    assert C.baz(1) == 301
+    assert list(A._impl.cells) == ["foo"]
+
+
+def test_rename_base_with_sub_override(rename_ns_model):
+    """Renaming a base cells that a sub overrides under the OLD name
+    still succeeds and renames the override along, keeping the link."""
+    m = rename_ns_model
+    A = m.new_space("A")
+    A.new_cells(name="foo", formula=lambda x: x)
+    B = m.new_space("B", bases=A)
+    B.foo.formula = lambda x: x + 50
+    assert B.foo._impl.is_defined()
+    assert B.foo(1) == 51
+
+    A.foo.rename("bar")
+
+    assert list(A._impl.cells) == ["bar"]
+    assert list(B._impl.cells) == ["bar"]
+    assert B.bar(1) == 51
+    assert B.bar._impl.is_defined()
+    assert B.bar._impl.bases[0] is A.bar._impl
+
+
+def test_rename_to_sub_ref_rejected(rename_ns_model):
+    """Non-Cells collisions in subs stay rejected by the pre-existing
+    _can_add check."""
+    m = rename_ns_model
+    A = m.new_space("A")
+    A.new_cells(name="foo", formula=lambda x: x)
+    B = m.new_space("B", bases=A)
+    B.myref = 42
+
+    with pytest.raises(ValueError, match="cannot create cells 'myref'"):
+        A.foo.rename("myref")
+
+    assert B.myref == 42
+    assert list(A._impl.cells) == ["foo"]
+
+
+def test_rename_to_same_name_rejected(rename_ns_model):
+    """Renaming to the current name fails as a user-facing ValueError,
+    not the internal rename_item RuntimeError."""
+    m = rename_ns_model
+    A = m.new_space("A")
+    A.new_cells(name="foo", formula=lambda x: x)
+
+    with pytest.raises(ValueError, match="cannot create cells 'foo'"):
+        A.foo.rename("foo")

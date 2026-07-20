@@ -332,6 +332,20 @@ class RenameCells(Edit):
                 self.cells.bases[0].get_repr(
                     fullname=True, add_params=False)))
 
+        # _can_add tolerates a colliding CellsImpl in sub spaces because
+        # for NewCells the sub's defined cells legitimately becomes an
+        # override. Rename instead rewrites every sub's entry in place,
+        # so any member under the new name in any sub would be silently
+        # overwritten and lost; reject the rename outright.
+        other = model.spmgr._find_name_in_subs(
+            self.cells.parent, self.name, skip_self=True)
+        if other is not None:
+            raise ValueError(
+                "cannot rename '%s' to '%s': '%s' is already defined" % (
+                    self.cells.get_repr(fullname=True, add_params=False),
+                    self.name,
+                    other.get_repr(fullname=True, add_params=False)))
+
     def apply(self, model, txn):
         old_name = self.cells.name
         for space in model.spmgr._get_subs(self.cells.parent,
