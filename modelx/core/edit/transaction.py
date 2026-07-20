@@ -139,9 +139,21 @@ class Transaction:
         container[key] = container.pop(key)
 
     def rename_item(self, container, old_key, new_key):
-        """Rename ``old_key`` to ``new_key`` keeping its position."""
-        self._journal.append(("rename", container, old_key, new_key))
+        """Rename ``old_key`` to ``new_key`` keeping its position.
+
+        ``new_key`` must not be present: the journal records keys only,
+        so an overwrite could not be rolled back. Validation must
+        reject colliding renames before apply reaches this point.
+        """
+        if new_key in container:
+            raise RuntimeError(
+                "cannot rename '%s' to '%s': key already present"
+                % (old_key, new_key))
+        # Journal only after the mutation succeeds: a record for a
+        # rename that never happened would crash the reverse replay
+        # and strand every earlier write in the journal.
         _rename_item(container, old_key, new_key)
+        self._journal.append(("rename", container, old_key, new_key))
 
     def sort_items(self, container, sorted_keys=None):
         """Sort ``container`` keys (all, or the ``sorted_keys`` part)."""
