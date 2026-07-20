@@ -326,6 +326,10 @@ class RenameCells(Edit):
         if not model.spmgr._can_add(self.cells.parent, self.name, CellsImpl):
             raise ValueError("cannot create cells '%s'" % self.name)
 
+        if model.spmgr._find_name_in_subs(
+                self.cells.parent, self.name, skip_self=True) is not None:
+            raise ValueError("cannot create cells '%s'" % self.name)
+
         if self.cells.bases:
             raise ValueError("'%s' is a sub Cells of '%s'" % (
                 self.cells.get_repr(fullname=True, add_params=False),

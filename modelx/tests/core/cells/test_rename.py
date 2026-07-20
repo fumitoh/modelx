@@ -117,3 +117,28 @@ def test_rename_rebinds_sub_space_namespace(rename_ns_model):
         sub.bar(3)
 
     assert sub.foo_renamed(5) == 10
+
+
+def test_rename_rejects_name_defined_in_sub_space(rename_ns_model):
+    base = rename_ns_model.new_space("Base")
+    sub = rename_ns_model.new_space("Sub", bases=base)
+    base.new_cells(name="foo", formula=lambda x: x)
+    sub.new_cells(name="bar", formula=lambda x: x + 100)
+
+    with pytest.raises(ValueError):
+        base.foo.rename("bar")
+
+    assert sub.bar(1) == 101
+
+
+def test_rename_rejects_name_derived_from_other_base(rename_ns_model):
+    left = rename_ns_model.new_space("Left")
+    right = rename_ns_model.new_space("Right")
+    left.new_cells(name="foo", formula=lambda x: x)
+    right.new_cells(name="bar", formula=lambda x: x + 100)
+    sub = rename_ns_model.new_space("Sub", bases=[left, right])
+
+    with pytest.raises(ValueError):
+        left.foo.rename("bar")
+
+    assert sub.bar(1) == 101
