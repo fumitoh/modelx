@@ -44,21 +44,26 @@ class ChangeSet:
                                     # treat values inside the deleted
                                     # trees as already invalid
         self.modified = []          # impls rebound/changed in place
-        self.dirty_containers = {}  # (parent_impl, attr) -> None
+        self.dirty_containers = {}  # (parent_impl, attr) -> None:
+                                    # containers whose namespace gets
+                                    # one batched notify in finalize;
+                                    # entered with (mark_dirty) or
+                                    # without (mark_dirty_container) a
+                                    # dirty_spaces entry
         self.dirty_spaces = {}      # idstr -> space_impl: spaces whose
-                                    # namespace bindings this edit
-                                    # changed (incl. removed spaces);
+                                    # members this edit added or
+                                    # removed (incl. removed spaces);
                                     # intersected with the FULL closure
                                     # (dynbases + MRO bases + parent
                                     # chain) by the itemspace
                                     # invalidation (§5.8)
         self.dirty_bases = {}       # idstr -> space_impl: spaces whose
-                                    # members changed only in place
-                                    # (formula changes, renames);
-                                    # intersected with the recorded
-                                    # dynbases only, preserving the
-                                    # per-dynbase selectivity these
-                                    # edits always had
+                                    # members changed without being
+                                    # added or removed (formula
+                                    # changes, renames); intersected
+                                    # with the recorded dynbases only,
+                                    # preserving the per-dynbase
+                                    # selectivity these edits always had
         self.finalize_ops = []      # edit-specific zero-arg callables run
                                     # post-commit, between deletions and
                                     # the batched notify
@@ -188,9 +193,19 @@ class Transaction:
         if not parent.is_model():
             self.changes.dirty_spaces[parent.idstr] = parent
 
+    def mark_dirty_container(self, parent, attr):
+        """Queue a namespace notify for ``parent``'s ``attr`` container
+        without entering ``dirty_spaces``. Cells renames rebind a
+        namespace key, so the namespace must be notified (GH220), but
+        their itemspace invalidation must stay per-dynbase selective
+        through ``mark_dirty_base`` — a ``dirty_spaces`` entry would
+        clear itemspaces built on foreign dynbases through the
+        full-closure intersection (§5.8)."""
+        self.changes.dirty_containers[(parent, attr)] = None
+
     def mark_dirty_base(self, space):
         """Record ``space`` in ``dirty_bases``: for edits (formula
-        changes, renames) that alter no namespace binding but stale the
+        changes, renames) that add or remove no member but stale the
         itemspace trees built on ``space``."""
         self.changes.dirty_bases[space.idstr] = space
 
