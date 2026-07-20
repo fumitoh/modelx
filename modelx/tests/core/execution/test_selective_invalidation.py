@@ -343,10 +343,15 @@ def test_survive_formula_change_on_parent_cells(foreign_dynbase_parent):
 def test_survive_rename_of_parent_cells(foreign_dynbase_parent):
     m, X, P, p1 = foreign_dynbase_parent
 
+    assert p1.xc(3) == 3    # warm the survivor's cache
+
     P.foo.rename("bar")
 
     assert p1._is_valid()
     assert len(P._named_itemspaces) == 1
+    # The survivor is still usable and its cached value is retained
+    assert p1.xc(3) == 3
+    assert len(p1.xc._impl.data) == 1
 
 
 def test_cleared_on_formula_change_in_foreign_dynbase(foreign_dynbase_parent):

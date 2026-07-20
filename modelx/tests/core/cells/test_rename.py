@@ -1,6 +1,8 @@
 import modelx as mx
 import pytest
 
+from modelx.core.errors import FormulaError
+
 
 def test_rename(sample_for_rename_and_formula):
     """
@@ -52,3 +54,66 @@ def test_rename_funcname():
 
     m._impl._check_sanity()
     m.close()
+
+
+@pytest.fixture
+def rename_ns_model():
+    m = mx.new_model()
+    yield m
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_rename_rebinds_namespace(rename_ns_model):
+    """Renaming rebinds the space's namespace: the old name stops
+    resolving and the new name resolves (GH220)."""
+    space = rename_ns_model.new_space("Space")
+
+    @mx.defcells(space=space)
+    def foo(x):
+        return x * 2
+
+    @mx.defcells(space=space)
+    def bar(x):
+        return foo(x) + 1
+
+    assert space.bar(3) == 7
+
+    space.foo.rename("foo_renamed")
+
+    # bar's formula still references the old name; it must fail
+    # loudly instead of evaluating against the stale binding (GH220).
+    with pytest.raises(FormulaError):
+        space.bar(3)
+
+    assert space.foo_renamed(3) == 6
+
+    def baz(x):
+        return foo_renamed(x) + 10
+
+    space.new_cells(name="baz", formula=baz)
+    assert space.baz(3) == 16
+
+
+def test_rename_rebinds_sub_space_namespace(rename_ns_model):
+    """Renaming a base cells rebinds the namespaces of derived sub
+    spaces, not only the edited space's own."""
+    base = rename_ns_model.new_space("Base")
+
+    @mx.defcells(space=base)
+    def foo(x):
+        return x * 2
+
+    @mx.defcells(space=base)
+    def bar(x):
+        return foo(x) + 1
+
+    sub = rename_ns_model.new_space("Sub", bases=base)
+    assert sub.bar(3) == 7
+
+    base.foo.rename("foo_renamed")
+
+    with pytest.raises(FormulaError):
+        sub.bar(3)
+
+    assert sub.foo_renamed(5) == 10

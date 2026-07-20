@@ -337,6 +337,11 @@ class RenameCells(Edit):
         for space in model.spmgr._get_subs(self.cells.parent,
                                            skip_self=False):
             txn.mark_dirty_base(space)
+            # Unlike RenameSpace, deliberately not mark_dirty: a
+            # dirty_spaces entry would clear itemspaces built on
+            # foreign dynbases (test_survive_rename_of_parent_cells);
+            # the rename rebinds a namespace key, so notify only.
+            txn.mark_dirty_container(space, "cells")
             space.cells[old_name].on_rename(self.name, txn)
 
 

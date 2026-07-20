@@ -34,11 +34,13 @@ class ItemSpaceManager:
 
     On finalize an itemspace is cleared iff:
 
-    - ``ChangeSet.dirty_spaces`` (spaces whose namespace bindings
-      changed) intersects the full closure, or
-    - ``ChangeSet.dirty_bases`` (formula changes and renames, which
-      alter no bindings) intersects the recorded dynbases only —
-      preserving the per-dynbase selectivity these edits always had.
+    - ``ChangeSet.dirty_spaces`` (spaces with members added or
+      removed) intersects the full closure, or
+    - ``ChangeSet.dirty_bases`` (formula changes and renames — the
+      latter rebind a namespace key, notified via ``dirty_containers``,
+      but neither adds nor removes a member) intersects the recorded
+      dynbases only — preserving the per-dynbase selectivity these
+      edits always had.
 
     This refines §5.8's parent-granularity formula per itemspace, so an
     edit to one dynbase spares sibling itemspaces built on other
