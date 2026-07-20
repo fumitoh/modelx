@@ -1014,13 +1014,17 @@ def write_model(model, model_path, backup=True, log_input=False, version=None):
 
     Dynamic spaces and cells values are not stored.
 
-    For spaces and cells created
+    Spaces and cells created
     by :py:meth:`~modelx.core.space.UserSpace.new_space_from_excel` and
-    :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`,
-    the source Excel files are copied into the same directory where
-    the text files for the spaces the methods are associated with are located.
-    Then when the model is read by :py:func:`~read_model` function,
-    the methods are invoked to create the spaces or cells.
+    :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`
+    are written out in the same way as other spaces and cells:
+    their definitions are output to the text files, and the values
+    read from the source Excel files are saved as input values
+    in data files under *_data* folders.
+    The source Excel files themselves are not copied, and they are
+    not needed when the model is read back
+    by :py:func:`~read_model` function, which restores the spaces
+    and cells from the saved data without invoking the methods again.
 
     Method :py:meth:`~modelx.core.model.Model.write` performs the same operation.
 
@@ -1038,6 +1042,13 @@ def write_model(model, model_path, backup=True, log_input=False, version=None):
             to ``False``.
         version(int, optional): Format version to write model.
             Defaults to the most recent version.
+
+    .. versionchanged:: 0.22.0
+        The source Excel files for spaces and cells created by
+        :py:meth:`~modelx.core.space.UserSpace.new_space_from_excel` and
+        :py:meth:`~modelx.core.space.UserSpace.new_cells_from_excel`
+        are no longer copied into the output folder tree. Instead,
+        the values read from the files are saved as input values.
 
     .. versionchanged:: 0.8.0 ``log_input`` parameter is added.
 
