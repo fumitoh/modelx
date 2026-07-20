@@ -316,7 +316,8 @@ def copy_file(src: pathlib.Path, dst: pathlib.Path,
                             raise ValueError("invalid archive '%s'" % arc_dst)
             except PermissionError:
                 if i < retries - 1:
-                    warnings.warn("writing to '%s' failed, retrying...")
+                    warnings.warn(
+                        "writing to '%s' failed, retrying..." % root_dst)
                     time.sleep(1)
                     continue
                 else:
