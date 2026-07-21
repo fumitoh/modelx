@@ -478,12 +478,21 @@ class ModelWriter:
         Left in the session's registration order, the first resave
         after a reload would permute such files (GH: sheet order).
         Runs after write_pickledata, which assigns every spec its id.
+
+        An IO holding specs of other live models too (an absolute-path
+        file with group None) is left alone: no single model's ids
+        define an order for it, and reordering it here would permute
+        the shared file on every alternate-model save.
         """
+        model_spec_ids = set(id(sp) for sp in self.model.iospecs)
         ios = []
         for sp in self.model.iospecs:
             if sp.io not in ios:
                 ios.append(sp.io)
         for io_ in ios:
+            if any(id(sp) not in model_spec_ids
+                   for sp in io_._specs.values()):
+                continue
             specs = sorted(io_._specs.values(), key=self.assign_id)
             io_._specs = {id(sp): sp for sp in specs}
 

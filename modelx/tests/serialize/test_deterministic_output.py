@@ -136,11 +136,12 @@ def test_roundtrip_determinism(
         _assert_identical_trees(path1, path2)
 
 
-def test_deleted_itemspace_arg(tmp_path, close_new_models):
+@pytest.mark.parametrize("version", [6, 7])
+def test_deleted_itemspace_arg(tmp_path, version, close_new_models):
     """An ItemSpace whose argument was deleted must still save (the
     dead Interface has no content-derived sort key) and round-trip
     byte-identically."""
-    m = mx.new_model("DetDeletedArg")
+    m = mx.new_model("DetDeletedArg%s" % version)
     s = m.new_space("Space1", formula=t_arg)
     s.new_cells(name="foo", formula=lambda x: x)
     sc = m.new_space("SpaceC")
@@ -149,25 +150,26 @@ def test_deleted_itemspace_arg(tmp_path, close_new_models):
     del m.SpaceC
 
     path1 = tmp_path / "save1"
-    mx.write_model(m, path1)
+    mx.write_model(m, path1, version=version)
     m.close()
 
     m2 = mx.read_model(path1)
     path2 = tmp_path / "save2"
-    mx.write_model(m2, path2)
+    mx.write_model(m2, path2, version=version)
     m2.close()
 
     _assert_identical_trees(path1, path2)
 
 
-def test_shared_excel_sheet_order(tmp_path, close_new_models):
+@pytest.mark.parametrize("version", [6, 7])
+def test_shared_excel_sheet_order(tmp_path, version, close_new_models):
     """Two specs sharing one Excel book, created in an order adversarial
     to the writer traversal: the book must not permute its sheets on a
     no-op round trip."""
     pd = pytest.importorskip("pandas")
     openpyxl = pytest.importorskip("openpyxl")
 
-    m = mx.new_model("DetSharedExcel")
+    m = mx.new_model("DetSharedExcel%s" % version)
     s1 = m.new_space("Space1")
     s2 = m.new_space("Space2")
     df = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
@@ -177,12 +179,12 @@ def test_shared_excel_sheet_order(tmp_path, close_new_models):
                   data=df * 2, file_type="excel", sheet="SheetA")
 
     path1 = tmp_path / "save1"
-    mx.write_model(m, path1)
+    mx.write_model(m, path1, version=version)
     m.close()
 
     m2 = mx.read_model(path1)
     path2 = tmp_path / "save2"
-    mx.write_model(m2, path2)
+    mx.write_model(m2, path2, version=version)
     m2.close()
 
     # xlsx files are zip archives embedding entry timestamps and a
