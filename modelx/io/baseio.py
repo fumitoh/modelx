@@ -480,7 +480,11 @@ class BaseIOSpec:
             "manager": self._manager,
             "_io": self._io
         }
-        if hasattr(self, "_is_hidden"):
+        # Omit is_hidden when False: every reader treats a missing key
+        # as False, and reloading sets _is_hidden = False on specs that
+        # never had it, so emitting False would make a save -> load ->
+        # save round trip produce different bytes.
+        if getattr(self, "_is_hidden", False):
             state["is_hidden"] = self._is_hidden
         if self._manager.serializing is True:
             return self._on_serialize(state)

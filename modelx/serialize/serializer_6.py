@@ -35,7 +35,7 @@ from .deserializer import (
     get_statement_tokens, StatementTokens, SECTION_DIVIDER, SECTIONS)
 from .custom_pickle import (
     IOSpecUnpickler, ModelUnpickler,
-    IOSpecPickler, ModelPickler)
+    IOSpecPickler, DeterministicModelPickler)
 from .reader_state import SystemStateSnapshot
 
 
@@ -55,13 +55,13 @@ class TupleID(tuple):
 
         return tuple(decoded)
 
-    def serialize(self):
+    def serialize(self, assign_id):
         keys = []
         for key in self:
             if isinstance(key, str):
                 keys.append('"%s"' % key)
             elif isinstance(key, tuple):
-                keys.append(str(id(key)))
+                keys.append(str(assign_id(key)))
 
         if len(keys) == 1:
             keystr = "(%s,)" % keys[0]
@@ -70,10 +70,10 @@ class TupleID(tuple):
 
         return keystr
 
-    def pickle_args(self, argsdict):
+    def pickle_args(self, argsdict, assign_id):
         for key in self:
             if isinstance(key, tuple):
-                id_ = id(key)
+                id_ = assign_id(key)
                 if id_ not in argsdict:
                     argsdict[id_] = key
             elif isinstance(key, str):
@@ -326,9 +326,11 @@ class ModelWriter:
 
         self.system = system
         self.model = model
-        self.iospecs = {id(sp): sp for sp in self.model.iospecs}
-        self.value_id_map = {   # id(value) -> id(iospec)
-            id(sp.value): id(sp) for sp in self.model.iospecs}
+        self._assigned_ids = {}     # id(obj) -> id emitted into output files
+        self._assigned_objs = []    # keeps objs alive so memory ids stay unique
+        self.iospecs = {self.assign_id(sp): sp for sp in self.model.iospecs}
+        self.value_id_map = {   # id(value) -> assigned id of iospec
+            id(sp.value): self.assign_id(sp) for sp in self.model.iospecs}
         self.root = path
         self.temp_root = path   # Put zip in temp dir and copy later (GH82)
         self.work_dir = path    # Sub dir in temp to put IO files before archiving
@@ -338,6 +340,24 @@ class ModelWriter:
         self.input_log = []
         self.compression = compression
         self.compresslevel = compresslevel
+
+    def assign_id(self, obj):
+        """Return a process-independent id for ``obj`` to emit into output.
+
+        Sequential ints in first-encounter order replace memory addresses
+        so that saving the same model state always produces the same
+        bytes. The id is memoized per object, preserving the identity
+        deduplication that ``pickledata`` relies on, and a reference to
+        ``obj`` is kept so a recycled memory address cannot alias two
+        objects.
+        """
+        key = id(obj)
+        assigned = self._assigned_ids.get(key)
+        if assigned is None:
+            assigned = len(self._assigned_objs) + 1
+            self._assigned_ids[key] = assigned
+            self._assigned_objs.append(obj)
+        return assigned
 
     def write_model(self):
 
@@ -422,7 +442,8 @@ class ModelWriter:
         if self.pickledata:
             file = self.temp_root / "_data/data.pickle"
             ziputil.write_file_utf8(
-                lambda f: ModelPickler(f, writer=self).dump(self.pickledata),
+                lambda f: DeterministicModelPickler(
+                    f, writer=self).dump(self.pickledata),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel
@@ -608,18 +629,21 @@ class SpaceEncoder(BaseEncoder):
         for cells in space.cells.values():
             for key in cells._impl.input_keys:
                 value = cells._impl.data[key]
-                keyid = id(key)
+                keyid = self.writer.assign_id(key)
                 if keyid not in self.writer.pickledata:
                     self.writer.pickledata[keyid] = key
-                valid = id(value)
+                valid = self.writer.assign_id(value)
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
 
                 idtuple = TupleID(abs_to_rel_tuple(
                     cells._idtuple, static_parent._idtuple))
-                idtuple.pickle_args(self.writer.pickledata)
+                idtuple.pickle_args(
+                    self.writer.pickledata, self.writer.assign_id)
                 file.write(
-                    "(%s, %s, %s)\n" % (idtuple.serialize(), keyid, valid)
+                    "(%s, %s, %s)\n" % (
+                        idtuple.serialize(self.writer.assign_id),
+                        keyid, valid)
                 )
 
                 if self.writer.log_input:
@@ -696,10 +720,10 @@ class CellsEncoder(BaseEncoder):
         for key in self.target._impl.data:
             if key in self.target._impl.input_keys:
                 value = self.target._impl.data[key]
-                keyid = id(key)
+                keyid = self.writer.assign_id(key)
                 if keyid not in self.writer.pickledata:
                     self.writer.pickledata[keyid] = key
-                valid = id(value)
+                valid = self.writer.assign_id(value)
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
                 cellsdata.append((keyid, valid))
@@ -743,10 +767,11 @@ class InterfaceRefEncoder(BaseEncoder):
             self.parent._idtuple
         ))
         if tuple(int(i) for i in mx.__version__.split(".")[:3]) < (0, 10):
-            return "(\"Interface\", %s)" % idtuple.serialize()
+            return "(\"Interface\", %s)" % idtuple.serialize(
+                self.writer.assign_id)
         else:
             return "(\"Interface\", %s, \"%s\")" % (
-                idtuple.serialize(),
+                idtuple.serialize(self.writer.assign_id),
                 self.target.refmode
             )
 
@@ -756,7 +781,7 @@ class InterfaceRefEncoder(BaseEncoder):
             self.target.value._idtuple,
             self.parent._idtuple
         ))
-        idtuple.pickle_args(self.writer.pickledata)
+        idtuple.pickle_args(self.writer.pickledata, self.writer.assign_id)
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -789,12 +814,12 @@ class IOSpecEncoder(BaseEncoder):
             return False
 
     def encode(self):
-        value_id = id(self.target.value)
-        spec_id = self.writer.value_id_map[value_id]
+        value_id = self.writer.assign_id(self.target.value)
+        spec_id = self.writer.value_id_map[id(self.target.value)]
         return "(\"IOSpec\", %s, %s)" % (value_id, spec_id)
 
     def pickle_value(self):
-        key = id(self.target.value)
+        key = self.writer.assign_id(self.target.value)
 
         if key not in self.writer.pickledata:
             self.writer.pickledata[key] = self.target.value
@@ -825,12 +850,12 @@ class PickleEncoder(BaseEncoder):
 
     def pickle_value(self):
         value = self.target.value
-        key = id(value)
+        key = self.writer.assign_id(value)
         if key not in self.writer.pickledata:
             self.writer.pickledata[key] = value
 
     def encode(self):
-        return "(\"Pickle\", %s)" % id(self.target.value)
+        return "(\"Pickle\", %s)" % self.writer.assign_id(self.target.value)
 
     def instruct(self):
         return Instruction(self.pickle_value)
