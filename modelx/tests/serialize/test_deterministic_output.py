@@ -76,13 +76,15 @@ def _build_model(name):
     return m
 
 
-def _assert_identical_trees(path1, path2):
+def _assert_identical_trees(path1, path2, exclude=()):
     files1 = sorted(p.relative_to(path1) for p in path1.rglob("*")
                     if p.is_file())
     files2 = sorted(p.relative_to(path2) for p in path2.rglob("*")
                     if p.is_file())
     assert files1 == files2
     for rel in files1:
+        if rel.as_posix() in exclude:
+            continue
         assert (path1 / rel).read_bytes() == (path2 / rel).read_bytes(), \
             "file differs between saves: %s" % rel
 
@@ -132,6 +134,66 @@ def test_roundtrip_determinism(
         _assert_identical_zips(path1, path2)
     else:
         _assert_identical_trees(path1, path2)
+
+
+def test_deleted_itemspace_arg(tmp_path, close_new_models):
+    """An ItemSpace whose argument was deleted must still save (the
+    dead Interface has no content-derived sort key) and round-trip
+    byte-identically."""
+    m = mx.new_model("DetDeletedArg")
+    s = m.new_space("Space1", formula=t_arg)
+    s.new_cells(name="foo", formula=lambda x: x)
+    sc = m.new_space("SpaceC")
+    s[sc].foo[1] = 11
+    s[0].foo[1] = 12
+    del m.SpaceC
+
+    path1 = tmp_path / "save1"
+    mx.write_model(m, path1)
+    m.close()
+
+    m2 = mx.read_model(path1)
+    path2 = tmp_path / "save2"
+    mx.write_model(m2, path2)
+    m2.close()
+
+    _assert_identical_trees(path1, path2)
+
+
+def test_shared_excel_sheet_order(tmp_path, close_new_models):
+    """Two specs sharing one Excel book, created in an order adversarial
+    to the writer traversal: the book must not permute its sheets on a
+    no-op round trip."""
+    pd = pytest.importorskip("pandas")
+    openpyxl = pytest.importorskip("openpyxl")
+
+    m = mx.new_model("DetSharedExcel")
+    s1 = m.new_space("Space1")
+    s2 = m.new_space("Space2")
+    df = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+    s2.new_pandas(name="pdB", path="files/book.xlsx",
+                  data=df, file_type="excel", sheet="SheetB")
+    s1.new_pandas(name="pdA", path="files/book.xlsx",
+                  data=df * 2, file_type="excel", sheet="SheetA")
+
+    path1 = tmp_path / "save1"
+    mx.write_model(m, path1)
+    m.close()
+
+    m2 = mx.read_model(path1)
+    path2 = tmp_path / "save2"
+    mx.write_model(m2, path2)
+    m2.close()
+
+    # xlsx files are zip archives embedding entry timestamps and a
+    # docProps creation time, so the workbook cannot be compared byte
+    # for byte; the defect guarded against here is its sheets being
+    # permuted by the round trip.
+    book = "files/book.xlsx"
+    _assert_identical_trees(path1, path2, exclude={book})
+    sheets1 = openpyxl.load_workbook(path1 / book).sheetnames
+    sheets2 = openpyxl.load_workbook(path2 / book).sheetnames
+    assert sheets1 == sheets2
 
 
 _RESAVE_SCRIPT = """\

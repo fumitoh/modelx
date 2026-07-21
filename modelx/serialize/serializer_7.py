@@ -128,6 +128,7 @@ class ModelWriter(serializer_6.ModelWriter):
             self._write_recursive(encoder)
             self._write_macros()
             self.write_pickledata()
+            self._reorder_io_specs()
             self.system.iomanager.write_ios(self.model, root=self.work_dir)
 
             if self.log_input:

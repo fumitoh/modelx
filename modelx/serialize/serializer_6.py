@@ -98,7 +98,9 @@ def _sorted_itemspaces(itemspaces):
 
 
 def _value_order_key(value):
-    if isinstance(value, Interface):
+    # A deleted object's Interface raises on any attribute access, so
+    # it must fall through to the type-only key below.
+    if isinstance(value, Interface) and value._is_valid():
         return "i:%s" % ",".join(
             part if isinstance(part, str) else _value_order_key(part)
             for part in value._idtuple)
@@ -422,6 +424,7 @@ class ModelWriter:
 
             self._write_recursive(encoder)
             self.write_pickledata()
+            self._reorder_io_specs()
             self.system.iomanager.write_ios(self.model, root=self.work_dir)
 
             if self.log_input:
@@ -465,6 +468,24 @@ class ModelWriter:
             self._write_recursive(e)
 
         encoder.instruct().execute()
+
+    def _reorder_io_specs(self):
+        """Put each shared IO's spec registry in assigned-id order.
+
+        Multi-spec IO files are written by iterating the registry
+        (e.g. one Excel sheet per spec), and a reload rebuilds the
+        registry in iospecs.pickle order, which is assigned-id order.
+        Left in the session's registration order, the first resave
+        after a reload would permute such files (GH: sheet order).
+        Runs after write_pickledata, which assigns every spec its id.
+        """
+        ios = []
+        for sp in self.model.iospecs:
+            if sp.io not in ios:
+                ios.append(sp.io)
+        for io_ in ios:
+            specs = sorted(io_._specs.values(), key=self.assign_id)
+            io_._specs = {id(sp): sp for sp in specs}
 
     def write_pickledata(self):
         if self.model.iospecs:
