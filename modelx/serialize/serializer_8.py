@@ -51,9 +51,13 @@ records the key as lost (references to it and persistent-id stubs in
 Spec parameters per class
 -------------------------
 Parameters must be literal-representable — compositions of str, int,
-float, bool, None, tuple, list and dict (exact types; numpy scalars are
-rejected). This is a permanent contract for future spec types. Fields
-are emitted in a fixed order per class so the file is canonical.
+float, bool, None, tuple, list and dict (exact types). Numpy scalars
+(a common pandas Series name) are coerced to their plain Python
+equivalents via ``.item()``; anything else fails the save with a clean
+``TypeError`` before any output is written (``ModelWriter
+.validate_model``, run by ``modelx.serialize.write_model`` ahead of the
+backup rotation). This is a permanent contract for future spec types.
+Fields are emitted in a fixed order per class so the file is canonical.
 Everything recomputable from the IO file is recomputed on load rather
 than persisted:
 
@@ -139,6 +143,26 @@ def _get_spec_class(name):
     return getattr(importlib.import_module(_SPEC_CLASS_MODULES[name]), name)
 
 
+def _coerce_scalar(value):
+    """Normalize numpy scalars to the plain Python scalars the literal
+    contract requires.
+
+    A pandas Series name is often a numpy scalar in ordinary usage
+    (e.g. a column selected from a DataFrame with numpy-typed column
+    labels), and such names round-trip as their plain Python
+    equivalents.
+    """
+    if type(value) in (str, int, float, bool, type(None)):
+        return value
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            return item()
+        except Exception:
+            return value
+    return value
+
+
 def _encode_pandas_params(spec):
     import pandas as pd
     data = spec.value
@@ -149,7 +173,7 @@ def _encode_pandas_params(spec):
     return {
         "sheet": spec.sheet,
         "is_series": is_series,
-        "name": data.name if is_series else None,
+        "name": _coerce_scalar(data.name) if is_series else None,
         "index_nlevels": data.index.nlevels,
         "columns_nlevels": 1 if is_series else data.columns.nlevels,
     }
@@ -233,8 +257,17 @@ _COMMENT_FIELDS = {
 }
 
 
-def _spec_comment(spec):
+def _check_spec_supported(spec):
     clsname = type(spec).__name__
+    if clsname not in _PARAM_ENCODERS:
+        raise TypeError(
+            "serializer version 8 does not support "
+            "IO spec type '%s'" % clsname)
+    return clsname
+
+
+def _spec_comment(spec):
+    clsname = _check_spec_supported(spec)
     parts = ["%s=%r" % (name, value)
              for name, value in _COMMENT_FIELDS[clsname](spec)
              if value is not None]
@@ -269,23 +302,23 @@ def _check_literal(value, spec):
         "parameter %r of %r is not literal-representable" % (value, spec))
 
 
+def _spec_entry(key, spec):
+    clsname = _check_spec_supported(spec)
+    entry = (
+        key,
+        clsname,
+        spec.io.path.as_posix(),
+        dict(spec.io.persistent_args),
+        _PARAM_ENCODERS[clsname](spec),
+    )
+    _check_literal(entry, spec)
+    return entry
+
+
 def _encode_iospecs(iospecs):
     lines = [IOSPECS_HEADER]
     for key, spec in iospecs.items():
-        clsname = type(spec).__name__
-        if clsname not in _PARAM_ENCODERS:
-            raise TypeError(
-                "serializer version 8 does not support "
-                "IO spec type '%s'" % clsname)
-        entry = (
-            key,
-            clsname,
-            spec.io.path.as_posix(),
-            dict(spec.io.persistent_args),
-            _PARAM_ENCODERS[clsname](spec),
-        )
-        _check_literal(entry, spec)
-        lines.append(repr(entry) + "\n")
+        lines.append(repr(_spec_entry(key, spec)) + "\n")
     return "".join(lines)
 
 
@@ -365,6 +398,22 @@ class SpaceEncoder(serializer_7.SpaceEncoder):
 class ModelWriter(serializer_7.ModelWriter):
 
     version = 8
+
+    def validate_model(self):
+        """Fail unwritable models before any output is touched.
+
+        Called by :func:`modelx.serialize.write_model` before the
+        backup rotation and before any file is written: every IO spec
+        must be declarable in the version-8 literal format (supported
+        class, literal-representable parameters), so a model that
+        cannot be saved fails cleanly instead of leaving a partial
+        tree over a rotated-away previous save. Must not call
+        ``assign_id``: ids are assigned in traversal order during the
+        write proper, and assigning them here in ``model.iospecs``
+        order would change the emitted ids.
+        """
+        for spec in self.model.iospecs:
+            _spec_entry(0, spec)
 
     def write_model(self):
 
@@ -617,18 +666,35 @@ class ModelReader(serializer_7.ModelReader):
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
-            key = None
             try:
                 entry = ast.literal_eval(stripped)
                 key, clsname, pathstr, io_args, spec_args = entry
+            except Exception as exc:
+                self.unpickle_errors.append(exc)
+                warnings.warn(
+                    "A line in '%s' could not be parsed (%r); "
+                    "references to the IO spec it declares could not "
+                    "be restored" % (file.as_posix(), exc))
+                continue
+            if not isinstance(key, int) or key in self.iospecs:
+                # A malformed key must not escape the per-line
+                # tolerance, and a duplicate line must not clobber (or
+                # re-register a twin of) an already-restored spec.
+                exc = ValueError(
+                    "invalid or duplicate IO spec key: %r" % (key,))
+                self.unpickle_errors.append(exc)
+                warnings.warn(
+                    "A line in '%s' was skipped (%r)"
+                    % (file.as_posix(), exc))
+                continue
+            try:
                 spec = self._restore_iospec(
                     clsname, pathstr, io_args, spec_args)
             except Exception as exc:
                 self.unpickle_errors.append(exc)
-                if isinstance(key, int):
-                    # Recorded as lost: ref sites restore to None and
-                    # ModelUnpickler._find_iospec degrades too
-                    self.iospecs[key] = None
+                # Recorded as lost: ref sites restore to None and
+                # ModelUnpickler._find_iospec degrades too
+                self.iospecs[key] = None
                 warnings.warn(
                     "IO spec (key: %s) in '%s' could not be restored "
                     "(%r); references to it are set to None"

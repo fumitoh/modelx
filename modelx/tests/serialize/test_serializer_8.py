@@ -116,17 +116,77 @@ def test_ref_comment_format_and_roundtrip(tmp_path, sample_df,
            (path2 / "Space1" / "__init__.py").read_bytes()
 
 
-def test_non_literal_param_rejected(tmp_path, close_new_models):
-    """A parameter that would not parse back (numpy scalar) fails the
-    save with a clear error instead of writing a broken file."""
+def test_numpy_series_name_coerced(tmp_path, close_new_models):
+    """A numpy-scalar Series name (ordinary pandas data, e.g. a column
+    selected from a DataFrame with numpy-typed labels) is coerced to
+    its plain Python equivalent and round-trips."""
     np = pytest.importorskip("numpy")
-    m = mx.new_model("V8NonLiteral")
+    m = mx.new_model("V8NpName")
     sr = pd.Series([1.0, 2.0])
     sr.name = np.int64(3)
     m.new_pandas(name="sref", path="files/series.csv",
                  data=sr, file_type="csv")
+    path1 = tmp_path / "save1"
+    mx.write_model(m, str(path1))
+    m.close()
+
+    assert "'name': 3," in (path1 / IOSPECS_FILE).read_text(
+        encoding="utf-8")
+
+    m2 = mx.read_model(str(path1))
+    assert m2.sref.name == 3
+    path2 = tmp_path / "save2"
+    mx.write_model(m2, str(path2))
+    m2.close()
+    assert (path1 / IOSPECS_FILE).read_bytes() == \
+           (path2 / IOSPECS_FILE).read_bytes()
+
+
+def test_non_literal_param_fails_before_output(tmp_path,
+                                               close_new_models):
+    """A parameter that cannot be represented as a literal fails the
+    save with a clear error before any output is touched: no partial
+    tree, no backup rotation of the previous good save."""
+    m = mx.new_model("V8NonLiteral")
+    s = m.new_space("Space1")
+    sr = pd.Series([1.0, 2.0], name="good")
+    expected = sr.copy()
+    s.new_pandas(name="sref", path="files/series.csv",
+                 data=sr, file_type="csv")
+    path = tmp_path / "model"
+    mx.write_model(m, str(path))               # good save
+
+    s.sref.name = object()                     # not literal-representable
     with pytest.raises(TypeError, match="literal-representable"):
-        mx.write_model(m, str(tmp_path / "model"))
+        mx.write_model(m, str(path))
+    m.close()
+
+    assert not (tmp_path / "model_BAK1").exists()
+    m2 = mx.read_model(str(path))              # previous save intact
+    pd.testing.assert_series_equal(m2.Space1.sref, expected)
+
+
+def test_unsupported_spec_class_fails_before_output(tmp_path,
+                                                    close_new_models):
+    """A BaseIOSpec subclass outside the registry fails the save with
+    the designed clean TypeError, before any output is written."""
+    from modelx.io.moduleio import ModuleData
+
+    class FancyData(ModuleData):
+        pass
+
+    m = mx.new_model("V8FancySpec")
+    s = m.new_space("Space1")
+    spec = mxsys.iomanager.new_spec(
+        FancyData, io_group=m, path="modules/fancy.py",
+        spec_args={"module": testmod}, io_args={"module": testmod})
+    s.fancy = spec.value
+
+    path = tmp_path / "model"
+    with pytest.raises(TypeError,
+                       match="does not support IO spec type 'FancyData'"):
+        mx.write_model(m, str(path))
+    assert not path.exists()
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +380,62 @@ def test_malformed_literal_line(tmp_path, sample_df, close_new_models):
     specfile.write_text("".join(lines), encoding="utf-8")
 
     with pytest.warns(UserWarning, match="could not be restored"):
+        m2 = mx.read_model(str(path))
+
+    lost, kept = (("pdref", "kept")
+                  if m2.Space1.pdref is None else ("kept", "pdref"))
+    assert getattr(m2.Space1, lost) is None
+    assert isinstance(getattr(m2.Space1, kept), pd.DataFrame)
+    assert len(m2.iospecs) == 1
+    m2.close()
+    _assert_no_ios_left(m2)
+
+
+def test_duplicate_key_line_skipped(tmp_path, sample_df,
+                                    close_new_models):
+    """A duplicated declaration line (e.g. a merge artifact) is skipped
+    with a warning; the first occurrence's spec survives intact."""
+    m = _make_pandas_model("V8DupKey", sample_df)
+    path = tmp_path / "model"
+    mx.write_model(m, str(path))
+    m.close()
+
+    specfile = path / IOSPECS_FILE
+    content = specfile.read_text(encoding="utf-8")
+    dupline = next(line for line in content.splitlines()
+                   if line.startswith("("))
+    specfile.write_text(content + dupline + "\n", encoding="utf-8")
+
+    with pytest.warns(UserWarning, match="invalid or duplicate"):
+        m2 = mx.read_model(str(path))
+
+    pd.testing.assert_frame_equal(m2.Space1.pdref, sample_df)
+    assert len(m2.iospecs) == 1
+    m2.close()
+    _assert_no_ios_left(m2)
+
+
+def test_non_int_key_line_skipped(tmp_path, sample_df,
+                                  close_new_models):
+    """A line whose key is not an int (even an unhashable one) fails
+    per line instead of aborting the read."""
+    m = mx.new_model("V8BadKey")
+    s = m.new_space("Space1")
+    s.new_pandas(name="pdref", path="files/data.csv",
+                 data=sample_df, file_type="csv")
+    s.new_pandas(name="kept", path="files/kept.csv",
+                 data=sample_df * 2, file_type="csv")
+    path = tmp_path / "model"
+    mx.write_model(m, str(path))
+    m.close()
+
+    specfile = path / IOSPECS_FILE
+    lines = specfile.read_text(encoding="utf-8").splitlines(keepends=True)
+    lines = ["([1]" + line[2:] if line.startswith("(1,")
+             else line for line in lines]
+    specfile.write_text("".join(lines), encoding="utf-8")
+
+    with pytest.warns(UserWarning, match="invalid or duplicate"):
         m2 = mx.read_model(str(path))
 
     lost, kept = (("pdref", "kept")

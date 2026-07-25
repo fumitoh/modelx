@@ -106,15 +106,21 @@ def write_model(system, model, model_path,
     max_backups = DEFAULT_MAX_BACKUPS if backup else 0
 
     root = pathlib.Path(model_path)
-    _increment_backups(model, root, max_backups)
-
     serializer = _get_serializer(version)
-    serializer.ModelWriter(system, model, root,
-                           is_zip=is_zip,
-                           log_input=log_input,
-                           compression=compression,
-                           compresslevel=compresslevel
-                           ).write_model()
+    writer = serializer.ModelWriter(system, model, root,
+                                    is_zip=is_zip,
+                                    log_input=log_input,
+                                    compression=compression,
+                                    compresslevel=compresslevel)
+
+    # Fail unwritable models (serializer 8+) before the backup
+    # rotation and before any output is written
+    validate = getattr(writer, "validate_model", None)
+    if validate is not None:
+        validate()
+
+    _increment_backups(model, root, max_backups)
+    writer.write_model()
 
     if model.path != root:
         model.path = root
