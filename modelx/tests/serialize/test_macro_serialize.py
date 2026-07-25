@@ -194,7 +194,7 @@ def test_serializer_version_unchanged(tmp_path):
     try:
         mx.write_model(m, tmp_path / "model")
         meta = json.loads((tmp_path / "model" / "_system.json").read_text())
-        assert meta["serializer_version"] == 7
+        assert meta["serializer_version"] == 8
     finally:
         m.close()
 

@@ -7,13 +7,17 @@ devnotes/CoreRefactorDesign.md): later modelx versions must keep
 loading these exact files, so they are normally never regenerated.
 
 Serializers 2-3 are deprecated for loading and 2-5 for writing (design
-doc revision 2026-07-15), so only 4-7 are gated and only 6-7 are
-writable by this script.
+doc revision 2026-07-15), so versions 4 and later are gated and only
+6 and later are writable by this script.
 
-How the fixtures were generated (2026-07-14):
+How the fixtures were generated:
 
-- ``model_v6``, ``model_v7``: by this script against current master
-  (v0.31.1, commit e71cbd6 + Phase 0 tests)::
+- ``model_v8``: with the serializer_8 writer at its introduction
+  (2026-07-25, v0.31.1 + serializer-v8 branch), by running the
+  equivalent of this script for version 8 only.
+
+- ``model_v6``, ``model_v7`` (2026-07-14): by this script against
+  current master (v0.31.1, commit e71cbd6 + Phase 0 tests)::
 
       python -m modelx.tests.testdata.serializer_compat.generate
 

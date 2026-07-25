@@ -20,7 +20,7 @@ from modelx.serialize import serializer_6
 
 pd = pytest.importorskip("pandas")
 
-VERSIONS = [6, 7]
+VERSIONS = [6, 7, 8]
 
 
 @pytest.fixture
@@ -230,7 +230,10 @@ def test_failed_read_keeps_shared_abs_io(
     pd.testing.assert_frame_equal(ma2.S.df_a, sample_df, check_dtype=False)
 
 
-@pytest.mark.parametrize("version", VERSIONS)
+# Versions 6-7 only: version 8 has no iospecs.pickle and no strict
+# unpickling pass to abort (its literal file fails per line; see
+# test_malformed_literal_line in test_serializer_8.py).
+@pytest.mark.parametrize("version", [6, 7])
 def test_tolerant_pass_abort_leaves_no_residue(
         tmp_path, sample_df, version, close_new_models):
     """When the tolerant retry itself dies (stream truncated past what

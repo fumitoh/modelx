@@ -18,7 +18,8 @@ _MX_TO_FORMAT = {
     (0, 9, 0): 4,
     (0, 18, 0): 5,
     (0, 22, 0): 6,
-    (0, 31, 0): 7
+    (0, 31, 0): 7,
+    (0, 32, 0): 8
 }
 
 HIGHEST_VERSION = list(_MX_TO_FORMAT.values())[-1]
@@ -26,8 +27,14 @@ DEFAULT_MAX_BACKUPS = 3
 
 
 def _get_serializer(version):
-    return importlib.import_module(
-        ".serializer_%s" % version, "modelx.serialize")
+    try:
+        return importlib.import_module(
+            ".serializer_%s" % version, "modelx.serialize")
+    except ModuleNotFoundError:
+        raise ValueError(
+            "unsupported serializer version: %r; "
+            "the model may have been saved by a newer version of modelx"
+            % version) from None
 
 
 def _handle_remove_readonly(func, path, exc):
