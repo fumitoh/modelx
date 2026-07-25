@@ -601,7 +601,18 @@ class ModelReader(serializer_7.ModelReader):
         # registered here.
         self.io_journal_mark = manager.journal_mark()
         self.iospecs = {}
-        lines = ziputil.read_file_utf8(lambda f: f.readlines(), file, "t")
+        try:
+            lines = ziputil.read_file_utf8(
+                lambda f: f.readlines(), file, "t")
+        except Exception as exc:
+            # Parity with the unreadable-iospecs.pickle behavior of
+            # versions 4-7: lose the specs, keep loading the model.
+            self.unpickle_errors.append(exc)
+            warnings.warn(
+                "'%s' could not be read (%r); "
+                "all IO specs stored in it are lost"
+                % (file.as_posix(), exc))
+            return
         for line in lines:
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):

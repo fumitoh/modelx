@@ -352,6 +352,36 @@ def test_unknown_spec_class(tmp_path, sample_df, close_new_models):
     _assert_no_ios_left(m2)
 
 
+def test_iospecs_file_unreadable(tmp_path, sample_df, monkeypatch,
+                                 close_new_models):
+    """An iospecs.py that cannot be read at all loses the specs but the
+    model still loads (parity with the unreadable-iospecs.pickle
+    behavior of versions 4-7)."""
+    from modelx.serialize import serializer_8
+
+    m = _make_pandas_model("V8Unreadable", sample_df)
+    path = tmp_path / "model"
+    mx.write_model(m, str(path))
+    m.close()
+
+    orig = serializer_8.ziputil.read_file_utf8
+
+    def failing(callback, path_, mode, **kwargs):
+        if pathlib.Path(path_).name == "iospecs.py":
+            raise OSError("simulated read failure")
+        return orig(callback, path_, mode, **kwargs)
+
+    monkeypatch.setattr(serializer_8.ziputil, "read_file_utf8", failing)
+
+    with pytest.warns(UserWarning, match="could not be read"):
+        m2 = mx.read_model(str(path))
+    assert m2.Space1.pdref is None
+    assert m2.Space1.other == 5
+    assert m2.iospecs == []
+    m2.close()
+    _assert_no_ios_left(m2)
+
+
 def test_iospecs_file_missing(tmp_path, sample_df, close_new_models):
     """With iospecs.py deleted, references and DataValue stubs in
     data.pickle resolve to None and inputs are skipped."""
