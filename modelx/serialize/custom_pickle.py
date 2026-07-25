@@ -83,12 +83,25 @@ class ModelPickler(pickle.Pickler):
         super().__init__(file)
         self.writer = writer
 
+    def spec_id(self, obj):
+        # The id emitted for a BaseIOSpec must match a key of the
+        # iospecs dict written to iospecs.pickle, which serializer 4/5
+        # writers key by memory address.
+        return id(obj)
+
+    def data_value_id(self, obj):
+        # The emitted spec id if obj is an iospec-managed value, else
+        # None. Serializer 4/5 writers map values to memory-address
+        # spec ids upfront.
+        return self.writer.value_id_map.get(id(obj))
+
     def persistent_id(self, obj):
 
-        if id(obj) in self.writer.value_id_map:
-            return "DataValue", self.writer.value_id_map[id(obj)]
+        data_value_id = self.data_value_id(obj)
+        if data_value_id is not None:
+            return "DataValue", data_value_id
         elif isinstance(obj, BaseIOSpec):
-            return "BaseIOSpec", id(obj)
+            return "BaseIOSpec", self.spec_id(obj)
         elif isinstance(obj, BaseSharedIO):
             return "BaseSharedIO", obj.path.as_posix(), obj.__class__, obj.persistent_args
         elif isinstance(obj, BaseNode):
@@ -114,6 +127,25 @@ class ModelPickler(pickle.Pickler):
             return "System", None
         else:
             return None
+
+
+class DeterministicModelPickler(ModelPickler):
+    """ModelPickler for writers with an ``assign_id`` allocator (v6+).
+
+    Emits writer-assigned process-independent ids for BaseIOSpec
+    objects and iospec-managed values instead of memory addresses,
+    matching the keys of the iospecs dict those writers save to
+    iospecs.pickle.
+    """
+
+    def spec_id(self, obj):
+        return self.writer.assign_id(obj)
+
+    def data_value_id(self, obj):
+        spec = self.writer.iospec_by_value.get(id(obj))
+        if spec is None:
+            return None
+        return self.writer.assign_id(spec)
 
 
 class ModelUnpickler(pickle.Unpickler):

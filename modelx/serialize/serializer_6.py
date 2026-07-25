@@ -35,7 +35,7 @@ from .deserializer import (
     get_statement_tokens, StatementTokens, SECTION_DIVIDER, SECTIONS)
 from .custom_pickle import (
     IOSpecUnpickler, ModelUnpickler,
-    IOSpecPickler, ModelPickler)
+    IOSpecPickler, DeterministicModelPickler)
 from .reader_state import SystemStateSnapshot
 
 
@@ -55,13 +55,13 @@ class TupleID(tuple):
 
         return tuple(decoded)
 
-    def serialize(self):
+    def serialize(self, assign_id):
         keys = []
         for key in self:
             if isinstance(key, str):
                 keys.append('"%s"' % key)
             elif isinstance(key, tuple):
-                keys.append(str(id(key)))
+                keys.append(str(assign_id(key)))
 
         if len(keys) == 1:
             keystr = "(%s,)" % keys[0]
@@ -70,16 +70,49 @@ class TupleID(tuple):
 
         return keystr
 
-    def pickle_args(self, argsdict):
+    def pickle_args(self, argsdict, assign_id):
         for key in self:
             if isinstance(key, tuple):
-                id_ = id(key)
+                id_ = assign_id(key)
                 if id_ not in argsdict:
                     argsdict[id_] = key
             elif isinstance(key, str):
                 pass
             else:
                 raise ValueError("unknown tuple id")
+
+
+def _sorted_itemspaces(itemspaces):
+    """Order ItemSpaces by their item arguments, not by creation order.
+
+    Creation order is not preserved by a save -> load round trip
+    (ItemSpaces referenced by Interface refs are re-created before
+    those replayed from _dynamic_inputs), so emitting dynamic inputs
+    in creation order would make a no-op resave produce different
+    bytes. The key is derived from the argument values alone; the
+    auto-assigned name only breaks ties between argument types the
+    key function cannot represent process-independently.
+    """
+    return sorted(
+        itemspaces, key=lambda s: (_value_order_key(s.argvalues), s.name))
+
+
+def _value_order_key(value):
+    # A deleted object's Interface raises on any attribute access, so
+    # it must fall through to the type-only key below.
+    if isinstance(value, Interface) and value._is_valid():
+        return "i:%s" % ",".join(
+            part if isinstance(part, str) else _value_order_key(part)
+            for part in value._idtuple)
+    elif isinstance(value, tuple):
+        return "t:(%s)" % ",".join(_value_order_key(v) for v in value)
+    elif isinstance(value, (bool, int, float, str, bytes, type(None))):
+        return "%s:%r" % (type(value).__name__, value)
+    else:
+        # repr may embed a memory address, so fall back to the type
+        # alone and let the caller's tiebreaker decide.
+        return "o:%s.%s" % (
+            type(value).__module__, type(value).__qualname__)
 
 
 class PriorityID(enum.IntEnum):
@@ -326,9 +359,14 @@ class ModelWriter:
 
         self.system = system
         self.model = model
-        self.iospecs = {id(sp): sp for sp in self.model.iospecs}
-        self.value_id_map = {   # id(value) -> id(iospec)
-            id(sp.value): id(sp) for sp in self.model.iospecs}
+        self._assigned_ids = {}     # id(obj) -> id emitted into output files
+        self._assigned_objs = []    # keeps objs alive so memory ids stay unique
+        # Spec ids are assigned lazily at first traversal encounter, not
+        # here: model.iospecs enumerates specs in ref-registration order,
+        # which a save -> load round trip does not preserve, while the
+        # traversal order is derived from the model tree alone.
+        self.iospec_by_value = {    # id(value) -> iospec managing it
+            id(sp.value): sp for sp in self.model.iospecs}
         self.root = path
         self.temp_root = path   # Put zip in temp dir and copy later (GH82)
         self.work_dir = path    # Sub dir in temp to put IO files before archiving
@@ -338,6 +376,26 @@ class ModelWriter:
         self.input_log = []
         self.compression = compression
         self.compresslevel = compresslevel
+
+    def assign_id(self, obj):
+        """Return a process-independent id for ``obj`` to emit into output.
+
+        Sequential ints in first-encounter order replace memory
+        addresses, so the ids emitted for the same model state do not
+        vary from one process run to the next. (Ids are only one source
+        of output bytes: values whose own pickle is hash-order
+        dependent, such as sets of strings, can still vary.) The id is
+        memoized per object, preserving the identity deduplication that
+        ``pickledata`` relies on, and a reference to ``obj`` is kept so
+        a recycled memory address cannot alias two objects.
+        """
+        key = id(obj)
+        assigned = self._assigned_ids.get(key)
+        if assigned is None:
+            assigned = len(self._assigned_objs) + 1
+            self._assigned_ids[key] = assigned
+            self._assigned_objs.append(obj)
+        return assigned
 
     def write_model(self):
 
@@ -366,6 +424,7 @@ class ModelWriter:
 
             self._write_recursive(encoder)
             self.write_pickledata()
+            self._reorder_io_specs()
             self.system.iomanager.write_ios(self.model, root=self.work_dir)
 
             if self.log_input:
@@ -410,11 +469,44 @@ class ModelWriter:
 
         encoder.instruct().execute()
 
+    def _reorder_io_specs(self):
+        """Put each shared IO's spec registry in assigned-id order.
+
+        Multi-spec IO files are written by iterating the registry
+        (e.g. one Excel sheet per spec), and a reload rebuilds the
+        registry in iospecs.pickle order, which is assigned-id order.
+        Left in the session's registration order, the first resave
+        after a reload would permute such files (GH: sheet order).
+        Runs after write_pickledata, which assigns every spec its id.
+
+        An IO holding specs of other live models too (an absolute-path
+        file with group None) is left alone: no single model's ids
+        define an order for it, and reordering it here would permute
+        the shared file on every alternate-model save.
+        """
+        model_spec_ids = set(id(sp) for sp in self.model.iospecs)
+        ios = []
+        for sp in self.model.iospecs:
+            if sp.io not in ios:
+                ios.append(sp.io)
+        for io_ in ios:
+            if any(id(sp) not in model_spec_ids
+                   for sp in io_._specs.values()):
+                continue
+            specs = sorted(io_._specs.values(), key=self.assign_id)
+            io_._specs = {id(sp): sp for sp in specs}
+
     def write_pickledata(self):
         if self.model.iospecs:
+            # Assign ids to any spec the traversal did not reach, then
+            # key the dict in id order: model.iospecs order is
+            # ref-registration order, which a save -> load round trip
+            # does not preserve.
+            iospecs = dict(sorted(
+                (self.assign_id(sp), sp) for sp in self.model.iospecs))
             file = self.temp_root / "_data/iospecs.pickle"
             ziputil.write_file_utf8(
-                lambda f: IOSpecPickler(f).dump(self.iospecs),
+                lambda f: IOSpecPickler(f).dump(iospecs),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel
@@ -422,7 +514,8 @@ class ModelWriter:
         if self.pickledata:
             file = self.temp_root / "_data/data.pickle"
             ziputil.write_file_utf8(
-                lambda f: ModelPickler(f, writer=self).dump(self.pickledata),
+                lambda f: DeterministicModelPickler(
+                    f, writer=self).dump(self.pickledata),
                 file, mode="b",
                 compression=self.compression,
                 compresslevel=self.compresslevel
@@ -592,34 +685,43 @@ class SpaceEncoder(BaseEncoder):
     def pickle_dynamic_inputs(self):
 
         datafile = self.datapath / "_dynamic_inputs"
+        lines = []
+        for s in _sorted_itemspaces(self.space._named_itemspaces.values()):
+            self._pickle_dynamic_space(lines, s, self.space)
 
-        if self.space._named_itemspaces:
+        # No file when there is nothing to record: ItemSpaces without
+        # inputs are not re-created on load, so an empty file written
+        # for them would disappear from the next save.
+        if lines:
+            ziputil.write_str_utf8("".join(lines), datafile,
+                                   compression=self.writer.compression,
+                                   compresslevel=self.writer.compresslevel)
 
-            def callback(f):
-                for s in self.space._named_itemspaces.values():
-                    self._pickle_dynamic_space(f, s, self.space)
-
-            ziputil.write_file_utf8(callback, datafile, "t",
-                                    compression=self.writer.compression,
-                                    compresslevel=self.writer.compresslevel)
-
-    def _pickle_dynamic_space(self, file, space, static_parent):
+    def _pickle_dynamic_space(self, lines, space, static_parent):
 
         for cells in space.cells.values():
-            for key in cells._impl.input_keys:
+            # Iterate the data dict, whose insertion order the reader
+            # reproduces, rather than the input_keys set, whose
+            # iteration order is hash-seed dependent for str keys.
+            for key in cells._impl.data:
+                if key not in cells._impl.input_keys:
+                    continue
                 value = cells._impl.data[key]
-                keyid = id(key)
+                keyid = self.writer.assign_id(key)
                 if keyid not in self.writer.pickledata:
                     self.writer.pickledata[keyid] = key
-                valid = id(value)
+                valid = self.writer.assign_id(value)
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
 
                 idtuple = TupleID(abs_to_rel_tuple(
                     cells._idtuple, static_parent._idtuple))
-                idtuple.pickle_args(self.writer.pickledata)
-                file.write(
-                    "(%s, %s, %s)\n" % (idtuple.serialize(), keyid, valid)
+                idtuple.pickle_args(
+                    self.writer.pickledata, self.writer.assign_id)
+                lines.append(
+                    "(%s, %s, %s)\n" % (
+                        idtuple.serialize(self.writer.assign_id),
+                        keyid, valid)
                 )
 
                 if self.writer.log_input:
@@ -627,10 +729,10 @@ class SpaceEncoder(BaseEncoder):
                         output_input(cells, key))
 
         for subspace in space.named_spaces.values():
-            self._pickle_dynamic_space(file, subspace, static_parent)
+            self._pickle_dynamic_space(lines, subspace, static_parent)
 
-        for subspace in space._named_itemspaces.values():
-            self._pickle_dynamic_space(file, subspace, static_parent)
+        for subspace in _sorted_itemspaces(space._named_itemspaces.values()):
+            self._pickle_dynamic_space(lines, subspace, static_parent)
 
 
 class RefViewEncoder(BaseEncoder):
@@ -696,10 +798,10 @@ class CellsEncoder(BaseEncoder):
         for key in self.target._impl.data:
             if key in self.target._impl.input_keys:
                 value = self.target._impl.data[key]
-                keyid = id(key)
+                keyid = self.writer.assign_id(key)
                 if keyid not in self.writer.pickledata:
                     self.writer.pickledata[keyid] = key
-                valid = id(value)
+                valid = self.writer.assign_id(value)
                 if valid not in self.writer.pickledata:
                     self.writer.pickledata[valid] = value
                 cellsdata.append((keyid, valid))
@@ -743,10 +845,11 @@ class InterfaceRefEncoder(BaseEncoder):
             self.parent._idtuple
         ))
         if tuple(int(i) for i in mx.__version__.split(".")[:3]) < (0, 10):
-            return "(\"Interface\", %s)" % idtuple.serialize()
+            return "(\"Interface\", %s)" % idtuple.serialize(
+                self.writer.assign_id)
         else:
             return "(\"Interface\", %s, \"%s\")" % (
-                idtuple.serialize(),
+                idtuple.serialize(self.writer.assign_id),
                 self.target.refmode
             )
 
@@ -756,7 +859,7 @@ class InterfaceRefEncoder(BaseEncoder):
             self.target.value._idtuple,
             self.parent._idtuple
         ))
-        idtuple.pickle_args(self.writer.pickledata)
+        idtuple.pickle_args(self.writer.pickledata, self.writer.assign_id)
 
     def instruct(self):
         return Instruction(self.pickle_value)
@@ -784,17 +887,17 @@ class IOSpecEncoder(BaseEncoder):
     def condition(cls, ref, writer):
 
         if not isinstance(ref, Interface): # Avoid null object
-            return id(ref.value) in writer.value_id_map
+            return id(ref.value) in writer.iospec_by_value
         else:
             return False
 
     def encode(self):
-        value_id = id(self.target.value)
-        spec_id = self.writer.value_id_map[value_id]
-        return "(\"IOSpec\", %s, %s)" % (value_id, spec_id)
+        value_id = self.writer.assign_id(self.target.value)
+        spec = self.writer.iospec_by_value[id(self.target.value)]
+        return "(\"IOSpec\", %s, %s)" % (value_id, self.writer.assign_id(spec))
 
     def pickle_value(self):
-        key = id(self.target.value)
+        key = self.writer.assign_id(self.target.value)
 
         if key not in self.writer.pickledata:
             self.writer.pickledata[key] = self.target.value
@@ -808,7 +911,7 @@ class ModuleEncoder(BaseEncoder):
     @classmethod
     def condition(cls, ref, writer):
         value = ref.value
-        if id(value) in writer.value_id_map:   # Use PickleEncoder
+        if id(value) in writer.iospec_by_value:   # Use PickleEncoder
             return False
         else:
             return isinstance(value, types.ModuleType)
@@ -825,12 +928,12 @@ class PickleEncoder(BaseEncoder):
 
     def pickle_value(self):
         value = self.target.value
-        key = id(value)
+        key = self.writer.assign_id(value)
         if key not in self.writer.pickledata:
             self.writer.pickledata[key] = value
 
     def encode(self):
-        return "(\"Pickle\", %s)" % id(self.target.value)
+        return "(\"Pickle\", %s)" % self.writer.assign_id(self.target.value)
 
     def instruct(self):
         return Instruction(self.pickle_value)
