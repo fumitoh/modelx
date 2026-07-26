@@ -150,15 +150,22 @@ IOSPECS_HEADER = """\
 
 
 def _check_spec_supported(spec):
-    # Registry membership by identity, not just name: an out-of-catalog
-    # subclass could inherit the hooks (or shadow a catalog name), but
-    # its models could never be read back, so writing it is refused.
-    clsname = type(spec).__name__
+    # Catalog membership: the spec's class must resolve back through
+    # the catalog — by identity normally, or by module and qualname
+    # when the class object is stale (e.g. after importlib.reload
+    # during development). An out-of-catalog subclass inheriting the
+    # hooks, or a foreign class shadowing a cataloged name, is
+    # refused: its models could never be read back.
+    cls = type(spec)
+    clsname = cls.__name__
     try:
         registered = get_spec_class(clsname)
     except ValueError:
         registered = None
-    if registered is not type(spec):
+    if registered is None or not (
+            registered is cls
+            or (registered.__module__ == cls.__module__
+                and registered.__qualname__ == cls.__qualname__)):
         raise TypeError(
             "serializer version 8 does not support "
             "IO spec type '%s'" % clsname)

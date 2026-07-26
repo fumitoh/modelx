@@ -394,6 +394,34 @@ def test_malformed_literal_line(tmp_path, sample_df, close_new_models):
     _assert_no_ios_left(m2)
 
 
+def test_stale_class_object_still_writable(tmp_path, sample_df,
+                                           monkeypatch,
+                                           close_new_models):
+    """A catalog lookup returning an equivalent but not identical class
+    object (e.g. after importlib.reload during development) does not
+    make the model unwritable; a foreign class shadowing a cataloged
+    name still does."""
+    from modelx.serialize import serializer_8
+
+    m = _make_pandas_model("V8StaleCls", sample_df)
+
+    stale_twin = type("PandasData", (PandasData,), {})
+    stale_twin.__module__ = PandasData.__module__
+    stale_twin.__qualname__ = PandasData.__qualname__
+    monkeypatch.setattr(serializer_8, "get_spec_class",
+                        lambda name: stale_twin)
+    path = tmp_path / "model"
+    mx.write_model(m, str(path))
+    assert (path / IOSPECS_FILE).exists()
+
+    shadow = type("PandasData", (PandasData,), {})
+    shadow.__module__ = "usermod"
+    monkeypatch.setattr(serializer_8, "get_spec_class",
+                        lambda name: shadow)
+    with pytest.raises(TypeError, match="does not support IO spec type"):
+        mx.write_model(m, str(tmp_path / "model2"))
+
+
 def test_duplicate_key_line_skipped(tmp_path, sample_df,
                                     close_new_models):
     """A duplicated declaration line (e.g. a merge artifact) is skipped
