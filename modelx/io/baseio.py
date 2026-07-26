@@ -469,6 +469,56 @@ class BaseIOSpec:
     def _on_unserialize(self, state):
         raise NotImplementedError
 
+    # ----------------------------------------------------------------------
+    # Literal model format (serializer 8+)
+    #
+    # Saved models declare each spec as a literal tuple carrying the
+    # spec's parameters (see modelx/serialize/serializer_8.py). Each
+    # concrete spec class owns the format of its parameters through the
+    # three hooks below and a ``format_version`` class attribute (a
+    # positive int written into every declaration entry). The version
+    # covers the whole entry payload, including the shape of the paired
+    # IO class's ``persistent_args``.
+    #
+    # Whatever these hooks emit is persistent file format: any change
+    # to the shape or meaning of the emitted args requires bumping
+    # ``format_version``, and _on_unserialize_args must keep accepting
+    # every version the class ever emitted. Entries written with a
+    # version newer than the running class fail per line on read
+    # (the reference degrades to None with a warning).
+
+    def _on_serialize_args(self):
+        """Return this spec's parameters for the literal model format.
+
+        The returned dict must be literal-representable: compositions
+        of str, int, float, bool, None, tuple, list and dict (exact
+        types), with keys inserted in a fixed order so that saved
+        output is canonical.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def _on_unserialize_args(cls, io, args, version):
+        """Return the ``__setstate__`` state built from saved args.
+
+        ``args`` is what _on_serialize_args returned when the model
+        was saved with format ``version`` (``version`` is always <=
+        the running class's ``format_version``). The returned dict is
+        passed to __setstate__ after the reader adds the "manager"
+        and "_io" entries.
+        """
+        raise NotImplementedError
+
+    def _on_comment_args(self):
+        """Return (name, value) pairs for the ref-site comment.
+
+        Fixed order per class; pairs whose value is None are omitted,
+        and the serializer prepends the IO path. Comments are
+        documentation only — never parsed on read — but participate in
+        byte-identical save -> load -> save round trips.
+        """
+        raise NotImplementedError
+
     def _can_add_other(self, other):
         raise NotImplementedError
 

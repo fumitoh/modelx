@@ -26,16 +26,23 @@ visibility) is declared in ``_data/iospecs.py``, one
 :func:`ast.literal_eval`-able tuple per line, sorted by key::
 
     # modelx: iospecs
-    # (key, class, path, io_args, spec_args)
-    (1, 'PandasData', 'files/data.csv', {'file_type': 'csv'}, {'sheet': None, 'is_series': False, 'name': None, 'index_nlevels': 1, 'columns_nlevels': 1})
+    # (key, class, version, path, io_args, spec_args)
+    (1, 'PandasData', 1, 'files/data.csv', {'file_type': 'csv'}, {'sheet': None, 'is_series': False, 'name': None, 'index_nlevels': 1, 'columns_nlevels': 1})
 
 - ``key`` is the writer-assigned spec id — the same ``assign_id(spec)``
   int that keys the ``iospecs.pickle`` dict in versions 6/7 and that the
   ``("DataValue", key)`` / ``("BaseIOSpec", key)`` persistent-id stubs
   inside ``data.pickle`` refer to. Keys are opaque tokens to readers.
-- ``class`` names the spec type. It is resolved through the module-level
-  name registry (``_SPEC_CLASS_MODULES``), never by import path, so the
-  file format is decoupled from the modelx module layout.
+- ``class`` names the spec type. It is resolved through the
+  ``modelx.io.SPEC_CLASSES`` catalog, never by import path, so the file
+  format is decoupled from the modelx module layout.
+- ``version`` is the spec class's ``format_version`` at write time. It
+  covers the entry payload (``io_args`` and ``spec_args``): the class
+  bumps it whenever the payload it emits changes shape or meaning, so
+  spec formats evolve without a new serializer version. On read, a
+  version older than the running class is decoded through the class's
+  compat handling; a version newer than the running class fails that
+  entry per line (the model was saved by a newer modelx).
 - ``path`` is the IO path as a posix string, following the
   ``BaseSharedIO`` persistent-id convention: relative paths are relative
   to the model folder, absolute paths are stored as-is.
@@ -50,16 +57,25 @@ records the key as lost (references to it and persistent-id stubs in
 
 Spec parameters per class
 -------------------------
+This serializer owns the container format only — the grammar above, the
+emission order, and the ref-site shape. The parameter payload is owned
+by the spec classes through hooks declared on ``BaseIOSpec``
+(``format_version``, ``_on_serialize_args``, ``_on_unserialize_args``,
+``_on_comment_args``; see modelx/io/baseio.py for the contract), so a
+new spec type becomes serializable by implementing the hooks and
+registering in ``modelx.io.SPEC_CLASSES``, without touching this
+module.
+
 Parameters must be literal-representable — compositions of str, int,
-float, bool, None, tuple, list and dict (exact types). Numpy scalars
-(a common pandas Series name) are coerced to their plain Python
-equivalents via ``.item()``; anything else fails the save with a clean
-``TypeError`` before any output is written (``ModelWriter
-.validate_model``, run by ``modelx.serialize.write_model`` ahead of the
-backup rotation). This is a permanent contract for future spec types.
-Fields are emitted in a fixed order per class so the file is canonical.
-Everything recomputable from the IO file is recomputed on load rather
-than persisted:
+float, bool, None, tuple, list and dict (exact types; ``PandasData``
+coerces numpy-scalar Series names to their plain Python equivalents).
+An unwritable model — a parameter that cannot be represented, or a spec
+class outside the catalog — fails the save with a clean ``TypeError``
+before any output is written (``ModelWriter.validate_model``, run by
+``modelx.serialize.write_model`` ahead of the backup rotation). Fields
+are emitted in a fixed order per class so the file is canonical, and
+everything recomputable from the IO file is recomputed on load rather
+than persisted. As of ``format_version`` 1 of each class:
 
 - ``PandasData`` — ``{'sheet', 'is_series', 'name', 'index_nlevels',
   'columns_nlevels'}``. Instead of the pandas-API ``read_args`` dict of
@@ -100,17 +116,16 @@ version-7 persistent-id shapes, written by ``DeterministicModelPickler``
 and resolved by ``ModelUnpickler`` against the specs restored from the
 literal file.
 """
-import sys
 import json
 import ast
 import pathlib
 import tempfile
 import shutil
-import importlib
 import tokenize
 import warnings
 import modelx as mx
 from modelx.core.model import Model
+from modelx.io import get_spec_class
 from . import ziputil
 from .deserializer import get_statement_tokens
 from .custom_pickle import ModelUnpickler, DeterministicModelPickler
@@ -122,144 +137,28 @@ IOSPECS_FILE = "_data/iospecs.py"
 
 IOSPECS_HEADER = """\
 # modelx: iospecs
-# (key, class, path, io_args, spec_args)
+# (key, class, version, path, io_args, spec_args)
 """
 
 # --------------------------------------------------------------------------
-# Spec class registry and per-class parameter schemas
-
-_SPEC_CLASS_MODULES = {
-    "PandasData": "modelx.io.pandasio",
-    "ExcelRange": "modelx.io.excelio",
-    "ModuleData": "modelx.io.moduleio",
-}
-
-
-def _get_spec_class(name):
-    # Lazy imports: pandas/openpyxl must not be required to read or
-    # write models that do not use them.
-    if name not in _SPEC_CLASS_MODULES:
-        raise ValueError("unknown IO spec type: %r" % name)
-    return getattr(importlib.import_module(_SPEC_CLASS_MODULES[name]), name)
-
-
-def _coerce_scalar(value):
-    """Normalize numpy scalars to the plain Python scalars the literal
-    contract requires.
-
-    A pandas Series name is often a numpy scalar in ordinary usage
-    (e.g. a column selected from a DataFrame with numpy-typed column
-    labels), and such names round-trip as their plain Python
-    equivalents.
-    """
-    if type(value) in (str, int, float, bool, type(None)):
-        return value
-    item = getattr(value, "item", None)
-    if callable(item):
-        try:
-            return item()
-        except Exception:
-            return value
-    return value
-
-
-def _encode_pandas_params(spec):
-    import pandas as pd
-    data = spec.value
-    is_series = isinstance(data, pd.Series)
-    # Shape metadata is derived from the live value the same way
-    # _init_spec derives read_args from it, so a stale read_args dict
-    # (the value mutated in place) cannot poison the saved model.
-    return {
-        "sheet": spec.sheet,
-        "is_series": is_series,
-        "name": _coerce_scalar(data.name) if is_series else None,
-        "index_nlevels": data.index.nlevels,
-        "columns_nlevels": 1 if is_series else data.columns.nlevels,
-    }
-
-
-def _decode_pandas_state(io_, spec_args):
-    # Rebuild read_args the way PandasData._init_spec does, from the
-    # persisted shape metadata instead of the not-yet-loaded value.
-    sheet = spec_args["sheet"]
-    is_series = spec_args["is_series"]
-    read_args = {}
-    if not is_series and spec_args["columns_nlevels"] > 1:
-        read_args["header"] = list(range(spec_args["columns_nlevels"]))
-    if spec_args["index_nlevels"] > 1:
-        read_args["index_col"] = list(range(spec_args["index_nlevels"]))
-    else:
-        read_args["index_col"] = 0
-    if io_.file_type == "excel":
-        suffix = io_.path.suffix
-        if len(suffix[1:]) > 3 and suffix[1:4] == "xls":
-            read_args["engine"] = "openpyxl"
-        if sheet:
-            read_args["sheet_name"] = sheet
-    return {
-        "read_args": read_args,
-        "squeeze": is_series,
-        "name": spec_args["name"],
-        "sheet": sheet,
-    }
-
-
-def _encode_excel_range_params(spec):
-    return {
-        "range": spec.range,
-        "sheet": spec.sheet,
-        "keyids": spec.keyids,
-    }
-
-
-def _decode_excel_range_state(io_, spec_args):
-    keyids = spec_args["keyids"]
-    return {
-        "range": spec_args["range"],
-        "sheet": spec_args["sheet"],
-        "keyids": tuple(keyids) if keyids else None,
-    }
-
-
-def _encode_module_params(spec):
-    return {}
-
-
-def _decode_module_state(io_, spec_args):
-    return {}
-
-
-_PARAM_ENCODERS = {
-    "PandasData": _encode_pandas_params,
-    "ExcelRange": _encode_excel_range_params,
-    "ModuleData": _encode_module_params,
-}
-
-_STATE_DECODERS = {
-    "PandasData": _decode_pandas_state,
-    "ExcelRange": _decode_excel_range_state,
-    "ModuleData": _decode_module_state,
-}
-
-_COMMENT_FIELDS = {
-    "PandasData": lambda spec: [
-        ("path", spec.io.path.as_posix()),
-        ("file_type", spec.io.file_type),
-        ("sheet", spec.sheet)],
-    "ExcelRange": lambda spec: [
-        ("path", spec.io.path.as_posix()),
-        ("range", spec.range),
-        ("sheet", spec.sheet),
-        ("keyids", spec.keyids)],
-    "ModuleData": lambda spec: [
-        ("path", spec.io.path.as_posix())],
-}
+# Spec entry assembly
+#
+# Per-class knowledge lives on the spec classes (the format_version /
+# _on_serialize_args / _on_unserialize_args / _on_comment_args contract
+# declared on BaseIOSpec) and in the modelx.io.SPEC_CLASSES catalog;
+# this module only assembles and parses the container format.
 
 
 def _check_spec_supported(spec):
+    # Registry membership by identity, not just name: an out-of-catalog
+    # subclass could inherit the hooks (or shadow a catalog name), but
+    # its models could never be read back, so writing it is refused.
     clsname = type(spec).__name__
-    if clsname not in _PARAM_ENCODERS:
+    try:
+        registered = get_spec_class(clsname)
+    except ValueError:
+        registered = None
+    if registered is not type(spec):
         raise TypeError(
             "serializer version 8 does not support "
             "IO spec type '%s'" % clsname)
@@ -268,8 +167,10 @@ def _check_spec_supported(spec):
 
 def _spec_comment(spec):
     clsname = _check_spec_supported(spec)
+    fields = [("path", spec.io.path.as_posix())]
+    fields += spec._on_comment_args()
     parts = ["%s=%r" % (name, value)
-             for name, value in _COMMENT_FIELDS[clsname](spec)
+             for name, value in fields
              if value is not None]
     return " ".join([clsname] + parts)
 
@@ -304,12 +205,18 @@ def _check_literal(value, spec):
 
 def _spec_entry(key, spec):
     clsname = _check_spec_supported(spec)
+    version = getattr(type(spec), "format_version", None)
+    if type(version) is not int or version < 1:
+        raise TypeError(
+            "IO spec type '%s' must define format_version "
+            "as a positive int" % clsname)
     entry = (
         key,
         clsname,
+        version,
         spec.io.path.as_posix(),
         dict(spec.io.persistent_args),
-        _PARAM_ENCODERS[clsname](spec),
+        spec._on_serialize_args(),
     )
     _check_literal(entry, spec)
     return entry
@@ -404,10 +311,11 @@ class ModelWriter(serializer_7.ModelWriter):
 
         Called by :func:`modelx.serialize.write_model` before the
         backup rotation and before any file is written: every IO spec
-        must be declarable in the version-8 literal format (supported
-        class, literal-representable parameters), so a model that
-        cannot be saved fails cleanly instead of leaving a partial
-        tree over a rotated-away previous save. Must not call
+        must be declarable in the version-8 literal format (cataloged
+        class, valid ``format_version``, literal-representable
+        parameters), so a model that cannot be saved fails cleanly
+        instead of leaving a partial tree over a rotated-away
+        previous save. Must not call
         ``assign_id``: ids are assigned in traversal order during the
         write proper, and assigning them here in ``model.iospecs``
         order would change the emitted ids.
@@ -668,7 +576,7 @@ class ModelReader(serializer_7.ModelReader):
                 continue
             try:
                 entry = ast.literal_eval(stripped)
-                key, clsname, pathstr, io_args, spec_args = entry
+                key, clsname, version, pathstr, io_args, spec_args = entry
             except Exception as exc:
                 self.unpickle_errors.append(exc)
                 warnings.warn(
@@ -689,7 +597,7 @@ class ModelReader(serializer_7.ModelReader):
                 continue
             try:
                 spec = self._restore_iospec(
-                    clsname, pathstr, io_args, spec_args)
+                    clsname, version, pathstr, io_args, spec_args)
             except Exception as exc:
                 self.unpickle_errors.append(exc)
                 # Recorded as lost: ref sites restore to None and
@@ -702,9 +610,21 @@ class ModelReader(serializer_7.ModelReader):
                 continue
             self.iospecs[key] = spec
 
-    def _restore_iospec(self, clsname, pathstr, io_args, spec_args):
+    def _restore_iospec(self, clsname, version, pathstr, io_args,
+                        spec_args):
         manager = self.system.iomanager
-        cls = _get_spec_class(clsname)
+        cls = get_spec_class(clsname)
+        if type(version) is not int or version < 1:
+            raise ValueError(
+                "invalid format version %r for IO spec type '%s'"
+                % (version, clsname))
+        if version > cls.format_version:
+            # Checked before the IO is created so an undecodable entry
+            # registers nothing
+            raise ValueError(
+                "IO spec type '%s' with format version %s was written "
+                "by a newer version of modelx (this modelx supports "
+                "up to %s)" % (clsname, version, cls.format_version))
         path = pathlib.Path(pathstr)
 
         if not path.is_absolute():
@@ -723,7 +643,7 @@ class ModelReader(serializer_7.ModelReader):
             io_group=self.model, path=path, cls=cls.io_class,
             load_from=loadpath, **io_args)
 
-        state = _STATE_DECODERS[clsname](io_, spec_args)
+        state = cls._on_unserialize_args(io_, spec_args, version)
         state["manager"] = manager
         state["_io"] = io_
         spec = cls.__new__(cls)

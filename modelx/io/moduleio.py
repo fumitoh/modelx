@@ -114,6 +114,18 @@ class ModuleData(BaseIOSpec):
     def _on_unserialize(self, state):
         self._value = self._io._load_module()
 
+    format_version = 1
+
+    def _on_serialize_args(self):
+        return {}
+
+    @classmethod
+    def _on_unserialize_args(cls, io, args, version):
+        return {}
+
+    def _on_comment_args(self):
+        return []
+
     def _can_add_other(self, other):
         return False
 

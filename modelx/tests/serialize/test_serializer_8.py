@@ -24,6 +24,8 @@ from modelx.tests.testdata.testpkg import testmod
 
 pd = pytest.importorskip("pandas")
 
+from modelx.io.pandasio import PandasData
+
 
 @pytest.fixture
 def sample_df():
@@ -75,10 +77,11 @@ def test_literal_file_replaces_pickle(tmp_path, sample_df, close_new_models):
     assert len(entries) == 2
     keys = [e[0] for e in entries]
     assert keys == sorted(keys)
-    for key, clsname, iopath, io_args, spec_args in entries:
+    for key, clsname, version, iopath, io_args, spec_args in entries:
         assert clsname == "PandasData"
+        assert version == PandasData.format_version == 1
         assert io_args == {"file_type": "csv"}
-    by_path = {e[2]: e[4] for e in entries}
+    by_path = {e[3]: e[5] for e in entries}
     assert by_path["files/data.csv"] == {
         "sheet": None, "is_series": False, "name": None,
         "index_nlevels": 1, "columns_nlevels": 1}
@@ -234,7 +237,7 @@ def test_module_roundtrip(tmp_path, close_new_models):
     lines = (path / IOSPECS_FILE).read_text(encoding="utf-8").splitlines()
     entries = [ast.literal_eval(line) for line in lines
                if line and not line.startswith("#")]
-    assert entries == [(1, "ModuleData", "modules/foo", {}, {})]
+    assert entries == [(1, "ModuleData", 1, "modules/foo", {}, {})]
 
 
 def test_value_shared_by_ref_and_cells_input(tmp_path, sample_df,
@@ -442,6 +445,35 @@ def test_non_int_key_line_skipped(tmp_path, sample_df,
                   if m2.Space1.pdref is None else ("kept", "pdref"))
     assert getattr(m2.Space1, lost) is None
     assert isinstance(getattr(m2.Space1, kept), pd.DataFrame)
+    assert len(m2.iospecs) == 1
+    m2.close()
+    _assert_no_ios_left(m2)
+
+
+def test_future_format_version(tmp_path, sample_df, close_new_models):
+    """An entry whose class format version is newer than the running
+    class supports degrades to a lost ref instead of aborting the
+    read; no IO is registered for it."""
+    m = mx.new_model("V8FutureVer")
+    s = m.new_space("Space1")
+    s.new_pandas(name="pdref", path="files/data.csv",
+                 data=sample_df, file_type="csv")
+    s.new_pandas(name="kept", path="files/kept.csv",
+                 data=sample_df * 2, file_type="csv")
+    path = tmp_path / "model"
+    mx.write_model(m, str(path))
+    m.close()
+
+    specfile = path / IOSPECS_FILE
+    content = specfile.read_text(encoding="utf-8").replace(
+        "(1, 'PandasData', 1,", "(1, 'PandasData', 99,")
+    specfile.write_text(content, encoding="utf-8")
+
+    with pytest.warns(UserWarning, match="newer version of modelx"):
+        m2 = mx.read_model(str(path))
+
+    assert m2.Space1.pdref is None
+    pd.testing.assert_frame_equal(m2.Space1.kept, sample_df * 2)
     assert len(m2.iospecs) == 1
     m2.close()
     _assert_no_ios_left(m2)
