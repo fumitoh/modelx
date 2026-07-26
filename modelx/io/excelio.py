@@ -340,6 +340,28 @@ class ExcelRange(BaseIOSpec, Mapping):
         self.keyids = state["keyids"]
         self._load_cells(self.keyids)
 
+    format_version = 1
+
+    def _on_serialize_args(self):
+        return {
+            "range": self.range,
+            "sheet": self.sheet,
+            "keyids": self.keyids,
+        }
+
+    @classmethod
+    def _on_unserialize_args(cls, io, args, version):
+        keyids = args["keyids"]
+        return {
+            "range": args["range"],
+            "sheet": args["sheet"],
+            "keyids": tuple(keyids) if keyids else None,
+        }
+
+    def _on_comment_args(self):
+        return [("range", self.range), ("sheet", self.sheet),
+                ("keyids", self.keyids)]
+
     def _load_cells(self, keys):
         self._cells = self._io.get_range(self.range, self.sheet)
         self._datasize = (len(self._cells), len(self._cells[0]))

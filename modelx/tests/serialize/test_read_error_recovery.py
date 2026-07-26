@@ -24,7 +24,7 @@ from modelx.tests.testdata.serializer_compat import fixturemodel
 
 DATADIR = pathlib.Path(fixturemodel.__file__).parent
 
-VERSIONS = [4, 5, 6, 7]
+VERSIONS = [4, 5, 6, 7, 8]
 
 PARSE_ERRORS = (SyntaxError, tokenize.TokenError)
 

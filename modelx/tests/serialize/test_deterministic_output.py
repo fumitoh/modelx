@@ -1,4 +1,4 @@
-"""Round-trip determinism of the serializer 6/7 writers.
+"""Round-trip determinism of the serializer 6/7/8 writers.
 
 A no-op save -> load -> save round trip must produce byte-identical
 output trees: the writers emit sequential writer-assigned ids instead
@@ -113,7 +113,7 @@ def _assert_loaded_model(m2):
     assert m2.SpaceB.RefSpaceA is m2.Space1(0)
 
 
-@pytest.mark.parametrize("version", [6, 7])
+@pytest.mark.parametrize("version", [6, 7, 8])
 @pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
 def test_roundtrip_determinism(
         tmp_path, write_method, version, close_new_models):
@@ -136,7 +136,7 @@ def test_roundtrip_determinism(
         _assert_identical_trees(path1, path2)
 
 
-@pytest.mark.parametrize("version", [6, 7])
+@pytest.mark.parametrize("version", [6, 7, 8])
 def test_deleted_itemspace_arg(tmp_path, version, close_new_models):
     """An ItemSpace whose argument was deleted must still save (the
     dead Interface has no content-derived sort key) and round-trip
@@ -161,7 +161,7 @@ def test_deleted_itemspace_arg(tmp_path, version, close_new_models):
     _assert_identical_trees(path1, path2)
 
 
-@pytest.mark.parametrize("version", [6, 7])
+@pytest.mark.parametrize("version", [6, 7, 8])
 def test_shared_excel_sheet_order(tmp_path, version, close_new_models):
     """Two specs sharing one Excel book, created in an order adversarial
     to the writer traversal: the book must not permute its sheets on a

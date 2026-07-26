@@ -17,6 +17,26 @@ from .baseio import BaseIOSpec, BaseSharedIO
 import pandas as pd
 
 
+def _to_plain_scalar(value):
+    """Normalize numpy scalars to the plain Python scalars the literal
+    format requires.
+
+    A pandas Series name is often a numpy scalar in ordinary usage
+    (e.g. a column selected from a DataFrame with numpy-typed column
+    labels), and such names round-trip as their plain Python
+    equivalents.
+    """
+    if type(value) in (str, int, float, bool, type(None)):
+        return value
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            return item()
+        except Exception:
+            return value
+    return value
+
+
 class PandasIO(BaseSharedIO):
 
     def __init__(self, path, manager, load_from, file_type=None):
@@ -202,6 +222,52 @@ class PandasData(BaseIOSpec):
         self.name = state["name"]
         self._sheet = state["sheet"] if "sheet" in state else None
         self._read_pandas()
+
+    format_version = 1
+
+    def _on_serialize_args(self):
+        # Shape metadata is derived from the live value the same way
+        # _init_spec derives read_args from it, so a stale read_args
+        # dict (the value mutated in place) cannot poison a saved
+        # model.
+        data = self._value
+        is_series = isinstance(data, pd.Series)
+        return {
+            "sheet": self._sheet,
+            "is_series": is_series,
+            "name": _to_plain_scalar(data.name) if is_series else None,
+            "index_nlevels": data.index.nlevels,
+            "columns_nlevels": 1 if is_series else data.columns.nlevels,
+        }
+
+    @classmethod
+    def _on_unserialize_args(cls, io, args, version):
+        # Rebuild read_args the way _init_spec does, from the saved
+        # shape metadata instead of the not-yet-loaded value.
+        sheet = args["sheet"]
+        is_series = args["is_series"]
+        read_args = {}
+        if not is_series and args["columns_nlevels"] > 1:
+            read_args["header"] = list(range(args["columns_nlevels"]))
+        if args["index_nlevels"] > 1:
+            read_args["index_col"] = list(range(args["index_nlevels"]))
+        else:
+            read_args["index_col"] = 0
+        if io.file_type == "excel":
+            suffix = io.path.suffix
+            if len(suffix[1:]) > 3 and suffix[1:4] == "xls":
+                read_args["engine"] = "openpyxl"
+            if sheet:
+                read_args["sheet_name"] = sheet
+        return {
+            "read_args": read_args,
+            "squeeze": is_series,
+            "name": args["name"],
+            "sheet": sheet,
+        }
+
+    def _on_comment_args(self):
+        return [("file_type", self._io.file_type), ("sheet", self._sheet)]
 
     def _can_add_other(self, other):
         if self._io.file_type == "csv":

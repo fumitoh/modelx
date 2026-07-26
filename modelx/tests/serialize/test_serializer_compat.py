@@ -8,7 +8,7 @@ there for exactly how each was produced).  Loading them must keep
 working while the core is refactored.
 
 Serializers 2-3 are deprecated for loading (and 2-5 for writing), so
-only versions 4-7 are gated (design doc revision 2026-07-15).
+versions 4 and later are gated (design doc revision 2026-07-15).
 """
 
 import pathlib
@@ -21,7 +21,7 @@ from modelx.tests.testdata.serializer_compat import fixturemodel
 
 DATADIR = pathlib.Path(fixturemodel.__file__).parent
 
-VERSIONS = [4, 5, 6, 7]
+VERSIONS = [4, 5, 6, 7, 8]
 
 
 @pytest.mark.parametrize("version", VERSIONS)

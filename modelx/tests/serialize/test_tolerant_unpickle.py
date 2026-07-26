@@ -22,7 +22,7 @@ from modelx.tests.testdata.serializer_compat import fixturemodel
 
 DATADIR = pathlib.Path(fixturemodel.__file__).parent
 
-VERSIONS = [4, 5, 6, 7]
+VERSIONS = [4, 5, 6, 7, 8]
 
 
 class Unrestorable:
@@ -205,13 +205,14 @@ def _assert_pandas_ref_lost(m):
                 if group is m or group is None]
 
 
-def test_iospec_data_file_missing_dir(tmp_path, close_new_models):
+@pytest.mark.parametrize("version", [7, 8])
+def test_iospec_data_file_missing_dir(tmp_path, version, close_new_models):
     """Deleting the file behind an IO spec: the ref becomes None and no
     orphan IO is left behind."""
     pytest.importorskip("openpyxl")
     m = _make_pandas_model("IOModelDir")
     path = tmp_path / "model"
-    mx.write_model(m, str(path))
+    mx.write_model(m, str(path), version=version)
     m.close()
 
     (path / "files" / "data.xlsx").unlink()
@@ -221,13 +222,14 @@ def test_iospec_data_file_missing_dir(tmp_path, close_new_models):
     _assert_pandas_ref_lost(m2)
 
 
-def test_iospec_data_file_missing_zip(tmp_path, close_new_models):
+@pytest.mark.parametrize("version", [7, 8])
+def test_iospec_data_file_missing_zip(tmp_path, version, close_new_models):
     """Same as above for a zipped model (archive rebuilt without the
     member)."""
     pytest.importorskip("openpyxl")
     m = _make_pandas_model("IOModelZip")
     path = tmp_path / "model.zip"
-    mx.zip_model(m, str(path))
+    mx.zip_model(m, str(path), version=version)
     m.close()
 
     trimmed = tmp_path / "trimmed.zip"
@@ -242,12 +244,17 @@ def test_iospec_data_file_missing_zip(tmp_path, close_new_models):
     _assert_pandas_ref_lost(m2)
 
 
+# The iospecs.pickle tests below pin version 7, the last format with
+# that file; the version-8 analogs (malformed or missing iospecs.py)
+# live in test_serializer_8.py.
+
+
 def test_iospecs_pickle_corrupt(tmp_path, close_new_models):
     """A truncated iospecs.pickle loses the specs but the model loads."""
     pytest.importorskip("openpyxl")
     m = _make_pandas_model("IOModelCorrupt")
     path = tmp_path / "model"
-    mx.write_model(m, str(path))
+    mx.write_model(m, str(path), version=7)
     m.close()
 
     iofile = path / "_data" / "iospecs.pickle"
@@ -264,7 +271,7 @@ def test_iospecs_pickle_missing(tmp_path, close_new_models):
     pytest.importorskip("openpyxl")
     m = _make_pandas_model("IOModelMissing")
     path = tmp_path / "model"
-    mx.write_model(m, str(path))
+    mx.write_model(m, str(path), version=7)
     m.close()
 
     (path / "_data" / "iospecs.pickle").unlink()
