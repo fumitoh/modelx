@@ -12,6 +12,13 @@ Updates
     Visit <a href="https://github.com/fumitoh/modelx/discussions" target="_blank">Discussions</a>
     for more frequent updates.</p>
 
+* *8 August 2026:*
+  modelx v0.32.0 is released. See :doc:`releases/relnotes_v0_32_0`.
+
+* *2 August 2026:*
+  modelx-cython v0.0.9 is released. See the
+  `modelx-cython documentation <https://modelx-cython.readthedocs.io>`_.
+
 * *31 May 2026:*
   modelx v0.31.1 is released. See :doc:`releases/relnotes_v0_31_1`.
 
