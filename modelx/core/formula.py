@@ -17,7 +17,8 @@ import token
 import ast
 import warnings
 from types import FunctionType, CodeType
-from inspect import signature, getsource, getsourcefile, findsource
+from inspect import (
+    Parameter, signature, getsource, getsourcefile, findsource)
 from textwrap import dedent, indent
 from modelx.core.base import Interface
 
@@ -266,7 +267,8 @@ def extract_lambda_from_func(func: FunctionType):
 class Formula:
 
     __slots__ = (
-        "func", "signature", "source", "module", "_is_lambda")
+        "func", "signature", "source", "module", "_is_lambda",
+        "_bind_tails", "_parameters")
 
     def __init__(self, func, name=None, module=None, edit_source=True):
 
@@ -289,7 +291,7 @@ class Formula:
                     "%s.source set to None." % (func.__name__, func.__name__)
                 )
                 self.func = func
-                self.signature = signature(func)
+                self._set_signature(signature(func))
                 self.source = None
 
         elif isinstance(func, str):
@@ -347,7 +349,7 @@ class Formula:
                         self.func = v
                         break
 
-        self.signature = signature(self.func)
+        self._set_signature(signature(self.func))
         self.source = src
 
     def _init_from_lambda(self, src: str, name: str):
@@ -364,11 +366,55 @@ class Formula:
         if name:
             self.func.__name__ = name
 
-        self.signature = signature(self.func)
+        self._set_signature(signature(self.func))
         self.source = src
 
+    _SIMPLE_KINDS = (
+        Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)
+
+    def _set_signature(self, sig):
+        """Assign ``signature`` and everything derived from it.
+
+        ``_bind_tails[n]`` is the tuple of default values to append to ``n``
+        positional arguments to obtain the trace key, or None when ``n``
+        arguments would be a :obj:`TypeError`. It is None as a whole when
+        the signature has a parameter of a kind that the shortcut cannot
+        canonicalise the same way ``Signature.bind`` does, i.e.
+        VAR_POSITIONAL, KEYWORD_ONLY or VAR_KEYWORD.
+
+        Every assignment to ``signature`` must go through here: a stale
+        ``_bind_tails`` is a silent wrong-cache-key bug, not a crash.
+        """
+        self.signature = sig
+        params = tuple(sig.parameters.values())
+        self._parameters = tuple(sig.parameters)
+
+        for param in params:
+            if param.kind not in self._SIMPLE_KINDS:
+                self._bind_tails = None
+                return
+
+        # Walk backwards over the trailing run of defaulted parameters.
+        # ``tails[n]`` is left None while ``n`` arguments would leave a
+        # parameter without a default unfilled, i.e. while ``bind`` raises.
+        nparams = len(params)
+        tails = [None] * (nparams + 1)
+        tail = ()
+        tails[nparams] = tail
+        for i in range(nparams - 1, -1, -1):
+            default = params[i].default
+            if default is Parameter.empty:
+                break
+            tail = (default,) + tail
+            tails[i] = tail
+
+        self._bind_tails = tuple(tails)
+
     def _copy_other(self, other):
-        for attr in self.__slots__:
+        # ``Formula.__slots__`` and not ``self.__slots__``: subclasses such
+        # as ``ParamFunc`` declare ``__slots__ = ()``, which shadows the
+        # base tuple and would otherwise copy nothing.
+        for attr in Formula.__slots__:
             setattr(self, attr, getattr(other, attr))
 
     @property
@@ -377,7 +423,7 @@ class Formula:
 
     @property
     def parameters(self):
-        return tuple(self.signature.parameters)
+        return self._parameters
 
     def __getstate__(self):
         """Specify members to pickle."""

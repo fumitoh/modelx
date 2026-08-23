@@ -55,6 +55,24 @@ def get_node(obj: TraceObject, args, kwargs) -> TraceNode:
     if args is None and kwargs is None:
         return (obj,)
 
+    # Fast path for the all-positional call, which is >99% of calls in
+    # practice. It must produce the key ``_bind_args`` would produce, or
+    # values silently alias in ``obj.data``; ``Formula._bind_tails`` is
+    # None for every signature where that is not simply args + defaults.
+    # ``args.__class__ is tuple`` is a correctness guard, not a micro
+    # optimisation: ``CellsImpl.find_match`` passes a list, which would
+    # otherwise become an unhashable cache key.
+    if not kwargs and args.__class__ is tuple:
+        formula = obj.formula
+        if formula is not None:
+            tails = formula._bind_tails
+            if tails is not None:
+                nargs = len(args)
+                if nargs < len(tails):
+                    tail = tails[nargs]
+                    if tail is not None:
+                        return obj, args + tail
+
     if kwargs is None:
         kwargs = {}
     return obj, _bind_args(obj, args, kwargs)
