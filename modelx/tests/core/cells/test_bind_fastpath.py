@@ -279,8 +279,17 @@ def test_positional_only(space):
     f = space.new_cells(name="f", formula="def f(x, /, y): return x - y")
     assert f(1, 2) == -1
     assert keys(f) == {(1, 2)}
-    with pytest.raises(TypeError, match="positional-only"):
+
+    # The keyword call never reaches the fast path, so bind() reports it.
+    # Its wording changed in 3.12: "'x' parameter is positional only, but
+    # was passed as a keyword" became "missing a required positional-only
+    # argument: 'x'".  Both are matched below, and the assertion that the
+    # message is exactly bind()'s own is version-independent.
+    with pytest.raises(TypeError, match="positional[- ]only") as raised:
         f(x=1, y=2)
+    with pytest.raises(TypeError) as slow:
+        _bind_args(f._impl, (), {"x": 1, "y": 2})
+    assert str(raised.value) == str(slow.value)
 
 
 @pytest.mark.parametrize(
