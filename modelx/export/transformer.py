@@ -24,7 +24,8 @@ import libcst
 import libcst as cst
 from libcst import FunctionDef, Module
 from libcst.metadata import (
-    GlobalScope, ClassScope, FunctionScope, ComprehensionScope, ParentNodeProvider)
+    Scope, GlobalScope, ClassScope, FunctionScope, ComprehensionScope,
+    ParentNodeProvider)
 import libcst.matchers as m
 
 
@@ -175,8 +176,28 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
         self.func_attrs = {}
         self.transformed = self.wrapper.visit(self)
 
-    def enclosing_symbols(self, scope):
-        """The name-to-symbol map of the nearest scope that owns a symtable.
+    def comprehension_binds(self, scope: Scope, name: str):
+        """Return whether ``name`` is bound by ``scope`` or by a comprehension enclosing it.
+
+        Under PEP 709 the target of an inlined comprehension becomes a symbol of the
+        enclosing scope's symtable, where it is reported as a global whenever the same
+        name is also read as a global elsewhere in that scope, or whenever the
+        comprehension sits in a default value, an annotation or a decorator, which
+        are evaluated in the scope enclosing the def. Qualifying it then yields
+        ``for self.x in ...``, which is valid Python and silently rebinds the member
+        on the Space object. libCST records the binding in the comprehension's own
+        scope, where it is unambiguous. The first iterable is not part of it: libCST
+        records it in the enclosing scope, as Python evaluates it there.
+        """
+        while isinstance(scope, ComprehensionScope):
+            if name in scope.assignments:
+                return True
+            scope = scope.parent
+
+        return False
+
+    def enclosing_symbols(self, scope: Scope):
+        """Return the name-to-symbol map of the nearest scope that owns a symtable.
 
         Under PEP 709 (Python 3.12+) list, dict and set comprehensions are inlined
         into the enclosing scope and produce no symtable of their own, so their slot
@@ -206,6 +227,9 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
             if n == prev:
                 raise RuntimeError(f"scope not found for {n.value}")
             scope = self.node_to_scope.get(n, None)
+
+        if self.comprehension_binds(scope, node.value):
+            return False
 
         n_to_s = self.enclosing_symbols(scope)
 
