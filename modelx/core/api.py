@@ -1411,6 +1411,11 @@ def export_model(model, path, use_slots=True):
       already have raises :obj:`AttributeError` in the exported model.
     * Space objects in the exported model are not weak-referenceable, have no
       ``__dict__``, and cannot be pickled with pickle protocol 0 or 1.
+    * The export raises :obj:`ValueError` when a name assigned as an
+      attribute of a Space is also defined by the generated class, because
+      ``__slots__`` cannot declare it. In practice that is a Cells sharing
+      its name with a parameter of its own Space or of an enclosing Space,
+      or with a Reference, including a model-level global.
     * `modelx-cython`_ cannot compile an export made this way until it is
       updated.
 

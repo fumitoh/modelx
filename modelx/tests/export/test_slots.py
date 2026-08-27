@@ -503,9 +503,11 @@ def test_parameter_clashing_with_inherited_member_is_rejected(param, tmp_path):
     """A slot may not repeat a member of the _mx_sys base classes either.
 
     CPython raises nothing for these: the slot silently shadows the member,
-    which kills the ``_cells`` property and ``_mx_walk``. Space parameters are
-    the only names that can reach ``__slots__`` with a leading underscore -
-    modelx rejects one in the name of a Cells, a Reference or a Space.
+    which kills the ``_cells`` property and ``_mx_walk``. Every inherited
+    member starts with an underscore, and a Space parameter is the only slot
+    name that can: modelx rejects a leading underscore in the name of a
+    Reference or a Space, and renames such a Cells, whose name in any case
+    only reaches ``__slots__`` behind a ``_v_`` or ``_has_`` prefix.
     """
     m = mx.new_model('SlotsInherited')
     try:
@@ -568,5 +570,66 @@ def test_macro_cannot_create_a_reference_under_slots(tmp_path):
         with pytest.raises(AttributeError) as excinfo:
             slots.add_ref()
         assert 'added' in str(excinfo.value)
+    finally:
+        m.close()
+
+
+def test_non_normalised_names_are_declared_as_stored(tmp_path):
+    """Python normalises identifiers to NFKC; a ``__slots__`` string is not.
+
+    A fullwidth letter is what a name pasted out of a spreadsheet carries, and
+    :meth:`str.isidentifier` accepts it, so modelx keeps it verbatim. The
+    generated ``self.<name> = ...`` compiles to the normalised name, so the
+    slot has to carry the normalised name too or the exported package does not
+    even import.
+    """
+    ref_name = chr(0xFF32) + 'ate'      # FULLWIDTH LATIN CAPITAL LETTER R
+    param_name = chr(0xFF54)            # FULLWIDTH LATIN SMALL LETTER T
+
+    m = mx.new_model('SlotsUnicode')
+    try:
+        parent = m.new_space('Parent')
+        child = parent.new_space('Child')
+        setattr(child, ref_name, 0.03)
+        parent.parameters = (param_name,)
+
+        no_slots, slots = export_both(m, tmp_path, 'SlotsUnicode')
+        declared = declared_slots(type(slots.mx_model.Parent.Child))
+        assert 'Rate' in declared
+        assert 't' in declared
+
+        for nomx in (no_slots.mx_model, slots.mx_model):
+            assert nomx.Parent.Child.Rate == 0.03
+            assert nomx.Parent[9].Child.t == 9
+        assert_slots_cover_dicts(no_slots, slots)
+    finally:
+        m.close()
+
+
+def test_reference_named_after_a_cells_is_rejected(tmp_path):
+    """The guard covers References, not only parameters.
+
+    ``space.refs`` includes the model-level globals, so a global sharing its
+    name with a Cells of the Space is assigned over the Cells method. modelx
+    v0.32.0 exports the alias case below correctly, because ``self.rate =
+    self.rate`` resolves to the same bound method, but ``__slots__`` cannot
+    declare the name at all while the class body defines the method.
+    """
+    m = mx.new_model('SlotsGlobalRef')
+    try:
+        space = m.new_space('Space1')
+
+        @mx.defcells(space=space)
+        def rate(x):
+            return 2 * x
+
+        m.rate = space.rate     # a model-level alias for the Cells
+
+        with pytest.raises(ValueError) as excinfo:
+            m.export(tmp_path / 'clash')
+        assert "'rate'" in str(excinfo.value)
+        assert 'SlotsGlobalRef.Space1' in str(excinfo.value)
+
+        m.export(tmp_path / 'noclash', use_slots=False)
     finally:
         m.close()

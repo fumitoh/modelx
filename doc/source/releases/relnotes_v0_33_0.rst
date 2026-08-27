@@ -49,12 +49,14 @@ Backward Incompatible Changes
 
 * :meth:`Model.export<modelx.core.model.Model.export>` and
   :func:`~modelx.export_model` now raise :obj:`ValueError` when a name
-  assigned as an attribute of a Space is also the name of a method of the
-  generated class, which in practice means a Cells sharing its name with a
-  parameter of its own Space or of an enclosing Space. Such a name has always
-  been exported incorrectly, because the parameter value is assigned over the
-  method, and it cannot be declared in ``__slots__`` at all. Rename one of the
-  two, or export with ``use_slots=False``.
+  assigned as an attribute of a Space is also defined by the generated class,
+  because ``__slots__`` cannot declare such a name. In practice that is a
+  Cells sharing its name with a parameter of its own Space or of an enclosing
+  Space, or with a Reference of the Space including a model-level global; it
+  is also a Space parameter named after a member of ``_mx_sys.BaseSpace``,
+  such as ``_cells``. Most such names are exported incorrectly today, because
+  the attribute is assigned over the method. Rename one of the two, or export
+  with ``use_slots=False``.
 
 
 Bug Fixes

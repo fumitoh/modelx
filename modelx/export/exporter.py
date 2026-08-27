@@ -19,6 +19,7 @@ import textwrap
 import types
 import pprint
 import inspect
+import unicodedata
 try:
     from functools import cached_property
 except ImportError:     # - Python 3.7
@@ -50,11 +51,25 @@ SPACE_CLS_PREFIX = '_c_'
 
 # Members a generated Space class inherits from the _mx_sys template. A
 # __slots__ entry repeating one of them silently shadows it - a slot named
-# _cells would take over the property that populates _mx_cells. Only Space
-# parameters can produce such a name; modelx rejects a leading underscore in
-# the name of a Cells, a Reference or a Space.
+# _cells would take over the property that populates _mx_cells. Every one of
+# them starts with an underscore, and the only slot names that can is a Space
+# parameter: modelx rejects a leading underscore in the name of a Reference or
+# a Space, and a Cells name only ever reaches __slots__ behind a _v_ or _has_
+# prefix.
 INHERITED_ATTRS = frozenset(
     name for klass in _mx_sys.BaseSpace.__mro__ for name in vars(klass))
+
+
+def normalize(name):
+    """Return ``name`` as the compiler stores it.
+
+    Python normalises every identifier in a source file to NFKC, but a
+    ``__slots__`` entry is a string and is not normalised. A Reference named
+    with a fullwidth letter, which :meth:`str.isidentifier` accepts and modelx
+    keeps verbatim, is therefore assigned under its normalised name and has to
+    be declared under that name too.
+    """
+    return unicodedata.normalize('NFKC', name)
 
 
 def mangle(class_name, name):
@@ -66,8 +81,9 @@ def mangle(class_name, name):
     in the body of the Space that owns the parameter, so a descendant Space
     must declare the owner's form of the name, not its own.
     """
+    name = normalize(name)
     if name.startswith('__') and not name.endswith('__'):
-        return '_' + class_name.lstrip('_') + name
+        return '_' + normalize(class_name).lstrip('_') + name
 
     return name
 
@@ -587,6 +603,7 @@ class SpaceTranslator(ParentTranslator):
         class_names = set(INHERITED_ATTRS)
         class_names.update(['__init__', '_mx_assign_refs', '_mx_copy_refs'])
         for name in trans.func_attrs:
+            name = normalize(name)
             class_names.add(name)                   # the Cells method
             if name not in cacheless:
                 class_names.add('_f_' + name)       # its underlying formula
@@ -721,9 +738,9 @@ class SpaceTranslator(ParentTranslator):
         """Render the ``__slots__`` declaration of ``space``'s class.
 
         ``names`` are the attributes assigned on instances of the class, in
-        the order they are assigned and possibly with duplicates.
-        ``class_names`` are the names bound in the class body, which a slot
-        must not repeat. Returns an empty string when ``use_slots`` is false,
+        the order they are assigned, possibly with duplicates and not
+        necessarily normalised. ``class_names`` are the names the class binds
+        or inherits, which a slot must not repeat. Returns an empty string when ``use_slots`` is false,
         in which case the generated class is byte-identical to the one
         modelx v0.32.0 generates.
         """
@@ -732,15 +749,16 @@ class SpaceTranslator(ParentTranslator):
 
         slots = []
         for name in names:
+            name = normalize(name)
             if name in class_names:
                 raise ValueError(
                     "%s cannot be exported with use_slots=True: the name %r "
-                    "is assigned as an attribute of the Space but is also a "
-                    "member of the exported class, either a Cells of the "
-                    "same name or an inherited member. The attribute shadows "
-                    "the member, so the exported model is incorrect for this "
-                    "name either way. Rename one of the two, or pass "
-                    "use_slots=False to export as modelx v0.32.0 does."
+                    "is assigned as an attribute of the Space, but the "
+                    "exported class also defines it, either as a Cells of "
+                    "the same name or as an inherited member. __slots__ "
+                    "cannot declare a name that the class already binds. "
+                    "Rename one of the two, or pass use_slots=False to "
+                    "export as modelx v0.32.0 does."
                     % (space.fullname, name))
             if name not in slots:
                 slots.append(name)
