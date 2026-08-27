@@ -1,6 +1,8 @@
 import sys
 import os
 import pathlib
+from inspect import getsource
+from textwrap import dedent
 
 import pandas as pd
 import modelx as mx
@@ -390,3 +392,302 @@ def test_model_level_ref(tmp_path):
     finally:
         sys.path.pop(0)
         m.close()
+
+
+@pytest.fixture(scope="module")
+def comprehension_scopes(tmp_path_factory):
+    """A Space whose formulas mix comprehensions with the scopes around them.
+
+    Since PEP 709 (Python 3.12), list, dict and set comprehensions are inlined into
+    the enclosing scope and no longer produce a symtable of their own, so the
+    exporter has to find the enclosing scope of such a comprehension lexically.
+    A generator expression, a lambda and a nested def each still own a symtable,
+    and a comprehension that follows one of them used to be resolved against that
+    scope's symtable instead of the formula's.
+
+    That symtable cannot answer whether a name is the comprehension's own target
+    either, because PEP 709 isolates the target and leaves it indistinguishable
+    from a global of the same name.
+
+    ``a``, ``b``, ``c`` and ``d`` are Cells, so every reference to them must be
+    exported as ``self.a``, ``self.b``, ``self.c`` and ``self.d``, except where the
+    name is bound by the comprehension itself.
+    """
+    m = mx.new_model()
+    s = m.new_space("Space1")
+
+    @mx.defcells(space=s)
+    def a(x):
+        return x
+
+    @mx.defcells(space=s)
+    def b(x):
+        return x
+
+    @mx.defcells(space=s)
+    def c(x):
+        return 10 * x
+
+    @mx.defcells(space=s)
+    def d(x):
+        return 100 * x
+
+    @mx.defcells(space=s)
+    def after_genexp():
+        ys = [1, 2]
+        return [sum(b(t) for t in range(y)) for y in ys], [c(y) for y in ys]
+
+    @mx.defcells(space=s)
+    def after_lambda():
+        ys = [1, 2]
+        f = lambda t: b(t)
+        return f(1), [c(y) for y in ys]
+
+    @mx.defcells(space=s)
+    def after_nested_def():
+        ys = [1, 2]
+        def g(t):
+            return b(t)
+        return g(1), [c(y) for y in ys]
+
+    @mx.defcells(space=s)
+    def before_genexp():
+        ys = [1, 2]
+        return [c(y) for y in ys], [sum(b(t) for t in range(y)) for y in ys]
+
+    @mx.defcells(space=s)
+    def bare_after_genexp():
+        ys = [1, 2]
+        return [sum(b(t) for t in range(y)) for y in ys], c(1)
+
+    @mx.defcells(space=s)
+    def shadowing_loop_var():
+        ys = [1, 2]
+        f = lambda t: a(t)
+        return f(1), [a for a in ys]
+
+    @mx.defcells(space=s)
+    def nested_comp_after_genexp():
+        ys = [1, 2]
+        return [sum(b(t) for t in range(y)) for y in ys], [[c(v) for v in [y]] for y in ys]
+
+    @mx.defcells(space=s)
+    def outer_binds_inner_reads():
+        ys = [1, 2]
+        return c(1), [[c for v in [0]] for c in ys]
+
+    @mx.defcells(space=s)
+    def loop_var_also_read():
+        ys = [1, 2]
+        return d(1), [d for d in ys]
+
+    @mx.defcells(space=s)
+    def loop_var_also_read_after_lambda():
+        ys = [1, 2]
+        h = lambda t: b(t)
+        return d(1), h(1), [d for d in ys]
+
+    nomx_path = tmp_path_factory.mktemp('model')
+    m.export(nomx_path / 'CompScope_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from CompScope_nomx import mx_model as nomx
+        yield m, nomx
+    finally:
+        sys.path.pop(0)
+        m.close()
+
+
+@pytest.fixture(scope="module")
+def comprehension_in_default(tmp_path_factory):
+    """A Space with a comprehension in the default value of a formula parameter
+
+    Kept out of ``comprehension_scopes`` because such a formula cannot be exported
+    at all on Python 3.11 and earlier, for a reason that has nothing to do with
+    what the tests below check: there a comprehension still owns a symtable, and
+    the default value is evaluated in the scope enclosing the def, so symtable
+    makes that table a child of the module while libCST orders the matching
+    ComprehensionScope after the FunctionScope. ``adjust_scope_table_mapping``
+    pairs the two lists by position and its ``assert s.name == t.get_name()``
+    fails. Generator expressions and lambdas in the same position fail the same
+    way on every version.
+    """
+    m = mx.new_model()
+    s = m.new_space("Space1")
+
+    @mx.defcells(space=s)
+    def comp_in_default(t, u=sum([i for i in range(3)])):
+        return t + u
+
+    nomx_path = tmp_path_factory.mktemp('model')
+    m.export(nomx_path / 'CompDefault_nomx')
+
+    try:
+        sys.path.insert(0, str(nomx_path))
+        from CompDefault_nomx import mx_model as nomx
+        yield m, nomx
+    finally:
+        sys.path.pop(0)
+        m.close()
+
+
+def _formula_source(nomx, name):
+    """The source of the method generated for the Cells named ``name``"""
+    return dedent(getsource(getattr(nomx.Space1, '_f_' + name)))
+
+
+def test_comprehension_after_genexp(comprehension_scopes):
+    """A generator expression owns a symtable; the comprehension after it does not"""
+    m, nomx = comprehension_scopes
+
+    assert _formula_source(nomx, 'after_genexp') == dedent("""\
+    def _f_after_genexp(self):
+        ys = [1, 2]
+        return [sum(self.b(t) for t in range(y)) for y in ys], [self.c(y) for y in ys]
+    """)
+    assert nomx.Space1.after_genexp() == m.Space1.after_genexp()
+
+
+def test_comprehension_after_lambda(comprehension_scopes):
+    """A lambda owns a symtable; the comprehension after it does not"""
+    m, nomx = comprehension_scopes
+
+    assert _formula_source(nomx, 'after_lambda') == dedent("""\
+    def _f_after_lambda(self):
+        ys = [1, 2]
+        f = lambda t: self.b(t)
+        return f(1), [self.c(y) for y in ys]
+    """)
+    assert nomx.Space1.after_lambda() == m.Space1.after_lambda()
+
+
+def test_comprehension_after_nested_def(comprehension_scopes):
+    """A nested def owns a symtable; the comprehension after it does not"""
+    m, nomx = comprehension_scopes
+
+    assert _formula_source(nomx, 'after_nested_def') == dedent("""\
+    def _f_after_nested_def(self):
+        ys = [1, 2]
+        def g(t):
+            return self.b(t)
+        return g(1), [self.c(y) for y in ys]
+    """)
+    assert nomx.Space1.after_nested_def() == m.Space1.after_nested_def()
+
+
+def test_comprehension_loop_var_not_qualified(comprehension_scopes):
+    """A loop variable shadowing a Cells name must not be prefixed with ``self.``
+
+    ``for self.a in ys`` is valid Python, so this mode of the defect produces code
+    that imports and runs, silently rebinding the ``a`` Cells on the Space instance.
+    """
+    m, nomx = comprehension_scopes
+
+    source = _formula_source(nomx, 'shadowing_loop_var')
+    assert 'for self.' not in source
+    assert source == dedent("""\
+    def _f_shadowing_loop_var(self):
+        ys = [1, 2]
+        f = lambda t: self.a(t)
+        return f(1), [a for a in ys]
+    """)
+
+    assert nomx.Space1.a(3) == 3
+    assert nomx.Space1.shadowing_loop_var() == m.Space1.shadowing_loop_var()
+    assert nomx.Space1.a(3) == 3    # 'a' would be an int here if it had been rebound
+
+
+def test_nested_comprehension_after_genexp(comprehension_scopes):
+    """The lexical walk crosses more than one comprehension without a symtable"""
+    m, nomx = comprehension_scopes
+
+    assert _formula_source(nomx, 'nested_comp_after_genexp') == dedent("""\
+    def _f_nested_comp_after_genexp(self):
+        ys = [1, 2]
+        return [sum(self.b(t) for t in range(y)) for y in ys], [[self.c(v) for v in [y]] for y in ys]
+    """)
+    assert (nomx.Space1.nested_comp_after_genexp()
+            == m.Space1.nested_comp_after_genexp())
+
+
+def test_loop_var_read_in_nested_comprehension(comprehension_scopes):
+    """A name bound by an outer comprehension stays bare where an inner one reads it"""
+    m, nomx = comprehension_scopes
+
+    source = _formula_source(nomx, 'outer_binds_inner_reads')
+    assert 'for self.' not in source
+    assert source == dedent("""\
+    def _f_outer_binds_inner_reads(self):
+        ys = [1, 2]
+        return self.c(1), [[c for v in [0]] for c in ys]
+    """)
+
+    assert nomx.Space1.c(3) == 30
+    assert (nomx.Space1.outer_binds_inner_reads()
+            == m.Space1.outer_binds_inner_reads())
+    assert nomx.Space1.c(3) == 30
+
+
+@pytest.mark.parametrize("name", ['loop_var_also_read',
+                                  'loop_var_also_read_after_lambda'])
+def test_comprehension_loop_var_also_read(comprehension_scopes, name):
+    """A loop variable is not qualified even where the Cells is also read by name
+
+    PEP 709 isolates the target of an inlined comprehension, so where the same name
+    is also read as a global in the formula, the symtable of the enclosing scope
+    reports the name as a global and cannot tell the two apart. libCST records the
+    binding in the comprehension's own scope, which can.
+    """
+    m, nomx = comprehension_scopes
+
+    source = _formula_source(nomx, name)
+    assert 'for self.' not in source
+    assert 'self.d(1)' in source
+
+    assert nomx.Space1.d(3) == 300
+    assert getattr(nomx.Space1, name)() == getattr(m.Space1, name)()
+    assert nomx.Space1.d(3) == 300
+
+
+@pytest.mark.skipif(sys.version_info < (3, 12),
+                    reason="a comprehension in a default value cannot be exported "
+                           "before 3.12; see the comprehension_in_default fixture")
+def test_comprehension_in_default_value(comprehension_in_default):
+    """A comprehension in a default value is evaluated where ``self`` does not exist
+
+    The default values of the generated method are evaluated while the body of the
+    generated class is executed, so a ``self.`` there raises ``NameError`` on import
+    of the exported package. A default value cannot refer to a Space member anyway.
+    """
+    m, nomx = comprehension_in_default
+
+    assert _formula_source(nomx, 'comp_in_default') == dedent("""\
+    def _f_comp_in_default(self, t, u=sum([i for i in range(3)])):
+        return t + u
+    """)
+    assert nomx.Space1.comp_in_default(1) == m.Space1.comp_in_default(1) == 4
+
+
+def test_comprehension_before_genexp(comprehension_scopes):
+    """A comprehension preceding any generator expression stays correct"""
+    m, nomx = comprehension_scopes
+
+    assert _formula_source(nomx, 'before_genexp') == dedent("""\
+    def _f_before_genexp(self):
+        ys = [1, 2]
+        return [self.c(y) for y in ys], [sum(self.b(t) for t in range(y)) for y in ys]
+    """)
+    assert nomx.Space1.before_genexp() == m.Space1.before_genexp()
+
+
+def test_plain_name_after_genexp(comprehension_scopes):
+    """A reference outside any comprehension stays correct after a generator expression"""
+    m, nomx = comprehension_scopes
+
+    assert _formula_source(nomx, 'bare_after_genexp') == dedent("""\
+    def _f_bare_after_genexp(self):
+        ys = [1, 2]
+        return [sum(self.b(t) for t in range(y)) for y in ys], self.c(1)
+    """)
+    assert nomx.Space1.bare_after_genexp() == m.Space1.bare_after_genexp()
