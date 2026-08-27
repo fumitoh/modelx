@@ -12,10 +12,15 @@ except ImportError:
 
 
 class BaseMxObject:
-    pass
+
+    __slots__ = ()
 
 
 class BaseParent(BaseMxObject):
+
+    # Annotations only: they create no class attributes and so never
+    # conflict with the __slots__ of a subclass.
+    __slots__ = ()
 
     _mx_spaces: Dict[str, 'BaseSpace']
     _parent: 'BaseParent'
@@ -68,6 +73,10 @@ class BaseModel(BaseParent):
 
 
 class BaseSpace(BaseParent):
+
+    # Subclasses generated with use_slots=False declare no __slots__ of
+    # their own and so still get a __dict__, exactly as before.
+    __slots__ = ()
 
     # Instance variables
     _mx_is_cells_set: bool
