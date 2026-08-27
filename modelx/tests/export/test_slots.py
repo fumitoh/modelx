@@ -16,6 +16,7 @@ import math
 import pathlib
 import re
 import sys
+import types
 
 import pandas as pd
 import pytest
@@ -75,9 +76,15 @@ def space_key(space, pkg_name):
 
 
 def declared_slots(cls):
+    """Names of the slot descriptors cls and its bases really have.
+
+    Not the __slots__ tuples themselves: CPython mangles a private name
+    in __slots__ with the class that declares it.
+    """
     names = set()
     for klass in cls.__mro__:
-        names.update(getattr(klass, '__slots__', ()))
+        names.update(name for name, value in vars(klass).items()
+                     if isinstance(value, types.MemberDescriptorType))
     return names
 
 
@@ -485,5 +492,79 @@ def test_parameter_clashing_with_cells_is_rejected(tmp_path):
         # The previous behaviour stays available.
         m.export(tmp_path / 'noclash', use_slots=False)
         assert (tmp_path / 'noclash' / '_m_Parent' / '_mx_classes.py').exists()
+    finally:
+        m.close()
+
+
+@pytest.mark.parametrize('param', ['_cells', '_mx_walk'])
+def test_parameter_clashing_with_inherited_member_is_rejected(param, tmp_path):
+    """A slot may not repeat a member of the _mx_sys base classes either.
+
+    CPython raises nothing for these: the slot silently shadows the member,
+    which kills the ``_cells`` property and ``_mx_walk``. Space parameters are
+    the only names that can reach ``__slots__`` with a leading underscore -
+    modelx rejects one in the name of a Cells, a Reference or a Space.
+    """
+    m = mx.new_model('SlotsInherited')
+    try:
+        space = m.new_space('Space1')
+        space.parameters = (param,)
+
+        with pytest.raises(ValueError) as excinfo:
+            m.export(tmp_path / 'clash')
+
+        assert repr(param) in str(excinfo.value)
+        m.export(tmp_path / 'noclash', use_slots=False)
+    finally:
+        m.close()
+
+
+def test_private_parameter_name_is_mangled(tmp_path):
+    """A private parameter is written under the owning class's mangled name.
+
+    ``_mx_assign_params`` is compiled in the body of the Space that owns the
+    parameter, so ``__x`` reaches a descendant as ``_c_<Owner>__x``. A
+    ``__slots__`` string is mangled with the class that declares it, so the
+    descendant has to name the owner's form.
+    """
+    m = mx.new_model('SlotsPrivate')
+    try:
+        parent = m.new_space('Parent')
+        parent.new_space('Child')
+        parent.parameters = ('__x',)
+
+        no_slots, slots = export_both(m, tmp_path, 'SlotsPrivate')
+        assert '_c_Parent__x' in type(slots.mx_model.Parent.Child).__slots__
+
+        for nomx in (no_slots.mx_model, slots.mx_model):
+            assert nomx.Parent[5].Child is not None
+        assert_slots_cover_dicts(no_slots, slots)
+    finally:
+        m.close()
+
+
+def test_macro_cannot_create_a_reference_under_slots(tmp_path):
+    """The attributes of a Space class are fixed when the model is exported.
+
+    A macro that assigns a Reference the model does not already have works on
+    the live model and in a use_slots=False export. It cannot work under
+    __slots__, because the name is unknown when the class is generated. The
+    failure is loud and names the attribute, which is why it is documented
+    rather than guarded against.
+    """
+    m = mx.new_model('SlotsMacro')
+    try:
+        m.new_space('Space1')
+
+        @mx.defmacro
+        def add_ref():
+            mx_model.Space1.added = 123
+            return mx_model.Space1.added
+
+        no_slots, slots = export_both(m, tmp_path, 'SlotsMacro')
+        assert no_slots.add_ref() == 123
+        with pytest.raises(AttributeError) as excinfo:
+            slots.add_ref()
+        assert 'added' in str(excinfo.value)
     finally:
         m.close()

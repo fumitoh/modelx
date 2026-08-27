@@ -193,6 +193,21 @@ uncompiled plain module — mx2cy with macro-bearing models is untested
 territory. Any further new module kinds in the exporter should be checked
 against modelx-cython.
 
+**Known break — `__slots__` on the exported Space classes:** modelx v0.33.0
+makes `Model.export`/`export_model` declare `__slots__` on every generated
+`_c_<Space>` class, and adds `__slots__ = ()` to `BaseMxObject`, `BaseParent`
+and `BaseSpace` in `_mx_sys.py` in both modes. `tracer.py:625`
+(`for name, val in tr0.arg_vals[MX_SELF].__dict__.items()` in
+`MxCallTraceLogger.flush`) reads the traced Space instance's `__dict__` to
+discover its refs, and a slotted instance has none, so type tracing fails for
+every Space of every model. The generated model class is left unslotted and is
+unaffected. Until modelx-cython walks `__slots__` across the MRO as well,
+mx2cy input must be exported with `use_slots=False`. Once it is fixed,
+`leave_ClassDef` should also strip the `__slots__` assignment where it attaches
+`@cy.cclass`: Cython accepts `__slots__` inside a `cdef class` and ignores it
+for storage, so it survives as an inert class attribute naming fields that are
+unreachable via `getattr`.
+
 ### 2.3 Serializer-format couplings (test fixtures)
 
 - Eleven sample model directories under `modelx_cython/tests/samples/`

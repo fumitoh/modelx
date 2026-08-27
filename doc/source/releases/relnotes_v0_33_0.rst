@@ -37,12 +37,15 @@ Enhancements
 Backward Incompatible Changes
 ==============================
 
-* Because the exported Space classes declare ``__slots__``, Space objects in
-  an exported model are no longer weak-referenceable, and attributes cannot
-  be added to them at run time.
-  `modelx-cython <https://github.com/fumitoh/modelx-cython>`_ also cannot
-  compile a model exported this way until it is updated to read ``__slots__``.
-  Export with ``use_slots=False`` in either case.
+* Because the exported Space classes declare ``__slots__``, their attributes
+  are fixed when the model is exported. A macro or a formula that assigns a
+  Reference the model does not already have now raises :obj:`AttributeError`
+  in the exported model. Space objects there are also no longer
+  weak-referenceable, have no ``__dict__``, and cannot be pickled with pickle
+  protocol 0 or 1.
+  `modelx-cython <https://github.com/fumitoh/modelx-cython>`_ cannot compile a
+  model exported this way either, until it is updated to read ``__slots__``.
+  Export with ``use_slots=False`` in any of these cases.
 
 * :meth:`Model.export<modelx.core.model.Model.export>` and
   :func:`~modelx.export_model` now raise :obj:`ValueError` when a name

@@ -1403,13 +1403,19 @@ def export_model(model, path, use_slots=True):
     The generated Space classes declare ``__slots__`` by default. This makes
     the exported model faster and smaller, because CPython stores slotted
     attributes in a fixed-size array and specialises the bytecode that reads
-    them. Two consequences to be aware of:
+    them. The consequences to be aware of:
 
-    * Space objects in the exported model are not weak-referenceable, and
-      no attribute can be added to them at run time.
+    * The attributes are fixed when the model is exported, so an attribute
+      that does not exist by then cannot be added at run time. In particular,
+      a macro or a formula that assigns a Reference the model does not
+      already have raises :obj:`AttributeError` in the exported model.
+    * Space objects in the exported model are not weak-referenceable, have no
+      ``__dict__``, and cannot be pickled with pickle protocol 0 or 1.
     * `modelx-cython`_ cannot compile an export made this way until it is
-      updated. Pass ``use_slots=False`` to export as modelx v0.32.0 and
-      earlier does.
+      updated.
+
+    Pass ``use_slots=False`` in any of these cases to export as
+    modelx v0.32.0 and earlier does.
 
     .. _modelx-cython: https://github.com/fumitoh/modelx-cython
 

@@ -34,6 +34,7 @@ from modelx.core.cells import Cells
 from modelx.serialize.ziputil import write_str_utf8, copy_file
 from modelx.core.util import abs_to_rel_tuple
 
+from . import _mx_sys
 from .transformer import (
     FormulaTransformer, lambda_to_func, is_lambda_expr, get_func_attrs)
 
@@ -46,6 +47,29 @@ DATA_MODULE = '_mx_io'  # _mx_io is hard-coded in _mx_sys
 MACRO_MODULE = '_mx_macros'
 SPACE_PKG_PREFIX = '_m_'
 SPACE_CLS_PREFIX = '_c_'
+
+# Members a generated Space class inherits from the _mx_sys template. A
+# __slots__ entry repeating one of them silently shadows it - a slot named
+# _cells would take over the property that populates _mx_cells. Only Space
+# parameters can produce such a name; modelx rejects a leading underscore in
+# the name of a Cells, a Reference or a Space.
+INHERITED_ATTRS = frozenset(
+    name for klass in _mx_sys.BaseSpace.__mro__ for name in vars(klass))
+
+
+def mangle(class_name, name):
+    """Apply CPython's private name mangling to ``name``.
+
+    A name of the form ``__x`` is mangled with the class whose body it
+    appears in, and a ``__slots__`` entry is mangled with the class that
+    declares it. ``_mx_assign_params`` and ``_mx_copy_params`` are compiled
+    in the body of the Space that owns the parameter, so a descendant Space
+    must declare the owner's form of the name, not its own.
+    """
+    if name.startswith('__') and not name.endswith('__'):
+        return '_' + class_name.lstrip('_') + name
+
+    return name
 
 
 def get_space_formula_attrs(space: BaseSpace):
@@ -557,9 +581,11 @@ class SpaceTranslator(ParentTranslator):
 
         trans = FormulaTransformer(source, cells, cacheless)
 
-        # Names bound in the generated class body. A __slots__ entry equal to
-        # any of them makes the class definition raise ValueError.
-        class_names = {'__init__', '_mx_assign_refs', '_mx_copy_refs'}
+        # Names the generated class body binds or inherits. A __slots__ entry
+        # equal to one bound in the class body makes the class definition
+        # raise ValueError; one equal to an inherited name shadows it.
+        class_names = set(INHERITED_ATTRS)
+        class_names.update(['__init__', '_mx_assign_refs', '_mx_copy_refs'])
         for name in trans.func_attrs:
             class_names.add(name)                   # the Cells method
             if name not in cacheless:
@@ -684,7 +710,9 @@ class SpaceTranslator(ParentTranslator):
         parent = space.parent
         while isinstance(parent, BaseSpace):
             if parent.formula:
-                result[:0] = get_space_formula_attrs(parent).params
+                class_name = SPACE_CLS_PREFIX + parent.name
+                result[:0] = [mangle(class_name, k) for k
+                              in get_space_formula_attrs(parent).params]
             parent = parent.parent
 
         return result
@@ -707,10 +735,10 @@ class SpaceTranslator(ParentTranslator):
             if name in class_names:
                 raise ValueError(
                     "%s cannot be exported with use_slots=True: the name %r "
-                    "is assigned as an attribute of the Space but is also "
-                    "defined as a method of the exported class, most likely "
-                    "by a Cells of the same name. The attribute shadows the "
-                    "method, so the exported model is incorrect for this "
+                    "is assigned as an attribute of the Space but is also a "
+                    "member of the exported class, either a Cells of the "
+                    "same name or an inherited member. The attribute shadows "
+                    "the member, so the exported model is incorrect for this "
                     "name either way. Rename one of the two, or pass "
                     "use_slots=False to export as modelx v0.32.0 does."
                     % (space.fullname, name))
