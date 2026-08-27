@@ -27,10 +27,12 @@ from modelx.export.exporter import Exporter
 
 sample_dir = pathlib.Path(__file__).parent / 'samples'
 
-# Matches a whole ``__slots__`` declaration, including the blank line the
-# class_template reserves for it.
+# A whole ``__slots__`` declaration together with the blank line the
+# class_template reserves for it. Anchored on the class statement so that a
+# Cells docstring holding a line that looks like one cannot match.
 SLOTS_BLOCK = re.compile(
-    r"\n    __slots__ = \(\n(?:[^\n]*\n)*?    \)\n")
+    r"(?m)^(class _c_\w+\(_mx_sys\.BaseSpace\):\n)\n"
+    r"    __slots__ = \(\n(?:[^\n]*\n)*?    \)\n")
 
 ARGVALS = (1, 2)
 
@@ -322,7 +324,7 @@ def test_nested_parameters_run(tmp_path):
 # use_slots=False must reproduce the previous output exactly
 
 def strip_slots(code):
-    return SLOTS_BLOCK.sub('', code)
+    return SLOTS_BLOCK.sub(r'\1', code)
 
 
 @pytest.mark.parametrize('name', BYTE_IDENTICAL_MODELS)
