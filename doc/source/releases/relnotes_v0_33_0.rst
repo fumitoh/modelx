@@ -2,7 +2,8 @@
 modelx v0.33.0 (not yet released)
 ====================================
 
-This release introduces the following bug fixes.
+This release introduces the following enhancements, backward-incompatible
+changes and bug fixes.
 
 To update modelx to the latest version, use the following command::
 
@@ -11,6 +12,51 @@ To update modelx to the latest version, use the following command::
 Anaconda users should use the ``conda`` command instead::
 
     >>> conda update modelx
+
+
+Enhancements
+============
+
+* The Space classes that
+  :meth:`Model.export<modelx.core.model.Model.export>` and
+  :func:`~modelx.export_model` generate now declare ``__slots__``.
+  CPython keeps slotted attributes in a fixed-size array instead of an
+  instance dictionary and specialises the bytecode that reads them, so the
+  exported model runs faster and takes less memory.
+  Measured on ``BasicTerm_SC`` of the ``basiclife`` library of
+  `lifelib <https://lifelib.io>`_, 3,000 model points per round and the best
+  of three rounds, the run is 21% faster on Python 3.13 and 28% faster on
+  Python 3.14, and an ItemSpace of ``Projection`` takes 616 bytes instead of
+  1,632.
+
+  Pass ``use_slots=False`` to
+  :meth:`Model.export<modelx.core.model.Model.export>` or
+  :func:`~modelx.export_model` to generate the same output as modelx v0.32.0.
+
+
+Backward Incompatible Changes
+==============================
+
+* Because the exported Space classes declare ``__slots__``, their attributes
+  are fixed when the model is exported. A macro or a formula that assigns a
+  Reference the model does not already have now raises :obj:`AttributeError`
+  in the exported model. Space objects there are also no longer
+  weak-referenceable, have no ``__dict__``, and cannot be pickled with pickle
+  protocol 0 or 1.
+  `modelx-cython <https://github.com/fumitoh/modelx-cython>`_ cannot compile a
+  model exported this way either, until it is updated to read ``__slots__``.
+  Export with ``use_slots=False`` in any of these cases.
+
+* :meth:`Model.export<modelx.core.model.Model.export>` and
+  :func:`~modelx.export_model` now raise :obj:`ValueError` when a name
+  assigned as an attribute of a Space is also defined by the generated class,
+  because ``__slots__`` cannot declare such a name. In practice that is a
+  Cells sharing its name with a parameter of its own Space or of an enclosing
+  Space, or with a Reference of the Space including a model-level global; it
+  is also a Space parameter named after a member of ``_mx_sys.BaseSpace``,
+  such as ``_cells``. Most such names are exported incorrectly today, because
+  the attribute is assigned over the method. Rename one of the two, or export
+  with ``use_slots=False``.
 
 
 Bug Fixes

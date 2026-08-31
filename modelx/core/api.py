@@ -1348,7 +1348,7 @@ def handle_formula_error(handle=None):
     return _system.executor.is_formula_error_handled
 
 
-def export_model(model, path):
+def export_model(model, path, use_slots=True):
     """Export a given model as a self-contained Python package.
 
     .. warning:: This function is currently experimental
@@ -1398,15 +1398,46 @@ def export_model(model, path):
       Users should ensure that such Cells are called using ``()``
       in the original model's formulas.
 
+    **__slots__**
+
+    The generated Space classes declare ``__slots__`` by default. This makes
+    the exported model faster and smaller, because CPython stores slotted
+    attributes in a fixed-size array and specialises the bytecode that reads
+    them. The consequences to be aware of:
+
+    * The attributes are fixed when the model is exported, so an attribute
+      that does not exist by then cannot be added at run time. In particular,
+      a macro or a formula that assigns a Reference the model does not
+      already have raises :obj:`AttributeError` in the exported model.
+    * Space objects in the exported model are not weak-referenceable, have no
+      ``__dict__``, and cannot be pickled with pickle protocol 0 or 1.
+    * The export raises :obj:`ValueError` when a name assigned as an
+      attribute of a Space is also defined by the generated class, because
+      ``__slots__`` cannot declare it. In practice that is a Cells sharing
+      its name with a parameter of its own Space or of an enclosing Space,
+      or with a Reference, including a model-level global.
+    * `modelx-cython`_ cannot compile an export made this way until it is
+      updated.
+
+    Pass ``use_slots=False`` in any of these cases to export as
+    modelx v0.32.0 and earlier does.
+
+    .. _modelx-cython: https://github.com/fumitoh/modelx-cython
+
     Args:
         model: The Model object to be exported.
         path: The path where the generated Python package will be located.
+        use_slots(:obj:`bool`, optional): Whether the generated Space classes
+            declare ``__slots__``. Defaults to :obj:`True`.
 
     .. seealso:: :meth:`~modelx.core.model.Model.export`
     .. versionadded:: 0.22.0
+    .. versionchanged:: 0.33.0
+        The ``use_slots`` parameter is added, and the generated Space classes
+        declare ``__slots__`` by default.
     """
     from ..export.exporter import Exporter
-    Exporter(model, path).export()
+    Exporter(model, path, use_slots=use_slots).export()
 
 
 def _new_cells_keep_source(space, formula):

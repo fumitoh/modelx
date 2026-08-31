@@ -19,6 +19,7 @@ import textwrap
 import types
 import pprint
 import inspect
+import unicodedata
 try:
     from functools import cached_property
 except ImportError:     # - Python 3.7
@@ -34,6 +35,7 @@ from modelx.core.cells import Cells
 from modelx.serialize.ziputil import write_str_utf8, copy_file
 from modelx.core.util import abs_to_rel_tuple
 
+from . import _mx_sys
 from .transformer import (
     FormulaTransformer, lambda_to_func, is_lambda_expr, get_func_attrs)
 
@@ -47,12 +49,64 @@ MACRO_MODULE = '_mx_macros'
 SPACE_PKG_PREFIX = '_m_'
 SPACE_CLS_PREFIX = '_c_'
 
+# Members a generated Space class inherits from the _mx_sys template. A
+# __slots__ entry repeating one of them silently shadows it - a slot named
+# _cells would take over the property that populates _mx_cells. Every one of
+# them starts with an underscore, and the only slot names that can is a Space
+# parameter: modelx rejects a leading underscore in the name of a Reference or
+# a Space, and a Cells name only ever reaches __slots__ behind a _v_ or _has_
+# prefix.
+INHERITED_ATTRS = frozenset(
+    name for klass in _mx_sys.BaseSpace.__mro__ for name in vars(klass))
+
+
+def normalize(name):
+    """Return ``name`` as the compiler stores it.
+
+    Python normalises every identifier in a source file to NFKC, but a
+    ``__slots__`` entry is a string and is not normalised. A Reference named
+    with a fullwidth letter, which :meth:`str.isidentifier` accepts and modelx
+    keeps verbatim, is therefore assigned under its normalised name and has to
+    be declared under that name too.
+    """
+    return unicodedata.normalize('NFKC', name)
+
+
+def mangle(class_name, name):
+    """Apply CPython's private name mangling to ``name``.
+
+    A name of the form ``__x`` is mangled with the class whose body it
+    appears in, and a ``__slots__`` entry is mangled with the class that
+    declares it. ``_mx_assign_params`` and ``_mx_copy_params`` are compiled
+    in the body of the Space that owns the parameter, so a descendant Space
+    must declare the owner's form of the name, not its own.
+    """
+    name = normalize(name)
+    if name.startswith('__') and not name.endswith('__'):
+        return '_' + normalize(class_name).lstrip('_') + name
+
+    return name
+
+
+def get_space_formula_attrs(space: BaseSpace):
+    """Return the FuncAttrs of a parameterized Space's formula.
+
+    ``space.formula`` must not be None. The parameter assignments and the
+    ``__slots__`` entries for them are both derived from the result, so that
+    the two cannot disagree.
+    """
+    src = space.formula.source
+    if is_lambda_expr(src):
+        src = lambda_to_func(src, '_formula')
+    return get_func_attrs(src)
+
 
 class Exporter:
 
-    def __init__(self, model: Model, path):
+    def __init__(self, model: Model, path, use_slots: bool = True):
         self.model = model
         self.path = pathlib.Path(path)
+        self.use_slots = use_slots
 
     def gen_parents(self):
         """Generator yielding model and spaces in breadth-first order"""
@@ -99,7 +153,7 @@ class Exporter:
 
                 # Write space modules
                 write_str_utf8(
-                    SpaceTranslator(parent, io_manager).code,
+                    SpaceTranslator(parent, io_manager, self.use_slots).code,
                     cur_dir / (SPACE_MODULE + '.py'))
 
         # Write IO metadata
@@ -213,14 +267,33 @@ class ParentTranslator:
     def class_defs(self):
         raise NotImplementedError
 
+    def ref_names(self, parent):
+        """Names of the References assigned as attributes of ``parent``.
+
+        The single source of truth for :meth:`ref_assigns`,
+        :meth:`ref_copies` and, in :class:`SpaceTranslator`, for the
+        ``__slots__`` entries of the References.
+        """
+        return [k for k in parent.refs if k[0] != "_"]
+
+    def space_names(self, parent):
+        """Names of the child Spaces assigned as attributes of ``parent``.
+
+        The single source of truth for :meth:`space_assigns`,
+        :meth:`space_dict` and, in :class:`SpaceTranslator`, for the
+        ``__slots__`` entries of the child Spaces.
+        """
+        return [k for k in parent.spaces if k[0] != "_"]
+
     def ref_assigns(self, parent, copy=False):
         result = []
-        for k, v in parent.refs.items():
-            if k[0] != "_":
-                if copy:
-                    result.append('self.' + k + ' = other.' + k)
-                else:
-                    result.append('self.' + k + ' = ' + self.ref_value(parent, v))
+        for k in self.ref_names(parent):
+            if copy:
+                result.append('self.' + k + ' = other.' + k)
+            else:
+                result.append(
+                    'self.' + k + ' = '
+                    + self.ref_value(parent, parent.refs[k]))
 
         if result:
             result.insert(0, "# Reference assignment")
@@ -231,9 +304,8 @@ class ParentTranslator:
 
     def ref_copies(self, parent):
         result = []
-        for k, v in parent.refs.items():
-            if k[0] == "_":
-                continue
+        for k in self.ref_names(parent):
+            v = parent.refs[k]
 
             base_k = 'base.' + k
             self_k = 'self.' + k
@@ -285,9 +357,8 @@ class ParentTranslator:
 
     def space_dict(self, parent):
         elms = []
-        for k, v in parent.spaces.items():
-            if k[0] != "_":
-                elms.append("'" + k + "'" + ': self.' + k)
+        for k in self.space_names(parent):
+            elms.append("'" + k + "'" + ': self.' + k)
 
         return self.space_dict_template.format(
             elements=textwrap.indent(",\n".join(elms), ' ' * 4)
@@ -336,10 +407,9 @@ class ModelTranslator(ParentTranslator):
 
     def space_assigns(self, parent):
         result = []
-        for k, v in parent.spaces.items():
-            if k[0] != "_":
-                result.append(
-                    'self.' + k + " = " + SPACE_MODULE + "." + SPACE_CLS_PREFIX + k + "(self)")
+        for k in self.space_names(parent):
+            result.append(
+                'self.' + k + " = " + SPACE_MODULE + "." + SPACE_CLS_PREFIX + k + "(self)")
         if result:
             result.insert(0, "# Space assignments")
 
@@ -362,7 +432,7 @@ class SpaceTranslator(ParentTranslator):
 
 
     class _c_{name}(_mx_sys.BaseSpace):
-
+    {slots_decl}
         def __init__(self, parent):
 
             # modelx variables
@@ -398,6 +468,19 @@ class SpaceTranslator(ParentTranslator):
 
     {delitem}
     """)
+
+    # Attributes that ``class_template`` assigns in ``__init__`` on its own,
+    # in the order they appear there. Everything else is contributed by one of
+    # the placeholders and is collected in ``_get_class_def``.
+    template_attrs = (
+        '_space', '_parent', '_model', '_name',
+        '_mx_cells', '_mx_is_cells_set', '_mx_roots')
+
+    slots_template = """
+    __slots__ = (
+{names}
+    )
+"""
 
     cache_method_noparam = textwrap.dedent("""\
     def {name}(self):
@@ -473,6 +556,11 @@ class SpaceTranslator(ParentTranslator):
         del self._mx_itemspaces[item]
     """)
 
+    def __init__(self, parent: BaseParent, io_manager: DataManager,
+                 use_slots: bool = True):
+        super().__init__(parent, io_manager)
+        self.use_slots = use_slots
+
     @cached_property
     def class_defs(self):
         defs = []
@@ -488,9 +576,8 @@ class SpaceTranslator(ParentTranslator):
         # Add dummy ref assignments to function definitions.
         # These assignments are removed by FormulaTransformer.
         lines = []
-        for k, v in space.refs.items():
-            if k[0] != '_':
-                lines.append(k + ' = None')
+        for k in self.ref_names(space):
+            lines.append(k + ' = None')
 
         for k, v in space.cells.items():
             src = v.formula.source
@@ -510,14 +597,33 @@ class SpaceTranslator(ParentTranslator):
 
         trans = FormulaTransformer(source, cells, cacheless)
 
+        # Names the generated class body binds or inherits. A __slots__ entry
+        # equal to one bound in the class body makes the class definition
+        # raise ValueError; one equal to an inherited name shadows it.
+        class_names = set(INHERITED_ATTRS)
+        class_names.update(['__init__', '_mx_assign_refs', '_mx_copy_refs'])
+        for name in trans.func_attrs:
+            name = normalize(name)
+            class_names.add(name)                   # the Cells method
+            if name not in cacheless:
+                class_names.add('_f_' + name)       # its underlying formula
+
+        # __slots__ entries. Each name is collected next to the statement
+        # that assigns the attribute, so that the two cannot drift apart.
+        slot_names = list(self.template_attrs)
+        slot_names.extend(self.space_names(space))      # space_assigns
+        slot_names.append('_mx_spaces')                 # space_dict
+
         cache_vars = []
         cache_methods = []
         for func in trans.func_attrs.values():
             if func.name in cacheless:
                 continue
             elif len(func.params) > 0:
+                value_attr = "_v_" + func.name
+                slot_names.append(value_attr)
                 cache_vars.append(
-                    "self._v_" + func.name + " = {}")
+                    "self." + value_attr + " = {}")
                 cache_methods.append(self.cache_method.format(
                     name=func.name,
                     params=func.param_str,
@@ -525,22 +631,30 @@ class SpaceTranslator(ParentTranslator):
                     idx_args=func.key_str
                 ))
             else:
+                value_attr = "_v_" + func.name
+                has_attr = "_has_" + func.name
+                slot_names.append(value_attr)
+                slot_names.append(has_attr)
                 cache_vars.append(
-                    "self._v_" + func.name + " = None")
+                    "self." + value_attr + " = None")
                 cache_vars.append(
-                    "self._has_" + func.name + " = False")
+                    "self." + has_attr + " = False")
                 cache_methods.append(
                     self.cache_method_noparam.format(name=func.name))
         if cache_vars:
             cache_vars.insert(0, "# Cache variables")
 
+        slot_names.extend(self.ref_names(space))    # ref_assigns / ref_copies
+
         # ItemSpace
         if space.formula:
             itemspace_dict = "self._mx_itemspaces = {}"
-            src = space.formula.source
-            if is_lambda_expr(src):
-                src = lambda_to_func(src, '_formula')
-            attrs = get_func_attrs(src)
+            slot_names.append('_mx_itemspaces')
+            attrs = get_space_formula_attrs(space)
+            slot_names.extend(attrs.params)         # _mx_assign_params
+            class_names.update([
+                '_mx_copy_params', '_mx_assign_params',
+                '__call__', '__getitem__', '__delitem__'])
 
             # How to pass args from __getitem__ to __call__
             if len(attrs.params) == len(attrs.required_params) == 1:
@@ -566,8 +680,13 @@ class SpaceTranslator(ParentTranslator):
             getitem = ''
             delitem = ''
 
+        # _mx_copy_params on the enclosing ItemSpace roots assigns their
+        # parameters here as well. See inherited_param_names.
+        slot_names.extend(self.inherited_param_names(space))
+
         return self.class_template.format(
             name=space.name,
+            slots_decl=self.slots_decl(space, slot_names, class_names),
             cells_name_list=textwrap.indent(self.cells_name_list(space), ' ' * 4),
             space_param_list=textwrap.indent(self.space_param_list(space), ' ' * 4),
             space_assigns=textwrap.indent(self.space_assigns(space), ' ' * 8),
@@ -586,15 +705,72 @@ class SpaceTranslator(ParentTranslator):
 
     def space_assigns(self, parent):
         result = []
-        for k, v in parent.spaces.items():
-            if k[0] != "_":
-                pkg = SPACE_PKG_PREFIX + parent.name + '.'
-                result.append(
-                    'self.' + k + " = " + pkg + SPACE_MODULE + "." + SPACE_CLS_PREFIX + k + "(self)")
+        for k in self.space_names(parent):
+            pkg = SPACE_PKG_PREFIX + parent.name + '.'
+            result.append(
+                'self.' + k + " = " + pkg + SPACE_MODULE + "." + SPACE_CLS_PREFIX + k + "(self)")
         if result:
             result.insert(0, "# Space assignments")
 
         return "\n".join(result)
+
+    def inherited_param_names(self, space: BaseSpace):
+        """Parameter names of the parameterized Spaces enclosing ``space``.
+
+        ``__call__`` assigns a Space's own parameters on every Space in its
+        subtree through ``_mx_assign_params``, and copies the parameters of
+        every enclosing ItemSpace root onto them through ``_mx_copy_params``.
+        A Space class therefore needs slots for the parameters of every
+        parameterized ancestor Space, not only for its own.
+        """
+        result = []
+        parent = space.parent
+        while isinstance(parent, BaseSpace):
+            if parent.formula:
+                class_name = SPACE_CLS_PREFIX + parent.name
+                result[:0] = [mangle(class_name, k) for k
+                              in get_space_formula_attrs(parent).params]
+            parent = parent.parent
+
+        return result
+
+    def slots_decl(self, space: BaseSpace, names, class_names):
+        """Render the ``__slots__`` declaration of ``space``'s class.
+
+        ``names`` are the attributes assigned on instances of the class, in
+        the order they are assigned, possibly with duplicates and not
+        necessarily normalised. ``class_names`` are the names the class binds
+        or inherits, which a slot must not repeat. Returns an empty string when ``use_slots`` is false,
+        in which case the generated class is byte-identical to the one
+        modelx v0.32.0 generates.
+        """
+        if not self.use_slots:
+            return ''
+
+        slots = []
+        for name in names:
+            name = normalize(name)
+            if name in class_names:
+                raise ValueError(
+                    "%s cannot be exported with use_slots=True: the name %r "
+                    "is assigned as an attribute of the Space, but the "
+                    "exported class also defines it, either as a Cells of "
+                    "the same name or as an inherited member. __slots__ "
+                    "cannot declare a name that the class already binds. "
+                    "Rename one of the two, or pass use_slots=False to "
+                    "export as modelx v0.32.0 does."
+                    % (space.fullname, name))
+            if name not in slots:
+                slots.append(name)
+
+        return self.slots_template.format(
+            names=textwrap.fill(
+                ' '.join("'" + n + "'," for n in slots),
+                width=79,
+                initial_indent=' ' * 8,
+                subsequent_indent=' ' * 8,
+                break_long_words=False,
+                break_on_hyphens=False))
 
     def param_assigns(self, params, copy=False):
         params = list(params)
