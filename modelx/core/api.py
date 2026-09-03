@@ -1348,7 +1348,7 @@ def handle_formula_error(handle=None):
     return _system.executor.is_formula_error_handled
 
 
-def export_model(model, path, use_slots=True):
+def export_model(model, path, use_slots=True, locked_spaces=None):
     """Export a given model as a self-contained Python package.
 
     .. warning:: This function is currently experimental
@@ -1422,6 +1422,66 @@ def export_model(model, path, use_slots=True):
     Pass ``use_slots=False`` in any of these cases to export as
     modelx v0.32.0 and earlier does.
 
+    **Free threading**
+
+    The exported model can be used from several threads at once on a
+    free-threaded build of Python (3.13 or later built without the GIL,
+    such as ``python3.14t``). ItemSpaces are independent of each other, so
+    the usual pattern is to give each thread its own range of ItemSpaces,
+    for example ``Projection[i]`` for a range of model points. Spaces that
+    every thread calls, such as a Space holding input data or assumptions,
+    are not safe on their own: two threads that ask for the same Cells
+    value before it is cached both calculate it, and a formula whose side
+    effects are not thread-safe, such as reading a workbook, can corrupt
+    shared state.
+
+    Pass such shared Spaces to ``locked_spaces`` to export them with a lock.
+    A locked Space, together with the Spaces below it and its ItemSpaces,
+    calculates each Cells value and creates each ItemSpace at most once
+    among successful evaluations: a thread that finds a value not yet
+    cached takes the lock shared by all the locked Spaces of the model,
+    checks the cache again and calculates while the other threads wait. A
+    cached value is returned without taking the lock, so the lock costs
+    nothing once the value exists. Formulas of locked Spaces never run at
+    the same time as each other. The lock is re-entrant, so Cells of locked
+    Spaces can call each other and recurse freely. A formula that raises
+    leaves no cached value and is run again by the next caller, as in
+    modelx. Spaces not listed are exported exactly as before.
+
+    Limitations to keep in mind:
+
+    * Lock the Spaces that several threads share and whose Cells take a
+      bounded set of arguments. Do not lock the Space whose ItemSpaces are
+      partitioned across the threads, such as ``Projection``: every
+      calculation in a locked Space waits for the one lock, and a lock that
+      several threads wait for costs microseconds per calculation, not
+      nanoseconds. Before starting the threads, run one ItemSpace per
+      distinct set of shared inputs single-threaded, so that the shared
+      values are already cached.
+    * A formula of a locked Space must not wait for another thread that
+      needs a Cells of a locked Space, for example by joining a thread or
+      a thread pool inside the formula. It would deadlock. Keep the threads
+      in the script that drives the model.
+    * Cells whose ``is_cached`` is :obj:`False` are not locked. They run
+      under the lock only while called from a locked Cells.
+    * ``del space[args]`` on an ItemSpace is not safe while other threads
+      call that Space, as before.
+    * A locked Space below a parameterized Space that is not locked is
+      copied into each of its ItemSpaces, and each copy calculates its
+      Cells once. The export warns about such lists.
+    * Space objects of a model exported with ``locked_spaces`` hold a
+      :class:`threading.RLock` and cannot be pickled or deep-copied.
+    * On a build of Python with the GIL, the lock still guarantees that
+      each value is calculated once, at the same cost.
+    * Only the exported package supports threads. The modelx model it was
+      exported from does not.
+    * A package that has not declared itself free-threading compatible
+      re-enables the GIL when imported, with a warning. pandas 2 is one;
+      run Python with the environment variable ``PYTHON_GIL=0`` to keep the
+      GIL disabled in that case.
+    * `modelx-cython`_ v0.0.9 and earlier cannot compile a model exported
+      with ``locked_spaces``.
+
     .. _modelx-cython: https://github.com/fumitoh/modelx-cython
 
     Args:
@@ -1429,15 +1489,21 @@ def export_model(model, path, use_slots=True):
         path: The path where the generated Python package will be located.
         use_slots(:obj:`bool`, optional): Whether the generated Space classes
             declare ``__slots__``. Defaults to :obj:`True`.
+        locked_spaces(optional): Spaces to export with the lock described
+            above, as an iterable of Space names relative to the model
+            (``"Parent.Child"`` for a nested Space) or Space objects. Each
+            listed Space is locked together with the Spaces below it.
+            Defaults to :obj:`None`, which locks no Space.
 
     .. seealso:: :meth:`~modelx.core.model.Model.export`
     .. versionadded:: 0.22.0
     .. versionchanged:: 0.33.0
-        The ``use_slots`` parameter is added, and the generated Space classes
-        declare ``__slots__`` by default.
+        The ``use_slots`` and ``locked_spaces`` parameters are added, and
+        the generated Space classes declare ``__slots__`` by default.
     """
     from ..export.exporter import Exporter
-    Exporter(model, path, use_slots=use_slots).export()
+    Exporter(model, path, use_slots=use_slots,
+             locked_spaces=locked_spaces).export()
 
 
 def _new_cells_keep_source(space, formula):

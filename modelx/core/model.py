@@ -560,7 +560,7 @@ class Model(IOSpecOperation, EditableParent):
                     backup=backup, log_input=log_input,
                     compression=compression, compresslevel=compresslevel)
 
-    def export(self, path, use_slots=True):
+    def export(self, path, use_slots=True, locked_spaces=None):
         """Export the model as a Python package.
 
         .. warning:: This feature is experimental.
@@ -574,14 +574,22 @@ class Model(IOSpecOperation, EditableParent):
             use_slots(:obj:`bool`, optional): Whether the generated Space
                 classes declare ``__slots__``. Defaults to :obj:`True`.
                 See :py:func:`~modelx.export_model`.
+            locked_spaces(optional): Spaces to export with a lock, so that
+                several threads can share them on a free-threaded build of
+                Python. An iterable of Space names relative to the model
+                (``"Parent.Child"`` for a nested Space) or Space objects;
+                each listed Space is locked together with the Spaces below
+                it. Defaults to :obj:`None`, which locks no Space.
+                See :py:func:`~modelx.export_model`.
 
         .. versionadded:: 0.22.0
         .. versionchanged:: 0.33.0
-            The ``use_slots`` parameter is added, and the generated Space
-            classes declare ``__slots__`` by default.
+            The ``use_slots`` and ``locked_spaces`` parameters are added,
+            and the generated Space classes declare ``__slots__`` by default.
         """
         from ..export.exporter import Exporter
-        Exporter(self, path, use_slots=use_slots).export()
+        Exporter(self, path, use_slots=use_slots,
+                 locked_spaces=locked_spaces).export()
 
     # ----------------------------------------------------------------------
     # Getting and setting attributes
