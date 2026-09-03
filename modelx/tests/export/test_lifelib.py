@@ -2,6 +2,8 @@ import importlib
 import shutil
 import sys
 import math
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import pandas as pd
@@ -108,6 +110,59 @@ def test_annuallife(tmp_path_factory):
                 model.Projection[i].risk_margin(0),
                 nomx.Projection[i].risk_margin(0)
             )
+    finally:
+        sys.path.pop(0)
+        model.close()
+
+
+def test_annuallife_threaded(tmp_path_factory):
+    """TradLife_A with its shared Spaces locked, run from a thread pool.
+
+    Every model point shares InputData, Economic, Assumptions, PolicyAttrs and
+    CommTable, so those are locked; the workbook must be read once and the
+    values must equal those of the modelx model.
+    """
+    import lifelib
+    library, name = 'annuallife', 'TradLife_A'
+    locked = ['InputData', 'Economic', 'Assumptions', 'PolicyAttrs',
+              'CommTable']
+
+    tmp = tmp_path_factory.mktemp('tmp') / library
+    lifelib.create(library, tmp)
+
+    model = mx.read_model(tmp / name)
+    nomx_dir = tmp / (name + '_nomx')
+    shutil.rmtree(nomx_dir, ignore_errors=True)
+    model.export(nomx_dir, locked_spaces=locked)
+
+    points = list(range(0, 300, 10))
+    try:
+        sys.path.insert(0, str(tmp))
+        nomx = importlib.import_module(name + '_nomx').mx_model
+        assert nomx.InputData._mx_lock is nomx._mx_lock
+
+        loads = []
+        cls = type(nomx.InputData)
+        orig = cls._f_input_workbook
+
+        def counted(self):
+            loads.append(threading.get_ident())
+            return orig(self)
+
+        cls._f_input_workbook = counted
+
+        def run(chunk):
+            return {i: nomx.Projection[i].pv_net_cf(0) for i in chunk}
+
+        results = {}
+        with ThreadPoolExecutor(4) as pool:
+            futures = [pool.submit(run, points[k::4]) for k in range(4)]
+            for f in futures:
+                results.update(f.result(timeout=300))
+
+        assert len(loads) == 1
+        for i in points:
+            assert math.isclose(model.Projection[i].pv_net_cf(0), results[i])
     finally:
         sys.path.pop(0)
         model.close()

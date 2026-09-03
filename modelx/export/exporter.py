@@ -20,6 +20,7 @@ import types
 import pprint
 import inspect
 import unicodedata
+import warnings
 try:
     from functools import cached_property
 except ImportError:     # - Python 3.7
@@ -30,7 +31,7 @@ from modelx.core import mxsys
 from modelx.core.base import Interface
 from modelx.core.parent import BaseParent
 from modelx.core.model import Model
-from modelx.core.space import BaseSpace
+from modelx.core.space import BaseSpace, DynamicSpace
 from modelx.core.cells import Cells
 from modelx.serialize.ziputil import write_str_utf8, copy_file
 from modelx.core.util import abs_to_rel_tuple
@@ -49,6 +50,12 @@ MACRO_MODULE = '_mx_macros'
 SPACE_PKG_PREFIX = '_m_'
 SPACE_CLS_PREFIX = '_c_'
 
+# The attribute of the generated Model class and of every locked Space class
+# that holds the threading.RLock shared by the locked Spaces of a model. Its
+# assignment in a Space __init__ is also the marker modelx-cython reads to tell
+# a locked Space class from an unlocked one.
+LOCK_ATTR = '_mx_lock'
+
 # Members a generated Space class inherits from the _mx_sys template. A
 # __slots__ entry repeating one of them silently shadows it - a slot named
 # _cells would take over the property that populates _mx_cells. Every one of
@@ -58,6 +65,81 @@ SPACE_CLS_PREFIX = '_c_'
 # prefix.
 INHERITED_ATTRS = frozenset(
     name for klass in _mx_sys.BaseSpace.__mro__ for name in vars(klass))
+
+
+def resolve_locked_spaces(model: Model, spec):
+    """Return the fullnames of the Spaces that ``spec`` asks to lock.
+
+    ``spec`` is :obj:`None` or an iterable whose items are Spaces of
+    ``model`` or their names relative to the model, dotted for a nested
+    Space (``"Parent.Child"``). Each Space named is locked together with
+    every Space below it, so the result holds the descendants as well.
+    Validation happens here, before the export writes anything.
+    """
+    if spec is None:
+        return frozenset()
+    if isinstance(spec, (str, BaseSpace)):
+        raise TypeError(
+            "locked_spaces must be an iterable of Spaces or Space names, "
+            "not %r" % (spec,))
+
+    listed = [_resolve_space(model, item) for item in spec]
+
+    result = set()
+    for space in listed:
+        que = collections.deque([space])
+        while que:
+            s = que.popleft()
+            result.add(s.fullname)
+            que.extend(s.spaces.values())
+
+    # Exactly-once holds per Space instance. A locked Space below an
+    # unlocked parameterized Space is copied into each of its ItemSpaces,
+    # and each copy computes its Cells once.
+    for space in listed:
+        parent = space.parent
+        while isinstance(parent, BaseSpace):
+            if parent.formula is not None and parent.fullname not in result:
+                warnings.warn(
+                    "locked_spaces: %r is below the parameterized Space %r, "
+                    "which is not locked. Each ItemSpace of %r has its own "
+                    "copy of %r, so its Cells are computed once per "
+                    "ItemSpace, not once per model."
+                    % (space.fullname, parent.fullname,
+                       parent.fullname, space.fullname))
+                break
+            parent = parent.parent
+
+    return frozenset(result)
+
+
+def _resolve_space(model: Model, item):
+    """Return the Space of ``model`` that ``item`` designates."""
+    if isinstance(item, str):
+        obj = model
+        for name in item.split('.'):
+            spaces = obj.spaces
+            if name not in spaces:
+                raise ValueError(
+                    "locked_spaces: %r is not a Space of Model %r"
+                    % (item, model.name))
+            obj = spaces[name]
+        return obj
+    elif isinstance(item, DynamicSpace):
+        raise ValueError(
+            "locked_spaces: %r is an ItemSpace; pass the parameterized "
+            "Space it belongs to instead. Its ItemSpaces are locked with it."
+            % (item,))
+    elif isinstance(item, BaseSpace):
+        if item.model is not model:
+            raise ValueError(
+                "locked_spaces: %r is not a Space of Model %r"
+                % (item, model.name))
+        return item
+    else:
+        raise TypeError(
+            "locked_spaces: expected a Space or a Space name, got %r"
+            % (item,))
 
 
 def normalize(name):
@@ -103,10 +185,12 @@ def get_space_formula_attrs(space: BaseSpace):
 
 class Exporter:
 
-    def __init__(self, model: Model, path, use_slots: bool = True):
+    def __init__(self, model: Model, path, use_slots: bool = True,
+                 locked_spaces=None):
         self.model = model
         self.path = pathlib.Path(path)
         self.use_slots = use_slots
+        self.locked_spaces = resolve_locked_spaces(model, locked_spaces)
 
     def gen_parents(self):
         """Generator yielding model and spaces in breadth-first order"""
@@ -122,7 +206,8 @@ class Exporter:
 
         # Create self.path dir and Write Model module
         write_str_utf8(
-            ModelTranslator(self.model, io_manager).code,
+            ModelTranslator(self.model, io_manager,
+                            use_lock=bool(self.locked_spaces)).code,
             self.path / (MODEL_MODULE + '.py'))
 
         # Write _mx_sys.py
@@ -153,7 +238,8 @@ class Exporter:
 
                 # Write space modules
                 write_str_utf8(
-                    SpaceTranslator(parent, io_manager, self.use_slots).code,
+                    SpaceTranslator(parent, io_manager, self.use_slots,
+                                    self.locked_spaces).code,
                     cur_dir / (SPACE_MODULE + '.py'))
 
         # Write IO metadata
@@ -230,6 +316,7 @@ class DataManager:
 class ParentTranslator:
 
     module_template = ''
+    threading_import = ''   # set by ModelTranslator when the model has a lock
     space_dict_template = textwrap.dedent("""\
     self._mx_spaces = {{
     {elements}
@@ -244,6 +331,7 @@ class ParentTranslator:
     def code(self):
         return self.module_template.format(
             dots=self.dots,
+            threading_import=self.threading_import,
             MODEL_VAR=MODEL_VAR,
             SPACE_MODULE=SPACE_MODULE,
             child_imports=self.child_imports,
@@ -368,7 +456,7 @@ class ParentTranslator:
 class ModelTranslator(ParentTranslator):
     
     module_template = textwrap.dedent("""\
-    from . import _mx_sys
+    from . import _mx_sys{threading_import}
     from . import {SPACE_MODULE}
     
     {class_defs}
@@ -396,11 +484,29 @@ class ModelTranslator(ParentTranslator):
     {ref_assigns}
     """)
 
+    lock_init = textwrap.dedent("""\
+    # Lock shared by the locked Spaces
+    self.{LOCK_ATTR} = threading.RLock()
+
+    """).format(LOCK_ATTR=LOCK_ATTR)
+
+    def __init__(self, parent: BaseParent, io_manager: DataManager,
+                 use_lock: bool = False):
+        super().__init__(parent, io_manager)
+        self.use_lock = use_lock
+        if use_lock:
+            self.threading_import = '\nimport threading'
+
     @cached_property
     def class_defs(self):
+        space_assigns = self.space_assigns(self.parent)
+        if self.use_lock:
+            # Created before the Spaces, whose __init__ copies the reference.
+            space_assigns = self.lock_init + space_assigns
+
         return self.class_template.format(
             name=self.parent.name,
-            space_assigns=textwrap.indent(self.space_assigns(self.parent), ' ' * 8),
+            space_assigns=textwrap.indent(space_assigns, ' ' * 8),
             space_dict=textwrap.indent(self.space_dict(self.parent), ' ' * 8),
             ref_assigns=textwrap.indent(self.ref_assigns(self.parent), ' ' * 8)
         )
@@ -504,6 +610,36 @@ class SpaceTranslator(ParentTranslator):
 
     """)
 
+    # The locked variants keep the cache-hit path of the templates above
+    # byte for byte and take the model lock only on a miss. The value is
+    # stored before the flag, so that a thread that reads the flag without
+    # the lock sees the value once it sees the flag.
+    cache_method_noparam_locked = textwrap.dedent("""\
+    def {name}(self):
+        if self._has_{name}:
+            return self._v_{name}
+        with self._mx_lock:
+            if self._has_{name}:
+                return self._v_{name}
+            val = self._v_{name} = self._f_{name}()
+            self._has_{name} = True
+            return val
+
+    """)
+
+    cache_method_locked = textwrap.dedent("""\
+    def {name}(self, {params}):
+        if {idx_args} in self._v_{name}:
+            return self._v_{name}[{idx_args}]
+        with self._mx_lock:
+            if {idx_args} in self._v_{name}:
+                return self._v_{name}[{idx_args}]
+            val = self._f_{name}({args})
+            self._v_{name}[{idx_args}] = val
+            return val
+
+    """)
+
     itemspace_methods = textwrap.dedent("""\
     def _mx_copy_params(self, other):
     {param_copies}
@@ -533,6 +669,47 @@ class SpaceTranslator(ParentTranslator):
 
     """)
 
+    # A single lookup on the hit path, so that a concurrent ``del`` of the
+    # key cannot turn the check-then-get of the template above into a
+    # KeyError. The root is published into _mx_itemspaces only once its
+    # whole subtree is built.
+    itemspace_methods_locked = textwrap.dedent("""\
+    def _mx_copy_params(self, other):
+    {param_copies}
+
+    @staticmethod
+    def _mx_assign_params(_mx_space, {args}):
+    {param_assigns}
+
+    def __call__(self, {params}):
+        _mx_key = {idx_args}
+        _mx_root = self._mx_itemspaces.get(_mx_key)
+        if _mx_root is not None:
+            return _mx_root
+        with self._mx_lock:
+            _mx_root = self._mx_itemspaces.get(_mx_key)
+            if _mx_root is not None:
+                return _mx_root
+            _mx_base = self
+            _mx_root = _mx_base.__class__(self)
+            for _mx_s, _mx_b in zip(_mx_root._mx_walk(), _mx_base._mx_walk()):
+                _mx_s._mx_copy_refs(_mx_b, _mx_base)
+                for _mx_r in self._mx_roots:
+                    _mx_r._mx_copy_params(_mx_s)
+
+                self._mx_assign_params(_mx_s, {args})
+                _mx_s._mx_roots.extend(self._mx_roots)
+                _mx_s._mx_roots.append(_mx_root)
+
+            self._mx_itemspaces[_mx_key] = _mx_root
+            return _mx_root
+
+    """)
+
+    lock_assign = textwrap.dedent("""\
+    # Lock shared by the locked Spaces
+    self.{LOCK_ATTR} = self._model.{LOCK_ATTR}""").format(LOCK_ATTR=LOCK_ATTR)
+
     getitem_asis = textwrap.dedent("""\
     def __getitem__(self, item):
         return self.__call__(item)
@@ -557,9 +734,10 @@ class SpaceTranslator(ParentTranslator):
     """)
 
     def __init__(self, parent: BaseParent, io_manager: DataManager,
-                 use_slots: bool = True):
+                 use_slots: bool = True, locked_spaces=frozenset()):
         super().__init__(parent, io_manager)
         self.use_slots = use_slots
+        self.locked_spaces = locked_spaces
 
     @cached_property
     def class_defs(self):
@@ -597,6 +775,20 @@ class SpaceTranslator(ParentTranslator):
 
         trans = FormulaTransformer(source, cells, cacheless)
 
+        locked = space.fullname in self.locked_spaces
+        if locked:
+            # A parameter of this name would be assigned over the lock by
+            # _mx_assign_params, whatever the value of use_slots.
+            params = list(self.inherited_param_names(space))
+            if space.formula:
+                params.extend(get_space_formula_attrs(space).params)
+            if LOCK_ATTR in params:
+                raise ValueError(
+                    "%s cannot be exported as a locked Space: a Space "
+                    "parameter is named %r, the attribute that holds the "
+                    "lock. Rename the parameter."
+                    % (space.fullname, LOCK_ATTR))
+
         # Names the generated class body binds or inherits. A __slots__ entry
         # equal to one bound in the class body makes the class definition
         # raise ValueError; one equal to an inherited name shadows it.
@@ -624,7 +816,9 @@ class SpaceTranslator(ParentTranslator):
                 slot_names.append(value_attr)
                 cache_vars.append(
                     "self." + value_attr + " = {}")
-                cache_methods.append(self.cache_method.format(
+                cache_methods.append((
+                    self.cache_method_locked if locked
+                    else self.cache_method).format(
                     name=func.name,
                     params=func.param_str,
                     args=func.arg_str,
@@ -639,10 +833,16 @@ class SpaceTranslator(ParentTranslator):
                     "self." + value_attr + " = None")
                 cache_vars.append(
                     "self." + has_attr + " = False")
-                cache_methods.append(
-                    self.cache_method_noparam.format(name=func.name))
+                cache_methods.append((
+                    self.cache_method_noparam_locked if locked
+                    else self.cache_method_noparam).format(name=func.name))
         if cache_vars:
             cache_vars.insert(0, "# Cache variables")
+        if locked:
+            # The lock is assigned above the caches; its slot is declared
+            # right here so that the two cannot drift apart.
+            cache_vars.insert(0, self.lock_assign)
+            slot_names.append(LOCK_ATTR)
 
         slot_names.extend(self.ref_names(space))    # ref_assigns / ref_copies
 
@@ -664,7 +864,9 @@ class SpaceTranslator(ParentTranslator):
             else:
                 getitem = self.getitem_select
 
-            itemspace_methods = self.itemspace_methods.format(
+            itemspace_methods = (
+                self.itemspace_methods_locked if locked
+                else self.itemspace_methods).format(
                 args=attrs.arg_str,
                 params=attrs.param_str,
                 idx_args=attrs.key_str,

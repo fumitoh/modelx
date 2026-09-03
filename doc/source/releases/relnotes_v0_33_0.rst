@@ -33,6 +33,31 @@ Enhancements
   :meth:`Model.export<modelx.core.model.Model.export>` or
   :func:`~modelx.export_model` to generate the same output as modelx v0.32.0.
 
+* :meth:`Model.export<modelx.core.model.Model.export>` and
+  :func:`~modelx.export_model` accept a new ``locked_spaces`` parameter for
+  using the exported model from several threads on a free-threaded build of
+  Python (3.13t, 3.14t). ItemSpaces are independent of each other, so each
+  thread can be given its own range of ItemSpaces, such as ``Projection[i]``
+  for a range of model points. Spaces that all the threads share, such as a
+  Space holding input data or assumptions, are listed in ``locked_spaces``:
+  such a Space, together with the Spaces below it and its ItemSpaces,
+  calculates each Cells value and creates each ItemSpace only once when
+  several threads ask for it at the same time, by taking a lock shared by all
+  the locked Spaces of the model. A cached value is returned without taking
+  the lock, so the cost is paid only the first time a value is calculated, and
+  Spaces not listed are exported exactly as before. Lock the Spaces whose Cells
+  take a bounded set of arguments, not the Space whose ItemSpaces are
+  partitioned across the threads, because every calculation in a locked Space
+  waits for the one lock. For example, lifelib's ``TradLife_A`` can be exported
+  as ``model.export(path, locked_spaces=['InputData', 'Economic', 'Assumptions',
+  'PolicyAttrs', 'CommTable'])`` and ``Projection[i]`` computed from a thread
+  pool. Measured on Python 3.14.7 free-threaded with the shared Spaces already
+  cached, the exported ``TradLife_A`` projects 2.2 times as many model points
+  per second with 8 threads as with one, and the same export compiled with
+  `modelx-cython <https://github.com/fumitoh/modelx-cython>`_ 3.3 times as
+  many; the lock costs nothing measurable single-threaded.
+  See :func:`~modelx.export_model` for the guarantees and their limits.
+
 
 Backward Incompatible Changes
 ==============================
@@ -44,7 +69,9 @@ Backward Incompatible Changes
   weak-referenceable, have no ``__dict__``, and cannot be pickled with pickle
   protocol 0 or 1.
   `modelx-cython <https://github.com/fumitoh/modelx-cython>`_ cannot compile a
-  model exported this way either, until it is updated to read ``__slots__``.
+  model exported this way either, until it is updated to read ``__slots__``,
+  nor a model exported with ``locked_spaces`` until it is updated to
+  translate the lock.
   Export with ``use_slots=False`` in any of these cases.
 
 * :meth:`Model.export<modelx.core.model.Model.export>` and
