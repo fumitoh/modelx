@@ -1351,9 +1351,6 @@ def handle_formula_error(handle=None):
 def export_model(model, path, use_slots=True, locked_spaces=None):
     """Export a given model as a self-contained Python package.
 
-    .. warning:: This function is currently experimental
-            and subject to limitations detailed below.
-
     This function exports the provided ``model`` as a Python package.
     The resulting package is self-contained, meaning it does not require modelx.
 
@@ -1380,8 +1377,7 @@ def export_model(model, path, use_slots=True, locked_spaces=None):
 
     **Limitations**
 
-    As this function is currently experimental,
-    not all modelx models can be exported. Current limitations include:
+    Not all modelx models can be exported. Current limitations include:
 
     * Relative references in ItemSpaces are not supported.
       All references within an ItemSpace are bound
@@ -1416,8 +1412,6 @@ def export_model(model, path, use_slots=True, locked_spaces=None):
       ``__slots__`` cannot declare it. In practice that is a Cells sharing
       its name with a parameter of its own Space or of an enclosing Space,
       or with a Reference, including a model-level global.
-    * `modelx-cython`_ cannot compile an export made this way until it is
-      updated.
 
     Pass ``use_slots=False`` in any of these cases to export as
     modelx v0.32.0 and earlier does.
@@ -1479,8 +1473,8 @@ def export_model(model, path, use_slots=True, locked_spaces=None):
       re-enables the GIL when imported, with a warning. pandas 2 is one;
       run Python with the environment variable ``PYTHON_GIL=0`` to keep the
       GIL disabled in that case.
-    * `modelx-cython`_ v0.0.9 and earlier cannot compile a model exported
-      with ``locked_spaces``.
+    * Compiling a model exported with ``locked_spaces`` requires
+      `modelx-cython`_ v0.1.0 or later.
 
     .. _modelx-cython: https://github.com/fumitoh/modelx-cython
 
