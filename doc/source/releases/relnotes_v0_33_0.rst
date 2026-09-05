@@ -1,5 +1,5 @@
 ====================================
-modelx v0.33.0 (not yet released)
+modelx v0.33.0 (5 September 2026)
 ====================================
 
 This release introduces the following enhancements, backward-incompatible
@@ -16,6 +16,31 @@ Anaconda users should use the ``conda`` command instead::
 
 Enhancements
 ============
+
+* Calling a Cells is faster (`GH269`_). modelx identifies a Cells value by a
+  key built from the arguments of the call, and until this release that key
+  was always built with :meth:`inspect.Signature.bind`. Because the value
+  cache is consulted only after the key exists, a call that merely returned
+  an already calculated value paid for a full ``bind()`` as well.
+
+  A Formula now derives from its signature, once when it is created, the
+  defaults to append to each possible number of positional arguments, and a
+  call that passes all of its arguments positionally builds the key from
+  that instead. Calls passing keyword arguments, and formulas whose
+  signature has ``*args``, ``**kwargs`` or keyword-only parameters, take the
+  previous path unchanged, and a call with arguments the formula does not
+  accept still raises the same :obj:`TypeError` with the same message.
+
+  Measured over a sweep of 28 lifelib models, calling
+  ``Projection[i].result_cf()`` for each of 234 model points and producing
+  byte-identical results, the sweep runs 24% to 30% faster.
+
+* :meth:`Model.export<modelx.core.model.Model.export>` and
+  :func:`~modelx.export_model` are no longer experimental. The export
+  feature was introduced in modelx v0.22.0 and has carried an experimental
+  warning since then; the warning is now removed. The limitations of the
+  export, which are unchanged, remain documented under
+  :func:`~modelx.export_model`.
 
 * The Space classes that
   :meth:`Model.export<modelx.core.model.Model.export>` and
@@ -55,8 +80,11 @@ Enhancements
   cached, the exported ``TradLife_A`` projects 2.2 times as many model points
   per second with 8 threads as with one, and the same export compiled with
   `modelx-cython <https://github.com/fumitoh/modelx-cython>`_ 3.3 times as
-  many; the lock costs nothing measurable single-threaded.
+  many; the lock costs nothing measurable single-threaded. Compiling an
+  export made with ``locked_spaces`` requires modelx-cython v0.1.0 or later.
   See :func:`~modelx.export_model` for the guarantees and their limits.
+
+.. _GH269: https://github.com/fumitoh/modelx/pull/269
 
 
 Backward Incompatible Changes
@@ -68,10 +96,6 @@ Backward Incompatible Changes
   in the exported model. Space objects there are also no longer
   weak-referenceable, have no ``__dict__``, and cannot be pickled with pickle
   protocol 0 or 1.
-  `modelx-cython <https://github.com/fumitoh/modelx-cython>`_ cannot compile a
-  model exported this way either, until it is updated to read ``__slots__``,
-  nor a model exported with ``locked_spaces`` until it is updated to
-  translate the lock.
   Export with ``use_slots=False`` in any of these cases.
 
 * :meth:`Model.export<modelx.core.model.Model.export>` and

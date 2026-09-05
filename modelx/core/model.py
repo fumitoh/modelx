@@ -563,11 +563,9 @@ class Model(IOSpecOperation, EditableParent):
     def export(self, path, use_slots=True, locked_spaces=None):
         """Export the model as a Python package.
 
-        .. warning:: This feature is experimental.
-            See the limitaions section in :py:func:`~modelx.export_model`.
-
         This method performs the :py:func:`~modelx.export_model`
-        on self. See :py:func:`~modelx.export_model` section for the details.
+        on self. See :py:func:`~modelx.export_model` section for the
+        details, including the limitations of the export.
 
         Args:
             path: The path where the generated Python package will be located.
