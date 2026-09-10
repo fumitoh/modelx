@@ -272,6 +272,32 @@ def test_null_object(tmp_path, write_method):
     testutil.compare_model(m, m2)
 
 
+@pytest.mark.parametrize("version", [6, 7, 8])
+def test_null_object_is_serialized_as_interface(
+        tmp_path, version, close_new_models):
+    m = mx.new_model()
+    space = m.new_space("Space")
+    cells = space.new_cells("foo")
+    space.relref(deleted=cells)
+
+    del space.foo
+    path = tmp_path / "model"
+    mx.write_model(m, path, version=version)
+    m.close()
+
+    source = (path / "Space" / "__init__.py").read_text(encoding="utf-8")
+    assert 'deleted = ("Interface", (None, "Cells"))' in source
+    assert not (path / "_data" / "data.pickle").exists()
+
+    restored = mx.read_model(path)
+    assert not restored.Space.deleted._is_valid()
+    assert type(restored.Space.deleted) is type(cells)
+    # A relative ref cannot resolve against a deleted target. This matches
+    # the previous pickle path, which restored the ref in auto mode.
+    assert restored.Space._get_object(
+        "deleted", as_proxy=True).refmode == "auto"
+
+
 @pytest.mark.parametrize("write_method", ["write_model", "zip_model"])
 def test_false_value(tmp_path, write_method):
     # https://github.com/fumitoh/modelx/issues/39
