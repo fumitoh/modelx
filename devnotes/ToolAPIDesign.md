@@ -1,7 +1,7 @@
 # modelx tool API additions for 0.34: design for approval
 
 **Status:** for the owner of modelx to approve or amend before implementation. 2026-10-07.
-**Decided by the owner:** decision 3, where the new exceptions live (2026-10-09).
+**Decided by the owner:** decision 3, where the new exceptions live, and decision 4, that Spaces have no "derived" (both 2026-10-09).
 **Scope:** the introspection work in lifelib-app PLAN.md §3.2. It unblocks the two features PLAN §5a records as blocked on modelx (PLAN.md:424-429).
 **Basis:** this document builds on Design A ("minimal additions"). Judge 1 picked A, and A had the highest combined score over the two judges: A 98, C 96, B 82. Both judges recommended adding pieces of B and C to it. Those pieces are included here, and §3.0 records where each element came from. Where the judges disagreed, the choice is put to you in §2.
 **Review:** two verifiers checked the first draft and raised 28 findings (5 major). Six fixers and an integrator resolved all 28, each by probe; two fresh verifiers then raised 19 more (6 major), which a final pass resolved. Nothing has re-checked the document since that final pass.
@@ -34,7 +34,7 @@
 That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.toml:54).
 
 **What it unblocks.**
-- The two blocked features: the "inherited Space" badge and dimming (T3, T4), and a Reference's "used by" links, including the readers in sub Spaces (T10). The Studio and modelx-mcp see only the bridge's wire, so they get them through a new bridge method, `links.used_by` (§7).
+- The two features PLAN §5a lists as blocked: the `overrides` badge for Cells and References (T4; it turned out to be computable on 0.33 too, from `Cells._is_derived()` and the public `bases`), and a Reference's "used by" links, including the readers in sub Spaces (T10). The other half of the first, dimming an "inherited Space", is withdrawn: a Space is never inherited (decision 4). The Studio and modelx-mcp see only the bridge's wire, so they get them through a new bridge method, `links.used_by` (§7).
 - A change signal and a model-level dirty flag that see all 46 measured edit-by-state cases and 70 more calls, 61 of which change the saved model (T8). The bridge's current detectors miss 23 of the 46.
 - ItemSpace addresses by argument that never print `__SpaceN` (T6), and an id of its own for a relative Reference that an ItemSpace re-points into its tree (T5).
 - A snapshot walk that never reads or calls a user's member (F11). spyder's walk calls user code on 0.33.
@@ -61,10 +61,12 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
      - The bridge's `from modelx.core.errors import FormulaError` (#20) is therefore tool API, not INTERNAL. The rule that a `modelx.core.*` import is INTERNAL now has this one exception.
 
    Still recommended, for the owner to confirm: the functions go in `api.py`, beside `get_object`: `is_valid_name`, `get_model_info`, `set_calc_hook`, `clear_calc_hook`, and a new keyword on an existing function, `read_model(..., if_exists=)`. The cost: each new name hides a model of the same name from `mx.<name>`, because models are found only on a miss (api.py:614-620). No `get_kind()` function is added; `getattr(type(v), '_kind', None)` covers it.
-4. **What a "derived" Space means.** Recommended:
-   - `BaseSpace._is_derived()` returns `_is_dynamic()`. This is the meaning `Cells._is_derived()` has had since 0.13.1: "is a copy". Since 0.24 no UserSpace is inherited (relnotes_v0_24_0.rst:20-58).
-   - "Inherited" in a UI means `_is_derived() and not _is_dynamic()`.
-   - The Studio's dimming of an inherited Space becomes the per-Space roll-up from `_get_inheritance()` (T4).
+4. **Spaces have no "derived".** Decided by the owner on 2026-10-09:
+   - Space classes have no "derived" concept. Since 0.24 a base Space's child Spaces are not copied into a sub Space (relnotes_v0_24_0.rst:20-58), so no Space is ever inherited. Only Cells and References are, and only they have `_is_derived()` (T3). There is no `BaseSpace._is_derived()` and no `Model._is_derived()`.
+   - A dynamic copy, an ItemSpace or a DynamicSpace, is told by `_is_dynamic()` (T2), never by a derived flag.
+   - For a Cells or a Reference, "inherited" in a UI means `_is_derived() and not _is_dynamic()`, and "overrides" comes from T4's `state`.
+   - The two needs that asked a Space for a derived flag are not applicable: #10 (the bridge's `_derived()` on a Space) and the Space part of #47 (spyder's "Is Derived" column). spyder already leaves a Space row's cell blank when the key is absent (mxtreemodel.py:121-124), which is the right answer.
+   - An earlier draft proposed `BaseSpace._is_derived()` returning `_is_dynamic()`, for uniformity across kinds. It was dropped: it would only repeat `_is_dynamic()` under a name that suggests inheritance.
 5. **Address grammar.** Recommended:
    - The canonical form is call syntax, `'Projection(1).claims'`. That is `_evalrepr` without the model name.
    - The resolver also accepts subscript syntax, `'Projection[1].claims'`, which matches display strings, plus `[]` for no arguments (`'Z[].c'`). As in Python, `'T[(1, 2)]'` means two arguments, so the display of a single tuple-valued argument misses; its address `'T((1, 2))'` resolves (g02).
@@ -129,9 +131,9 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 
 ## 2a. Classification
 
-TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import other than `modelx.core.errors` (decision 3), a type-name check, or undocumented behaviour of a call. UNMET means there is no way to get the fact today. B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
+TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import other than `modelx.core.errors` (decision 3), a type-name check, or undocumented behaviour of a call. UNMET means there is no way to get the fact today. N/A means the need asks for something modelx has no concept of (decision 4). B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
 
-**Totals: TOOL_API 23, INTERNAL 27, UNMET 12.** By consumer: B 4/20/9, S 19/7/3.
+**Totals: TOOL_API 23, INTERNAL 27, UNMET 11, N/A 1.** By consumer: B 4/20/8 and 1 N/A, S 19/7/3.
 
 | # | need | by | class | access used today |
 |---|---|---|---|---|
@@ -144,7 +146,7 @@ TOOL_API means an underscore member on an object users hold, or behaviour such a
 | 7 | is-modelx-object | B | INTERNAL | `modelx.core.base.Interface` and `modelx.core.reference.ReferenceProxy` imports (codec.py:63-77). |
 | 8 | is-dynamic | B | INTERNAL | `type(obj._impl).__name__` (methods.py:2617-2627). |
 | 9 | derived-flag-cells-refs | B | INTERNAL | `Cells._is_derived()` (cells.py:582-583) is tool API. The Reference half calls `ReferenceProxy.is_derived()` (reference.py:193), which has no underscore, is not in reference.rst (doc/source/reference/reference.rst:80-81 list only `value` and `refmode`), and carries your TODO to rename it: reliance on an undocumented call. |
-| 10 | derived-flag-space | B | UNMET | None. UserSpaceImpl is not Derivable (space.py:2223-2228; base.py:296-329). |
+| 10 | derived-flag-space | B | N/A | A Space has no derived concept (decision 4). UserSpaceImpl is not Derivable (space.py:2223-2228; base.py:296-329), and since 0.24 no Space is inherited. The bridge's `_derived()` asks a Space anyway (methods.py:2726-2738). |
 | 11 | space-ref-membership | B | INTERNAL | Undocumented contents of `space.refs` (`__builtins__`, globals, inherited; model.py:1220-1222), plus a `'_'` filter (methods.py:2741-2742). |
 | 12 | computed-node-count | B | INTERNAL | `len(model._impl.tracegraph)` (methods.py:2459-2460, 2582-2614). |
 | 13 | reference-edge-count | B | INTERNAL | `len(model._impl.refgraph)` (methods.py:2459-2460). |
@@ -181,7 +183,7 @@ TOOL_API means an underscore member on an object users hold, or behaviour such a
 | 44 | value-kind-tests | S | INTERNAL | isinstance against `modelx.core.base.Interface`, `modelx.core.reference.ReferenceProxy` and `modelx.io.baseio.BaseIOSpec`, plus parsing the version. |
 | 45 | container-capabilities | S | INTERNAL | isinstance against `modelx.core.parent.BaseParent` and `modelx.core.space.BaseSpace`/`ItemSpace`. |
 | 46 | user-visible-members | S | INTERNAL | The implicit `'_'` filter in RefView (views.py:261), against the unfiltered public `refs`. |
-| 47 | is-derived | S | UNMET | No member exists for Spaces or References, so the key is absent. The Cells key is TOOL_API. |
+| 47 | is-derived | S | UNMET | No member exists for References, so the key is absent from their rows. The Cells key is TOOL_API. For Spaces the key is absent and N/A (decision 4). |
 | 48 | space-bases-names | S | TOOL_API | attrdict `'bases'` (space.py:720), which is the MRO, not the direct bases the need asks for; spyder shows the MRO today (mxproperty.py:161-162). `_direct_bases` (space.py:146-151) is tool API but returns objects. |
 | 49 | node-record | S | TOOL_API | `node._get_attrdict(...)` (node.py:92-106). |
 | 50 | node-adjacent-counts | S | TOOL_API | `predslen`, `succslen`, `precedentslen` (node.py:100-102). |
@@ -203,7 +205,7 @@ Some rows were judgement calls:
 - **#3 reference-as-object:** INTERNAL, because `doc` is undocumented forwarding.
 - **#9 derived-flag-cells-refs:** INTERNAL. The Cells half is tool API, but the Reference half calls `is_derived()`, which has no underscore and is undocumented. T3's explicit `ReferenceProxy._is_derived()` covers it.
 - **#41 get-object-leaf-path:** TOOL_API. The public `get_object` only delegates to `Model._get_object`, and that tool-API member documents the leaf traversal for spyder-modelx. C2(6) also states it on `get_object`.
-- **#47 is-derived:** UNMET, because two of its three kinds have no member at all.
+- **#47 is-derived:** UNMET for its Reference rows, which have no member. Its Space rows are N/A: a Space has no derived concept (decision 4).
 
 ---
 
@@ -240,7 +242,7 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
 |---|---|---|---|
 | T1 | `_kind` class attribute | new | A N1 |
 | T2 | `_is_dynamic()` on every kind | new (Space: existing) | B/C, judge 1 graft 8 |
-| T3 | `_is_derived()` on every kind | new (Cells: existing) | A N4 + B |
+| T3 | `_is_derived()` on Cells and References | new for References (Cells: existing) | A N4 |
 | T4 | `BaseSpace._get_inheritance()` | new | C E12 + B "definition in use" |
 | T5 | ReferenceProxy: equality, liveness, `_refmodes`, resolved slots | new + fix | B/C E13, A F2 |
 | T6 | `_address`; `Model._get_from_name` extended | new + extended | C E6/E7, B grammar |
@@ -318,13 +320,11 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
   - A deleted Cells raises DeletedObjectError through NullImpl (base.py:332).
   - Cost: 0.166 µs for a Space (measured f01).
 
-#### T3 `_is_derived()` on every kind
+#### T3 `_is_derived()` on Cells and References
 
 - **Signature.** `obj._is_derived() -> bool` (ReferenceProxy: `bool | None`).
-- **Semantics.** True when the object has no definition of its own here: it is inherited from a base Space, or it is a dynamic copy.
+- **Semantics.** True when the Cells or Reference has no definition of its own here: it is inherited from a base Space, or it is a dynamic copy. Spaces and Models have no `_is_derived()`: no Space is ever inherited (decision 4), and a dynamic Space is told by `_is_dynamic()` (T2).
   - `Cells._is_derived()` (cells.py:582-583) is unchanged. Measured f01: `Sub.bar` True, overridden `Sub.foo` False, `P[1].h` True, `P[1].Child.w` True.
-  - New `BaseSpace._is_derived()` returns `self._impl.is_dynamic()` (decision 4).
-  - New `Model._is_derived()` returns False.
   - New `ReferenceProxy._is_derived()` returns `impl.is_derived() if isinstance(impl, ReferenceImpl) else None` (reference.py:27; base.py:313-314). The guard stays even after T5, so spyder's whole-model extattr walk can never raise.
   - A resolved slot answers True: it is a dynamic copy, like `P[1].h` (measured fix-reference-identity/g02).
   - `ReferenceProxy.is_derived()` (reference.py:193) stays as an alias (decision 11).
@@ -335,7 +335,7 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
 - **Edge cases.**
   - A Model-level Reference seen through a Space answers False (inventory probe4).
   - On 0.33 a naive alias raised `AttributeError: 'DynamicSpaceImpl' object has no attribute 'is_derived'` inside the whole-model `_get_attrdict` (minimal/m05). It also raises for `P[1]._get_object('rel', as_proxy=True).is_derived()` (measured f01).
-  - With `'_is_derived'` requested as an extattr, UserSpace and Reference rows gain the key, which fills spyder's blank "Is Derived" cells (mxtreemodel.py:120-124).
+  - With `'_is_derived'` requested as an extattr, Reference rows gain the key, which fills their blank "Is Derived" cells in spyder. Space and Model rows keep no key and stay blank (mxtreemodel.py:121-124), which is the right answer (decision 4).
   - Cost: 0.104 µs for Cells (measured f01).
 
 #### T4 `BaseSpace._get_inheritance()`
@@ -982,7 +982,8 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 
 | name | answered on | value |
 |---|---|---|
-| `_is_derived`, `_is_dynamic` | every kind (T2, T3) | bool; a ReferenceProxy's `_is_derived` can be `None` |
+| `_is_dynamic` | every kind (T2) | bool |
+| `_is_derived` | Cells and ReferenceProxy only (T3); absent on Spaces and Models (decision 4) | bool; a ReferenceProxy's can be `None` |
 | `_kind`, `_has_formula` | every kind (T1, T11) | str; bool |
 | `_evalrepr`, `_address` | every kind (S1, T6) | str; str or `None` |
 | `__len__` | Cells | int, the number of stored values (C1(2)) |
@@ -1017,7 +1018,7 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 | 7 | is-modelx-object | INTERNAL | T1 (`getattr(type(v), '_kind', None)` in the vocabulary) |
 | 8 | is-dynamic | INTERNAL | T2 |
 | 9 | derived-flag-cells-refs | INTERNAL | S2 `Cells._is_derived()` (kept); T3 `ReferenceProxy._is_derived()` replaces the undocumented `is_derived()`, which stays as an alias (decision 11); T4 `state` separates inherited from generated |
-| 10 | derived-flag-space | UNMET | T3 `BaseSpace._is_derived()` + T4 roll-up (decision 4) |
+| 10 | derived-flag-space | N/A | Not applicable: a Space has no derived concept (decision 4). The bridge stops asking (§7) |
 | 11 | space-ref-membership | INTERNAL | T4 `refs[...]['scope']`; C2(2) |
 | 12 | computed-node-count | INTERNAL | C1(1): documented `len(Model.tracegraph)` |
 | 13 | reference-edge-count | INTERNAL | Retired. T8 replaces its only use, the fingerprint |
@@ -1054,7 +1055,7 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 | 44 | value-kind-tests | INTERNAL | T1, including `'IOSpec'` |
 | 45 | container-capabilities | INTERNAL | T1 capability table |
 | 46 | user-visible-members | INTERNAL | C2(2); T4 scope `'builtins'` |
-| 47 | is-derived | UNMET | T3, through the `'_is_derived'` extattr on every kind; F11 makes requesting it safe on every kind |
+| 47 | is-derived | UNMET | T3 for Reference rows, through the `'_is_derived'` extattr; Space rows N/A (decision 4). F11 makes requesting it safe on every kind |
 | 48 | space-bases-names | TOOL_API | S2 `_direct_bases`, read by spymx in the kernel and sent as idstrs (C3; fix-spyder-snapshot/s06); F6 for dynamic Spaces. S3 `'bases'` stays the MRO |
 | 49 | node-record | TOOL_API | S3; F3 makes `precedentslen` cheaper |
 | 50 | node-adjacent-counts | TOOL_API | S3; F3 |
@@ -1071,7 +1072,7 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 | 61 | itemspace-argvalues | TOOL_API | S1 `_evalrepr`: the ItemSpace row's `_evalrepr` minus its parent row's (C3; s05: 1,060 of 1,060). `'argvalues'` is never requested (C3; decision 11) |
 | 62 | modelx-system-handle | INTERNAL | C2(5): `mx.setup_ipython()` replaces the only former use (spymx start_kernel.py:93, commented out), and §7 deletes `get_modelx`. System itself is not promoted, because that would expose the executor and the call stack |
 
-Every INTERNAL and UNMET need maps to an element except #26, which is deferred (decision 8). #13 is retired, not served: T8 replaces its only use, the bridge's fingerprint, so `refgraph` stays internal. Three needs are only partly covered: #24 (the runtime half), #32 (storage) and #35 (per-object uid).
+Every INTERNAL and UNMET need maps to an element except #26, which is deferred (decision 8). #10 is N/A (decision 4). #13 is retired, not served: T8 replaces its only use, the bridge's fingerprint, so `refgraph` stays internal. Three needs are only partly covered: #24 (the runtime half), #32 (storage) and #35 (per-object uid).
 
 ---
 
@@ -1191,7 +1192,7 @@ Each PR stands alone and keeps `test_spyder_surface.py` byte-identical.
 - Tests:
   - `core/base/test_kind.py`: every kind, including nested `P[1][5]`; proxies to scalar, global, Space-valued and argument References; PandasData, ExcelRange and ModuleData give `'IOSpec'`; `None` for the 34 value types of minimal/m02 and for Namespace objects; deleted and closed objects; attrdict `'type'` unchanged;
   - `core/space/dynamic_spaces/test_itemspace_repr.py`: `P[1]`, `P[1][5]`, `P[1].Child[2]`, `Q[1, 2]`, `N[]`, `MI[5]`, Cells inside them, and node reprs;
-  - `core/space/inheritance/test_tool_flags.py`: the `_is_dynamic`/`_is_derived` table on Model, UserSpaces including multiple inheritance, ItemSpace, DynamicSpace, and static, derived, overriding and dynamic Cells; a whole-model `_get_attrdict(['_is_derived', '_is_dynamic', '__len__', '_evalrepr'])` that does not raise;
+  - `core/space/inheritance/test_tool_flags.py`: the `_is_dynamic` table on Model, UserSpaces including multiple inheritance, ItemSpace and DynamicSpace; the `_is_derived` table on static, derived, overriding and dynamic Cells and References; that Spaces and Models have no `_is_derived` class attribute (decision 4); a whole-model `_get_attrdict(['_is_derived', '_is_dynamic', '__len__', '_evalrepr'])` that does not raise;
   - `core/base/test_extattrs.py` (F11): a model with global References named `__len__`, `_is_derived`, `formula` and `parameters`, a Space Reference and a Cells named `argvalues`, and a Space formula returning a `_is_derived` ref. spyder's tree and Properties lists call nothing and emit no key from a member. The fixture and lifelib outputs are unchanged. `allow_none` still answers on a proxy, and a getter that raises AttributeError is skipped (fix-spyder-snapshot/s02, s03). A Space formula returning `{'refs': {1: 'one'}}`: the whole-model walk passes and the item's row lists its str refs (refute2/r14; fix-final/e05).
 
 **PR 3: References and inheritance (T4, T5, F2, F10)**
@@ -1345,7 +1346,7 @@ def is_valid_name(name):                         # T13; on 0.33 a copy of util.p
 | codec `_mx_ref` (codec.py:63-77) | An `mx` tag only when `kind(v) in ADDRESSABLE`. Any other value, an IOSpec included, stays `opaque` as today. This drops both `modelx.core` imports. mxcompat is imported after the `sys.modules` check (codec.py:65-67), so the codec still never imports modelx itself | the same rule, through the fallback |
 | Capability probes by a public name: `hasattr(parent, "set_ref")` (methods.py:778, 847); `getattr(target, "formula", None)` (491); `obj.parameters` in `_parameters` (2817-2821); `getattr(target, "node", None)` in `_make_node` (2852); `getattr(space, "cells", None)` (1032) | `has(obj, name)` first, then the member. On a Model, a name that is not a class attribute resolves a global Reference (model.py:595-596); on a Space it resolves a member (space.py:75-84) | the same. It needs no version branch |
 | `_is_dynamic` (methods.py:2617-2627) | `obj._is_dynamic()` | Spaces: `obj._is_dynamic()`; Cells: `obj.parent._is_dynamic()`. Fixes the ItemSpace false negative now |
-| `_derived` (methods.py:2726-2738); tree.get `derived` | `_is_derived() and not _is_dynamic()`; `overrides` and `dynamic` from T4 | Cells as today, asked through `has()`. Never `getattr(space, 'is_derived')`, which finds and calls a member |
+| `_derived` (methods.py:2726-2738); tree.get `derived` | Cells and References only: `_is_derived() and not _is_dynamic()`; `overrides` and `dynamic` from T4. A Space is never asked, and tree.get's Space entries drop `derived` (decision 4) | Cells as today, asked through `has()`. Never `getattr(space, 'is_derived')`, which finds and calls a member |
 | `_ref_names` (methods.py:2741-2742) | `_get_inheritance()['refs']` scopes. Until 0.36 it still drops `_` names, because T4 reports a user's `_` global, `new_space(refs=)` Reference, argument or formula ref under its scope (C2(2)) | today's filter |
 | `_objid` (methods.py:2745-2749) | `obj._idstr`; drop the dead `namedid` fallback | same |
 | `_resolve`, `_lookup` (methods.py:2752-2778) | `model._get_from_name(obj, as_proxy=True)`, mapping `ObjectNotFoundError` to `not_found` | today's walk |
@@ -1386,6 +1387,7 @@ def is_valid_name(name):                         # T13; on 0.33 a copy of util.p
 **Protocol.** `docs/bridge-protocol-v0.md`:
 - §4 gains an optional `addr` (the `_address`), alongside the opaque `obj`.
 - tree.get gains `dynamic` and `overrides`.
+- tree.get's Space entries drop `derived`, which has always been `false` for a Space and has no meaning there (decision 4). Cells and Reference entries keep it.
 - No new version field. `session.info` already sends `modelx` (methods.py:400; bridge-protocol-v0.md:212). The frontend shows "used by" only when `features` lists `links.used_by`, and Stop only when `modelx` is 0.34 or later. That follows the project rule that nothing is shipped dead.
 - A new method, `links.used_by` `{model?, obj}` → `{model, revision, obj, readers}`, with a `features` entry of the same name. map.get cannot carry what T10 finds: its `ref_edges` are `[ref name, cells name]` pairs inside one Space (bridge-protocol-v0.md:1593-1605), so they cannot name a reader in a sub Space, the inherited copy it reads, or a chain. And modelx-mcp never imports modelx or the bridge (modelx_mcp/tools.py:3-7), so it cannot call `_get_formula_links()` itself.
   - `obj` is a Reference or a Cells, addressed as in §4. A resolved slot is first mapped to its binding (T5).
@@ -1418,7 +1420,7 @@ modelx-mcp pins `modelx-bridge>=0.10.0,<0.11` (modelx-mcp/pyproject.toml:40) and
 
 All of these changes are additive. An un-updated plugin keeps working against 0.34 (inferred from the additive-keys rule and minimal/m01, m02). F11 alone leaves its payloads identical on ordinary models, and stops its tree walk from calling user members (s02, s03; the probes are listed in §3.5).
 - **Explorer tree** (`update_modeltree`, mxshell_6.py:364-367):
-  - On ≥0.34 the extattrs become `['_is_derived', '__len__', '_evalrepr', '_is_dynamic']`. All four are C3 wire names. `'_is_derived'` fills the blank "Is Derived" cells of Spaces and References (mxtreemodel.py:120-124).
+  - On ≥0.34 the extattrs become `['_is_derived', '__len__', '_evalrepr', '_is_dynamic']`. All four are C3 wire names. `'_is_derived'` fills the blank "Is Derived" cells of References; Space rows stay blank, correctly (decision 4) (mxtreemodel.py:120-124).
   - On 0.33 the list stays `['_is_derived', '__len__', '_evalrepr']`. `_is_dynamic` is not a Model class attribute there, so on the Model row it would resolve a global Reference of that name (s01), the same path that called a global `_is_derived` in s02. The three names spyder requests today already reach user members on a model with global References named `__len__` or `_is_derived` (s02: 28 calls in one walk). Only F11 closes that.
   - `'argvalues'` is not requested, on any version (C3). Requested, it would call a Space Reference of that name, and one Space-valued argument would stop the whole tree from transferring (s02, s04).
   - The Parameters column of an ItemSpace row comes from `_evalrepr`, which the walk already requests. Override `getParams` in `ItemSpaceItem` (mxtreemodel.py:244-256): take the row's `_evalrepr`, cut off its parent Space row's `_evalrepr`, and drop the parentheses. That gives `'1'`, `"'x'"`, `'1, 2'` and `'<UserSpace S05.B>'`, and `'5'` for a nested item whose column-0 repr still reads `'__Space1[5]'` before F1 (s05: 1,060 of 1,060 rows). The parent Space row is `self.parent().parent()`, because an ItemSpaceMapItem sits between them (mxtreemodel.py:226-230, 259-264). This works on 0.33 too.
