@@ -1,6 +1,7 @@
 # modelx tool API additions for 0.34: design for approval
 
 **Status:** for the owner of modelx to approve or amend before implementation. 2026-10-07.
+**Decided by the owner:** decision 3, where the new exceptions live (2026-10-09).
 **Scope:** the introspection work in lifelib-app PLAN.md §3.2. It unblocks the two features PLAN §5a records as blocked on modelx (PLAN.md:424-429).
 **Basis:** this document builds on Design A ("minimal additions"). Judge 1 picked A, and A had the highest combined score over the two judges: A 98, C 96, B 82. Both judges recommended adding pieces of B and C to it. Those pieces are included here, and §3.0 records where each element came from. Where the judges disagreed, the choice is put to you in §2.
 **Review:** two verifiers checked the first draft and raised 28 findings (5 major). Six fixers and an integrator resolved all 28, each by probe; two fresh verifiers then raised 19 more (6 major), which a final pass resolved. Nothing has re-checked the document since that final pass.
@@ -20,13 +21,14 @@
 **What.** modelx 0.34 gains:
 - fourteen tool-API elements, T1–T14 in §3:
   - eleven sets of underscore members on Model, Spaces, Cells, Macro, ReferenceProxy, IOSpecs and nodes;
-  - three groups of top-level names: exceptions, a model-file reader, and a provisional calculation hook;
+  - new exception and warning classes in `modelx.core.errors`, which becomes a supported import path for tools; they are not re-exported at the top level (decision 3);
+  - two groups of top-level names: a name check with a model-file reader, and a provisional calculation hook;
 - eleven fixes to existing members, F1–F11;
 - a written contract for the existing underscore members that modelx-bridge, modelx-mcp and spyder-modelx already call. Every underscore member of an object users hold stays tool API, as the owner defines it; the contract *freezes* the ones it lists (§5). It is a reference page, a test that pins signatures, and a CI job that runs the released bridge and mcp test suites before every modelx release.
 
 **Why.** Of the 62 needs in the inventory:
-- 22 are already served by the tool API;
-- 28 reach INTERNAL code: `_impl`, `modelx.core.*`, class-name checks, or undocumented behaviour;
+- 23 are already served by the tool API;
+- 27 reach INTERNAL code: `_impl`, `modelx.core.*` other than `modelx.core.errors`, class-name checks, or undocumented behaviour;
 - 12 are UNMET.
 
 That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.toml:54).
@@ -49,15 +51,16 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
    The page does not reclassify anything. By the owner's rule every underscore member of an object users hold is tool API. The page and the golden *freeze* the members listed on it; the others stay tool API without that promise (§5's two tiers). The classes users hold define 55 non-dunder underscore members on 0.33, most of the unlisted ones Formula and IOSpec hooks (measured critic2/k03, re-run in fix-final).
 
    Rejected: Design C's runtime registry of all 81 underscore members, which would freeze every one of them, hooks included, and a `TOOL_API_LEVEL` integer. Use `modelx.VERSION` plus class-level detection instead (§5).
-2. **Deprecation signal.** Recommended: add `modelx.ToolAPIDeprecationWarning(UserWarning)`. It keeps the house style, because it is still a UserWarning, and it lets CI find exactly these warnings: the downstream job records every one, in every interpreter the suites start, and fails (§8). A warning filter cannot do this. Each suite runs in its own interpreter, so a filter set in the runner left the bridge suites at 831 passed, exit 0, while a deprecated member was in use, and `PYTHONWARNINGS` cannot name the category (measured fix-bridge-adoption/b06, b06b, b06d). The subclass is still what makes the audit's `issubclass` test exact. A tool-API member is removed only after both:
+2. **Deprecation signal.** Recommended: add `ToolAPIDeprecationWarning(UserWarning)` to `modelx.core.errors` (decision 3). It keeps the house style, because it is still a UserWarning, and it lets CI find exactly these warnings: the downstream job records every one, in every interpreter the suites start, and fails (§8). A warning filter cannot do this. Each suite runs in its own interpreter, so a filter set in the runner left the bridge suites at 831 passed, exit 0, while a deprecated member was in use, and `PYTHONWARNINGS` cannot name the category (measured fix-bridge-adoption/b06, b06b, b06d). The subclass is still what makes the audit's `issubclass` test exact. A tool-API member is removed only after both:
    - two minor releases of warning;
    - the downstream job being green against the latest released bridge and mcp.
-3. **Top-level names.** Recommended: add these as public names in `api.py`, beside `get_object`:
-   - exceptions: `FormulaError` (re-export), `ObjectNotFoundError`, `FormulaDefinitionError`, `DynamicObjectError`, `ToolAPIDeprecationWarning`, `CalculationCancelled`;
-   - functions: `is_valid_name`, `get_model_info`, `set_calc_hook`, `clear_calc_hook`;
-   - a new keyword on an existing function: `read_model(..., if_exists=)`.
+3. **Where the new names live.** Decided by the owner on 2026-10-09:
+   - **Exception and warning classes stay in `modelx.core.errors`**, where `FormulaError` already is, and are **not** re-exported at the top level: `ObjectNotFoundError`, `FormulaDefinitionError`, `DynamicObjectError`, `ToolAPIDeprecationWarning` and `CalculationCancelled`. `modelx.core.errors` is a supported import path for tools, and toolapi.rst lists it.
+     - It is already where errors come from: modelx's own tests import them from there (tests/core/cells/test_error.py:5, tests/core/cells/test_rename.py:4), tracebacks name `modelx.core.errors.FormulaError`, and `modelx.FormulaError` does not exist on 0.33.
+     - Adding no top-level name means none of these classes can hide a model of the same name from `mx.<name>`, and `from modelx import *` gains none of them.
+     - The bridge's `from modelx.core.errors import FormulaError` (#20) is therefore tool API, not INTERNAL. The rule that a `modelx.core.*` import is INTERNAL now has this one exception.
 
-   The cost: each new name hides a model of the same name from `mx.<name>`, because models are found only on a miss (api.py:614-620). No `get_kind()` function is added; `getattr(type(v), '_kind', None)` covers it.
+   Still recommended, for the owner to confirm: the functions go in `api.py`, beside `get_object`: `is_valid_name`, `get_model_info`, `set_calc_hook`, `clear_calc_hook`, and a new keyword on an existing function, `read_model(..., if_exists=)`. The cost: each new name hides a model of the same name from `mx.<name>`, because models are found only on a miss (api.py:614-620). No `get_kind()` function is added; `getattr(type(v), '_kind', None)` covers it.
 4. **What a "derived" Space means.** Recommended:
    - `BaseSpace._is_derived()` returns `_is_dynamic()`. This is the meaning `Cells._is_derived()` has had since 0.13.1: "is a copy". Since 0.24 no UserSpace is inherited (relnotes_v0_24_0.rst:20-58).
    - "Inherited" in a UI means `_is_derived() and not _is_dynamic()`.
@@ -126,9 +129,9 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 
 ## 2a. Classification
 
-TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import, a type-name check, or undocumented behaviour of a call. UNMET means there is no way to get the fact today. B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
+TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import other than `modelx.core.errors` (decision 3), a type-name check, or undocumented behaviour of a call. UNMET means there is no way to get the fact today. B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
 
-**Totals: TOOL_API 22, INTERNAL 28, UNMET 12.** By consumer: B 3/21/9, S 19/7/3.
+**Totals: TOOL_API 23, INTERNAL 27, UNMET 12.** By consumer: B 4/20/9, S 19/7/3.
 
 | # | need | by | class | access used today |
 |---|---|---|---|---|
@@ -151,7 +154,7 @@ TOOL_API means an underscore member on an object users hold, or behaviour such a
 | 17 | itemspace-addressing | B | UNMET | None; only session-scoped `__SpaceN` ids. mcp maps `Space[k]` by hand (tools.py:396-470). |
 | 18 | formula-source (B) | B | INTERNAL | `type(formula).__name__ == "NullFormula"` (methods.py:2689-2700); the Formula class is undocumented (formula.py:267). |
 | 19 | formula-set-refusals | B | INTERNAL | Matching ValueError text (methods.py:2630-2678). |
-| 20 | formula-error-class | B | INTERNAL | `from modelx.core.errors import FormulaError` (methods.py:2185-2187). |
+| 20 | formula-error-class | B | TOOL_API | `from modelx.core.errors import FormulaError` (methods.py:2185-2187). `modelx.core.errors` is a supported import path (decision 3). |
 | 21 | formula-error-text-format | B | INTERNAL | Parsing `str(FormulaError)` (tools.py:2338-2392). |
 | 22 | reference-value-type (B) | B | TOOL_API | `proxy._get_attrdict()['value_type']` (reference.py:203-210). |
 | 23 | cached-values-nonevaluating | B | INTERNAL | An undocumented guarantee that `len` and `series` do not evaluate (methods.py:1174-1189). |
@@ -246,7 +249,7 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
 | T9 | `Model._get_serial()`, `Model._is_open()` | new | C E15 |
 | T10 | `_get_referents()` (+ `chains`), `Model._get_formula_links()` | new | A N3 + B/C |
 | T11 | `_has_formula()` | new | B (narrowed) |
-| T12 | Exceptions | new top-level | A N5 + C E3–E5 |
+| T12 | Exceptions | new, in `modelx.core.errors` | A N5 + C E3–E5 |
 | T13 | `is_valid_name`, `get_model_info`, `read_model(if_exists=)` | new top-level | A N6 + C E21–E23 |
 | T14 | `set_calc_hook`, `clear_calc_hook`, `CalculationCancelled` | new, **provisional** | C E24 |
 | F1–F11 | Fixes to existing members | behaviour | A, C; F8–F11 from verification |
@@ -720,17 +723,17 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
   - A user's own `lambda: None` is a real formula (measured f04: not NullFormula).
 - **Edge case (decision 10).** The value does not survive write and read: a no-formula Cells is written as `c = lambda: None` (serializer_6.py:775-782, where `if self.target.formula:` is always true) and reads back as a plain Formula (measured f04). Documented, not fixed in 0.34.
 
-### 3.2 New top-level names (`api.py`)
+### 3.2 New names outside the objects (`modelx.core.errors`, `api.py`)
 
 #### T12 Exceptions
 
-All are defined in `core/errors.py` and exported by importing them in `api.py:27-43`. api.py has no `__all__`, so `modelx/__init__.py` star-exports them.
+All are defined in `core/errors.py`, beside `FormulaError`, and api.py imports none of them, so none becomes a top-level name (decision 3). Tools import them from `modelx.core.errors`, which toolapi.rst lists as a supported import path. On 0.33 a tool detects each one with `getattr(modelx.core.errors, name, None)`; the module itself exists there.
 
 - **`ObjectNotFoundError(NameError, KeyError)`**, with `__str__ = Exception.__str__` and attributes `.name` and `.missing`.
   - Raised by `get_object` (system.py:242-254), `Interface._get_object` (base.py:376-391), `BaseSpace._get_object` (space.py:89-105), `Model._get_object` (model.py:650-657) and `Model._get_from_name` (model.py:646-648).
   - Existing `except NameError` handlers (spymx kernel.py:263-266) and `except KeyError` handlers both still catch it.
   - Layout: `(NameError, KeyError)` works on 3.11, and `(NameError, AttributeError)` is a layout conflict (measured f01). The same holds on 3.10–3.14 (tool_contract/p01). Without `__str__`, 3.14 quotes the message.
-- **`FormulaError`**: the existing class (errors.py:20-28), now exported, with:
+- **`FormulaError`**: the existing class (errors.py:20-28), where it is today, with:
   - `.error`, the original exception;
   - `.traceback`, a lazy `list[tuple[ItemNode, int]]` with line 0 meaning no frame.
 
@@ -1024,7 +1027,7 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 | 17 | itemspace-addressing | UNMET | T6 |
 | 18 | formula-source (B) | INTERNAL | T11; C1(3) |
 | 19 | formula-set-refusals | INTERNAL | T12 `FormulaDefinitionError`, `DynamicObjectError`; F5 |
-| 20 | formula-error-class | INTERNAL | T12 `modelx.FormulaError` |
+| 20 | formula-error-class | TOOL_API | `modelx.core.errors.FormulaError`, as today (decision 3); T12 adds `.error` and `.traceback` |
 | 21 | formula-error-text-format | INTERNAL | T12 `.traceback`/`.error`; C1(4); the bridge protocol's `formula_frames` (§7), because modelx-mcp reads only the wire |
 | 22 | reference-value-type (B) | TOOL_API | S3 `value_type` (kept); `type(proxy.value).__name__` documented as equal |
 | 23 | cached-values-nonevaluating | INTERNAL | C1(2) |
@@ -1075,7 +1078,7 @@ Every INTERNAL and UNMET need maps to an element except #26, which is deferred (
 ## 5. Versioning, stability and deprecation
 
 **What the tool API is.** The owner's rule decides it, and this design keeps it: every underscore member of an object users hold is tool API, public and meant for other software. Those objects are Model, the Spaces, Cells, Macro, ReferenceProxy, the views, nodes, Formula and the IOSpecs. The tool API has two tiers:
-- **Frozen.** The members and behaviours listed on `doc/source/reference/toolapi.rst`: S1–S3, T1–T11, the top-level names in T12–T13, and the contracts C1–C3, with T14 marked **provisional**. They are in the signature golden, and the stability promise and the deprecation policy below apply to them.
+- **Frozen.** The members and behaviours listed on `doc/source/reference/toolapi.rst`: S1–S3, T1–T11, the classes in `modelx.core.errors` (`FormulaError` and T12's), the top-level names in T13, and the contracts C1–C3, with T14 marked **provisional**. They are in the signature golden, and the stability promise and the deprecation policy below apply to them.
 - **Tool API, not frozen.** Every other underscore member of those objects. On 0.33 the classes users hold define 55 non-dunder underscore members; 26 of them were named nowhere in the previous revision of this document, and most of those are Formula and IOSpec hooks (measured critic2/k03, re-run in fix-final). Examples: Formula's `_init_from_source`, `_reload` and `_set_signature`; BaseIOSpec's `_on_update`, `_on_load_value` and `_can_update_value`; `CellsView._set_keys`; `_baseattrs_private` (views.py:93); `_reduce_serialize_3` on six kinds. A release may change them, with a release note. A consumer that needs one frozen asks for it to be listed, and it then joins the first tier.
 
 Internal, and not tool API, means:
@@ -1091,6 +1094,7 @@ Internal, and not tool API, means:
 **Detection by consumers.** All three idioms were measured on 0.33 in f01.
 - **Members:** `getattr(type(obj), name, None)`. On an instance, `hasattr` is fooled by a global Reference named `_get_revision`: `hasattr(m, ...)` True, `hasattr(type(m), ...)` False.
 - **Top-level names:** `vars(modelx).get(name)`. `getattr(mx, 'FormulaError')` returned a *Model* of that name on 0.33.
+- **Exception and warning classes:** `getattr(modelx.core.errors, name, None)` (decision 3). The module exists on 0.33, so importing it is safe there, and no model can shadow a name in it.
 - **Behaviour changes to existing members** (F1, F2, F4, F5, F6, F8, F10, F11, T5's resolved slots and `_is_valid()`, T6's `_get_from_name` and its TypeError for a Space without a formula, and decision 9's refusals): `modelx.VERSION >= (0, 34, 0)`. For F6, a kernel on 0.33 reads a dynamic Space's direct bases from `bases`, not `_direct_bases` (C3).
 
 **Stability promise for the 0.x series.**
@@ -1106,7 +1110,7 @@ Internal, and not tool API, means:
 **Deprecation policy, in house style plus one subclass.**
 1. The replacement ships first.
 2. The member is marked deprecated on toolapi.rst and in the release notes' "Deprecations" section.
-3. Using it emits `warnings.warn("'X' is deprecated and will be removed in a future release.", modelx.ToolAPIDeprecationWarning, stacklevel=2)`.
+3. Using it emits `warnings.warn("'X' is deprecated and will be removed in a future release.", modelx.core.errors.ToolAPIDeprecationWarning, stacklevel=2)`.
 4. It stays for **at least two minor releases**, and until the downstream job (§8) is green against the latest released modelx-bridge and modelx-mcp.
 5. Only then is it removed, under "Backward Incompatible Changes", with migration text, as 0.24 did.
 
@@ -1157,6 +1161,7 @@ Each PR stands alone and keeps `test_spyder_surface.py` byte-identical.
   - static links;
   - the snapshot wire format per kind, with extattr rules (C3);
   - names and registry, with the reserved-name rule and the free-name recipes (T13);
+  - errors and warnings: `modelx.core.errors` as the supported import path, its classes and their attributes (T12, decision 3);
   - what is not tool API.
 
   Every member is listed explicitly in `autosummary` blocks with the `mxbase` template. `ReferenceProxy.is_derived()` appears only as "kept for modelx-bridge 0.10; use `_is_derived()`" (decision 11).
@@ -1202,7 +1207,7 @@ Each PR stands alone and keeps `test_spyder_surface.py` byte-identical.
 
 **PR 4: Resolution, errors and name checks (T6, T12, F4, F5, F9; decision 9)**
 - Files:
-  - errors.py; api.py:27-43;
+  - errors.py (the new classes; api.py imports none of them);
   - edit/pipeline.py:514-552 (`NewSpace.validate`);
   - model.py:646-657, 1266-1273, 1323-1333 (`get_attr`), 1335-1343 (`set_attr`); space.py:89-105, 1581-1662, 1744-1770, 2072-2091; base.py:376-391; system.py:242-254; dynamic.py:97-101;
   - execution/executor.py:108-113, 195, 428-429; execution/trace.py:109-112;
@@ -1310,6 +1315,9 @@ def has(obj, name):                              # members: class level only (§
     return getattr(type(obj), name, None) is not None
 def top(name):                                   # top-level: never mx.__getattr__
     return vars(mx).get(name)
+from modelx.core import errors as mxerrors       # a supported import path (decision 3)
+def err(name):                                   # exception and warning classes
+    return getattr(mxerrors, name, None)
 KINDS = frozenset({'Model', 'UserSpace', 'ItemSpace', 'DynamicSpace', 'Cells',
                    'Macro', 'Reference', 'IOSpec'})
 ADDRESSABLE = KINDS - {'IOSpec'}                 # an IOSpec has no _idstr and no _get_repr
@@ -1347,8 +1355,8 @@ def is_valid_name(name):                         # T13; on 0.33 a copy of util.p
 | Registry: name diffing (353-362), `_BAK_RE` (1504-1521, 2310) | `_get_serial()` diff | diff by Model object identity (C2(3)) |
 | `_traced`, `_computed` (methods.py:2582-2614) | `len(model.tracegraph)` | same object (measured f01) |
 | `_is_null_formula`, `_formula_source` (methods.py:2689-2700) | `_has_formula()`, `formula.source` | the type-name check |
-| Refusals (methods.py:624-636, 669-673, 2630-2678) | `isinstance` against `top('FormulaDefinitionError')` and `top('DynamicObjectError')` | message matching |
-| `_evaluate` (methods.py:2168-2206) | `top('FormulaError')`. Its frames come from `exc.traceback` (T12) and go out as `formula_frames` (Protocol, below). Under `mx.use_formula_error(False)` the formula's own exception arrives instead; it is a formula error when `exc is mx.get_error()`, tested before the TypeError branch (2204-2206), with frames from `mx.get_traceback()` | `importlib.import_module('modelx.core.errors')`; frames from `mx.get_traceback()`, read at once; the same `get_error()` test |
+| Refusals (methods.py:624-636, 669-673, 2630-2678) | `isinstance` against `err('FormulaDefinitionError')` and `err('DynamicObjectError')` | message matching |
+| `_evaluate` (methods.py:2168-2206) | `err('FormulaError')`, the import it uses today. Its frames come from `exc.traceback` (T12) and go out as `formula_frames` (Protocol, below). Under `mx.use_formula_error(False)` the formula's own exception arrives instead; it is a formula error when `exc is mx.get_error()`, tested before the TypeError branch (2204-2206), with frames from `mx.get_traceback()` | `importlib.import_module('modelx.core.errors')`; frames from `mx.get_traceback()`, read at once; the same `get_error()` test |
 | map.get, `_names_read` (methods.py:995-1078, 2703-2723) | `model._get_formula_links()` across Spaces. It returns 4-tuples. map.get's per-Space ref_edges are the `p`-level pairs (equal on 5 models, depgraph/d07b re-run). The Inspector's "used by" reads the new `links.used_by` (Protocol, below), which applies T10's recipe with `same`, so inherited readers appear under the base's Reference. A bare `==` raised on every target and evaluated scalar Cells (fix-final/e02) | the per-Space ast scan; no `links.used_by` |
 | `REFMODES` (methods.py:184-187) | `type(proxy)._refmodes` | the local copy |
 | files.py:398-473, `backup_limit` (files.py:245-249) | `top('get_model_info')`: `name`, `backups`, `max_backups` | the heuristics |
@@ -1442,7 +1450,7 @@ All of these changes are additive. An un-updated plugin keeps working against 0.
 - The suites are not in the wheels, so they come from the release tags (`bridge-v0.10.0` and `mcp-v0.1.0` exist today).
 - **A use of deprecated tool API fails the job.** Both `run_all` modules start one interpreter per suite (modelx_bridge/tests/run_all.py:37-41; modelx_mcp/tests/run_all.py:41-46), so a warning filter set in the runner never reaches a suite. Two ways that look right were measured not to work (b06):
   - The earlier `run_strict.py`, which set `simplefilter("error")` and then ran `run_all`. With a modelx copy that deprecates `Cells._is_derived`, which the bridge calls, the bridge suites passed 831 and exited 0.
-  - `PYTHONWARNINGS=error::modelx.ToolAPIDeprecationWarning`. Python imports the category's module while it starts. With modelx installed in site-packages, and with a copy on `PYTHONPATH`, it printed `Invalid -W option ignored: invalid module name: 'modelx'` and set no filter. A stdlib-only stand-in on `PYTHONPATH` worked (b06d), so the cause is inferred to be that site-packages, where modelx and networkx live, is not on the path yet.
+  - `PYTHONWARNINGS=error::modelx.ToolAPIDeprecationWarning` (measured before decision 3; with the class in `modelx.core.errors` the option would name `modelx.core.errors.ToolAPIDeprecationWarning`, which needs the same import at start-up, so the same failure is expected, inferred). Python imports the category's module while it starts. With modelx installed in site-packages, and with a copy on `PYTHONPATH`, it printed `Invalid -W option ignored: invalid module name: 'modelx'` and set no filter. A stdlib-only stand-in on `PYTHONPATH` worked (b06d), so the cause is inferred to be that site-packages, where modelx and networkx live, is not on the path yet.
 
   So the suite steps put `.github/scripts/toolapi_audit/` on `PYTHONPATH`. Its `sitecustomize.py` runs in every interpreter the suites start, because each one keeps an inherited `PYTHONPATH`: the two `run_all` modules (modelx_bridge/tests/run_all.py:32-33; modelx_mcp/tests/run_all.py:36-37), test_stdio's server (test_stdio.py:37-41), and the children of test_lifelib and test_python_tool (test_lifelib.py:283-284; test_python_tool.py:240-241). It appends each `ToolAPIDeprecationWarning` to a file and changes nothing the code under test sees. A warning raised where the bridge catches every exception, as `_derived` does (methods.py:2726-2738), is still counted. A last step fails the job when the file is not empty.
 
@@ -1585,8 +1593,8 @@ _warn = warnings.warn
 
 
 def warn(message, category=None, stacklevel=1, source=None, **kwargs):
-    mx = sys.modules.get("modelx")
-    cat = vars(mx).get("ToolAPIDeprecationWarning") if mx else None
+    errors = sys.modules.get("modelx.core.errors")
+    cat = getattr(errors, "ToolAPIDeprecationWarning", None)
     if _LOG and cat is not None and isinstance(category, type) and issubclass(category, cat):
         caller = sys._getframe(stacklevel)
         with open(_LOG, "a", encoding="utf-8") as log:
@@ -1597,7 +1605,7 @@ def warn(message, category=None, stacklevel=1, source=None, **kwargs):
 warnings.warn = warn
 ```
 
-It sees every call, because modelx calls `warnings.warn` through the module everywhere (no `from warnings import` in modelx/, by grep). It does work only when a warning is raised. It does not turn the warning into an error, so a deprecated call behaves as it would for a user, and the job fails at the end with the call sites listed. Measured on CPython 3.10.20, 3.11.15, 3.12.3, 3.13.14 and 3.14.8 (b06d): the warning is still shown at the caller's line, and the file names the same line. It misses a warning in an interpreter started without `site` or with `-E`, or after code replaces `warnings.warn` itself; no suite does either (inferred from the launch lines cited above).
+It sees every call, because modelx calls `warnings.warn` through the module everywhere (no `from warnings import` in modelx/, by grep). It does work only when a warning is raised. It does not turn the warning into an error, so a deprecated call behaves as it would for a user, and the job fails at the end with the call sites listed. Measured on CPython 3.10.20, 3.11.15, 3.12.3, 3.13.14 and 3.14.8 (b06d): the warning is still shown at the caller's line, and the file names the same line. Re-checked on the same five interpreters on 2026-10-09 with the lookup in `modelx.core.errors`, against a stand-in package that defines the class there: the same result, and an ordinary UserWarning was not recorded. It misses a warning in an interpreter started without `site` or with `-E`, or after code replaces `warnings.warn` itself; no suite does either (inferred from the launch lines cited above).
 
 **Rehearsed** by Design C on 2026-10-07 (tool_contract/ci_rehearsal), with a copy of the checkout carrying `VERSION = (0, 34, 0)`, the PyPI wheels installed with `--no-deps`, and the suites from tag `bridge-v0.10.0`:
 - modelx-bridge: 830 passed, 0 failed, 3 skipped by design, 85 s;
@@ -1643,7 +1651,7 @@ It sees every call, because modelx calls `warnings.warn` through the module ever
    - in-place mutation of a referenced object (change_detection/p13: stale 910.920661 against a true 2551.633285);
    - 0.33's impl `get_referents` checks Spaces before References and lists `_space` and `_model` Namespace objects. So `precedents()` and spyder's `precedentslen` miss a global read when a child Space of the same name exists, and count the system names (fix-used-by/u03; refuter/r07). T10 applies its own order in the wrapper and leaves the impl alone, so `precedentslen` stays byte-stable. Fixing `precedents()` would be a separate Bug Fix.
 5. **ReferenceProxy forwarding stays.** Every future Interface member must be defined explicitly on ReferenceProxy, or `__getattr__` will forward it onto a ReferenceImpl. The signature golden makes this visible.
-6. **New top-level names hide same-named models** (api.py:614-620), and api.py has no `__all__`, so new non-underscore imports leak into `from modelx import *`.
+6. **New top-level names hide same-named models** (api.py:614-620), and api.py has no `__all__`, so new non-underscore imports leak into `from modelx import *`. This now applies only to T13's and T14's functions: the exception and warning classes stay in `modelx.core.errors` (decision 3).
 7. **Detection must be class-level** (measured f01; §5). The released bridge breaks this rule at seven sites, methods.py:491, 778, 847, 1032, 2731, 2819 and 2852 (§2a #6; fix-bridge-adoption/b03). §7's capability-probe row fixes six of them, and its `_derived` row the seventh.
 8. **The CI job depends on PyPI and on the bridge's tags**, needs `--no-deps`, must skip `pip check`, and finds deprecations through a sitecustomize on `PYTHONPATH`, because each suite runs in its own interpreter (§8).
 9. **T14 costs +39% to +68% of whole-run time while installed** (prototype, other/p05). It is provisional and opt-in.
