@@ -1,6 +1,6 @@
 # modelx tool API additions for 0.34: design for approval
 
-**Status:** for the owner of modelx to approve or amend before implementation. 2026-10-07.
+**Status:** draft accepted by the owner as the plan (2026-10-10). The owner approves each decision when the PR that implements it is ready; until then every recommendation below is only a recommendation. The tracker at the start of §2 records where each decision is settled. First written 2026-10-07.
 **Decided by the owner:** decision 3, where the new exceptions live, and decision 4, that Spaces have no "derived" (both 2026-10-09).
 **Scope:** the introspection work in lifelib-app PLAN.md §3.2. It unblocks the two features PLAN §5a records as blocked on modelx (PLAN.md:424-429).
 **Basis:** this document builds on Design A ("minimal additions"). Judge 1 picked A, and A had the highest combined score over the two judges: A 98, C 96, B 82. Both judges recommended adding pieces of B and C to it. Those pieces are included here, and §3.0 records where each element came from. Where the judges disagreed, the choice is put to you in §2.
@@ -42,6 +42,25 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 - Widening the bridge pin to `<0.36`.
 
 ## 2. Decisions for the owner
+
+**Tracker.** Each decision is put to the owner, in plain words, when the PR that implements it is ready (§6), and recorded here.
+
+| decision | settled in | status |
+|---|---|---|
+| 1. How the contract is written down | PR 1 (reference page, signature golden); PR 9 (downstream CI job) | open |
+| 2. Deprecation signal and rule | PR 1 (the rule, on the reference page); PR 4 (the warning class); PR 9 (the audit) | open |
+| 3. Where the new names live | PR 4 (T12) | **decided 2026-10-09**: classes in `modelx.core.errors`; the top-level functions are still open (PR 4, PR 7, PR 8) |
+| 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09** |
+| 5. Address grammar | PR 4 (T6) | open |
+| 6. Lookup misses | PR 4 (T6, T12) | open |
+| 7. A relative Reference inside an ItemSpace | PR 3 (T5) | open |
+| 8. What 0.34 includes | PR 5 (the `saved` stamp), PR 8 (the provisional hook); the deferrals need no PR | open |
+| 9. Name checks and when they take effect | PR 4; PR 7 (the reserved-name warning) | open |
+| 10. Persisting "no formula" and Reference docstrings | PR 6 (T11's note); otherwise deferred | open |
+| 11. Small compatibility choices | PR 2 (T3's alias; F11 and `argvalues`) | open |
+| 12. Bridge pin and release gate | PR 9, then a modelx-bridge release | open |
+| 13. Extattrs resolve on the class only | PR 2 (F11) | open |
+
 
 1. **How the contract is written down.** Recommended:
    - a new page, `doc/source/reference/toolapi.rst` ("API for tools");
