@@ -45,6 +45,8 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 
 **Tracker.** Each decision is put to the owner, in plain words, when the PR that implements it is ready (§6), and recorded here.
 
+**Progress.** PR 1 is implemented on this branch (7a12fc2, 2026-10-10) and awaits the owner's review; what it found is in §9, "Found while implementing PR 1".
+
 | decision | settled in | status |
 |---|---|---|
 | 1. How the contract is written down | PR 1 (reference page, signature golden); PR 9 (downstream CI job) | **approved 2026-10-10**, with one change: PR 1's page covers only what exists today, and each later PR adds its own section |
@@ -1763,6 +1765,25 @@ Two later verifiers wrote `critic2/probes/` (k01–k07) and `refute2/` (r01–r1
 | Space over a macro name | `new_space('mac')` accepted; `write_model` succeeds; `read_model` raises `ValueError: Name 'mac' already used` | synthetic | fix-integrate/i01 |
 | v1–v3 readers on 0.33 | a Cells fails with AttributeError; a failed read leaves `<name>_BAK1` and no current model; the prototype fix reads and restores | hand-written models | fix-validation-and-fixes/v07–v10 |
 | `clear_formula()` | TypeError, nothing changed; the fix leaves NullFormula | synthetic | fix-validation-and-fixes/v04 |
+
+### Found while implementing PR 1 (2026-10-10)
+
+Each was measured on 0.33.0 while writing the "API for tools" page and its tests. The page documents each as a Known limitation (not frozen, pinned by no test). None was in this design before; each is assigned to the PR that should take it.
+
+| what | picked up by |
+|---|---|
+| `UserSpace.rename` checks no name: it accepts `'_x'`, `''`, `'1x'`, `'a-b'` and `'class'`, against its own docstring. A fifth route for decision 9 | PR 4 (decision 9) |
+| `_is_valid()` stays True after `Model.close()`, after deleting a macro, and after deleting or rebinding a Reference | PR 3 (T5's `_is_valid`) |
+| A deleted ItemSpace, and the DynamicSpaces in it, become valid again when the item is re-created with the same arguments (the same object, from a weak cache), with a new `_idstr` (`__Space1` → `__Space2`); its Cells are not revived | PR 4 (T6: ids and addresses) |
+| `_direct_bases` on an ItemSpace or DynamicSpace can name a Space unrelated to the item (`P3[1]._direct_bases == [B]`, B being another Space's base) | PR 2 (F6) |
+| `_own_refs` is empty on a DynamicSpace, though `refs` lists its References | PR 3 (T4) |
+| `refmode` is `False` for References made by `new_pandas`, `new_module` or `new_excel_range` on a UserSpace, and for their inherited copies | PR 4 (decision 9's refmode check) |
+| `_get_attrdict` and `_baseattrs` of an ItemNode with no stored value raise ValueError | PR 2 (snapshot wire) |
+| `RefView._baseattrs_private` raises RuntimeError | PR 2 |
+| The default display of a nested ItemSpace shows the parent item's internal name: `Proj[1][5]` displays as `__Space1[5]` | PR 2 (F1) |
+| A formula whose source modelx cannot retrieve raises TypeError, not FormulaError, under `use_formula_error(True)` | PR 4 (T12) |
+| After a failed v4–v8 read, the open models are restored but their order is not | PR 7 (F8) |
+| doc/source/samples/sample_inheritance.py, which the API tutorial includes, does not run on 0.33 | a docs follow-up outside this plan |
 
 ### Not measured
 
