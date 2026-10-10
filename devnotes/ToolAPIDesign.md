@@ -47,8 +47,8 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 
 | decision | settled in | status |
 |---|---|---|
-| 1. How the contract is written down | PR 1 (reference page, signature golden); PR 9 (downstream CI job) | open |
-| 2. Deprecation signal and rule | PR 1 (the rule, on the reference page); PR 4 (the warning class); PR 9 (the audit) | open |
+| 1. How the contract is written down | PR 1 (reference page, signature golden); PR 9 (downstream CI job) | **approved 2026-10-10**, with one change: PR 1's page covers only what exists today, and each later PR adds its own section |
+| 2. Deprecation signal and rule | PR 1 (the rule, on the reference page); PR 4 (the warning class); PR 9 (the audit) | **approved 2026-10-10** |
 | 3. Where the new names live | PR 4 (T12) | **decided 2026-10-09**: classes in `modelx.core.errors`; the top-level functions are still open (PR 4, PR 7, PR 8) |
 | 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09** |
 | 5. Address grammar | PR 4 (T6) | open |
