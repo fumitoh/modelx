@@ -41,6 +41,9 @@ their output in ``testdata/spyder_requests_snapshot.json``:
     expanded as the Analyzer expands a row: whenever the record's
     ``'precedentslen'`` or ``'succslen'`` is not 0, by
     ``getattr(mx.get_object(fullname).node(*args), adjacency)``.
+    Every root node has a value.  For a node of a Cells with no stored
+    value, ``_get_attrdict`` raises ValueError on this release, which
+    toolapi.rst labels a known limitation, so no such node is pinned.
 
 ``assoc_values``
     The data list (``mx_get_value_info``):
@@ -78,6 +81,11 @@ volatile values are added to it:
 * a str that starts with the ``modelx/tests/testdata`` directory, such
   as the ExcelRange's ``load_from``, has that directory replaced by
   ``<testdata>`` and its separators by ``/``.
+
+A dict that modelx returns may gain keys (toolapi.rst), so a record
+matches the golden when it has every key of the golden record with a
+matching value; extra keys are ignored.  Names of objects, values and
+lists are compared exactly; ``mismatches`` says which.
 
 If the requests change *intentionally*, regenerate the golden with::
 
@@ -127,7 +135,6 @@ NODE_ROOTS = [
     ("SerializerCompat.Base.foo", (2,)),    # computed; preds foo(1), m
     ("SerializerCompat.Base.foo", (0,)),    # input value
     ("SerializerCompat.Base.bar", (5,)),
-    ("SerializerCompat.Base.bar", (6,)),    # no value: an error record
     ("SerializerCompat.Sub.foo", (2,)),     # derived Cells
     ("SerializerCompat.Base.Child.baz", (1,)),
     ("SerializerCompat.Params", (3,)),      # Space node; value is Params[3]
@@ -223,12 +230,7 @@ def _expand(record, adjacency):
 
 def _node_tree(fullname, args):
     node = mx.get_object(fullname, as_proxy=True).node(*args)
-    try:
-        record = _node_record(node)
-    except ValueError as e:
-        # The Analyzer shows this text as the tab's status
-        # (mxshell_6.py, _update_mxanalyzer_obj)
-        return {"error": e.__class__.__name__ + ": " + str(e)}
+    record = _node_record(node)
     result = {"node": normalize(record)}
     for adjacency in ADJACENCIES:
         result[adjacency] = _expand(record, adjacency)
@@ -278,20 +280,83 @@ def build_snapshot():
         m.close()
 
 
+# The maps that this module builds from names: fullnames of objects and
+# names of the Analyzer's root nodes.
+NAME_MAPS = ("properties", "codelist", "nodes")
+
+
+def mismatches(golden, live, path=()):
+    """Yield a description of each place where ``live`` does not match
+    ``golden``.
+
+    toolapi.rst ("Frozen members and other members") lets a dict that a
+    frozen member returns gain keys, and tells tools to ignore the keys
+    they do not know.  So a dict that modelx returns matches when it has
+    every key of the golden dict, with a matching value, whatever other
+    keys it has.  For example, design T3 (PR 2) adds
+    ``ReferenceProxy._is_derived``, and the Reference records of the
+    ``tree`` request then gain the ``'_is_derived'`` key that spyder asks
+    for.
+
+    Three things are compared exactly, because they are not keys of a
+    record:
+
+    * the keys of a dict of names: the ``'items'`` of a view, which maps
+      the names of its members to their dicts, and the maps in
+      ``NAME_MAPS``.  A name added there is a new object, not a new key;
+    * a ``'value'``, which is the value of an object, not a record;
+    * a list, such as a view's ``'keys'``, item by item, except the
+      ``'keys'`` of a data-list entry, which lists the keys of a dict
+      that ``Model._get_assoc_values()`` returns, so the golden ones must
+      be among the live ones.
+    """
+    if path and path[-1] == "value":
+        if golden != live:
+            yield "%r: %r -> %r" % (path, golden, live)
+    elif isinstance(golden, dict) and isinstance(live, dict):
+        missing = sorted(set(golden) - set(live))
+        if missing:
+            yield "%r: keys missing %r" % (path, missing)
+        names = ((len(path) == 1 and path[0] in NAME_MAPS)
+                 or (path and path[-1] == "items"))
+        if names:
+            added = sorted(set(live) - set(golden))
+            if added:
+                yield "%r: names added %r" % (path, added)
+        for key in golden:
+            if key in live:
+                yield from mismatches(golden[key], live[key],
+                                      path + (key,))
+    elif (len(path) == 3 and path[0] == "assoc_values"
+            and path[2] == "keys"):
+        missing = sorted(set(golden) - set(live))
+        if missing:
+            yield "%r: keys missing %r" % (path, missing)
+    elif isinstance(golden, list) and isinstance(live, list):
+        if len(golden) != len(live):
+            yield "%r: length %d -> %d" % (path, len(golden), len(live))
+        else:
+            for i, (g, v) in enumerate(zip(golden, live)):
+                yield from mismatches(g, v, path + (i,))
+    elif golden != live:
+        yield "%r: %r -> %r" % (path, golden, live)
+
+
 def test_spyder_requests_snapshot():
     with SNAPSHOT_PATH.open(encoding="utf-8") as f:
         golden = json.load(f)
 
     snapshot = build_snapshot()
 
+    assert snapshot.keys() == golden.keys()
     for key in golden:
-        assert snapshot[key] == golden[key], (
+        problems = list(mismatches(golden[key], snapshot[key], (key,)))
+        assert not problems, (
             "spyder-modelx request %r changed; if intentional,"
             " regenerate with"
             " 'python -m modelx.tests.core.base.test_spyder_requests"
-            " --write'" % key
+            " --write':\n%s" % (key, "\n".join(problems[:20]))
         )
-    assert snapshot.keys() == golden.keys()
 
 
 if __name__ == "__main__":

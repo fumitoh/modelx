@@ -24,26 +24,36 @@ answers a name that its class does not define with a member of that
 name, such as a user's Reference, if there is one.
 
 The exception classes in ``modelx.core.errors`` that the page lists are
-frozen too.  They are recorded separately, under ``"errors"``, by the
-``__name__`` of each class in their ``__mro__``, looked up the way the
-page tells tools to test for one::
+frozen too.  They are recorded separately, under ``"errors"``, looked up
+the way the page tells tools to test for one::
 
     getattr(modelx.core.errors, name, None)
 
-so the test fails when one disappears, changes its base classes, or
-becomes an alias of another class.
+For each, the golden records that it is a class, its ``__name__``, and
+its base classes, ``__bases__``, by module and qualified name, so the
+test fails when one disappears, stops being a class, becomes an alias
+of another class, or changes its base classes.
 
 A ReferenceProxy answers some frozen names by forwarding them through its
-``__getattr__``, not as attributes of its class.  Those are recorded
-separately, under ``"forwarded"``, and checked on a proxy instance; for
-a method the signature is that of what the proxy returns, so it has no
-``self``.  The test also fails when one of them becomes a class attribute
-of ReferenceProxy, because the page then says something untrue.
+``__getattr__``.  Those are recorded separately, under ``"forwarded"``,
+and checked on a proxy instance; for a method the signature is that of
+what the proxy returns, so it has no ``self``.  Whether the class of the
+proxy defines such a name or forwards it is not recorded: toolapi.rst
+labels that a known limitation, which a later release may change, and
+the proxy answers the name with the same kind and signature either way.
 
 The objects come from a small model built below, one per class, so the
 golden is keyed by the class of the object a tool actually holds:
 a Space's formula is a ``ParamFunc``, a Cells without a formula holds a
-``NullFormula``, and so on.
+``NullFormula``, and so on.  So ``Formula._get_attrdict`` is pinned on
+``Formula``, ``NullFormula`` and ``ParamFunc``, and
+``BaseIOSpec._get_attrdict`` on ``ModuleData``, ``PandasData`` and
+``ExcelRange``, as no object a tool holds is a ``BaseIOSpec`` itself.
+toolapi.rst ("Frozen members and other members") says so.
+
+The test pins the surface only, never behaviour.  The behaviour that
+toolapi.rst labels a known limitation is not part of the frozen
+contract, and no test pins it.
 
 A frozen member changes only through the deprecation process (decision 2,
 and "Deprecation" on toolapi.rst).  If the change is additive, such as a
@@ -66,7 +76,6 @@ import pytest
 import modelx as mx
 import modelx.core.errors
 import modelx.tests.testdata
-from modelx.core.base import Interface
 from modelx.tests.testdata import XL_TESTDATA
 from modelx.tests.testdata.testpkg import testmod
 
@@ -128,8 +137,9 @@ FROZEN = [
     ("S3", ("Model",), ("_get_assoc_values", "_get_refs")),
 ]
 
-# Names a ReferenceProxy answers by forwarding them to Interface
-# (reference.py, ReferenceProxy.__getattr__), not as class attributes.
+# Names a ReferenceProxy answers by forwarding them to the base class of
+# Model, Spaces and Cells (reference.py, ReferenceProxy.__getattr__),
+# not as class attributes.
 FORWARDED = [
     ("S1", ("_name", "_parent")),
     ("S3", ("name", "fullname", "parent", "model", "doc", "allow_none",
@@ -274,13 +284,38 @@ def record_member(obj, name):
     return describe(attr, inspect.getattr_static(cls, name))
 
 
-def record_forwarded(proxy, name):
+def forwarding_class(objs):
+    """The class that a ReferenceProxy forwards names to.
+
+    toolapi.rst says a proxy answers the forwarded names "as the base
+    class of Model, Spaces and Cells answers them".  That class is found
+    here from the classes of the objects a tool holds, so the test
+    imports nothing from ``modelx.core`` but ``modelx.core.errors``: it is
+    the first class in the method resolution order of a Cells that the
+    classes of a Model and a UserSpace also have, other than ``object``.
+    ``None`` if one of the three objects could not be built, or the three
+    classes have no such base.
+    """
+    try:
+        cells, others = type(objs["Cells"]), [
+            type(objs[name]) for name in ("Model", "UserSpace")]
+    except KeyError:
+        return None
+    for cls in cells.__mro__:
+        if cls is not object and all(cls in c.__mro__ for c in others):
+            return cls
+    return None
+
+
+def record_forwarded(proxy, name, source):
     """Kind and signature of what a proxy answers for ``name``.
 
     The kind is that of the class attribute the answer comes from: the
-    proxy's own, if its class has one, else Interface's, which is where
-    ``ReferenceProxy.__getattr__`` forwards to.  A method comes back bound
-    to the proxy, so its signature has no ``self``.
+    proxy's own, if its class has one, else that of ``source``, the
+    class that ``ReferenceProxy.__getattr__`` forwards to (see
+    ``forwarding_class``).  A method comes back bound to the proxy, so
+    its signature has no ``self``.  Which of the two classes the answer
+    comes from is not recorded (see the module docstring).
     """
     try:
         attr = getattr(proxy, name)
@@ -288,21 +323,30 @@ def record_forwarded(proxy, name):
         return {"kind": None, "error": repr(e)}
     static = inspect.getattr_static(type(proxy), name, None)
     if static is None:
-        static = inspect.getattr_static(Interface, name, None)
-    result = describe(attr, static)
-    result["class_attribute"] = getattr(type(proxy), name, None) is not None
-    return result
+        if source is None:
+            return {"kind": None,
+                    "error": "no base class of Model, Spaces and Cells"
+                             " found to look %r up on" % name}
+        static = inspect.getattr_static(source, name, None)
+    return describe(attr, static)
+
+
+def qualified_name(cls):
+    """``module.qualname`` of a class, such as ``'builtins.Exception'``."""
+    return "%s.%s" % (cls.__module__, cls.__qualname__)
 
 
 def record_error(name):
     """Kind of ``getattr(modelx.core.errors, name, None)`` and, if it is
-    a class, the ``__name__`` of each class in its ``__mro__``."""
+    a class, its ``__name__`` and the qualified names of its
+    ``__bases__``, in order."""
     obj = getattr(modelx.core.errors, name, None)
     if obj is None:
         return {"kind": None}
     if not isinstance(obj, type):
         return {"kind": "attribute"}
-    return {"kind": "class", "mro": [c.__name__ for c in obj.__mro__]}
+    return {"kind": "class", "name": obj.__name__,
+            "bases": [qualified_name(c) for c in obj.__bases__]}
 
 
 def build_surface():
@@ -337,13 +381,14 @@ def build_surface():
             else:
                 classes[cls_name] = type(objs[cls_name]).__name__
 
+        source = forwarding_class(objs)
         for section, cls_name, name in sorted(frozen_table()):
             if section == "errors" or cls_name not in objs:
                 continue
             if section == "members":
                 entry = record_member(objs[cls_name], name)
             else:
-                entry = record_forwarded(objs[cls_name], name)
+                entry = record_forwarded(objs[cls_name], name, source)
             surface[section].setdefault(cls_name, {})[name] = entry
     finally:
         m.close()
@@ -414,15 +459,6 @@ def compare_class(golden, live, cls_name):
                 problems.append(
                     "%s changed signature: %s -> %s"
                     % (label, w.get("signature"), g.get("signature")))
-            if (section == "forwarded"
-                    and g["class_attribute"] != w["class_attribute"]):
-                problems.append(
-                    "%s is now %s of ReferenceProxy: move it between"
-                    " FORWARDED and FROZEN, update toolapi.rst, which says"
-                    " which names a ReferenceProxy forwards, and"
-                    " regenerate the golden"
-                    % (label, "a class attribute" if g["class_attribute"]
-                       else "no longer a class attribute"))
 
     return problems
 
@@ -457,12 +493,15 @@ def compare_errors(golden, live):
         if g["kind"] != w["kind"]:
             problems.append("%s changed kind: %s -> %s"
                             % (label, w["kind"], g["kind"]))
-        if g.get("mro") != w.get("mro"):
+            continue
+        if g.get("name") != w.get("name"):
             problems.append(
-                "%s changed its classes (__mro__): %s -> %s%s"
-                % (label, w.get("mro"), g.get("mro"),
-                   "; it is now another class" if g.get("mro")
-                   and g["mro"][0] != name else ""))
+                "%s is now another class: its __name__ changed: %s -> %s"
+                % (label, w.get("name"), g.get("name")))
+        if g.get("bases") != w.get("bases"):
+            problems.append(
+                "%s changed its base classes (__bases__): %s -> %s"
+                % (label, w.get("bases"), g.get("bases")))
     return problems
 
 
@@ -551,7 +590,7 @@ def write_golden(path=GOLDEN_PATH):
     aliases = sorted(
         name for name, entry in live["surface"]["errors"].get(
             ERRORS_MODULE, {}).items()
-        if entry["kind"] != "class" or entry["mro"][0] != name)
+        if entry["kind"] != "class" or entry["name"] != name)
     if aliases:
         sys.exit("cannot write: not a class of that name in %s: %s"
                  % (ERRORS_MODULE, aliases))

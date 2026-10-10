@@ -465,9 +465,6 @@
    ],
    "succs": []
   },
-  "SerializerCompat.Base.bar(6,)": {
-   "error": "ValueError: SerializerCompat.Base.bar(x=6) has no cached value for the given arguments"
-  },
   "SerializerCompat.Base.foo(0,)": {
    "node": {
     "args": [

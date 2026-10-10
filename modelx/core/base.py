@@ -708,14 +708,54 @@ class Interface:
                     attrdict[name] = attr
 
     def _get_repr(self, fullname=False, add_params=True):
+        """The display string of the object.
+
+        With ``fullname=True`` the string starts with the name of the
+        Model. With ``add_params=True`` a Cells shows its parameters and
+        an ItemSpace shows its arguments, as in ``'foo(x)'`` and
+        ``'Proj[1]'``. For an ItemSpace, ``add_params=False`` gives its
+        ``__SpaceN`` name on this release, and for an ItemSpace of an
+        ItemSpace, and every object inside it, the default display
+        string names the parent item by its ``__SpaceN`` name, as in
+        ``'__Space1[5]'`` for ``Proj[1][5]``. The same strings show in
+        the ``'repr'`` and ``'repr_parent'`` keys of the dicts of
+        :meth:`_get_attrdict`. These are known limitations described
+        in :ref:`toolapi-identity`.
+
+        Returns:
+            str: The display string, such as ``'Model1.Base.foo(x)'``
+            with ``fullname=True``.
+        """
         return self._impl.get_repr(fullname, add_params)
 
     @property
     def _evalrepr(self):
+        """The full name of the object in call syntax.
+
+        It starts with the name of the Model. An ItemSpace appears as a
+        call to its Space, with each argument formatted by :func:`repr`,
+        as in ``'Model1.Proj(1).Child'``.
+
+        Returns:
+            str: The full name in call syntax, such as
+            ``'Model1.Base.foo'``.
+        """
         return self._impl.evalrepr
 
     @property
     def _idtuple(self):
+        """A tuple of the names from the Model down to the object.
+
+        It starts with the name of the Model, followed by the name of
+        each object down to this one. An ItemSpace contributes its
+        argument values,
+        :attr:`~modelx.core.space.ItemSpace.argvalues`,
+        instead of its name.
+
+        Returns:
+            tuple: Such as ``('Model1', 'Proj', (1,), 'bar')``,
+            or ``('Model1',)`` for a Model.
+        """
         if self._impl.is_model():
             return (self.name,)
         else:
@@ -723,9 +763,33 @@ class Interface:
 
     @property
     def _idstr(self):
+        """The dotted name of the object without the name of its Model.
+
+        An ItemSpace appears under its ``__SpaceN`` name, which modelx
+        gives it when it creates it, so an ``_idstr`` that contains one
+        is valid only while that ItemSpace lives.
+
+        Returns:
+            str: Such as ``'Base.foo'`` or ``'Proj.__Space1.bar'``,
+            or ``''`` for a Model.
+        """
         return self._impl.idstr
 
     def _is_valid(self):
+        """Whether the object is still usable.
+
+        :obj:`False` once a Space or a Cells has been deleted.
+        Most other members of a deleted object raise
+        :class:`~modelx.core.errors.DeletedObjectError`.
+        On this release some objects that are no longer usable still
+        return :obj:`True`, such as a deleted Macro and the objects of
+        a closed Model; these known limitations are described in
+        :ref:`toolapi-identity`.
+
+        Returns:
+            bool: :obj:`False` if the object has been deleted,
+            :obj:`True` otherwise, except for the known limitations.
+        """
         return not isinstance(self._impl, NullImpl)
 
 

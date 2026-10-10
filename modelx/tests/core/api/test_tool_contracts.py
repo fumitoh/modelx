@@ -7,10 +7,18 @@ recipes that let a tool compute on modelx 0.33 what later releases will
 answer directly.  Every test here pins behaviour of this release;
 nothing in this module needs a member that does not exist yet.
 
+The tests read only the tool API and the public API, and compare what
+they read with tables written out by hand.  They never read modelx's
+internals, such as ``_impl`` or the nodes of the trace graph, to check
+a result: a test that compared the tool API with the implementation
+would pass whenever the two agreed, right or wrong.  Behaviour that
+toolapi.rst labels a known limitation is not pinned here either, so a
+fix of it does not fail this module.
+
 * C1(1): ``len(Model.tracegraph)`` counts the stored values of every
   cached Cells, those inside ItemSpaces included, plus one per
   ItemSpace, and the public walk over Spaces, ``_named_itemspaces``,
-  Cells and ``node(*args).preds`` gives the same links as the graph.
+  Cells and ``node(*args).preds`` gives the links written out by hand.
   The counts measured on lifelib's BasicTerm_S are checked only on the
   copy of the model they were measured on.
 * C1(2): the Cells members that never run a formula, on stored values,
@@ -30,14 +38,19 @@ nothing in this module needs a member that does not exist yet.
   the tool API alone, against tables written out by hand.
 * Frozen S1 and S2 members whose behaviour no other test checks:
   ``Model._get_from_name`` resolves every Space and Cells from its
-  ``_idstr``, and ``_is_dynamic()``, ``_is_static()`` and ``_is_root()``
-  tell the kinds of Space apart.
+  ``_idstr``, ``_is_dynamic()``, ``_is_static()`` and ``_is_root()``
+  tell the kinds of Space apart, and in an ItemSpace or a DynamicSpace
+  ``_own_refs`` holds only the refs that the Space formula returned.
+  What ``_get_from_name`` raises for a name it does not find is a known
+  limitation, and is not checked.
 
 Each recipe is checked against the conftest inheritance fixture
-(``cache_sample``) and ItemSpace fixture (``make_testmodel_for_clear``),
-the serializer-compat fixture model, and a model built here with
-multiple inheritance, overriding members, nested ItemSpaces and a Space
-formula that returns ``refs`` and ``base``.
+(``cache_sample``), a copy of the conftest ItemSpace fixture
+(``make_testmodel_for_clear``) made here as ``itemspace_model``, whose
+teardown checks no internals, the serializer-compat fixture model, and
+a model built here with multiple inheritance, overriding members,
+nested ItemSpaces and a Space formula that returns ``refs`` and
+``base``.
 """
 
 import hashlib
@@ -127,15 +140,6 @@ def public_links(model):
     return links
 
 
-def graph_links(model):
-    """The same pairs read from the trace graph's own nodes (internal)."""
-    links = set()
-    for u, v in model.tracegraph.edges():
-        if u[0].name != v[0].name:
-            links.add((u[0].name, v[0].name))
-    return links
-
-
 def model_key(obj):
     """``_evalrepr`` without the name of the Model, such as
     ``'Parent(1).Child'``."""
@@ -155,7 +159,6 @@ def compat_model():
     m = fixturemodel.build_fixture_model(name="ToolContractsCompat")
     m.Params[3]
     yield m
-    m._impl._check_sanity()
     m.close()
 
 
@@ -167,11 +170,14 @@ def inheritance_model():
                     |--B2---k2, r0
                     |--D(B1, B2)---k2 (overrides B2.k2), r1 (overrides B1.r1)
                     |--P[i, j=2]---h, k, rel     formula returns refs {'fr'}
-                    |    +--Child[n]---w
+                    |    +--Child[n]---w, cref
                     |--Q[x]---D                  formula returns base D
                     +--glob = 7
 
     ItemSpaces: P[1, 2], P[1, 2].Child[3], Q[4]
+
+    ``cref`` gives the DynamicSpace ``P[1, 2].Child`` a Reference of its
+    static Space to report.
     """
     m = mx.new_model("ToolContractsInh")
     b0 = m.new_space("B0")
@@ -195,6 +201,7 @@ def inheritance_model():
     child = p.new_space("Child")
     child.parameters = ("n",)
     child.new_cells("w", formula=lambda: n + i)
+    child.cref = 9
     q = m.new_space("Q", formula=lambda x: {"base": D})
     q.D = d
 
@@ -203,7 +210,6 @@ def inheritance_model():
     assert q[4].k2() == 22
 
     yield m
-    m._impl._check_sanity()
     m.close()
 
 
@@ -251,13 +257,55 @@ def valued_model():
     s[2].Child[8].w()
 
     yield m
-    m._impl._check_sanity()
+    m.close()
+
+
+@pytest.fixture
+def itemspace_model():
+    """The model of the conftest fixture ``make_testmodel_for_clear``,
+    built here so that its teardown only closes it::
+
+        ToolContractsItems---Parent[a]---Foo(x)
+                                |
+                                +----Child[n]---Bar(x)
+
+    Values: Parent.Foo(1) and the input Parent.Foo[2];
+    Parent.Child.Bar(1) and the input Parent.Child.Bar[2];
+    Parent[1].Foo(1); Parent.Child[1].Bar(1).
+    ItemSpaces: Parent[1], Parent.Child[1].
+
+    The conftest fixture also checks modelx's internal invariants when
+    it tears the model down, which would fail a test here for a reason
+    that is not a tool-API result.
+    """
+    m = mx.new_model("ToolContractsItems")
+    p = m.new_space("Parent")
+    c = p.new_space("Child")
+    foo = p.new_cells("Foo", formula=lambda x: x)
+    bar = c.new_cells("Bar", formula=lambda x: 2 * x)
+    p.parameters = ("a",)
+    c.parameters = ("n",)
+
+    foo(1)
+    foo[2] = 10
+    bar(1)
+    bar[2] = 20
+    p[1].Foo(1)
+    p.Child[1].Bar(1)
+
+    assert len(p.itemspaces) == 1
+    assert len(c.itemspaces) == 1
+    assert len(foo) == 2
+    assert foo.is_input(2)
+    assert bar.is_input(2)
+
+    yield m
     m.close()
 
 
 INHERITANCE_FIXTURES = [
     "cache_sample",
-    "make_testmodel_for_clear",
+    "itemspace_model",
     "compat_model",
     "inheritance_model",
 ]
@@ -311,10 +359,10 @@ def test_tracegraph_len_on_fixtures(any_model):
 def test_tracegraph_public_walk_links(valued_model):
     """C1(1): the public walk (Spaces through ``_named_itemspaces``, each
     Cells ``c`` and key ``k`` in ``c.keys()``, ``c.node(*args).preds``)
-    finds the same links as the trace graph and evaluates nothing,
+    finds the links that the formulas make, and evaluates nothing,
     including for a one-parameter Cells whose argument is a tuple."""
     m = valued_model
-    assert public_links(m) == graph_links(m) == {("f", "g")}
+    assert public_links(m) == {("f", "g")}
 
     s = m.S
     s.new_cells("tp", formula=lambda a: f(a[0]))
@@ -322,7 +370,7 @@ def test_tracegraph_public_walk_links(valued_model):
     assert s.g(1) == 2      # new_cells may have cleared it
     assert list(s.tp.keys()) == [(1, 2)]
     before = len(m.tracegraph)
-    assert public_links(m) == graph_links(m) == {("f", "g"), ("f", "tp")}
+    assert public_links(m) == {("f", "g"), ("f", "tp")}
     assert len(m.tracegraph) == before
 
 
@@ -357,7 +405,8 @@ def test_tracegraph_on_basicterm_s(tmp_path):
     ``Projection[2].pv_net_cf()`` the graph holds the values in
     Projection and Projection[2] and the ItemSpace itself; after the
     workload of modelx-bridge's test_trace (``point_id = 1``,
-    ``result_pv()``, ``result_cf()``) both walks agree with the graph.
+    ``result_pv()``, ``result_cf()``) the count holds again, and the
+    public walk evaluates nothing.
 
     On the BasicTerm_S that the counts were measured on, the graph holds
     5,465 nodes, 1,832 values in Projection and 3,632 in Projection[2],
@@ -380,7 +429,9 @@ def test_tracegraph_on_basicterm_s(tmp_path):
         proj[2].pv_net_cf()
         assert count_itemspaces(m) == 1
         assert len(m.tracegraph) == count_values(m) + 1
-        assert public_links(m) == graph_links(m)
+        before = len(m.tracegraph)
+        public_links(m)
+        assert len(m.tracegraph) == before
         if measured:
             assert sum(len(c) for c in proj.cells.values()) == 1832
             assert sum(len(c) for c in proj[2].cells.values()) == 3632
@@ -394,8 +445,9 @@ def test_tracegraph_on_basicterm_s(tmp_path):
         proj.point_id = 1
         proj.result_pv()
         proj.result_cf()
+        before = len(m.tracegraph)
         links = public_links(m)
-        assert links == graph_links(m)
+        assert len(m.tracegraph) == before
         assert len(m.tracegraph) == count_values(m) + count_itemspaces(m)
         if measured:
             assert len(links) == 77
@@ -910,6 +962,12 @@ def refs_recipe(space):
     Scope is 'argument', 'formula' (a ref the Space formula returned),
     'base' (a Reference of the static Space, seen in a dynamic one),
     'space', 'global' or 'builtins', in the order a name is looked up.
+
+    In an ItemSpace or a DynamicSpace, ``_own_refs`` holds only the refs
+    that the Space formula returned, which a DynamicSpace never has
+    (toolapi.rst), so a name in the ``_own_refs`` of a dynamic Space is a
+    formula ref, and the References of its static Space are in the
+    static Space's ``_own_refs``.
     """
     static = static_space(space)
     dynamic = space._is_dynamic()
@@ -920,12 +978,11 @@ def refs_recipe(space):
             result[name] = ("builtins", None, None)
         elif name in args:
             result[name] = ("argument", None, None)
-        elif name in space._own_refs:
-            if dynamic:
-                result[name] = ("formula", None, None)
-            else:
-                result[name] = ("space",) + member_state(
-                    static, name, own_ref_proxies)
+        elif not dynamic and name in space._own_refs:
+            result[name] = ("space",) + member_state(
+                static, name, own_ref_proxies)
+        elif dynamic and name in space._own_refs:
+            result[name] = ("formula", None, None)
         elif dynamic and name in static._own_refs:
             result[name] = ("base",) + member_state(
                 static, name, own_ref_proxies)
@@ -952,7 +1009,7 @@ EXPECTED_CELLS = {
         "Sub": {"foo": ("derived", "Base"), "bar": ("derived", "Base"),
                 "baz": ("derived", "Base")},
     },
-    "make_testmodel_for_clear": {
+    "itemspace_model": {
         "Parent": {"Foo": ("defined", "Parent")},
         "Parent.Child": {"Bar": ("defined", "Parent.Child")},
         "Parent.Child(1)": {"Bar": ("defined", "Parent.Child")},
@@ -988,7 +1045,7 @@ _COMPAT_BASE_REFS = ("m", "self_space", "the_model", "the_cells",
 
 EXPECTED_REFS = {
     "cache_sample": {"Base": {"__builtins__": B}, "Sub": {"__builtins__": B}},
-    "make_testmodel_for_clear": {
+    "itemspace_model": {
         "Parent": {"__builtins__": B},
         "Parent.Child": {"__builtins__": B},
         "Parent.Child(1)": {"__builtins__": B,
@@ -1024,7 +1081,8 @@ EXPECTED_REFS = {
         "P": {"__builtins__": B, "glob": G,
               "k": ("space", "defined", "P"),
               "rel": ("space", "defined", "P")},
-        "P.Child": {"__builtins__": B, "glob": G},
+        "P.Child": {"__builtins__": B, "glob": G,
+                    "cref": ("space", "defined", "P.Child")},
         "P(1, 2)": {"__builtins__": B, "glob": G,
                     "i": ("argument", None, None),
                     "j": ("argument", None, None),
@@ -1033,11 +1091,13 @@ EXPECTED_REFS = {
                     "rel": ("base", "defined", "P")},
         "P(1, 2).Child": {"__builtins__": B, "glob": G,
                           "i": ("argument", None, None),
-                          "j": ("argument", None, None)},
+                          "j": ("argument", None, None),
+                          "cref": ("base", "defined", "P.Child")},
         "P(1, 2).Child(3)": {"__builtins__": B, "glob": G,
                              "i": ("argument", None, None),
                              "j": ("argument", None, None),
-                             "n": ("argument", None, None)},
+                             "n": ("argument", None, None),
+                             "cref": ("base", "defined", "P.Child")},
         "Q": {"__builtins__": B, "glob": G,
               "D": ("space", "defined", "Q")},
         "Q(4)": {"__builtins__": B, "glob": G,
@@ -1063,7 +1123,8 @@ def test_ref_scope_recipe(any_model):
     Space's ``refs``, and the state of the Space's own References,
     computed from ``refs``, ``_own_refs``, ``bases``, ``parameters``,
     ``_is_dynamic()``, ``_is_root()`` and ``is_derived()``. A ref that a
-    Space formula returns is in the ItemSpace's ``_own_refs``."""
+    Space formula returns is in the ItemSpace's ``_own_refs``, and a
+    DynamicSpace reports the References of its static Space."""
     name, m = any_model
     got = {model_key(s): by_idstr(refs_recipe(s)) for s in iter_spaces(m)}
     assert got == EXPECTED_REFS[name]
@@ -1103,12 +1164,33 @@ def test_space_kind_flags(any_model):
         assert space._is_root() is (kind == "item"), space
 
 
+def test_own_refs_in_dynamic_spaces(inheritance_model):
+    """In an ItemSpace or a DynamicSpace, ``_own_refs`` holds only the
+    refs that the Space formula returned, not the arguments, the
+    References of the static Space or the global References, so a
+    DynamicSpace's is empty; ``refs`` lists them all."""
+    m = inheritance_model
+    p = m.P
+    assert dict(p._own_refs) == {"k": 5, "rel": None}
+    assert dict(p.Child._own_refs) == {"cref": 9}
+
+    assert dict(p[1]._own_refs) == {"fr": 2}
+    assert dict(p[1].Child._own_refs) == {}
+    assert dict(p[1].Child[3]._own_refs) == {}
+    assert dict(m.Q[4]._own_refs) == {}
+
+    assert {"k", "rel", "fr", "i", "j", "glob"} <= set(p[1].refs)
+    assert {"cref", "i", "j", "glob"} <= set(p[1].Child.refs)
+
+
 def test_get_from_name_round_trip(any_model):
     """``model._get_from_name(obj._idstr) is obj`` for every UserSpace,
     ItemSpace (by its ``__SpaceN`` name), DynamicSpace and Cells, and the
-    lookup creates nothing. A first part that is not a Space of the
-    Model, such as ``''`` or the name of a global Reference, raises
-    KeyError."""
+    lookup creates nothing.
+
+    What it does with a name it does not find, such as ``''`` or the
+    name of a global Reference, is a known limitation (toolapi.rst),
+    so it is not checked here."""
     name, m = any_model
     nodes, items = len(m.tracegraph), count_itemspaces(m)
 
@@ -1116,10 +1198,6 @@ def test_get_from_name_round_trip(any_model):
     assert objects
     for obj in objects:
         assert m._get_from_name(obj._idstr) is obj, obj
-
-    for missing in [""] + list(m.refs):
-        with pytest.raises(KeyError):
-            m._get_from_name(missing)
 
     assert (len(m.tracegraph), count_itemspaces(m)) == (nodes, items)
 

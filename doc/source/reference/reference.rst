@@ -122,7 +122,7 @@ it stands for::
     have the ItemSpace as their parent. The other References that the
     ItemSpace sees are the References of its Space, which have that
     Space as their parent, and the global References, with the
-    exception in the note below.
+    exception in the known limitation below.
 
 * :attr:`~ReferenceProxy.fullname` is the dotted name of the parent
   followed by the name, such as ``'Model1.Space1.foo'``,
@@ -133,18 +133,23 @@ it stands for::
   none of the ways to create one takes a docstring,
   and assigning to ``doc`` raises :obj:`AttributeError`.
 
-.. note::
+In an ItemSpace, a Reference of its Space whose value is the Space
+itself, or a Cells or a Space inside it, and whose
+:attr:`~ReferenceProxy.refmode` is not ``'absolute'``,
+refers to the ItemSpace's own copy of that value:
+when ``Space1.rel`` is ``Space1.Child``, ``Space1[1].rel`` is
+``Space1[1].Child``.
 
-   In an ItemSpace, a Reference of its Space whose value is the Space
-   itself, or a Cells or a Space inside it, and whose
-   :attr:`~ReferenceProxy.refmode` is not ``'absolute'``,
-   refers to the ItemSpace's own copy of that value:
-   when ``Space1.rel`` is ``Space1.Child``, ``Space1[1].rel`` is
-   ``Space1[1].Child``. For such a Reference, the ReferenceProxy that
-   :func:`~modelx.get_object` returns stands for the copy:
+.. admonition:: Known limitation
+
+   For such a Reference, the ReferenceProxy that
+   :func:`~modelx.get_object` returns through the ItemSpace
+   stands for the copy, not for the Reference:
    its :attr:`~ReferenceProxy.name`, :attr:`~ReferenceProxy.fullname`
    and :attr:`~ReferenceProxy.parent` are those of ``Space1[1].Child``,
    and :attr:`~ReferenceProxy.refmode` raises :obj:`AttributeError`.
+   This is not part of the frozen contract (see :ref:`toolapi-tiers`)
+   and may change.
 
 
 .. _reference-proxy-refmode:
@@ -167,12 +172,17 @@ with:
   :meth:`UserSpace.relref <modelx.core.space.UserSpace.relref>`,
   or by :meth:`UserSpace.set_ref <modelx.core.space.UserSpace.set_ref>` with ``'relative'``;
 * :obj:`None` for a global Reference, which is set on a Model,
-  and for an argument of an :class:`~modelx.core.space.ItemSpace`;
-* :obj:`False` for a Reference that
-  :meth:`~modelx.core.space.UserSpace.new_pandas`,
-  :meth:`~modelx.core.space.UserSpace.new_module` or
-  :meth:`~modelx.core.space.UserSpace.new_excel_range`
-  creates in a :class:`~modelx.core.space.UserSpace`.
+  and for an argument of an :class:`~modelx.core.space.ItemSpace`.
+
+.. admonition:: Known limitation
+
+   :attr:`~ReferenceProxy.refmode` is :obj:`False` for a Reference that
+   :meth:`~modelx.core.space.UserSpace.new_pandas`,
+   :meth:`~modelx.core.space.UserSpace.new_module` or
+   :meth:`~modelx.core.space.UserSpace.new_excel_range`
+   creates in a :class:`~modelx.core.space.UserSpace`.
+   This is not part of the frozen contract (see :ref:`toolapi-tiers`)
+   and may change.
 
 A Reference that a sub Space inherits from its base Space has the mode
 of the base Reference. The mode matters only when the value is a modelx

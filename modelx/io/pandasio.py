@@ -337,6 +337,18 @@ class PandasData(BaseIOSpec):
             return res + ">"
 
     def _get_attrdict(self, extattrs=None, recursive=True):
+        """A dict that describes the PandasData.
+
+        ``extattrs`` and ``recursive`` are ignored.
+
+        Returns:
+            dict: The keys of
+            :meth:`BaseIOSpec._get_attrdict
+            <modelx.io.baseio.BaseIOSpec._get_attrdict>`,
+            and ``'filetype'``, the file type, such as ``'excel'`` or
+            ``'csv'``, and ``'sheet'``, the sheet name,
+            or :obj:`None` when none was given.
+        """
         result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)
         result["filetype"] = self._io.file_type
         result["sheet"] = self._sheet

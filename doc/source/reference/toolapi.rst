@@ -65,20 +65,33 @@ an underscore:
 :meth:`~modelx.core.space.UserSpace.set_ref`,
 :meth:`~modelx.core.space.UserSpace.absref` and
 :meth:`~modelx.core.space.UserSpace.relref` raise :obj:`ValueError`
-for such a name, and ``new_cells`` and :func:`~modelx.defcells`
-replace it with an automatic name such as ``Cells1``.
+for such a name.
 
-Five routes still accept such names:
-global References (``model._x = value``, and
-:meth:`Model.new_pandas <modelx.core.model.Model.new_pandas>`,
-:meth:`~modelx.core.model.Model.new_module` and
-:meth:`~modelx.core.model.Model.new_excel_range`),
-References created by ``new_space(refs=...)``,
-the parameters of a Space formula,
-the ``refs`` that a Space formula returns,
-and :meth:`UserSpace.rename <modelx.core.space.UserSpace.rename>`,
-which checks no name in this release.
-An object named this way can have the name of a tool member.
+.. admonition:: Known limitation
+
+   On this release, other routes do not refuse such a name:
+
+   * ``new_cells`` and :func:`~modelx.defcells` replace it,
+     like any other name that is not valid,
+     with an automatic name such as ``Cells1``:
+     ``new_cells("_hidden")`` creates a Cells named ``Cells1``.
+   * Global References (``model._x = value``, and
+     :meth:`Model.new_pandas <modelx.core.model.Model.new_pandas>`,
+     :meth:`~modelx.core.model.Model.new_module` and
+     :meth:`~modelx.core.model.Model.new_excel_range`),
+     References created by ``new_space(refs=...)``,
+     the parameters of a Space formula
+     and the ``refs`` that a Space formula returns accept it.
+   * :meth:`UserSpace.rename <modelx.core.space.UserSpace.rename>`
+     checks no name. It accepts ``'_x'``, and also ``''``, ``'1x'``,
+     ``'a-b'`` and ``'class'``, which are not valid names.
+
+   A later release may warn about such names on the routes
+   in the first two items, and then refuse them.
+   This is not part of the frozen contract and may change.
+
+An object named through one of these routes can have the name of a tool
+member.
 Attribute access from outside the model then finds the class member,
 while a Formula that uses the name reads the user's object.
 This is why a tool tests for a member on the class,
@@ -104,6 +117,40 @@ Frozen
     The members listed on this page, from modelx 0.34.0,
     the first release with this page.
     A frozen member changes only through the deprecation process below.
+    What is frozen is the member and its behaviour as this page
+    describes it, except the behaviour that a note headed
+    **Known limitation** describes (see below).
+
+    A test, ``modelx/tests/core/api/test_tool_api_surface.py``,
+    pins the signature of every listed member against a golden file:
+    that the member exists, its kind (property, method or other
+    attribute) and, for a method, its parameters as
+    :func:`inspect.signature` gives them.
+    It also pins the classes of :mod:`modelx.core.errors` listed in
+    :ref:`toolapi-errors`, with their base classes.
+    The test looks each member up on the class of an object that
+    a tool holds, as :ref:`toolapi-detection` describes,
+    and checks the members that a ReferenceProxy forwards on a proxy.
+    It pins the members that this page lists, on the classes it lists
+    them on, with two differences of class only:
+
+    * ``Formula._get_attrdict`` is pinned on
+      :class:`~modelx.core.formula.Formula` and also on its two subclasses
+      ``NullFormula`` and ``ParamFunc``, the classes of the formula of
+      a Cells without a formula and of the formula of a Space.
+    * ``BaseIOSpec._get_attrdict`` is not pinned on
+      :class:`~modelx.io.baseio.BaseIOSpec` itself, because no object
+      that a tool holds is of that class. It is pinned on
+      :class:`~modelx.io.moduleio.ModuleData`, which inherits it,
+      and on :class:`~modelx.io.pandasio.PandasData` and
+      :class:`~modelx.io.excelio.ExcelRange`, which extend it.
+      The last two are checked only where pandas and openpyxl are
+      installed.
+
+    That test pins no behaviour.
+    ``modelx/tests/core/api/test_tool_contracts.py`` tests some of
+    the behaviour that this page describes, and pins none of the
+    known limitations.
 
 Tool API, not frozen
     Every other member that modelx defines on the classes above
@@ -122,14 +169,28 @@ Tool API, not frozen
     or :mod:`typing` base classes, such as ``_abc_impl`` on Cells and
     ``_is_protocol`` on the views, are not tool API.
 
+    .. admonition:: Known limitation
+
+       ``RefView._baseattrs_private`` raises :obj:`RuntimeError`
+       on this release.
+       This is not part of the frozen contract and may change.
+
 Additions are not changes:
 a frozen member may gain an optional keyword parameter,
 and a dict that it returns may gain keys.
 A tool should ignore keys that it does not know.
 A fix that makes a member behave as this page describes is a bug fix,
 listed under "Bug Fixes" in the release notes.
-The notes marked **Known limitation** below describe behaviour of
-this release that a tool should not rely on.
+
+A note headed **Known limitation** describes behaviour of this release
+that is a defect, or that a later release is planned to change,
+such as an exception that a member raises by accident
+or a value that is wrong in some cases.
+That behaviour is not part of the frozen contract,
+even when it is the behaviour of a frozen member:
+it may change in any release, without the deprecation process,
+and the tests named above do not pin it.
+A tool should not rely on it.
 
 There is no registry of tool members at run time,
 and the tool API has no version number of its own.
@@ -179,7 +240,10 @@ Members
     such as a child Space, a Cells or a Reference,
     global References included.
     So :func:`hasattr` on the instance can find a user's object
-    instead of a tool member:
+    instead of a tool member.
+    The example below names a global Reference with an underscore,
+    which this release accepts but a later release may refuse
+    (see the known limitation under :ref:`toolapi-underscore`):
 
     >>> m2 = mx.new_model("Model2")
 
@@ -196,11 +260,18 @@ Members
     >>> m2.close()
 
     A :class:`~modelx.core.reference.ReferenceProxy` answers some members
-    by forwarding them (see :ref:`toolapi-wire`), so they are not attributes
-    of its class: ``getattr(type(proxy), "_idstr", None)`` is :obj:`None`
-    although ``proxy._idstr`` works.
+    by forwarding them (see :ref:`toolapi-wire`).
     Every member that this page lists as forwarded is answered
     on every release that has this page, so a tool does not need to detect it.
+
+    .. admonition:: Known limitation
+
+       On this release the forwarded members are not attributes of the
+       ReferenceProxy class: ``getattr(type(proxy), "_idstr", None)``
+       is :obj:`None` although ``proxy._idstr`` works.
+       Which of them the class defines and which it forwards
+       is not part of the frozen contract and may change:
+       a later release may define some of them on the class.
 
 Top-level names
     Look a top-level name up in the module's namespace::
@@ -238,9 +309,10 @@ These members name and find objects.
 Model, the Space classes, Cells and Macro define
 ``_idstr``, ``_idtuple``, ``_evalrepr``, ``_get_repr``,
 ``_name``, ``_parent``, ``_get_object`` and ``_is_valid``.
-A ReferenceProxy defines ``_evalrepr``, and answers
+A ReferenceProxy defines ``_evalrepr``, and also answers
 ``_idstr``, ``_idtuple``, ``_get_repr``, ``_name``, ``_parent``
-and ``_is_valid`` by forwarding (see :ref:`toolapi-wire`).
+and ``_is_valid``
+(see "ReferenceProxy forwarding" under :ref:`toolapi-wire`).
 
 ``_idstr``
     The dotted name of the object without the name of its Model:
@@ -297,9 +369,21 @@ and ``_is_valid`` by forwarding (see :ref:`toolapi-wire`).
     >>> item._get_repr(), item.bar._get_repr(fullname=True)
     ('Proj[1]', 'Model1.Proj[1].bar()')
 
-    **Known limitation:** for an ItemSpace, ``add_params=False``
-    gives its ``__SpaceN`` name, and with ``fullname=True``
-    leaves out the name of its Space: ``'Model1.__Space1'`` for ``Proj[1]``.
+    .. admonition:: Known limitation
+
+       For an ItemSpace, ``add_params=False`` gives its ``__SpaceN``
+       name, and with ``fullname=True`` leaves out the name of its Space:
+       ``'Model1.__Space1'`` for ``Proj[1]``.
+       For an ItemSpace of an ItemSpace, the default display string
+       names the parent item by its ``__SpaceN`` name:
+       ``Proj[1][5]`` gives ``'__Space1[5]'``,
+       and ``'Model1.__Space1[5]'`` with ``fullname=True``.
+       So does the display string of every object inside it,
+       such as ``'Model1.__Space1[5].bar()'`` for its Cells ``bar``.
+       This also shows in the ``'repr'`` key of the dicts of these
+       objects, and in the ``'repr_parent'`` key of the dicts of
+       their nodes (see :ref:`toolapi-wire`).
+       This is not part of the frozen contract and may change.
 
 ``_name``, ``_parent``
     The same as ``name`` and ``parent``.
@@ -335,36 +419,66 @@ and ``_is_valid`` by forwarding (see :ref:`toolapi-wire`).
     >>> mx.get_object("Model1.Base.cells")
     {foo}
 
-    **Known limitation:** with ``as_proxy=True``,
-    the parts after a Reference are ignored:
-    ``m._get_object("Base.rate.real", as_proxy=True)``
-    returns the proxy of ``rate``.
+    .. admonition:: Known limitation
 
-    **Known limitation:** a name that continues past an object
-    that is not a modelx object, such as the value of a Reference
-    or a leaf attribute, as in ``"Base.rate.real"`` or
-    ``"Base.foo.formula.source"``, raises :obj:`AttributeError`
-    on this release, because the lookup asks that object for
-    its ``_get_object``. Do not rely on the type of this exception.
+       With ``as_proxy=True``, the parts after a Reference are ignored:
+       ``m._get_object("Base.rate.real", as_proxy=True)``
+       returns the proxy of ``rate``.
+       This is not part of the frozen contract and may change.
+
+    .. admonition:: Known limitation
+
+       A name that continues past an object that is not a modelx object,
+       such as the value of a Reference or a leaf attribute,
+       as in ``"Base.rate.real"`` or ``"Base.foo.formula.source"``,
+       raises :obj:`AttributeError` on this release,
+       because the lookup asks that object for its ``_get_object``
+       (for ``"Base.rate.real"``,
+       ``'float' object has no attribute '_get_object'``).
+       :func:`modelx.get_object` raises the same.
+       The type and the message of this exception are not part of
+       the frozen contract and may change.
+
+    .. admonition:: Known limitation
+
+       In the ItemSpaces of a Space, a Reference of the Space to a Space
+       whose name begins with the name of the Space is not found,
+       or gives a broken proxy with ``as_proxy=True``;
+       see :ref:`the note on such References <toolapi-prefix-ref>`.
+       This is not part of the frozen contract and may change.
 
 ``Model._get_from_name(name)``
     Finds an object by its ``_idstr``.
-    The first part must be a Space of the Model;
-    the parts after it can be child Spaces, ItemSpaces by their
-    ``__SpaceN`` names, Cells, and References, which give their values.
+    It finds a name whose first part is a Space of the Model
+    and whose parts after it are child Spaces, ItemSpaces by their
+    ``__SpaceN`` names, Cells, or References, which give their values.
     For every Space and every Cells,
     ``model._get_from_name(obj._idstr) is obj``.
-    It does not find the Model itself (``''``), a global Reference
-    or a Macro.
-    A first part that is not a Space of the Model raises :obj:`KeyError`.
 
     >>> m._get_from_name("Proj.__Space1.Child") is item.Child
     True
 
-    **Known limitation:** a later part that is not found,
-    and a name that continues past the value of a Reference,
-    raise :obj:`AttributeError` on this release, as a side effect
-    of the lookup. Do not rely on the type of this exception.
+    .. admonition:: Known limitation
+
+       On this release ``_get_from_name`` does not find the Model
+       itself (``''``), a global Reference or a Macro:
+       their names raise :obj:`KeyError`, as does a first part
+       that is not the name of a Space of the Model.
+       A later part that is not found, and a name that continues past
+       the value of a Reference, raise :obj:`AttributeError`
+       (``'NoneType' object has no attribute 'interface'``),
+       as a side effect of the lookup.
+       A later part ``__builtins__``, ``_self``, ``_space`` or ``_model``,
+       as in ``'Base.__builtins__'`` or ``'Base._self'``,
+       resolves to the :mod:`builtins` module
+       or to an internal namespace object of modelx, which is not tool API,
+       although only ``__builtins__`` is in ``refs``;
+       a later release may refuse these four names.
+       What it returns for them, which other names it finds,
+       and what it raises for the names it does not find,
+       are not part of the frozen contract and may change.
+       See also :ref:`the known limitation on a Reference to a Space
+       whose name begins with the name of the Space <toolapi-prefix-ref>`.
 
 ``_named_itemspaces`` (Spaces)
     A mapping of the ItemSpaces that the Space has created and that exist,
@@ -380,20 +494,29 @@ and ``_is_valid`` by forwarding (see :ref:`toolapi-wire`).
     Most other members of a deleted object raise
     :class:`~modelx.core.errors.DeletedObjectError`.
 
-    **Known limitation:** a :class:`~modelx.core.macro.Macro` and a
-    ReferenceProxy return :obj:`True` even after their Macro or Reference
-    has been deleted.
+    .. admonition:: Known limitation
 
-    **Known limitation:** closing a Model does not make the Model
-    or its objects invalid on this release.
+       A :class:`~modelx.core.macro.Macro` returns :obj:`True` after
+       it has been deleted, and a ReferenceProxy returns :obj:`True`
+       after its Reference has been deleted or given another value.
+       This is not part of the frozen contract and may change.
 
-    **Known limitation:** an ItemSpace that a tool holds after it was
-    deleted, and a DynamicSpace in it, become valid again
-    when the Space creates the item again with the same arguments,
-    because modelx reuses the same objects on this release.
-    The ItemSpace's ``_idstr`` then has a new ``__SpaceN`` name.
-    The Cells in it are not revived:
-    a Cells of the deleted item that a tool holds stays invalid.
+    .. admonition:: Known limitation
+
+       Closing a Model does not make the Model or its objects
+       invalid on this release: their ``_is_valid()`` stays :obj:`True`.
+       This is not part of the frozen contract and may change.
+
+    .. admonition:: Known limitation
+
+       An ItemSpace that a tool holds after it was deleted,
+       and a DynamicSpace in it, become valid again
+       when the Space creates the item again with the same arguments,
+       because modelx reuses the same objects on this release.
+       The ItemSpace's ``_idstr`` then has a new ``__SpaceN`` name.
+       The Cells in it are not revived:
+       a Cells of the deleted item that a tool holds stays invalid.
+       This is not part of the frozen contract and may change.
 
 .. currentmodule:: modelx.core.model
 
@@ -532,12 +655,25 @@ told apart by ``_is_dynamic()``, not by a derived flag.
     >>> base._get_object("rate", as_proxy=True).is_derived()
     False
 
-    **Known limitation:** seen through an ItemSpace,
-    a Reference of its Space whose value is the Space itself,
-    or a Cells or a Space inside it, and whose mode is not ``'absolute'``
-    (see the note under :ref:`reference-proxy-identity`),
-    gives a proxy on which ``is_derived()`` raises :obj:`AttributeError`
-    if the value is a Space, and returns :obj:`True` if it is a Cells.
+    .. admonition:: Known limitation
+
+       Seen through an ItemSpace,
+       a Reference of its Space whose value is the Space itself,
+       or a Cells or a Space inside it, and whose mode is not
+       ``'absolute'`` (see the note under
+       :ref:`reference-proxy-identity`), gives a proxy on which
+       ``is_derived()`` raises :obj:`AttributeError` if the value is
+       a Space, and returns :obj:`True` if it is a Cells.
+       This is not part of the frozen contract and may change.
+
+    .. admonition:: Known limitation
+
+       Seen through an ItemSpace, a Reference of its Space to a Space
+       whose name begins with the name of the Space,
+       such as ``P.r = PX``, gives a proxy on which ``is_derived()``
+       raises :obj:`AttributeError`
+       (see :ref:`the note on such References <toolapi-prefix-ref>`).
+       This is not part of the frozen contract and may change.
 
 ``_is_dynamic()``, ``_is_static()``, ``_is_root()`` (Spaces)
     ``_is_dynamic()`` is :obj:`True` for an ItemSpace and a DynamicSpace,
@@ -569,11 +705,13 @@ told apart by ``_is_dynamic()``, not by a derived flag.
     >>> dict(sub._own_refs), list(sub.refs)
     ({'rate': 0.05}, ['__builtins__', 'scale', 'rate'])
 
-    In an ItemSpace, ``_own_refs`` holds only the References
-    that the Space formula returns in ``'refs'``.
-    It does not hold the arguments, the References of the Space
-    that the ItemSpace is an item of, or the global References.
-    In a DynamicSpace, it is empty on this release.
+    In an ItemSpace or a DynamicSpace, ``_own_refs`` holds only
+    the References that the Space formula returns in ``'refs'``.
+    It does not hold the arguments, the References of the static Space
+    that the ItemSpace or the DynamicSpace was made from,
+    or the global References.
+    No Space formula is called to make a DynamicSpace,
+    so the ``_own_refs`` of a DynamicSpace is always empty.
     Read ``refs`` for the full set:
 
     >>> m3 = mx.new_model("Model3")
@@ -597,9 +735,15 @@ told apart by ``_is_dynamic()``, not by a derived flag.
     in order.
     The public ``bases`` is the full method resolution order instead.
 
-    **Known limitation:** on an ItemSpace or a DynamicSpace,
-    ``_direct_bases`` does not give the bases of that Space,
-    and it can name an unrelated Space. Read ``bases`` there.
+    .. admonition:: Known limitation
+
+       On an ItemSpace or a DynamicSpace,
+       ``_direct_bases`` does not give the bases of that Space,
+       and it can name an unrelated Space: for a Space ``P`` with
+       the bases ``Base1`` and ``Base2`` and a child Space ``Child``,
+       ``P[1].Child._direct_bases`` names ``Base1`` and ``Base2``.
+       Read ``bases`` there.
+       This is not part of the frozen contract and may change.
 
 ``ItemSpace.argvalues``
     The tuple of the argument values the ItemSpace was created with,
@@ -729,25 +873,77 @@ for tools that show a model in another process, such as spyder-modelx.
     ``'valid'`` identifies the value object, so a changed value
     can have the same ``'valid'``; it is not a revision number.
     ``'value'`` is the value itself, not a description of it.
+    ``'repr'`` and ``'repr_parent'`` are display strings.
+    For an ItemSpace of an ItemSpace and the objects in it,
+    they name the parent item by its ``__SpaceN`` name on this release,
+    a known limitation described under ``_get_repr``
+    in :ref:`toolapi-identity`.
     With ``recursive=False``, ``'refs'`` lists every name,
     ``__builtins__`` and names that start with an underscore included.
 
-    **Known limitation:** for an ItemNode with no stored value,
-    ``_get_attrdict`` and ``_baseattrs`` raise :obj:`ValueError`
-    on this release.
-    Check ``has_value()`` before asking a node of a Cells for its dict.
+    .. admonition:: Known limitation
 
-    **Known limitation:** an ItemSpace's dict can hold two records
-    with the same ``'id'`` and ``'namedid'``.
-    A Reference of the Space whose value is the Space itself,
-    or a Cells or a Space inside it, and whose mode is not
-    ``'absolute'``, is seen in an ItemSpace as the ItemSpace's copy of
-    the value, as the note under :ref:`reference-proxy-identity` describes.
-    Its record in the ItemSpace's ``'refs'`` has the ``'type'``
-    ``'Reference'``, but its ``'id'``, ``'namedid'``, ``'name'`` and
-    ``'fullname'`` are those of the copy, the same as in the copy's
-    own record.
-    So do not key records by ``'id'`` or ``'namedid'`` alone.
+       For an ItemNode with no stored value, of a Cells or of a Space,
+       ``_get_attrdict`` and ``_baseattrs`` raise :obj:`ValueError`
+       on this release.
+       Check ``has_value()`` before asking an ItemNode for its dict.
+       This is not part of the frozen contract and may change.
+
+    .. admonition:: Known limitation
+
+       A Space formula can return a ref under a key that is not a str,
+       as in ``lambda i: {"refs": {1: "one"}}``.
+       On this release, the dict of an ItemSpace that holds such a ref,
+       with ``recursive=True``, and the dict of its ``refs`` view
+       raise :obj:`KeyError`, and so does the dict of every object
+       that has the ItemSpace in its tree, the Model's included.
+       ``_baseattrs`` raises too.
+       This is not part of the frozen contract and may change.
+
+    .. _toolapi-prefix-ref:
+
+    .. admonition:: Known limitation
+
+       Take a Space ``P`` that has a formula.
+       A Reference of ``P``, or of a Space inside ``P``,
+       is broken in the ItemSpaces of ``P`` and in the Spaces inside them
+       when its mode is not ``'absolute'`` and its value is a Space
+       outside ``P`` whose full name begins with the full name of ``P``,
+       such as a sibling Space ``PX``,
+       or a Cells or a Space inside such a Space.
+       With ``P.r = PX``,
+       ``P[1].refs`` lists ``r``, but ``P[1].r`` is missing,
+       and a formula in ``P[1]`` that reads ``r`` fails.
+       ``P[1]._get_object("r")`` raises :obj:`NameError`.
+       ``P[1]._get_object("r", as_proxy=True)`` returns a proxy
+       whose ``value``, ``name``, ``_idstr``, ``_evalrepr``,
+       ``_get_repr()``, ``refmode``, ``is_derived()`` and
+       ``_get_attrdict()`` raise :obj:`AttributeError`.
+       ``model._get_from_name("P.__Space1.r")`` raises
+       :obj:`AttributeError`.
+       The dict of ``P[1]`` with ``recursive=True`` and the dict of its
+       ``refs`` view raise :obj:`AttributeError`
+       (``'NoneType' object has no attribute 'interface'``),
+       and so does the dict of every object that has ``P[1]`` in its tree,
+       the Model's included, so spyder-modelx cannot show the Model.
+       The Model's ``_baseattrs`` raises :obj:`RuntimeError`.
+       This is not part of the frozen contract and may change.
+
+    .. admonition:: Known limitation
+
+       An ItemSpace's dict can hold two records
+       with the same ``'id'`` and ``'namedid'``.
+       A Reference of the Space whose value is the Space itself,
+       or a Cells or a Space inside it, and whose mode is not
+       ``'absolute'``, is seen in an ItemSpace as the ItemSpace's copy of
+       the value, as the note under :ref:`reference-proxy-identity`
+       describes.
+       Its record in the ItemSpace's ``'refs'`` has the ``'type'``
+       ``'Reference'``, but its ``'id'``, ``'namedid'``, ``'name'`` and
+       ``'fullname'`` are those of the copy, the same as in the copy's
+       own record.
+       So do not key records by ``'id'`` or ``'namedid'`` alone.
+       This is not part of the frozen contract and may change.
 
     ``extattrs`` is a list of further names to add to the dicts.
     It is passed down to every object that the walk reaches.
@@ -756,35 +952,40 @@ for tools that show a model in another process, such as spyder-modelx.
     A node passes it to its object, so the names are added to
     the node's ``'obj'``, not to the node's own dict:
     ask for ``formula`` and read ``record['obj']['formula']``.
-    For each name that is not already a key, modelx reads the attribute
-    of that name from the object,
-    and skips the name if :func:`hasattr` is :obj:`False`.
+    Request only names that the classes of the objects concerned define.
+    For such a name that is not already a key,
+    modelx reads the attribute of that name from the object.
     A value that has its own ``_get_attrdict`` is replaced by its dict,
     a callable value is called with no arguments
     and replaced by its result,
     and any other value is added as it is.
+    A name whose value is a list of modelx objects, such as
+    ``_direct_bases``, puts the objects themselves into the dict.
+    Expect the key to be missing on an object whose class
+    does not define the name.
 
     >>> foo._get_attrdict(["_is_derived", "_evalrepr"], recursive=False)["_evalrepr"]
     'Model1.Base.foo'
 
-    The attribute is read from the instance.
-    So on a Model or a Space, a name that its class does not define
-    reaches a member of that name, if there is one:
-    a Reference's value is added, and called if it is callable,
-    and a Cells or a Space is added as its dict.
-    A Cells skips a name that its class does not define.
-    A ReferenceProxy skips a name that neither its class nor
-    the base class of Model, Spaces and Cells defines.
-    What it adds for a name that only that base class defines,
-    other than the names it forwards (see ReferenceProxy forwarding below),
-    is undocumented.
-    So request only names that the classes of the objects concerned define,
-    and expect the key to be missing where a class does not define it.
-    A name that only some classes define, such as ``_is_derived``,
-    which only Cells defines,
-    is safe on those classes but can reach a user's object on the others.
-    A name whose value is a list of modelx objects, such as
-    ``_direct_bases``, puts the objects themselves into the dict.
+    .. admonition:: Known limitation
+
+       On this release the attribute is read from the instance,
+       and a name is skipped when :func:`hasattr` is :obj:`False`.
+       So on a Model or a Space, a name that its class does not define
+       reaches a member of that name, if there is one,
+       such as a user's Reference, Cells or Space:
+       a Reference's value is added, and called if it is callable,
+       and a Cells or a Space is added as its dict.
+       A name that only some classes define, such as ``_is_derived``,
+       which only Cells defines, can reach a user's object on the others.
+       A Cells skips a name that its class does not define.
+       A ReferenceProxy skips a name that neither its class nor
+       the base class of Model, Spaces and Cells defines;
+       what it adds for a name that only that base class defines,
+       other than the names it forwards
+       (see ReferenceProxy forwarding below), is undocumented.
+       How a name that the class does not define is resolved
+       is not part of the frozen contract and may change.
 
 ``_baseattrs``
     The older form of ``_get_attrdict``, kept for existing tools.
@@ -826,10 +1027,13 @@ ReferenceProxy forwarding
     A :class:`~modelx.core.reference.ReferenceProxy` defines
     ``value``, ``refmode``, ``_evalrepr``, ``_get_attrdict``,
     ``_baseattrs`` and ``is_derived()`` itself.
-    It answers ``name``, ``fullname``, ``parent``, ``model``,
+    It also answers ``name``, ``fullname``, ``parent``, ``model``,
     ``doc``, ``allow_none``, ``_idtuple``, ``_idstr``, ``_get_repr``,
-    ``_is_valid``, ``_name`` and ``_parent`` by forwarding them to
-    the base class of Model, Spaces and Cells, applied to the Reference.
+    ``_is_valid``, ``_name`` and ``_parent``, as
+    the base class of Model, Spaces and Cells answers them,
+    applied to the Reference.
+    On this release it forwards them to that class
+    (see the known limitation under :ref:`toolapi-detection`).
     ``doc`` is :obj:`None`.
     What the proxy answers for any other name is undocumented.
 
@@ -838,16 +1042,22 @@ ReferenceProxy forwarding
     >>> proxy.name, proxy.parent, proxy._idstr, proxy._get_repr(fullname=True)
     ('rate', <UserSpace Model1.Base>, 'Base.rate', 'Model1.Base.rate')
 
-    **Known limitation:** a Reference of a Space whose value is
-    the Space itself, or a Cells or a Space inside it, and whose mode
-    is not ``'absolute'``, is seen in an ItemSpace as the ItemSpace's copy
-    of the value (see the note under :ref:`reference-proxy-identity`).
-    A proxy for it obtained through the ItemSpace stands for the copy,
-    not for the Reference:
-    its ``name``, ``fullname``, ``parent``, ``_idstr`` and ``_idtuple``
-    name the copy, and ``refmode`` raises :obj:`AttributeError`.
-    For ``P.rel = P.Child``, the proxy for ``rel`` in ``P[1]``
-    has the ``name`` ``'Child'`` and the ``_idstr`` ``'P.__Space1.Child'``.
+    .. admonition:: Known limitation
+
+       A Reference of a Space whose value is the Space itself,
+       or a Cells or a Space inside it, and whose mode
+       is not ``'absolute'``, is seen in an ItemSpace as the ItemSpace's
+       copy of the value
+       (see the note under :ref:`reference-proxy-identity`).
+       A proxy for it obtained through the ItemSpace stands for the copy,
+       not for the Reference:
+       its ``name``, ``fullname``, ``parent``, ``_idstr``, ``_idtuple``
+       and ``_evalrepr`` name the copy,
+       and ``refmode`` raises :obj:`AttributeError`.
+       For ``P.rel = P.Child``, the proxy for ``rel`` in ``P[1]``
+       has the ``name`` ``'Child'`` and the ``_idstr``
+       ``'P.__Space1.Child'``.
+       This is not part of the frozen contract and may change.
 
 .. currentmodule:: modelx.core.model
 
@@ -1000,6 +1210,19 @@ each a direct subclass of :obj:`Exception`, and no warning classes.
   occurs while a formula runs. The original error is returned by
   :func:`~modelx.get_error`.
   After ``use_formula_error(False)``, the original error is raised instead.
+
+  .. admonition:: Known limitation
+
+     When the error occurs in a formula whose
+     :attr:`~modelx.core.formula.Formula.source` is :obj:`None`,
+     because modelx could not retrieve the source code of its function,
+     :obj:`TypeError` is raised instead of FormulaError on this release
+     (``can only concatenate str (not "NoneType") to str``),
+     also when that formula was called from other formulas.
+     :func:`~modelx.get_error` still returns the original error,
+     and after ``use_formula_error(False)`` the original error is raised.
+     This is not part of the frozen contract and may change.
+
 * :class:`~modelx.core.errors.DeepReferenceError` is the original error
   when a chain of formula calls exceeds the limit.
 * :class:`~modelx.core.errors.NoneReturnedError` is the original error

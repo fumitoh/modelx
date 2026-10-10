@@ -661,12 +661,14 @@ def get_object(name: str, as_proxy=False):
     ignored: if ``x`` is a reference in ``Space1``,
     ``get_object('Model1.Space1.x.real', as_proxy=True)``
     returns the proxy of ``x``.
+    This is not part of the frozen contract and may change.
 
     **Known limitation:** a name that continues past an object
     that is not a modelx object, such as the value of a reference
     or a leaf attribute (``'Model1.Space1.x.real'``, where ``x``
     refers to 1), raises :obj:`AttributeError` on this release.
-    Do not rely on the type or the message of this exception.
+    The type and the message of this exception are not part of the
+    frozen contract and may change.
 
     Raises:
         NameError: If the first part is not the name of an open model,
@@ -1186,11 +1188,16 @@ def read_model(model_path, name=None):
       :func:`get_models` can change, and
       the :obj:`UserWarning` about the renaming has already been issued.
     * Versions 1 to 3, the formats of modelx before 0.9.0:
-      the half-built model is closed, but an open model that the read
-      renamed keeps its ``<name>_BAK<n>`` name, and no model is current.
-      On this release, these readers fail with :obj:`AttributeError`
-      on any cells defined by a formula, so a model in these formats
-      that has one cannot be read.
+      see the known limitation below.
+
+    **Known limitation:** after a failed read of a model saved in
+    versions 1 to 3, the half-built model is closed, but an open model
+    that the read renamed keeps its ``<name>_BAK<n>`` name,
+    and no model is current.
+    On this release, these readers also fail with :obj:`AttributeError`
+    on any cells defined by a formula, so a model in these formats
+    that has one cannot be read.
+    This is not part of the frozen contract and may change.
 
     The cases listed under Raises are found before anything is built,
     so they leave the open models and the current model as they were.

@@ -590,6 +590,19 @@ class ExcelRange(BaseIOSpec, Mapping):
              repr(self.range), repr(self.sheet))
 
     def _get_attrdict(self, extattrs=None, recursive=True):
+        """A dict that describes the ExcelRange.
+
+        ``extattrs`` and ``recursive`` are ignored.
+
+        Returns:
+            dict: The keys of
+            :meth:`BaseIOSpec._get_attrdict
+            <modelx.io.baseio.BaseIOSpec._get_attrdict>`,
+            and ``'range'``, ``'sheet'`` and ``'keyids'``, the range,
+            the sheet name and the key ids of the ExcelRange, as given
+            when it was created, with ``keyids`` as a tuple or
+            :obj:`None`.
+        """
         result = super()._get_attrdict(extattrs=extattrs, recursive=recursive)
         result.update({
             "range": self.range,

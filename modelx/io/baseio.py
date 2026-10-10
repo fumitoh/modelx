@@ -560,6 +560,19 @@ class BaseIOSpec:
             RuntimeError("must not happen")
 
     def _get_attrdict(self, extattrs=None, recursive=True):
+        """A dict that describes the IOSpec.
+
+        ``extattrs`` and ``recursive`` are ignored.
+        :class:`~modelx.io.pandasio.PandasData` and
+        :class:`~modelx.io.excelio.ExcelRange` add keys of their own.
+
+        Returns:
+            dict: ``'type'``, the class name;
+            ``'path'``, the :attr:`path` of the file, and
+            ``'load_from'``, where the value was loaded from,
+            each converted by :class:`str`;
+            and ``'value'``, the IOSpec's ``value`` itself.
+        """
 
         result = {
             "type": type(self).__name__,

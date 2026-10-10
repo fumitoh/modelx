@@ -74,7 +74,7 @@ They never run the formula and never add a value, so
   for a Cells ``g(t, k=1)`` that holds ``g(1)``,
   ``(1, 1) in g`` is :obj:`True` and ``(1,) in g`` is :obj:`False`.
 * ``cells.values()`` and ``cells.items()``, with the exception in the
-  note below.
+  known limitation below.
 * :attr:`~Cells.series` and :attr:`~Cells.frame`, and :meth:`~Cells.to_series`
   and :meth:`~Cells.to_frame` called without arguments.
 * ``cells.node(*args).has_value()``, and ``cells.node(*args).value``,
@@ -83,7 +83,7 @@ They never run the formula and never add a value, so
   and :meth:`~Cells.precedents`, which raise :obj:`ValueError`
   when no value is stored for the arguments.
 
-.. note::
+.. admonition:: Known limitation
 
    ``cells.values()`` and ``cells.items()`` look each key up again
    as ``cells[key]``. For a Cells with one parameter whose argument
@@ -98,9 +98,12 @@ They never run the formula and never add a value, so
    for the key ``(1,)``.
    ``(1, 2) in h`` is :obj:`False` for the same reason;
    ``((1, 2),) in h`` is :obj:`True`.
-   ``cells.node(*args).value`` reads every stored value without running
-   the formula, with ``args = (key,)`` for a Cells with one parameter
-   and ``args = key`` for any other Cells.
+   This is not part of the frozen contract (see :ref:`toolapi-tiers`)
+   and may change.
+
+``cells.node(*args).value`` reads every stored value without running
+the formula, with ``args = (key,)`` for a Cells with one parameter
+and ``args = key`` for any other Cells.
 
 .. rubric:: Running the formula when no value is stored
 
@@ -173,8 +176,13 @@ cannot be deleted: ``del`` raises :obj:`ValueError`.
 
 :meth:`~Cells.set_formula` and :meth:`~Cells.clear_formula` are deprecated.
 Use the :attr:`~Cells.formula` property instead.
-In modelx 0.33, :meth:`~Cells.clear_formula` raises :obj:`TypeError`
-and leaves the formula and the values as they were.
+
+.. admonition:: Known limitation
+
+   On this release, :meth:`~Cells.clear_formula` raises :obj:`TypeError`
+   and leaves the formula and the values as they were.
+   This is not part of the frozen contract (see :ref:`toolapi-tiers`)
+   and may change.
 
 
 

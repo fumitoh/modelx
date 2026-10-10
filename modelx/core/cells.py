@@ -580,9 +580,25 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         return result
 
     def _is_derived(self):
+        """Whether the Cells is a copy, not defined in its own Space.
+
+        :obj:`True` if the Cells was copied from a base Space and has
+        not been redefined in its own Space, and for every Cells in an
+        ItemSpace or a DynamicSpace.
+        Setting an input value does not change it,
+        and assigning a formula makes it :obj:`False`.
+
+        Returns:
+            bool: :obj:`True` for a derived Cells, :obj:`False` otherwise.
+        """
         return self._impl.is_derived()
 
     def _is_defined(self):
+        """Whether the Cells is defined in its own Space.
+
+        Returns:
+            bool: ``not self._is_derived()``.
+        """
         return not self._impl.is_derived()
 
     @Interface.doc.setter

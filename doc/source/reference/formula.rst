@@ -101,6 +101,15 @@ Formula class
       modelx then warns with a ``UserWarning``,
       "Cannot retrieve source code for function ...".
 
+      .. admonition:: Known limitation
+
+         When an error occurs in a formula whose source is :obj:`None`,
+         :obj:`TypeError` is raised instead of
+         :class:`~modelx.core.errors.FormulaError` on this release
+         (see :ref:`toolapi-errors`).
+         This is not part of the frozen contract
+         (see :ref:`toolapi-tiers`) and may change.
+
    .. attribute:: parameters
       :type: tuple of str
 

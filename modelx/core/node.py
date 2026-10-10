@@ -90,6 +90,30 @@ class BaseNode:
         return result
 
     def _get_attrdict(self, extattrs=None, recursive=True):
+        """A dict that describes the node.
+
+        ``extattrs`` and ``recursive`` are passed to the node's object,
+        so the names in ``extattrs`` are added to ``'obj'``.
+        On this release, an :class:`ItemNode` with no stored value
+        raises :obj:`ValueError`, a known limitation described in
+        :ref:`toolapi-wire`.
+
+        Returns:
+            dict: ``'type'``, the class name of the node;
+            ``'obj'``, the dict of the node's object;
+            ``'args'``, the arguments, or :obj:`None` for a
+            :class:`~modelx.core.reference.ReferenceNode`;
+            ``'value'``, the value, or :obj:`None` when there is none;
+            ``'valid'``, the :func:`id` of the value, or :obj:`None`;
+            ``'predslen'``, ``'succslen'`` and ``'precedentslen'``,
+            the lengths of :attr:`preds`, :attr:`succs` and
+            ``precedents``;
+            and ``'repr_parent'`` and ``'repr'``, display strings of
+            the parent of the node's object and of the object. For an
+            object in an ItemSpace of an ItemSpace, they name the parent
+            item by its ``__SpaceN`` name on this release, a known
+            limitation described in :ref:`toolapi-identity`.
+        """
 
         result = {
             "type": type(self).__name__,

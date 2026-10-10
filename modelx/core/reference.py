@@ -184,9 +184,23 @@ class ReferenceProxy:
             most References.
             :obj:`None` for a global Reference and for an argument of
             an :class:`~modelx.core.space.ItemSpace`.
-            :obj:`False` for a Reference that ``new_pandas``,
-            ``new_module`` or ``new_excel_range`` creates in a
-            :class:`~modelx.core.space.UserSpace`.
+            **Known limitation:** :obj:`False` for a Reference that
+            ``new_pandas``, ``new_module`` or ``new_excel_range``
+            creates in a :class:`~modelx.core.space.UserSpace`.
+            This is not part of the frozen contract and may change.
+
+        Raises:
+            AttributeError: On this release, on a proxy got through an
+                :class:`~modelx.core.space.ItemSpace` for a Reference of
+                its Space that is not ``'absolute'`` and whose value is
+                the Space itself, or a Cells or a Space inside it,
+                because such a proxy stands for the ItemSpace's copy of
+                the value (see :ref:`reference-proxy-identity`); and on
+                a proxy got through an ItemSpace for a Reference to a
+                Space whose name begins with the name of the Space, such
+                as ``PX`` for ``P`` (see :ref:`toolapi-wire`).
+                These are known limitations, not part of the frozen
+                contract, and may change.
 
         .. seealso::
 
@@ -205,17 +219,47 @@ class ReferenceProxy:
         and :obj:`False` otherwise, for example for a global Reference,
         an argument of an :class:`~modelx.core.space.ItemSpace`
         or a Reference that a Space formula returns.
+
+        A proxy got through an ItemSpace for a Reference of its Space
+        that is not ``'absolute'`` and whose value is the Space itself,
+        or a Cells or a Space inside it, stands for the ItemSpace's copy
+        of the value: on it ``is_derived()`` raises :obj:`AttributeError`
+        if the value is a Space, and returns :obj:`True` if it is a
+        Cells (see :ref:`reference-proxy-identity`). It also raises
+        :obj:`AttributeError` on a proxy got through an ItemSpace for a
+        Reference to a Space whose name begins with the name of the
+        Space, such as ``PX`` for ``P`` (see :ref:`toolapi-wire`).
+        These are known limitations, not part of the frozen contract,
+        and may change.
         """
         return self._impl.is_derived()
 
     @property
     def _baseattrs(self):
+        """The older form of :meth:`_get_attrdict`, kept for existing tools.
+
+        Returns:
+            dict: The same keys as :meth:`_get_attrdict` called without
+            ``extattrs``.
+        """
         result = Interface._baseattrs.fget(self)
         result["type"] = "Reference"
         result["value_type"] = type(self.value).__name__
         return result
 
     def _get_attrdict(self, extattrs=None, recursive=True):
+        """A dict that describes the Reference.
+
+        The names in ``extattrs`` are added as the snapshot wire
+        describes (see :ref:`toolapi-wire`), and ``recursive`` is
+        passed on with them.
+
+        Returns:
+            dict: ``'type'``, which is ``'Reference'``;
+            ``'id'``, ``'name'``, ``'fullname'``, ``'repr'`` and
+            ``'namedid'``, as in the dict of a Model, a Space or a Cells;
+            and ``'value_type'``, the class name of the value.
+        """
         result = Interface._get_attrdict(self, extattrs, recursive)
         result["type"] = "Reference"
         result["value_type"] = type(self.value).__name__
@@ -226,6 +270,21 @@ class ReferenceProxy:
 
     @property
     def _evalrepr(self):
+        """The full name of the Reference in call syntax.
+
+        It is the full name of the Reference's parent in call syntax,
+        followed by the name of the Reference. A global Reference has
+        the name of its Model before its name, from whichever Space
+        the proxy was obtained.
+        A proxy that stands for an ItemSpace's copy of a Reference's
+        value names the copy instead, a known limitation described
+        under "ReferenceProxy forwarding" in :ref:`toolapi-wire`.
+
+        Returns:
+            str: Such as ``'Model1.Base.rate'``, ``'Model1.scale'``
+            for a global Reference, or ``'Model1.Proj(1).i'`` for an
+            argument of an ItemSpace.
+        """
         return Interface._evalrepr.fget(self)
 
     def __repr__(self):

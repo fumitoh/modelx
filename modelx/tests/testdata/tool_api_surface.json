@@ -2,93 +2,73 @@
  "errors": {
   "modelx.core.errors": {
    "DeepReferenceError": {
+    "bases": [
+     "builtins.Exception"
+    ],
     "kind": "class",
-    "mro": [
-     "DeepReferenceError",
-     "Exception",
-     "BaseException",
-     "object"
-    ]
+    "name": "DeepReferenceError"
    },
    "DeletedObjectError": {
+    "bases": [
+     "builtins.Exception"
+    ],
     "kind": "class",
-    "mro": [
-     "DeletedObjectError",
-     "Exception",
-     "BaseException",
-     "object"
-    ]
+    "name": "DeletedObjectError"
    },
    "FormulaError": {
+    "bases": [
+     "builtins.Exception"
+    ],
     "kind": "class",
-    "mro": [
-     "FormulaError",
-     "Exception",
-     "BaseException",
-     "object"
-    ]
+    "name": "FormulaError"
    },
    "NoneReturnedError": {
+    "bases": [
+     "builtins.Exception"
+    ],
     "kind": "class",
-    "mro": [
-     "NoneReturnedError",
-     "Exception",
-     "BaseException",
-     "object"
-    ]
+    "name": "NoneReturnedError"
    }
   }
  },
  "forwarded": {
   "ReferenceProxy": {
    "_get_repr": {
-    "class_attribute": false,
     "kind": "method",
     "signature": "(fullname=False, add_params=True)"
    },
    "_idstr": {
-    "class_attribute": false,
     "kind": "property"
    },
    "_idtuple": {
-    "class_attribute": false,
     "kind": "property"
    },
    "_is_valid": {
-    "class_attribute": false,
     "kind": "method",
     "signature": "()"
    },
    "_name": {
-    "class_attribute": false,
     "kind": "property"
    },
    "_parent": {
-    "class_attribute": false,
     "kind": "property"
    },
    "allow_none": {
-    "class_attribute": false,
     "kind": "property"
    },
    "doc": {
-    "class_attribute": false,
     "kind": "property"
    },
    "fullname": {
-    "class_attribute": false,
     "kind": "property"
    },
    "model": {
-    "class_attribute": false,
     "kind": "property"
    },
    "name": {
-    "class_attribute": false,
     "kind": "property"
    },
    "parent": {
-    "class_attribute": false,
     "kind": "property"
    }
   }
