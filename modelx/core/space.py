@@ -163,11 +163,18 @@ class BaseSpace(BaseParent, NodeFactory):
         return isinstance(self._impl, UserSpaceImpl)
 
     def _is_root(self):
-        """True if ths space is a dynamic space, False otherwise."""
+        """True if the space is an ItemSpace, False otherwise.
+
+        An ItemSpace is the root of a tree of dynamic spaces.
+        False for a UserSpace and for a DynamicSpace.
+        """
         return isinstance(self._impl, ItemSpaceImpl)
 
     def _is_dynamic(self):
-        """True if the space is in a dynamic space, False otherwise."""
+        """True if the space is an ItemSpace or a DynamicSpace.
+
+        False for a UserSpace.
+        """
         return self._impl.is_dynamic()
 
     @property

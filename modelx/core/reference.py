@@ -176,10 +176,17 @@ class ReferenceProxy:
     def refmode(self):
         """Returns reference mode
 
-        Returns a string representing the reference mode
+        Returns a string representing the reference mode,
+        or :obj:`None` or :obj:`False` for some References.
 
         Returns:
-            str: "auto", "absolute" or "relative"
+            str, None or bool: "auto", "absolute" or "relative" for
+            most References.
+            :obj:`None` for a global Reference and for an argument of
+            an :class:`~modelx.core.space.ItemSpace`.
+            :obj:`False` for a Reference that ``new_pandas``,
+            ``new_module`` or ``new_excel_range`` creates in a
+            :class:`~modelx.core.space.UserSpace`.
 
         .. seealso::
 
@@ -191,6 +198,14 @@ class ReferenceProxy:
         return self._impl.refmode
 
     def is_derived(self):   # TODO: Rename this to _is_derived
+        """True if the Reference is inherited from a base Space
+
+        Returns :obj:`True` if the Reference was copied from a base Space
+        into a sub Space and has not been redefined there,
+        and :obj:`False` otherwise, for example for a global Reference,
+        an argument of an :class:`~modelx.core.space.ItemSpace`
+        or a Reference that a Space formula returns.
+        """
         return self._impl.is_derived()
 
     @property

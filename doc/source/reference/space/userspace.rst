@@ -34,6 +34,57 @@ Space operations
   ~UserSpace.copy
   ~UserSpace.rename
 
+.. _userspace-inheritance:
+
+Inheritance
+-----------
+
+A UserSpace can be derived from other UserSpaces, its *base* Spaces,
+given by the ``bases`` parameter of
+:meth:`Model.new_space <modelx.core.model.Model.new_space>` and
+:meth:`UserSpace.new_space <UserSpace.new_space>`, or by
+:meth:`UserSpace.add_bases <UserSpace.add_bases>`.
+The derived Space is called a *sub* Space.
+Only Cells and References are inherited:
+
+* **Cells and References.**
+  For each Cells and each Reference of its bases that the sub Space does
+  not define itself, the sub Space has an inherited one, with the same
+  formula or value. A Cells or a Reference added to a base later
+  appears in the sub Space too, and a change to the formula or the value
+  in the base is seen in the sub Space.
+
+* **Overriding.**
+  Assigning a formula to an inherited Cells, or a value to an inherited
+  Reference, makes it the sub Space's own,
+  and later changes in the base no longer reach it.
+  An inherited Cells cannot be deleted from the sub Space:
+  ``del`` raises :obj:`ValueError`.
+  Delete it from the base, or remove the base by
+  :meth:`UserSpace.remove_bases <UserSpace.remove_bases>`.
+
+* **Several bases.**
+  When more than one base defines a name, the sub Space inherits it from
+  the first of them in :attr:`~UserSpace.bases`.
+
+* **Child Spaces are not inherited.**
+  Since modelx 0.24.0 (see :doc:`/releases/relnotes_v0_24_0`),
+  the child Spaces of a base are not copied into the sub Space.
+  To have one in the sub Space, create it there with the base's child
+  Space as its base, as in ``sub.new_space("Child", bases=base.Child)``.
+
+* **The formula is not inherited.**
+  A sub Space has no formula unless one is set on it,
+  even when its base has one: its :attr:`~UserSpace.formula` and
+  :attr:`~UserSpace.parameters` are :obj:`None`, and it has no ItemSpaces.
+  Set a formula on the sub Space to create ItemSpaces from it.
+
+ItemSpaces are made differently.
+Unless the Space formula returns a ``'base'``,
+an :class:`~modelx.core.space.ItemSpace` is a dynamic copy of its Space:
+it has the Space's Cells, References and child Spaces,
+and shares the Space's formula.
+
 Inheritance operations
 ----------------------
 
