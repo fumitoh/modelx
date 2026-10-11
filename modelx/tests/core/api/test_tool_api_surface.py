@@ -390,6 +390,7 @@ def build_surface():
             else:
                 entry = record_forwarded(objs[cls_name], name, source)
             surface[section].setdefault(cls_name, {})[name] = entry
+        m._impl._check_sanity()
     finally:
         m.close()
 

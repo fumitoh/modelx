@@ -254,7 +254,7 @@ def build_snapshot():
         rows = _rows(tree, {})
         spaces = [name for name, type_ in rows.items()
                   if type_.endswith("Space")]
-        return {
+        snapshot = {
             "tree": normalize(tree),
             "properties": {
                 name: normalize(mx.get_object(
@@ -276,6 +276,8 @@ def build_snapshot():
                 _assoc_value(entry) for entry in m._get_assoc_values()
             ],
         }
+        m._impl._check_sanity()
+        return snapshot
     finally:
         m.close()
 

@@ -45,7 +45,12 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 
 **Tracker.** Each decision is put to the owner, in plain words, when the PR that implements it is ready (§6), and recorded here.
 
-**Progress.** PR 1 is implemented on this branch (7a12fc2, 2026-10-10) and awaits the owner's review; what it found is in §9, "Found while implementing PR 1".
+**Progress.** PR 1 is implemented on this branch (7a12fc2, 2026-10-10); what it found is in §9, "Found while implementing PR 1". The owner approved the five choices made inside it on 2026-10-11, and it goes to `main` as a pull request:
+1. **Which objects have a tool API:** Model, the Space classes, Cells, Macro, ReferenceProxy, the views, the nodes, Formula and the IOSpec classes. `_impl`, a view's `_impls`, and an IOSpec's `_io` and `_manager` are internal, and so are Python's special names and the attributes a class gets from `collections.abc` and `typing` bases, such as `_abc_impl`.
+2. **Known limitations:** where a listed member has a defect, or behaviour a later PR changes, the page says so in a "Known limitation" box. That behaviour is not frozen, may change without deprecation, and no test pins it.
+3. **Additions are not changes:** a frozen member may gain an optional keyword, and a dict it returns may gain keys. A fix that makes a member match the page is a bug fix.
+4. **The tool API that is not frozen** may change or be removed in any release, with a note in the release notes.
+5. **Freezing starts at 0.34.0,** the first release with the page.
 
 | decision | settled in | status |
 |---|---|---|

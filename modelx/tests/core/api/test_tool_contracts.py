@@ -13,7 +13,10 @@ internals, such as ``_impl`` or the nodes of the trace graph, to check
 a result: a test that compared the tool API with the implementation
 would pass whenever the two agreed, right or wrong.  Behaviour that
 toolapi.rst labels a known limitation is not pinned here either, so a
-fix of it does not fail this module.
+fix of it does not fail this module.  Each model is torn down as in the
+rest of modelx's tests, by ``_impl._check_sanity()`` and then
+``close()``: that checks modelx's own invariants, not a tool-API
+result.
 
 * C1(1): ``len(Model.tracegraph)`` counts the stored values of every
   cached Cells, those inside ItemSpaces included, plus one per
@@ -46,8 +49,8 @@ fix of it does not fail this module.
 
 Each recipe is checked against the conftest inheritance fixture
 (``cache_sample``), a copy of the conftest ItemSpace fixture
-(``make_testmodel_for_clear``) made here as ``itemspace_model``, whose
-teardown checks no internals, the serializer-compat fixture model, and
+(``make_testmodel_for_clear``) made here as ``itemspace_model``, the
+serializer-compat fixture model, and
 a model built here with multiple inheritance, overriding members,
 nested ItemSpaces and a Space formula that returns ``refs`` and
 ``base``.
@@ -159,6 +162,7 @@ def compat_model():
     m = fixturemodel.build_fixture_model(name="ToolContractsCompat")
     m.Params[3]
     yield m
+    m._impl._check_sanity()
     m.close()
 
 
@@ -210,6 +214,7 @@ def inheritance_model():
     assert q[4].k2() == 22
 
     yield m
+    m._impl._check_sanity()
     m.close()
 
 
@@ -257,13 +262,14 @@ def valued_model():
     s[2].Child[8].w()
 
     yield m
+    m._impl._check_sanity()
     m.close()
 
 
 @pytest.fixture
 def itemspace_model():
     """The model of the conftest fixture ``make_testmodel_for_clear``,
-    built here so that its teardown only closes it::
+    built here so that the module does not depend on that fixture::
 
         ToolContractsItems---Parent[a]---Foo(x)
                                 |
@@ -273,10 +279,6 @@ def itemspace_model():
     Parent.Child.Bar(1) and the input Parent.Child.Bar[2];
     Parent[1].Foo(1); Parent.Child[1].Bar(1).
     ItemSpaces: Parent[1], Parent.Child[1].
-
-    The conftest fixture also checks modelx's internal invariants when
-    it tears the model down, which would fail a test here for a reason
-    that is not a tool-API result.
     """
     m = mx.new_model("ToolContractsItems")
     p = m.new_space("Parent")
@@ -300,6 +302,7 @@ def itemspace_model():
     assert bar.is_input(2)
 
     yield m
+    m._impl._check_sanity()
     m.close()
 
 
@@ -436,6 +439,7 @@ def test_tracegraph_on_basicterm_s(tmp_path):
             assert sum(len(c) for c in proj.cells.values()) == 1832
             assert sum(len(c) for c in proj[2].cells.values()) == 3632
             assert len(m.tracegraph) == 5465
+        m._impl._check_sanity()
     finally:
         m.close()
 
@@ -451,6 +455,7 @@ def test_tracegraph_on_basicterm_s(tmp_path):
         assert len(m.tracegraph) == count_values(m) + count_itemspaces(m)
         if measured:
             assert len(links) == 77
+        m._impl._check_sanity()
     finally:
         m.close()
 
@@ -678,6 +683,7 @@ def error_model():
     s.new_cells("t", formula=lambda x: x + "a")
     s.new_cells("ok", formula=lambda x: x)
     yield m
+    m._impl._check_sanity()
     m.close()
 
 
@@ -735,6 +741,7 @@ def close_new_models():
     yield
     for model in list(mx.get_models().values()):
         if model not in before:
+            model._impl._check_sanity()
             model.close()
 
 
@@ -815,6 +822,7 @@ def test_get_object_leaf_path():
         assert mx.get_object(foo.fullname + ".parameters") == ("x",)
         assert dict(mx.get_object("ToolContractsLeaf.S.refs"))["k"] == 5
         assert len(graph) == before
+        m._impl._check_sanity()
     finally:
         m.close()
 
