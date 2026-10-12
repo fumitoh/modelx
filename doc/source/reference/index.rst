@@ -13,11 +13,13 @@ Reference Guide
    model
    space/index
    cells
+   formula
    macro
    reference
    view
    iospec
    element
+   toolapi
 
 
 

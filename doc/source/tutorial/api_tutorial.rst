@@ -508,10 +508,11 @@ taken from ``data`` for each policy::
 Dynamic spaces of a base space are not passed on to the derived spaces.
 When a space is derived from a base space that has dynamically created
 subspaces, those dynamically created subspaces themselves are not passed
-on to the derived spaces. Instead, the parameter function of the base
-space is inherited, so subspaces of the derived space are created upon
-call(using ``()``) or subscript (using ``[]``) operators
-the derived space with arguments.
+on to the derived spaces. The parameter function of the base space
+is not inherited either: a derived space has no parameter function
+until you set one on it, and only then are subspaces of the derived space
+created upon call (using ``()``) or subscript (using ``[]``) operators
+on the derived space with arguments.
 
 Reading Excel files
 -------------------

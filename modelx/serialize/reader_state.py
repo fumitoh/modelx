@@ -1,6 +1,6 @@
 """Restore the system's models when a model read fails.
 
-``ModelReader.read_model`` for serializer versions 4-7 builds the new
+``ModelReader.read_model`` for serializer versions 4-8 builds the new
 model in the live system: ``parse_dir`` creates a model (making it
 current), and ``RenameParser`` renames it to its saved name immediately
 during parsing, displacing a same-named existing model to

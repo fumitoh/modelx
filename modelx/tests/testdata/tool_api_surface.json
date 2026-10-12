@@ -1,0 +1,510 @@
+{
+ "errors": {
+  "modelx.core.errors": {
+   "DeepReferenceError": {
+    "bases": [
+     "builtins.Exception"
+    ],
+    "kind": "class",
+    "name": "DeepReferenceError"
+   },
+   "DeletedObjectError": {
+    "bases": [
+     "builtins.Exception"
+    ],
+    "kind": "class",
+    "name": "DeletedObjectError"
+   },
+   "FormulaError": {
+    "bases": [
+     "builtins.Exception"
+    ],
+    "kind": "class",
+    "name": "FormulaError"
+   },
+   "NoneReturnedError": {
+    "bases": [
+     "builtins.Exception"
+    ],
+    "kind": "class",
+    "name": "NoneReturnedError"
+   }
+  }
+ },
+ "forwarded": {
+  "ReferenceProxy": {
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "()"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   },
+   "allow_none": {
+    "kind": "property"
+   },
+   "doc": {
+    "kind": "property"
+   },
+   "fullname": {
+    "kind": "property"
+   },
+   "model": {
+    "kind": "property"
+   },
+   "name": {
+    "kind": "property"
+   },
+   "parent": {
+    "kind": "property"
+   }
+  }
+ },
+ "members": {
+  "Cells": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_object": {
+    "kind": "method",
+    "signature": "(self, name, as_proxy=False)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_defined": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_derived": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   }
+  },
+  "CellsView": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "DynamicSpace": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_direct_bases": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_object": {
+    "kind": "method",
+    "signature": "(self, name, as_proxy=False)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_base": {
+    "kind": "method",
+    "signature": "(self, other)"
+   },
+   "_is_dynamic": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_root": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_static": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_sub": {
+    "kind": "method",
+    "signature": "(self, other)"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_named_itemspaces": {
+    "kind": "property"
+   },
+   "_own_refs": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   }
+  },
+  "ExcelRange": {
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "Formula": {
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "ItemNode": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "ItemSpace": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_direct_bases": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_object": {
+    "kind": "method",
+    "signature": "(self, name, as_proxy=False)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_base": {
+    "kind": "method",
+    "signature": "(self, other)"
+   },
+   "_is_dynamic": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_root": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_static": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_sub": {
+    "kind": "method",
+    "signature": "(self, other)"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_named_itemspaces": {
+    "kind": "property"
+   },
+   "_own_refs": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   },
+   "argvalues": {
+    "kind": "property"
+   }
+  },
+  "Macro": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_object": {
+    "kind": "method",
+    "signature": "(self, name, as_proxy=False)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   }
+  },
+  "MacroView": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "Model": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_assoc_values": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_from_name": {
+    "kind": "method",
+    "signature": "(self, name)"
+   },
+   "_get_object": {
+    "kind": "method",
+    "signature": "(self, name, as_proxy=False)"
+   },
+   "_get_refs": {
+    "kind": "method",
+    "signature": "(self, value)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   }
+  },
+  "ModuleData": {
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "NullFormula": {
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "PandasData": {
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "ParamFunc": {
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "RefView": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "ReferenceNode": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "ReferenceProxy": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "is_derived": {
+    "kind": "method",
+    "signature": "(self)"
+   }
+  },
+  "SpaceView": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   }
+  },
+  "UserSpace": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_direct_bases": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_object": {
+    "kind": "method",
+    "signature": "(self, name, as_proxy=False)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_base": {
+    "kind": "method",
+    "signature": "(self, other)"
+   },
+   "_is_dynamic": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_root": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_static": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_sub": {
+    "kind": "method",
+    "signature": "(self, other)"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_named_itemspaces": {
+    "kind": "property"
+   },
+   "_own_refs": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   }
+  }
+ }
+}

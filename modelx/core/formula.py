@@ -478,6 +478,14 @@ class Formula:
     #     return {"source": self.source}
 
     def _get_attrdict(self, extattrs=None, recursive=True):
+        """A dict that describes the Formula.
+
+        ``extattrs`` and ``recursive`` are ignored.
+
+        Returns:
+            dict: ``{'source': source}``, where ``source`` is
+            :attr:`source`.
+        """
         return {"source": self.source}
 
 

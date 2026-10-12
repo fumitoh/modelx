@@ -1,6 +1,6 @@
 """Failed model reads must not disturb pre-existing models.
 
-``read_model`` for serializer versions 4-7 builds the new model in the
+``read_model`` for serializer versions 4-8 builds the new model in the
 live system, renaming it to its saved name during parsing and thereby
 displacing a same-named existing model to ``<name>_BAK<n>``.  When the
 read fails partway, besides closing the half-built model, the reader

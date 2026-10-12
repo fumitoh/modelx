@@ -647,8 +647,32 @@ def get_object(name: str, as_proxy=False):
     Returns:
         The requested modelx object.
 
+    Each part of ``name`` after the model name is read as an attribute
+    of the object before it: a child space, a cells, a reference,
+    which gives its value, or an item space by its ``__SpaceN`` name.
+    If a reference's value is a modelx object, the parts after it are
+    looked up in that object.
+    The last part can also be an attribute that is not a modelx object:
+    ``'Model1.Space1.cells'`` gives the space's
+    :attr:`~modelx.core.space.UserSpace.cells`.
+
+    **Known limitation:** with ``as_proxy=True``, the lookup ends at the
+    first part that names a reference, and any parts after it are
+    ignored: if ``x`` is a reference in ``Space1``,
+    ``get_object('Model1.Space1.x.real', as_proxy=True)``
+    returns the proxy of ``x``.
+    This is not part of the frozen contract and may change.
+
+    **Known limitation:** a name that continues past an object
+    that is not a modelx object, such as the value of a reference
+    or a leaf attribute (``'Model1.Space1.x.real'``, where ``x``
+    refers to 1), raises :obj:`AttributeError` on this release.
+    The type and the message of this exception are not part of the
+    frozen contract and may change.
+
     Raises:
-        AttributeError: If the object doesn't exist.
+        NameError: If the first part is not the name of an open model,
+            or a later part is not found in the object before it.
 
     Example:
         >>> import modelx as mx
@@ -1001,12 +1025,15 @@ def write_model(model, model_path, backup=True, log_input=False, version=None):
 
     Write ``model`` to text files in a folder(directory) tree at ``model_path``.
 
-    Model attributes, such as its name and refs, are output in the file
-    named *_model.py*, directly under `model_path`.
-    For each space in the model, a text file is created with the same name
-    as the space with ".py" extension. The tree structure of the spaces
-    is represented by the tree of folders, i.e. child spaces
-    of a space is stored in a folder named the space.
+    In the format written by default,
+    model attributes, such as its name and refs, are output in the file
+    named *__init__.py*, directly under `model_path`, and the format
+    version is recorded in *_system.json* beside it.
+    For each space in the model, a folder is created with the same name
+    as the space, and the space is output in the file *__init__.py*
+    in the folder. The tree structure of the spaces
+    is represented by the tree of folders, i.e. the folders of the
+    child spaces of a space are created in the folder of the space.
 
     Generated text files are Python pseudo-scripts, i.e. they are
     syntactically correct but semantically not-correct Python scripts,
@@ -1037,6 +1064,14 @@ def write_model(model, model_path, backup=True, log_input=False, version=None):
         model_path(str): Folder path where the model will be output.
         backup(bool, optional): Whether to backup the directory/folder
             if it already exists. Defaults to ``True``.
+            If ``True``, an existing folder at ``model_path`` is renamed
+            to ``model_path`` followed by ``_BAK1``, after the existing
+            backups ``_BAK1`` and ``_BAK2`` are renamed to ``_BAK2`` and
+            ``_BAK3``. Up to 3 backups are kept, ``_BAK1`` being the newest,
+            and the backup that would become the fourth is deleted.
+            If ``False``, an existing folder at ``model_path`` is deleted
+            before the model is written, and existing backups are left
+            as they are.
         log_input(bool, optional): If ``True``, input values in Cells are
             output to *_input_log.txt* under ``model_path``. Defaults
             to ``False``.
@@ -1075,6 +1110,11 @@ def zip_model(model, model_path, backup=True, log_input=False,
         model_path(str): Path to the zip file.
         backup(bool, optional): Whether to backup an existing file with
             the same name if it already exists. Defaults to ``True``.
+            Up to 3 backups are kept, as by :func:`write_model`.
+            The ``_BAK1`` to ``_BAK3`` suffixes are added after
+            the extension, as in ``model.zip_BAK1``.
+            If ``False``, an existing file is replaced, and existing
+            backups are left as they are.
         log_input(bool, optional): If ``True``, input values in Cells are
             output to *_input_log.txt* under ``model_path``. Defaults
             to ``False``.
@@ -1121,11 +1161,46 @@ def zip_model(model, model_path, backup=True, log_input=False,
 def read_model(model_path, name=None):
     """Read model from files.
 
-    Read model form a folder(directory) tree or a zip file ``model_path``.
+    Read model from a folder(directory) tree or a zip file ``model_path``.
     The model must be saved either by :py:func:`~write_model`,
     :py:meth:`Model.write<modelx.core.model.Model.write>`,
-    :py:func:`~write_model`
+    :py:func:`~zip_model`
     or :py:meth:`Model.zip<modelx.core.model.Model.zip>`.
+
+    The model read becomes the current model.
+    If an open model already has the name that the model is read with
+    (the saved name, or ``name`` if given), the open model is renamed
+    to ``<name>_BAK<n>``, and a :obj:`UserWarning` gives its new name.
+    ``<n>`` is taken from a counter that runs for the whole session
+    and is shared by all names, so it is not always 1.
+
+    If the read fails part way, the exception is raised,
+    and what the read leaves behind depends on the format version
+    the model was saved in:
+
+    * Versions 4 to 8, the formats of modelx 0.9.0 and later
+      (8 is the version this release writes by default):
+      the half-built model is closed, an open model that the read renamed
+      to ``<name>_BAK<n>`` gets its name back, and the model that was
+      current before the call is current again.
+      The same models are then open as before the call,
+      under the same names, although their order in
+      :func:`get_models` can change, and
+      the :obj:`UserWarning` about the renaming has already been issued.
+    * Versions 1 to 3, the formats of modelx before 0.9.0:
+      see the known limitation below.
+
+    **Known limitation:** after a failed read of a model saved in
+    versions 1 to 3, the half-built model is closed, but an open model
+    that the read renamed keeps its ``<name>_BAK<n>`` name,
+    and no model is current.
+    On this release, these readers also fail with :obj:`AttributeError`
+    on any cells defined by a formula, so a model in these formats
+    that has one cannot be read.
+    This is not part of the frozen contract and may change.
+
+    The cases listed under Raises are found before anything is built,
+    so they leave the open models and the current model as they were.
 
     Args:
         model_path(str): Path to a model folder or a zipped model file.
@@ -1133,6 +1208,13 @@ def read_model(model_path, name=None):
 
     Returns:
         A Model object constructed from the files.
+
+    Raises:
+        FileNotFoundError: If ``model_path`` does not exist.
+        ValueError: If ``model_path`` is neither a folder nor a zip file,
+            if it has neither ``_system.json`` nor, for the oldest format,
+            ``_model.py`` at its root, or if the model was saved in
+            a format version that this release cannot read.
 
     .. versionadded:: 0.0.22
     """
