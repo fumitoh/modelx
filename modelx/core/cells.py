@@ -13,7 +13,9 @@
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 import warnings
 from collections import namedtuple
-from collections.abc import Mapping, Callable, Sequence
+from collections.abc import (
+    Mapping, Callable, Sequence, ItemsView, ValuesView
+)
 from itertools import combinations
 
 from modelx.core.base import (
@@ -61,6 +63,104 @@ class CellsMaker:
 
 
 ArgsValuePair = namedtuple("ArgsValuePair", ["args", "value"])
+
+
+def _iter_stored(impl):
+    """Yield ``(key, value)`` for each value that ``impl`` stores,
+    where ``key`` is the full stored key, a tuple of all the arguments.
+
+    Mapping's own values() and items() look each key that iter(cells)
+    yields up again as ``cells[key]``, and Cells.__getitem__ reads a
+    tuple as the whole argument tuple. For h(x) holding h((1, 2)), they
+    raised TypeError; holding h((1,)) only, they ran the formula for
+    h(1), stored it and raised RuntimeError (dictionary changed size
+    during iteration); holding both, they gave h(1)'s value for the
+    key (1,). A stored key goes through neither tuplize_key nor
+    binding, so it is read as it was stored, and faster: over 100,000
+    values of h(x), list(h.values()) took 57 ms, against 97 ms through
+    cells[key].
+    """
+    # An uncached Cells stores nothing: setting is_cached to False
+    # clears every value, input values too, and __setitem__ refuses.
+    # For an uncached Cells eval_node never takes its stored branch,
+    # so get_value_from_key would run the formula.
+    if not impl.is_cached:
+        return
+    # get_value_from_key goes through executor.eval_node, so a formula
+    # that reads values() or items() through a Reference to a Cells
+    # still records an edge from each node it reads, as cells[key] did,
+    # and is cleared when one of them changes. Reading impl.data[key]
+    # directly would record none, and the formula would keep a stale
+    # value, as one that reads series does.
+    # The loop runs over impl.data itself, not a copy, as iter(cells)
+    # does: a Cells changed between two steps raises RuntimeError, and
+    # nothing runs between taking a key and reading it, so every key
+    # read is stored and eval_node never runs the formula.
+    get_value = impl.get_value_from_key
+    for key in impl.data:
+        yield key, get_value(key)
+
+
+class CellsValuesView(ValuesView):
+    """What :meth:`Cells.values` returns: the stored values.
+
+    It reads only the values that the Cells stores and never runs the
+    formula.
+    """
+
+    __slots__ = ()
+
+    def __iter__(self):
+        for _, value in _iter_stored(self._mapping._impl):
+            yield value
+
+    def __contains__(self, value):
+        # ValuesView.__contains__ reads mapping[key] itself instead of
+        # going through __iter__, so it had the same defect.
+        for v in self:
+            if v is value or v == value:
+                return True
+        return False
+
+
+class CellsItemsView(ItemsView):
+    """What :meth:`Cells.items` returns: the stored ``(key, value)``
+    pairs, with the keys that ``iter(cells)`` yields.
+
+    It reads only the values that the Cells stores and never runs the
+    formula.
+    """
+
+    __slots__ = ()
+
+    def __iter__(self):
+        impl = self._mapping._impl
+        # The same test as Cells.__iter__, so the keys are the ones that
+        # iter(cells) yields, for every signature: the argument itself
+        # for one parameter (for a Cells whose only parameter is *args,
+        # the stored tuple of arguments), and the stored key otherwise.
+        if len(impl.formula.parameters) == 1:
+            for key, value in _iter_stored(impl):
+                yield key[0], value
+        else:
+            yield from _iter_stored(impl)
+
+    def __contains__(self, item):
+        # ItemsView.__contains__ reads mapping[key] itself instead of
+        # going through __iter__, so it had the same defect, and for a
+        # key that was not stored it ran the formula: with h(1) not
+        # stored, (1, 10) in r.items() in a formula, r referring to
+        # h(x) = 10 * x, ran h(1), stored it, and returned True.
+        key, value = item
+        impl = self._mapping._impl
+        if len(impl.formula.parameters) == 1:
+            key = (key,)
+        # eval_node's own test for a stored read, so the formula never
+        # runs. As for ``key in cells``, no default is applied.
+        if impl.is_cached and impl.has_node(key):
+            v = impl.get_value_from_key(key)
+            return v is value or v == value
+        return False
 
 
 class Cells(Interface, Mapping, Callable, NodeFactory):
@@ -225,6 +325,43 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
             return inner()
         else:
             return iter(self._impl.data)
+
+    def values(self):
+        """Return a view of the stored values.
+
+        The view reads only the values that the Cells stores:
+        it never runs the formula and never adds a value.
+        See :ref:`cells-value-operations`.
+
+        .. versionchanged:: 0.34.0
+            For a Cells with one parameter whose argument is a tuple,
+            each value is read by the key it is stored under.
+            It used to be looked up again as ``cells[key]``,
+            which reads a tuple as the tuple of all the arguments.
+        """
+        return CellsValuesView(self)
+
+    def items(self):
+        """Return a view of the stored ``(key, value)`` pairs.
+
+        The keys are those that ``iter(cells)`` yields.
+        The view reads only the values that the Cells stores:
+        it never runs the formula and never adds a value.
+        ``(key, value) in cells.items()`` is :obj:`False`
+        when no value is stored for ``key``,
+        and applies no default arguments.
+        See :ref:`cells-value-operations`.
+
+        .. versionchanged:: 0.34.0
+            For a Cells with one parameter whose argument is a tuple,
+            each value is read by the key it is stored under.
+            It used to be looked up again as ``cells[key]``,
+            which reads a tuple as the tuple of all the arguments.
+            ``(key, value) in cells.items()`` no longer runs the formula
+            for a ``key`` that is not stored,
+            and no longer applies default arguments.
+        """
+        return CellsItemsView(self)
 
     def __hash__(self):
         return hash(id(self))
