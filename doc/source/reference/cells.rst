@@ -50,8 +50,10 @@ Value operations
   ~Cells.clear_all
   ~Cells.clear_at
   ~Cells.is_input
+  ~Cells.items
   ~Cells.match
   ~Cells.value
+  ~Cells.values
 
 A Cells stores the values that its formula has calculated,
 and the input values assigned to it, by their arguments.
@@ -73,8 +75,20 @@ They never run the formula and never add a value, so
 * ``key in cells``. Default arguments are not applied:
   for a Cells ``g(t, k=1)`` that holds ``g(1)``,
   ``(1, 1) in g`` is :obj:`True` and ``(1,) in g`` is :obj:`False`.
-* ``cells.values()`` and ``cells.items()``, with the exception in the
-  known limitation below.
+  For a Cells with one parameter whose argument is a tuple,
+  see the known limitation below.
+* ``cells.values()`` and ``cells.items()``.
+  ``items()`` pairs each key that ``iter(cells)`` yields
+  with the value stored for it,
+  so ``dict(cells.items())`` is a :obj:`dict` of the stored values.
+  ``value in cells.values()`` and ``(key, value) in cells.items()``
+  also read only stored values,
+  and ``(key, value) in cells.items()``, like ``key in cells``,
+  applies no default arguments.
+  A formula that reads them through a Reference to the Cells
+  depends on each value it reads:
+  its value is cleared when one of those values changes,
+  but not when a value is added.
 * :attr:`~Cells.series` and :attr:`~Cells.frame`, and :meth:`~Cells.to_series`
   and :meth:`~Cells.to_frame` called without arguments.
 * ``cells.node(*args).has_value()``, and ``cells.node(*args).value``,
@@ -85,25 +99,35 @@ They never run the formula and never add a value, so
 
 .. admonition:: Known limitation
 
-   ``cells.values()`` and ``cells.items()`` look each key up again
-   as ``cells[key]``. For a Cells with one parameter whose argument
-   is a tuple, the key is then read as the arguments themselves:
-   with ``h((1, 2))`` stored, ``values()`` and ``items()`` raise
-   :obj:`TypeError`.
-   With ``h((1,))`` stored, they read ``h(1)`` in its place:
-   if ``h(1)`` is not stored, they run the formula for ``h(1)``,
-   store its value, and then raise :obj:`RuntimeError`
-   because the Cells changed during the iteration;
-   if ``h(1)`` is stored, they return the value of ``h(1)``
-   for the key ``(1,)``.
-   ``(1, 2) in h`` is :obj:`False` for the same reason;
-   ``((1, 2),) in h`` is :obj:`True`.
+   ``key in cells``, ``key in cells.keys()``, ``cells[key]``,
+   ``cells.get(key)``, ``cells[key] = value`` and ``dict(cells)``
+   read a key whose type is tuple as the tuple of all the arguments.
+   This goes wrong for some keys that ``iter(cells)`` yields:
+
+   * For a Cells ``h(x)`` with one parameter whose argument is itself
+     a tuple. With ``h((1, 2))`` stored, ``iter(h)`` yields ``(1, 2)``,
+     but ``(1, 2) in h`` is :obj:`False`,
+     and ``h[(1, 2)]`` and ``dict(h)`` raise :obj:`TypeError`,
+     because they read ``(1, 2)`` as two arguments.
+     ``(1,) in h``, ``h[(1,)]``, ``h.get((1,))`` and
+     ``h[(1,)] = value`` mean ``h(1)``, not ``h((1,))``,
+     and with only ``h((1,))`` stored, ``dict(h)`` runs the formula
+     for ``h(1)`` and gives its value for the key ``(1,)``.
+   * For a Cells with ``*args``. For ``f(*args)``,
+     ``key in f`` is :obj:`False` for every key that ``iter(f)`` yields.
+     For ``f(a, *args)``, ``f[key]``, ``f.get(key)``, ``dict(f)``
+     and ``f.node(*key)`` read other arguments.
+
+   ``dict(cells.items())`` reads the stored values of any Cells.
+   For a tuple argument of ``h(x)``, wrap it in another tuple,
+   as in ``h[((1, 2),)]``, or use ``h.node((1, 2)).value``.
    This is not part of the frozen contract (see :ref:`toolapi-tiers`)
    and may change.
 
 ``cells.node(*args).value`` reads every stored value without running
 the formula, with ``args = (key,)`` for a Cells with one parameter
-and ``args = key`` for any other Cells.
+and ``args = key`` for any other Cells,
+except a Cells with ``*args`` (see the known limitation above).
 
 .. rubric:: Running the formula when no value is stored
 
