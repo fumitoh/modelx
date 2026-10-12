@@ -75,10 +75,11 @@ def _iter_stored(impl):
     raised TypeError; holding h((1,)) only, they ran the formula for
     h(1), stored it and raised RuntimeError (dictionary changed size
     during iteration); holding both, they gave h(1)'s value for the
-    key (1,). A stored key goes through neither tuplize_key nor
-    binding, so it is read as it was stored, and faster: over 100,000
-    values of h(x), list(h.values()) took 57 ms, against 97 ms through
-    cells[key].
+    key (1,). For a(x, *args) they read every key as other arguments,
+    ran the formula and raised RuntimeError. A stored key goes through
+    neither tuplize_key nor binding, so it is read as it was stored,
+    and faster: over 100,000 values of h(x), list(h.values()) took
+    53 ms, against 95 ms through cells[key].
     """
     # An uncached Cells stores nothing: setting is_cached to False
     # clears every value, input values too, and __setitem__ refuses.
@@ -93,9 +94,9 @@ def _iter_stored(impl):
     # directly would record none, and the formula would keep a stale
     # value, as one that reads series does.
     # The loop runs over impl.data itself, not a copy, as iter(cells)
-    # does: a Cells changed between two steps raises RuntimeError, and
-    # nothing runs between taking a key and reading it, so every key
-    # read is stored and eval_node never runs the formula.
+    # does, so a Cells changed between two steps behaves as a dict
+    # does. Nothing runs between taking a key and reading it, so every
+    # key read is stored and eval_node never runs the formula.
     get_value = impl.get_value_from_key
     for key in impl.data:
         yield key, get_value(key)
@@ -334,10 +335,12 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         See :ref:`cells-value-operations`.
 
         .. versionchanged:: 0.34.0
-            For a Cells with one parameter whose argument is a tuple,
-            each value is read by the key it is stored under.
+            Each value is read by the key it is stored under.
             It used to be looked up again as ``cells[key]``,
-            which reads a tuple as the tuple of all the arguments.
+            which reads a tuple as the tuple of all the arguments,
+            and so read other arguments for a Cells with one parameter
+            whose argument is a tuple,
+            and for a Cells with ``*args`` after another parameter.
         """
         return CellsValuesView(self)
 
@@ -353,10 +356,12 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         See :ref:`cells-value-operations`.
 
         .. versionchanged:: 0.34.0
-            For a Cells with one parameter whose argument is a tuple,
-            each value is read by the key it is stored under.
+            Each value is read by the key it is stored under.
             It used to be looked up again as ``cells[key]``,
-            which reads a tuple as the tuple of all the arguments.
+            which reads a tuple as the tuple of all the arguments,
+            and so read other arguments for a Cells with one parameter
+            whose argument is a tuple,
+            and for a Cells with ``*args`` after another parameter.
             ``(key, value) in cells.items()`` no longer runs the formula
             for a ``key`` that is not stored,
             and no longer applies default arguments.

@@ -102,25 +102,32 @@ They never run the formula and never add a value, so
    ``key in cells``, ``key in cells.keys()``, ``cells[key]``,
    ``cells.get(key)``, ``cells[key] = value`` and ``dict(cells)``
    read a key whose type is tuple as the tuple of all the arguments.
-   For a Cells ``h(x)`` with one parameter,
-   this goes wrong when the argument is itself a tuple:
+   This goes wrong for some keys that ``iter(cells)`` yields:
 
-   * with ``h((1, 2))`` stored, ``iter(h)`` yields ``(1, 2)``,
+   * For a Cells ``h(x)`` with one parameter whose argument is itself
+     a tuple. With ``h((1, 2))`` stored, ``iter(h)`` yields ``(1, 2)``,
      but ``(1, 2) in h`` is :obj:`False`,
      and ``h[(1, 2)]`` and ``dict(h)`` raise :obj:`TypeError`,
-     because they read ``(1, 2)`` as two arguments;
-   * ``(1,) in h``, ``h[(1,)]`` and ``h[(1,)] = value``
-     mean ``h(1)``, not ``h((1,))``.
+     because they read ``(1, 2)`` as two arguments.
+     ``(1,) in h``, ``h[(1,)]``, ``h.get((1,))`` and
+     ``h[(1,)] = value`` mean ``h(1)``, not ``h((1,))``,
+     and with only ``h((1,))`` stored, ``dict(h)`` runs the formula
+     for ``h(1)`` and gives its value for the key ``(1,)``.
+   * For a Cells with ``*args``. For ``f(*args)``,
+     ``key in f`` is :obj:`False` for every key that ``iter(f)`` yields.
+     For ``f(a, *args)``, ``f[key]``, ``f.get(key)``, ``dict(f)``
+     and ``f.node(*key)`` read other arguments.
 
-   To read the value stored for a tuple argument,
-   wrap it in another tuple, as in ``h[((1, 2),)]``,
-   or use ``h.node((1, 2)).value`` or ``dict(h.items())``.
+   ``dict(cells.items())`` reads the stored values of any Cells.
+   For a tuple argument of ``h(x)``, wrap it in another tuple,
+   as in ``h[((1, 2),)]``, or use ``h.node((1, 2)).value``.
    This is not part of the frozen contract (see :ref:`toolapi-tiers`)
    and may change.
 
 ``cells.node(*args).value`` reads every stored value without running
 the formula, with ``args = (key,)`` for a Cells with one parameter
-and ``args = key`` for any other Cells.
+and ``args = key`` for any other Cells,
+except a Cells with ``*args`` (see the known limitation above).
 
 .. rubric:: Running the formula when no value is stored
 
