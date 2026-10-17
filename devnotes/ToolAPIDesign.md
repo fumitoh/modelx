@@ -163,7 +163,7 @@ Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) m
     - The module check is not optional. A Reference can hold an instance of a user's own class named `Model` or `Cells`, and only the module tells it from a modelx object: the bridge's fallback to the name alone failed on exactly that (fix-bridge-adoption/b01b). On `main` on 2026-10-17 the recipe gave `None` for such classes, and for a class whose `__module__` is None (kindcheck/probe_names.py, names14/probe_t1.py).
     - The check must not assume `__module__` is a str. wrapt's pure-Python ObjectProxy copies a `__module__` property into every proxy class, so `type(proxy).__module__.startswith` raises AttributeError, and a Reference holding such a proxy would fail to encode instead of staying opaque (names14/probe_edge.py).
     - The recipe already works on 0.33, so consumers need no version gate for it.
-    - Cost: a frozen class name cannot be deprecated with a warning, because reading `type(v).__name__` runs no modelx code. **Recommended, for the owner to confirm:** a listed name follows decision 2 without its warning. It is marked deprecated on toolapi.rst and in the release notes' "Deprecations" section at least two minor releases before a rename or split, which then lands only when the downstream job (§8) is green, under "Backward Incompatible Changes". This is the one exception to decision 2's warning step, and §8's audit cannot see it (§9, risk 14).
+    - Cost: a frozen class name cannot be deprecated with a warning, because reading `type(v).__name__` runs no modelx code. **Decided by the owner on 2026-10-17:** a listed name follows decision 2 without its warning. It is marked deprecated on toolapi.rst and in the release notes' "Deprecations" section at least two minor releases before a rename or split, which then lands only when the downstream job (§8) is green, under "Backward Incompatible Changes". This is the one exception to decision 2's warning step, and §8's audit cannot see it (§9, risk 14).
     - The check costs 0.13 µs on a modelx object and 0.10 µs on any other value. In the same harness, the `_kind` lookup this replaces cost 0.03 µs on a hit and 0.14 µs on a miss, which most Reference values take (kindcheck/names14/probe_t1.py, min of 7 × 1,000,000).
     - This changes PR 1's page in three places, all in PR 2:
       - "What is not tool API" keeps tests of a class by its name only for classes T1 does not list. Its example becomes an unlisted class (`NullFormula`), and it says that a name test of a listed class is tool API only after the module check.
@@ -1167,7 +1167,7 @@ Internal, and not tool API, means:
 4. It stays for **at least two minor releases**, and until the downstream job (§8) is green against the latest released modelx-bridge and modelx-mcp.
 5. Only then is it removed, under "Backward Incompatible Changes", with migration text, as 0.24 did.
 
-A class name T1 lists cannot warn (decision 14): steps 1, 2, 4 and 5 apply, and step 3 does not. It is recommended, for the owner to confirm, together with decision 14.
+A class name T1 lists cannot warn (decision 14): steps 1, 2, 4 and 5 apply, and step 3 does not. The owner decided this on 2026-10-17.
 
 **Gates.**
 - `core/base/test_spyder_surface.py` stays byte-stable.
