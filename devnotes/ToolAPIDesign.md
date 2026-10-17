@@ -20,7 +20,7 @@
 
 **What.** modelx 0.34 gains:
 - fourteen tool-API elements, T1–T14 in §3:
-  - eleven sets of underscore members on Model, Spaces, Cells, Macro, ReferenceProxy, IOSpecs and nodes;
+  - ten sets of underscore members on Model, Spaces, Cells, Macro, ReferenceProxy and nodes (T2–T11), and a documented recipe that tells kinds apart by ten frozen class names (T1, decision 14);
   - new exception and warning classes in `modelx.core.errors`, which becomes a supported import path for tools; they are not re-exported at the top level (decision 3);
   - two groups of top-level names: a name check with a model-file reader, and a provisional calculation hook;
 - eleven fixes to existing members, F1–F11;
@@ -52,7 +52,7 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 4. **The tool API that is not frozen** may change or be removed in any release, with a note in the release notes.
 5. **Freezing starts at 0.34.0,** the first release with the page.
 
-Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) made `Cells.values()` and `Cells.items()` read each value by its stored key, which removed one Known limitation from PR 1's page and narrowed another. Two older defects found on the way are filed as fumitoh/modelx#282 (a formula with `*args` receives its arguments wrapped in an extra tuple) and fumitoh/modelx#283 (`series`, `frame` and `to_series(args)` with tuple arguments). PR 2 is next.
+Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) made `Cells.values()` and `Cells.items()` read each value by its stored key. That took them out of the Known limitation under "Value operations" in cells.rst, which now describes the key lookups that read a tuple as all the arguments, and `*args` Cells. Two older defects found on the way are filed as fumitoh/modelx#282 (a formula with `*args` receives its arguments wrapped in an extra tuple) and fumitoh/modelx#283 (`series`, `frame` and `to_series(args)` with tuple arguments). PR 2 is next.
 
 | decision | settled in | status |
 |---|---|---|
@@ -158,18 +158,23 @@ Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) m
 
     Rejected: leaving it alone. Then spyder's walk keeps calling `_`-named global References and Space-formula refs until decision 9's errors arrive in 0.36. Its Properties list keeps calling global References named `formula` or `parameters` for good, because those names are valid and stay valid (s02).
 14. **Kinds are told by class name; there is no `_kind` (T1).** Decided by the owner on 2026-10-17:
-    - A tool tells what a value is from its class: it first checks that the class is modelx's own, `type(v).__module__.startswith("modelx.")`, then reads `type(v).__name__`. No new member is added.
+    - A tool tells what a value is from its class: it first checks that the class is modelx's own, that `type(v).__module__` is a str starting with `"modelx."`, then reads `type(v).__name__`. No new member is added.
     - The names of the classes T1 lists become frozen tool API: `Model`, `UserSpace`, `ItemSpace`, `DynamicSpace`, `Cells`, `Macro`, `ReferenceProxy`, `PandasData`, `ExcelRange` and `ModuleData`. So does the promise that each is defined in a module of the `modelx` package. The exact module paths stay internal.
-    - The module check is not optional. A Reference can hold an instance of a user's own class named `Model` or `Cells`, and only the module tells it from a modelx object: the bridge's fallback to the name alone failed on exactly that (fix-bridge-adoption/b01b; re-measured on `main` 2026-10-17, kindcheck/probe_names.py).
+    - The module check is not optional. A Reference can hold an instance of a user's own class named `Model` or `Cells`, and only the module tells it from a modelx object: the bridge's fallback to the name alone failed on exactly that (fix-bridge-adoption/b01b). On `main` on 2026-10-17 the recipe gave `None` for such classes, and for a class whose `__module__` is None (kindcheck/probe_names.py, names14/probe_t1.py).
+    - The check must not assume `__module__` is a str. wrapt's pure-Python ObjectProxy copies a `__module__` property into every proxy class, so `type(proxy).__module__.startswith` raises AttributeError, and a Reference holding such a proxy would fail to encode instead of staying opaque (names14/probe_edge.py).
     - The recipe already works on 0.33, so consumers need no version gate for it.
-    - Cost: a frozen class name cannot be deprecated with a warning, because reading `type(v).__name__` runs no modelx code. Renaming or splitting a listed class is therefore a breaking change, announced in the release notes' "Backward Incompatible Changes"; the vocabulary may only grow. The check costs 0.13 to 0.20 µs, against 0.078 µs for the `_kind` attribute this replaces (kindcheck/probe_names.py; minimal/m02).
-    - This changes one line of PR 1's page: "Tests of an object's class by its name" moves out of "What is not tool API" for the listed classes. PR 2 makes that change and pins the names in the signature golden.
+    - Cost: a frozen class name cannot be deprecated with a warning, because reading `type(v).__name__` runs no modelx code. **Recommended, for the owner to confirm:** a listed name follows decision 2 without its warning. It is marked deprecated on toolapi.rst and in the release notes' "Deprecations" section at least two minor releases before a rename or split, which then lands only when the downstream job (§8) is green, under "Backward Incompatible Changes". This is the one exception to decision 2's warning step, and §8's audit cannot see it (§9, risk 14).
+    - The check costs 0.13 µs on a modelx object and 0.10 µs on any other value. In the same harness, the `_kind` lookup this replaces cost 0.03 µs on a hit and 0.14 µs on a miss, which most Reference values take (kindcheck/names14/probe_t1.py, min of 7 × 1,000,000).
+    - This changes PR 1's page in three places, all in PR 2:
+      - "What is not tool API" keeps tests of a class by its name only for classes T1 does not list. Its example becomes an unlisted class (`NullFormula`), and it says that a name test of a listed class is tool API only after the module check.
+      - The same list's imports bullet widens from `modelx.core` to every `modelx` module path other than `modelx.core.errors`, so the `modelx.io` paths of the three IOSpec classes are declared internal too.
+      - The Deprecation section, and the golden's module docstring, gain the class-name exception above.
 
     Rejected: the `_kind` class attribute that an earlier revision recommended (`Model._kind = 'Model'`, `ReferenceProxy._kind = 'Reference'`, `BaseIOSpec._kind = 'IOSpec'`, read with `getattr(type(v), '_kind', None)`). It would have kept class names internal and grouped the three IOSpec classes, but it adds a member to every class and gives tools two names for one thing.
 
 ## 2a. Classification
 
-TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import other than `modelx.core.errors` (decision 3), a type-name check, or undocumented behaviour of a call. UNMET means there is no way to get the fact today. N/A means the need asks for something modelx has no concept of (decision 4). B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
+TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import other than `modelx.core.errors` (decision 3), a type-name check other than T1's recipe for the classes it lists (decision 14, frozen from 0.34), or undocumented behaviour of a call. UNMET means there is no way to get the fact today. N/A means the need asks for something modelx has no concept of (decision 4). B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
 
 **Totals: TOOL_API 23, INTERNAL 27, UNMET 11, N/A 1.** By consumer: B 4/20/8 and 1 N/A, S 19/7/3.
 
@@ -253,7 +258,7 @@ Some rows were judgement calls:
 
 **Placement**
 - Each fact goes on the object it describes, as an underscore member. `is_valid_name` rejects a leading `_` (util.py:48-61), so in a static Space a new member cannot shadow a user's Cells, Space, or a Reference made by `set_ref` or by assignment (r03, r03b). A non-underscore name would make saved models holding a Reference of that name unloadable (inventory risk 1b), and it would hide a user's member of that name (T13).
-- Four paths still take `_` names: global References (r03), `new_space(refs=)` on a Model or a Space (refute2/r07), Space-formula parameter names, and refs a Space formula returns (r12). Decision 9 refuses `_self`, `_space`, `_model` and `__builtins__` at once in `new_space(refs=)` and as parameters, and `__builtins__` as a global, and deprecates the other `_` names on all four routes. Until 0.36, a new class-level member hides such a name from attribute access outside formulas. With `ItemSpace._kind` set, `R[7]._kind` gives `'ItemSpace'` where it gave 7, while a formula in `R[7]` still reads 7 (fix-spyder-snapshot/s05). The same holds in a static Space: `new_space('S', refs={'_kind': 'user-kind'})` makes `S._kind` return `'user-kind'` today (refute2/r07). Tools are not affected: F11 (C3) reads only class members, and T6 resolves members first.
+- Four paths still take `_` names: global References (r03), `new_space(refs=)` on a Model or a Space (refute2/r07), Space-formula parameter names, and refs a Space formula returns (r12). Decision 9 refuses `_self`, `_space`, `_model` and `__builtins__` at once in `new_space(refs=)` and as parameters, and `__builtins__` as a global, and deprecates the other `_` names on all four routes. Until 0.36, a new class-level member hides such a name from attribute access outside formulas. s05 measured it with the `_kind` of an earlier revision, which decision 14 dropped: with `ItemSpace._kind` set, `R[7]._kind` gave `'ItemSpace'` where it gave 7, while a formula in `R[7]` still read 7 (fix-spyder-snapshot/s05). The same holds for any member 0.34 does add, such as `_is_dynamic`. In a static Space, `new_space('S', refs={'_kind': 'user-kind'})` makes `S._kind` return `'user-kind'` today (refute2/r07). Tools are not affected: F11 (C3) reads only class members, and T6 resolves members first.
 - Once Model defines a member, `EditableParent.__setattr__` (parent.py:87-98) refuses a global Reference of that name. Today `m._get_revision = 1` is accepted as a global Reference (measured f01).
 - Facts that have no object go into `api.py` next to `get_object` (api.py:629).
 
@@ -307,16 +312,17 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
                      'ReferenceProxy', 'PandasData', 'ExcelRange', 'ModuleData'})
   def kind(v):
       t = type(v)
-      if not (t.__module__ or '').startswith('modelx.'):
+      mod = t.__module__               # not always a str: wrapt's ObjectProxy makes it a property
+      if not (isinstance(mod, str) and mod.startswith('modelx.')):
           return None                  # never a user's own class named Model
       return t.__name__ if t.__name__ in KINDS else None
   ```
-- **What is frozen.** The ten class names above, and that each is defined in a module of the `modelx` package. The exact module paths (`modelx.core.model`, `modelx.io.pandasio`, ...) stay internal. The set only grows; a rename or split of a listed class is a breaking change with a release note, because no warning can be raised when a tool reads `type(v).__name__` (decision 14).
+- **What is frozen.** The ten class names above, and that each is defined in a module of the `modelx` package. The exact module paths (`modelx.core.model`, `modelx.io.pandasio`, ...) stay internal. modelx adds names to the set; a rename or split of a listed class follows decision 14's deprecation without a warning, because no warning can be raised when a tool reads `type(v).__name__`.
 - **Semantics.**
-  - The name is the exact kind. An ItemSpace reports `'ItemSpace'`, never `'DynamicSpace'`, although its class subclasses DynamicSpace (space.py:2152); `isinstance` against modelx classes stays internal for this reason and because it needs `modelx.core.*` imports.
+  - The name is the exact kind. An ItemSpace reports `'ItemSpace'`, never `'DynamicSpace'`, although its class subclasses DynamicSpace (space.py:2152); `isinstance` against modelx classes stays internal for this reason and because it needs imports from modelx's internal modules, `modelx.core.*` or, for the three IOSpec classes, `modelx.io.*`.
   - `type()` reads no attribute of the object, so the check never runs `Model.__getattr__` or `BaseSpace.__getattr__`, never evaluates, and still answers on a deleted object and on an object of a closed model.
   - A Reference proxy is `'ReferenceProxy'`. The attrdict `'type'` of a proxy stays `'Reference'` (reference.py:199, 205), as spyder reads it; the two are different contracts.
-  - The three IOSpec classes have their own names. A tool that wants "any IOSpec" tests membership in `{'PandasData', 'ExcelRange', 'ModuleData'}`, which grows with new IOSpec classes.
+  - The three IOSpec classes have their own names. A tool that wants "any IOSpec" tests membership in `{'PandasData', 'ExcelRange', 'ModuleData'}`. When modelx adds an IOSpec class, the release notes' Tool API section names it; until a consumer adds the name, `kind()` gives `None` for it, which the bridge's codec treats as opaque.
   - The attrdict `'type'` is unchanged.
   - Every Model, Space, Cells, Macro and Reference resolves from its own `_idstr` and `_address` through `Model._get_from_name` (T6), with the exceptions T6 lists. That includes macros: a macro's `_idstr` is its name (`'mac'`), and on 0.33 `_get_from_name('mac')` raises KeyError (measured g01). An IOSpec has no `_idstr` (io/baseio.py:335), so it has no address.
 - **Capability table** (documented with it):
@@ -331,12 +337,12 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
 
 - **Edge cases.**
   - A Reference whose value is a modelx object: the value reports its own kind. Only the proxy reports `'ReferenceProxy'`. That holds for a resolved slot too (T5).
-  - ExcelRange is both a Reference value and an IOSpec, so a Reference holding one reports `'ExcelRange'`.
+  - ExcelRange is both a Reference value and an IOSpec, so the value of a Reference holding one, and its entry in `model.iospecs` (the same object), report `'ExcelRange'`; the proxy reports `'ReferenceProxy'`.
   - Views, nodes, and the Namespace objects formulas see are defined in modelx modules but are not in the set, so `kind()` gives `None` for them. Their attrdict `'type'` keeps their class name.
-  - A user's own class named `Model` or `Cells`, a DataFrame, an int and a module all give `None` (measured 2026-10-17, kindcheck/probe_names.py, on `main` at 1b90682).
+  - A user's own class named `Model` or `Cells`, a class whose `__module__` is None, a DataFrame, an int, numpy scalars and a module all give `None`. So do the Namespace objects a formula sees for `_self`, `_space` and `_model`, and the bound method it sees for a Cells name. A Space-, Cells- or ExcelRange-valued Reference read inside a formula gives the value's kind (measured 2026-10-17 on `main` at 1b90682 and on 0.33.0 at 4fa720f, with identical answers: kindcheck/names14/probe_t1.py).
 - **Internals.** None: the classes are model.py:225, space.py:729, :2112, :2152, cells.py:66, macro.py:51, reference.py:126, io/pandasio.py:65, io/excelio.py:253 and io/moduleio.py:66, unchanged.
 - **Cost.**
-  - 0.204 µs for a modelx object, 0.141 µs for an int and 0.130 µs for a user's class named `Model` (kindcheck/probe_names.py, CPython 3.11.15).
+  - 0.126–0.138 µs on a UserSpace, Cells, ReferenceProxy or ExcelRange, and 0.101–0.107 µs on an int, a user's class named `Model` or a DataFrame (kindcheck/names14/probe_t1.py, min of 7 × 1,000,000, CPython 3.11.15).
   - The bridge codec's in-function imports cost 1.68–1.73 µs today.
 
 #### T2 `_is_dynamic()` on every kind
@@ -1097,7 +1103,7 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 | 41 | get-object-leaf-path | TOOL_API | S1 `_get_object` leaf traversal (kept); C2(6) states it on `get_object`, pinned by a test |
 | 42 | lookup-miss-exception | INTERNAL | T12 `ObjectNotFoundError`; F4; F7 |
 | 43 | kind-type-name | TOOL_API | S3 `'type'`, unchanged |
-| 44 | value-kind-tests | INTERNAL | T1, including `'IOSpec'` |
+| 44 | value-kind-tests | INTERNAL | T1, including the three IOSpec class names `PandasData`, `ExcelRange` and `ModuleData` (decision 14) |
 | 45 | container-capabilities | INTERNAL | T1 capability table |
 | 46 | user-visible-members | INTERNAL | C2(2); T4 scope `'builtins'` |
 | 47 | is-derived | UNMET | T3 for Reference rows, through the `'_is_derived'` extattr; Space rows N/A (decision 4). F11 makes requesting it safe on every kind |
@@ -1129,7 +1135,8 @@ Every INTERNAL and UNMET need maps to an element except #26, which is deferred (
 
 Internal, and not tool API, means:
 - `_impl` and anything reached through it, including `tracegraph` node tuples, `refgraph` and `repr_parent()`;
-- module paths, and the names of classes T1 does not list; for the listed classes, T1's check (decision 14);
+- module paths other than `modelx.core.errors` (decision 3);
+- tests of a class by its name, except T1's recipe for the ten classes it lists (decision 14). The attrdict `'type'` key is part of the snapshot wire (S3);
 - `mxsys`;
 - undocumented behaviour of a call, such as what ReferenceProxy's `__getattr__` forwards beyond the names S3 lists.
 
@@ -1147,7 +1154,7 @@ Internal, and not tool API, means:
 - A listed member's name, signature, return type and documented semantics change only additively:
   - new optional keyword parameters;
   - new keys in returned dicts and attrdicts, never removed or retyped;
-  - T1's class names only added to, never renamed or removed without a "Backward Incompatible Changes" note (decision 14);
+  - T1's class names only added to; a rename or removal follows decision 14's deprecation without a warning;
   - stamps only growing;
   - a new exception only if it subclasses the one raised before.
 - A bug fix that makes a member match its documentation is allowed, with a "Bug Fixes" note and, where a golden changes, a regenerated golden called out in the commit message.
@@ -1159,6 +1166,8 @@ Internal, and not tool API, means:
 3. Using it emits `warnings.warn("'X' is deprecated and will be removed in a future release.", modelx.core.errors.ToolAPIDeprecationWarning, stacklevel=2)`.
 4. It stays for **at least two minor releases**, and until the downstream job (§8) is green against the latest released modelx-bridge and modelx-mcp.
 5. Only then is it removed, under "Backward Incompatible Changes", with migration text, as 0.24 did.
+
+A class name T1 lists cannot warn (decision 14): steps 1, 2, 4 and 5 apply, and step 3 does not. It is recommended, for the owner to confirm, together with decision 14.
 
 **Gates.**
 - `core/base/test_spyder_surface.py` stays byte-stable.
@@ -1230,10 +1239,11 @@ Each PR stands alone and keeps `test_spyder_surface.py` byte-identical.
   - a second spyder golden for what spyder actually requests: the tree list `['_is_derived', '__len__', '_evalrepr']`, the Properties list `['formula', '_evalrepr', 'allow_none', 'parameters']` per object, node and IOSpec records, and `_get_assoc_values` keys. Today's golden requests only `get_referents`, which is a no-op.
 
 **PR 2: Kinds, flags, display and extattrs (T1, T2, T3, T7, F1, F6, F11)**
-- T1 adds no code (decision 14). toolapi.rst gains a "Kinds" section with T1's recipe and capability table, and its "What is not tool API" list keeps class-name tests only for the classes T1 does not list. The signature golden records each listed class's `__name__` and that its `__module__` starts with `modelx.`.
+- T1 adds no code (decision 14). toolapi.rst gains a "Kinds" section with T1's recipe and capability table, and the three page changes decision 14 lists. The signature golden records each listed class's `__name__` and that its `__module__` starts with `modelx.`.
 - Files:
-  - base.py:350, 660, 690, 698-708;
-  - model.py:225; space.py:146-171, 729, 2112, 2152; cells.py:66, 582-586, 1030; macro.py:51; reference.py:126, 193, 199-210; io/baseio.py:335;
+  - base.py:698-708;
+  - model.py:225, cells.py:66, macro.py:51 and reference.py:126, the classes that gain T2's `_is_dynamic`; space.py:146-171; cells.py:582-586, 1030; reference.py:193, 199-210;
+  - doc/source/reference/toolapi.rst; tests/core/api/test_tool_api_surface.py and testdata/tool_api_surface.json (T1);
   - dynamic.py:315-322; node.py:152-238; inheritance/graph.py:81-83.
 - Tests:
   - `core/base/test_kind.py`: T1's recipe gives the class name of every kind, including nested `P[1][5]` and a DynamicSpace; proxies to scalar, global, Space-valued and argument References; PandasData, ExcelRange and ModuleData by name; `None` for the 34 value types of minimal/m02, for views, nodes and Namespace objects, and for a user's own classes named `Model` and `Cells`; deleted and closed objects; attrdict `'type'` unchanged;
@@ -1371,7 +1381,8 @@ KINDS = frozenset({'Model', 'UserSpace', 'ItemSpace', 'DynamicSpace', 'Cells',
 ADDRESSABLE = KINDS - IOSPECS                    # an IOSpec has no _idstr and no _get_repr
 def kind(v):                                     # T1 (decision 14); the same on 0.33
     t = type(v)
-    if not (t.__module__ or '').startswith('modelx.'):
+    mod = t.__module__                           # not always a str (wrapt's ObjectProxy)
+    if not (isinstance(mod, str) and mod.startswith('modelx.')):
         return None                              # never a user's own class named Model
     return t.__name__ if t.__name__ in KINDS else None
 def is_valid_name(name):                         # T13; on 0.33 a copy of util.py:51-61
@@ -1386,8 +1397,8 @@ def is_valid_name(name):                         # T13; on 0.33 a copy of util.p
 
 | bridge code | ≥0.34 | works on 0.33 too |
 |---|---|---|
-| `_is_model`, `_is_reference` (methods.py:2681-2686); wire `kind` (495, 533, 656, 664, 800, 852, 1036, 1225, 2015) | `kind(v)`. `doc.get` then sends `'Reference'`, not `'ReferenceProxy'` | the fallback branch |
-| codec `_mx_ref` (codec.py:63-77) | An `mx` tag only when `kind(v) in ADDRESSABLE`. Any other value, an IOSpec included, stays `opaque` as today. This drops both `modelx.core` imports. mxcompat is imported after the `sys.modules` check (codec.py:65-67), so the codec still never imports modelx itself | the same rule, through the fallback |
+| `_is_model`, `_is_reference` (methods.py:2681-2686); wire `kind` (495, 533, 656, 664, 800, 852, 1036, 1225, 2015) | `kind(v)`. The wire values stay as they are: `doc.get` keeps sending `'ReferenceProxy'` (methods.py:533) | the same; the recipe needs no version branch |
+| codec `_mx_ref` (codec.py:63-77) | An `mx` tag only when `kind(v) in ADDRESSABLE`. Any other value, an IOSpec included, stays `opaque` as today. This drops both `modelx.core` imports. mxcompat is imported after the `sys.modules` check (codec.py:65-67), so the codec still never imports modelx itself | the same rule |
 | Capability probes by a public name: `hasattr(parent, "set_ref")` (methods.py:778, 847); `getattr(target, "formula", None)` (491); `obj.parameters` in `_parameters` (2817-2821); `getattr(target, "node", None)` in `_make_node` (2852); `getattr(space, "cells", None)` (1032) | `has(obj, name)` first, then the member. On a Model, a name that is not a class attribute resolves a global Reference (model.py:595-596); on a Space it resolves a member (space.py:75-84) | the same. It needs no version branch |
 | `_is_dynamic` (methods.py:2617-2627) | `obj._is_dynamic()` | Spaces: `obj._is_dynamic()`; Cells: `obj.parent._is_dynamic()`. Fixes the ItemSpace false negative now |
 | `_derived` (methods.py:2726-2738); tree.get `derived` | Cells and References only: `_is_derived() and not _is_dynamic()`; `overrides` and `dynamic` from T4. A Space is never asked, and tree.get's Space entries drop `derived` (decision 4) | Cells as today, asked through `has()`. Never `getattr(space, 'is_derived')`, which finds and calls a member |
@@ -1667,7 +1678,7 @@ It sees every call, because modelx calls `warnings.warn` through the module ever
 - **The model staging** (b07). As the job was written before, with only `lifelib.create`, there is no `models/` folder. test_lifelib then reported SKIPPED and the step exited 1, so the job is red for a reason that has nothing to do with modelx. With the `mkdir` and `mv` step, under `-eo pipefail` and the audit: test_lifelib passed 190, the mcp suites 1,165 in all, the step exited 0, and the audit file stayed empty. (The lifelib here was installed without `--no-compile`, so the staged folders also held `__pycache__`; test_lifelib passed regardless.)
 - **The pipe** (b07). The same two lines with a `run_all` that fails: under `bash -e`, which GitHub documents as the default for `run` without `shell`, the step exits 0; under `bash --noprofile --norc -eo pipefail`, what `shell: bash` runs, it exits 1.
 
-**Transition.** While the released bridge is 0.10.0, the job also gates modelx on that release's internal reads: `_impl.tracegraph`/`refgraph`, class names and `repr_parent()`. This is intended, and it ends when the adopted bridge ships.
+**Transition.** While the released bridge is 0.10.0, the job also gates modelx on that release's internal reads: `_impl.tracegraph`/`refgraph`, unlisted class names (`NullFormula` and impl classes) and `repr_parent()`. This is intended, and it ends when the adopted bridge ships.
 
 **Policy.** A red job blocks the release. A deliberate break ships a bridge release that handles it first.
 
@@ -1705,6 +1716,7 @@ It sees every call, because modelx calls `warnings.warn` through the module ever
 11. **No thread safety is promised.** Core state is unlocked (api.py:1469-1470) and the stamps are not atomic. Cold O(model) scans (6.6–76 ms for the T10 prototype, fix-used-by/u08) block Pyodide's single thread; T10's cache, with F3's code-object keys for global names and chains, brings a rebuild to 0.32–1.94 ms on CPython.
 12. **`id()` reuse in spyder's `'id'` key remains** (198 of 200), because a per-object uid is deferred (decision 8).
 13. **Every new class member reserves a name.** A new public member hides a user's member of that name from attribute access and `get_object` (T13). Until 0.36 a new underscore member also hides a user's `_` global, `_` Space Reference made by `new_space(refs=)`, `_` argument or `_` formula ref (§3.0). Formulas, F11's walk and T6's resolver still find the user's member. No lifelib model collides today: 0 of 5,347 member names (fix-validation-and-fixes/v02).
+14. **A frozen class name is deprecated without a warning** (decision 14). Nothing at run time tells a consumer that a listed name will change, and §8's audit, which records ToolAPIDeprecationWarning, cannot see it. The notice is toolapi.rst and the release notes, two minor releases ahead, and the downstream job is the gate.
 
 ### Measured (what, value, on what, probe)
 
@@ -1760,7 +1772,7 @@ Two later verifiers wrote `critic2/probes/` (k01–k07) and `refute2/` (r01–r1
 | ReferenceProxy members by forwarding | `_idstr`, `_get_repr`, `_is_valid`, `_idtuple`, `doc`, `name`, `parent` not defined on the class | synthetic | critic2/k07 |
 | Underscore members on user-held classes | 55 non-dunder; 26 named nowhere in the previous revision, 18 nowhere in this one, all Formula, IOSpec or Cells helpers | 0.33 classes | critic2/k03; fix-final/k03 on this revision |
 | `_kind` lookup; foreign `_kind` (the earlier T1, before decision 14) | 0.078 µs; 0 of 34 common types | BasicTerm_S | minimal/m02 |
-| T1's class-name check (decision 14) | 0.204 µs on a modelx object, 0.141 on an int, 0.130 on a user's class `Model`; right for every kind, nested items, a DynamicSpace, deleted objects and a closed model's objects; `None` for user classes `Model` and `Cells`, views, nodes, a DataFrame, an int and a module | synthetic, `main` at 1b90682, CPython 3.11.15 | kindcheck/probe_names.py |
+| T1's class-name check (decision 14) | 0.126–0.138 µs on modelx objects, 0.101–0.107 on others; `_kind` in the same harness 0.03 hit, 0.14 miss. Right for every kind, including ExcelRange, PandasData and ModuleData specs, nested items, a DynamicSpace, dynamic Cells, every kind of Reference proxy, deleted objects and a closed model's objects; `None` for user classes `Model` and `Cells`, a `__module__` of None, views, nodes, Namespace objects, a DataFrame, numpy scalars, an int and a module; identical answers on 0.33.0. Raises on a non-str `__module__` unless guarded | synthetic, `main` at 1b90682 and 4fa720f, CPython 3.11.15 | kindcheck/probe_names.py; kindcheck/names14/probe_t1.py, probe_edge.py |
 | E2 recipes on 0.33 | 0 of 739 Cells, 0 of 179 refs mismatched | 5 models | minimal/m06 |
 | `_idtuple` walk | 62 of 62, nothing created | synthetic | minimal/m03 |
 | Address round trip | 11 of 11 literal cases; build 7.5 µs, resolve 16.1 µs | synthetic | itemspaces_dynamic/p08 |
