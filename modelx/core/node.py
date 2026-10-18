@@ -72,17 +72,36 @@ class BaseNode:
         """A list of nodes that refer to this  node."""
         return self.obj.succs(*self.args)
 
+    # preds, succs and precedents of an ItemNode with no stored value raise
+    # ValueError ("... has no cached value for the given arguments", or
+    # "... is not cached" for a Cells whose is_cached is False), so before
+    # 0.34 both dicts below raised it. They give None there, as 'value'
+    # does. An ObjectNode, a ReferenceNode included, has no arguments
+    # (args is None) and empty lists, so it keeps giving 0.
+
     @property
     def _baseattrs(self):
-        """A dict of members expressed in literals"""
+        """The older form of :meth:`_get_attrdict`, kept for existing tools.
 
+        Returns:
+            dict: The keys of :meth:`_get_attrdict` except ``'valid'``
+            and ``'precedentslen'``, with ``'obj'`` from the object's
+            ``_baseattrs``.
+
+        .. versionchanged:: 0.34.0
+            An :class:`ItemNode` with no stored value gives :obj:`None`
+            for ``'predslen'`` and ``'succslen'``, where it raised
+            :obj:`ValueError`.
+        """
+        has_value = self.has_value()
+        has_lists = has_value or self.args is None
         result = {
             "type": type(self).__name__,
             "obj": self.obj._baseattrs,
             "args": self.args,
-            "value": self.value if self.has_value() else None,
-            "predslen": len(self.preds),
-            "succslen": len(self.succs),
+            "value": self.value if has_value else None,
+            "predslen": len(self.preds) if has_lists else None,
+            "succslen": len(self.succs) if has_lists else None,
             "repr_parent": self.obj._impl.repr_parent(),
             "repr": self.obj._get_repr(),
         }
@@ -94,9 +113,6 @@ class BaseNode:
 
         ``extattrs`` and ``recursive`` are passed to the node's object,
         so the names in ``extattrs`` are added to ``'obj'``.
-        On this release, an :class:`ItemNode` with no stored value
-        raises :obj:`ValueError`, a known limitation described in
-        :ref:`toolapi-wire`.
 
         Returns:
             dict: ``'type'``, the class name of the node;
@@ -107,28 +123,33 @@ class BaseNode:
             ``'valid'``, the :func:`id` of the value, or :obj:`None`;
             ``'predslen'``, ``'succslen'`` and ``'precedentslen'``,
             the lengths of :attr:`preds`, :attr:`succs` and
-            ``precedents``;
+            ``precedents``, or :obj:`None` for an :class:`ItemNode`
+            with no stored value;
             and ``'repr_parent'`` and ``'repr'``, display strings of
             the parent of the node's object and of the object. An
             ItemSpace in them shows its arguments, as in
             ``'Model1.Proj[1][5]'``.
 
         .. versionchanged:: 0.34.0
+            An :class:`ItemNode` with no stored value gives :obj:`None`
+            for ``'predslen'``, ``'succslen'`` and ``'precedentslen'``,
+            where it raised :obj:`ValueError`.
             For an object in an ItemSpace of an ItemSpace,
             ``'repr_parent'`` and ``'repr'`` name the parent item by its
             arguments, as in ``'Model1.Proj[1][5]'``, where they gave
             its ``__SpaceN`` name, as in ``'Model1.__Space1[5]'``.
         """
-
+        has_value = self.has_value()
+        has_lists = has_value or self.args is None
         result = {
             "type": type(self).__name__,
             "obj": self.obj._get_attrdict(extattrs, recursive),
             "args": self.args,
-            "value": self.value if self.has_value() else None,
-            "valid": id(self.value) if self.has_value() else None,
-            "predslen": len(self.preds),
-            "succslen": len(self.succs),
-            "precedentslen": len(self.precedents),
+            "value": self.value if has_value else None,
+            "valid": id(self.value) if has_value else None,
+            "predslen": len(self.preds) if has_lists else None,
+            "succslen": len(self.succs) if has_lists else None,
+            "precedentslen": len(self.precedents) if has_lists else None,
             "repr_parent": self.obj._impl.repr_parent(),
             "repr": self.obj._get_repr(),
         }

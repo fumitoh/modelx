@@ -41,9 +41,10 @@ their output in ``testdata/spyder_requests_snapshot.json``:
     expanded as the Analyzer expands a row: whenever the record's
     ``'precedentslen'`` or ``'succslen'`` is not 0, by
     ``getattr(mx.get_object(fullname).node(*args), adjacency)``.
-    Every root node has a value.  For a node of a Cells with no stored
-    value, ``_get_attrdict`` raises ValueError on this release, which
-    toolapi.rst labels a known limitation, so no such node is pinned.
+    Every root node has a value.  A node with no stored value gives
+    None for ``'predslen'``, ``'succslen'`` and ``'precedentslen'``
+    (it raised ValueError before 0.34), so the Analyzer does not expand
+    it; ``test_extattrs.py`` tests such nodes, and none is pinned here.
 
 ``assoc_values``
     The data list (``mx_get_value_info``):

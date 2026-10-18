@@ -14,8 +14,26 @@
 from __future__ import annotations
 
 from typing import Optional
+from types import FunctionType
 from collections.abc import Sequence, Mapping
 from modelx.core.errors import DeletedObjectError
+
+
+_MISSING = object()
+
+
+def get_class_attr(cls, name):
+    """The attribute ``name`` that ``cls`` or a base of it defines.
+
+    Reads the namespace of each class in ``cls.__mro__``, as Python's own
+    lookup does, so no descriptor runs, no instance is read and no
+    ``__getattr__`` is reached. Returns ``_MISSING`` if none defines it.
+    """
+    for klass in cls.__mro__:
+        attrs = vars(klass)
+        if name in attrs:
+            return attrs[name]
+    return _MISSING
 
 
 def get_interface_dict(impls):
@@ -702,16 +720,76 @@ class Interface:
         }
 
     def _get_attrdict_extra(self, attrdict, extattrs=None, recursive=True):
+        """Add to ``attrdict`` each name in ``extattrs`` it does not have.
+
+        Each name is looked up on the class of the object and its bases,
+        never on the object itself, so no member of a Model or a Space,
+        such as a user's Reference, Cells or Space, is read or called,
+        whatever its name. What the class defines gives the value:
+
+        * A property, or another data descriptor, is read with its
+          getter. A value whose class defines ``_get_attrdict`` is
+          replaced by its dict, made with ``extattrs`` and
+          ``recursive``. Any other value is added as it is.
+        * A function, or another method, is bound to the object and
+          called with no arguments, and its result is added as it is.
+        * Any other class attribute is added as it is.
+
+        A :class:`~modelx.core.reference.ReferenceProxy` also looks on
+        :class:`Interface`, for properties and functions only, as its
+        attribute forwarding does.
+        A name that the class does not define is skipped,
+        and so is a property whose getter raises :obj:`AttributeError`.
+
+        Args:
+            attrdict(dict): The dict to add to. It is changed in place.
+            extattrs(list): The names to add.
+            recursive(bool): Passed to the ``_get_attrdict`` of a value.
+
+        .. versionchanged:: 0.34.0
+            Names are looked up on the class only. Before, they were read
+            from the object, so on a Model or a Space a name that its
+            class does not define reached a member of that name, and a
+            callable value was called.
+        """
+        # With getattr on the object, as on 0.33, a model with global
+        # References named __len__ and _is_derived and a Space formula that
+        # returns a ref named _is_derived had spyder's tree list call those
+        # user functions 20 times in one walk, and its Properties list
+        # called globals named formula and parameters on the Model
+        # (tests/core/base/test_extattrs.py).
+        cls = type(self)
+        # Only a ReferenceProxy calls this without being an Interface, as
+        # Interface._get_attrdict_extra(proxy, ...). Its __getattr__
+        # forwards Interface's properties and functions, and nothing else.
+        forwards = not isinstance(self, Interface)
 
         for name in extattrs:
-            if name not in attrdict and hasattr(self, name):
-                attr = getattr(self, name)
-                if hasattr(attr, "_get_attrdict"):
-                    attrdict[name] = attr._get_attrdict(extattrs, recursive)
-                elif callable(attr):
-                    attrdict[name] = attr()
+            if name in attrdict:
+                continue
+            attr = get_class_attr(cls, name)
+            if attr is _MISSING:
+                if not forwards:
+                    continue
+                attr = get_class_attr(Interface, name)
+                if not isinstance(attr, (property, FunctionType)):
+                    continue
+
+            attrcls = type(attr)
+            if not hasattr(attrcls, "__get__"):
+                attrdict[name] = attr
+            elif hasattr(attrcls, "__set__") or hasattr(attrcls, "__delete__"):
+                try:
+                    value = attr.__get__(self, cls)
+                except AttributeError:
+                    continue
+                if get_class_attr(type(value), "_get_attrdict") is _MISSING:
+                    attrdict[name] = value
                 else:
-                    attrdict[name] = attr
+                    attrdict[name] = value._get_attrdict(extattrs, recursive)
+            else:
+                method = attr.__get__(self, cls)
+                attrdict[name] = method() if callable(method) else method
 
     def _get_repr(self, fullname=False, add_params=True):
         """The display string of the object.
