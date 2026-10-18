@@ -222,9 +222,9 @@ class BaseSpace(BaseParent, NodeFactory):
             ``'defined_in'`` is the Space whose definition is in use: this
             Space for ``'defined'`` and ``'overriding'``, and for
             ``'derived'`` the first Space in :attr:`bases` that defines
-            the name. In an ItemSpace or a DynamicSpace these are Spaces
-            of its UserSpace's. It is the Model for a global Reference,
-            and :obj:`None` for an argument, a formula ref and
+            the name. An ItemSpace or a DynamicSpace has those of the
+            UserSpace it was made from. It is the Model for a global
+            Reference, and :obj:`None` for an argument, a formula ref and
             ``__builtins__``.
 
             ``'scope'`` is the kind of binding a formula of this Space
@@ -1674,8 +1674,9 @@ class UserSpace(BaseSpace, EditableParent):
                 an attribute of the class, a Cells of this Space,
                 defined or inherited, or a child Space of this Space.
                 Nothing is changed then.
-            ValueError: If ``refmode`` is not a valid mode, one of
-                ``ReferenceProxy._refmodes``. Nothing is changed then.
+            ValueError: If ``refmode`` is not one of
+                ``ReferenceProxy._refmodes``, ``'auto'``, ``'absolute'``
+                or ``'relative'``. Nothing is changed then.
 
         Example:
 
@@ -1717,6 +1718,10 @@ class UserSpace(BaseSpace, EditableParent):
             Reference, and the name of a child Space raised
             :obj:`ValueError`. Assigning to the attribute,
             ``space.name = value``, still sets the Cells' input.
+
+            Neither check is made while :func:`~modelx.read_model` reads
+            a model, so a model that an earlier version saved with such
+            a mode or such a name still reads as it did.
         """
         # Not while a model is read: a reader passes the mode its file holds.
         # The readers of serializer versions 4-7 pass the third element of

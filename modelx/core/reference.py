@@ -159,7 +159,7 @@ class ReferenceProxy:
 
     _refmodes = ("auto", "absolute", "relative")
     """The reference modes, as :meth:`~modelx.core.space.UserSpace.set_ref`
-    takes them and :attr:`refmode` gives them.
+    takes them and :attr:`~ReferenceProxy.refmode` gives them.
 
     ``set_ref`` raises :obj:`ValueError` for a mode not in it.
 
@@ -306,9 +306,10 @@ class ReferenceProxy:
             in sub Spaces; and, after :func:`~modelx.read_model`, the
             value the model file holds: an int for a Reference of a
             UserSpace whose value is that of an IOSpec, in a model
-            saved in serializer version 7 or earlier, the format of
-            modelx before 0.32, and a mode outside :attr:`_refmodes`
-            that ``set_ref`` accepted before 0.34, as a str.
+            saved in serializer version 7 or earlier, the default format
+            before modelx 0.32, and a mode outside :attr:`_refmodes`
+            that ``set_ref`` accepted before 0.34, as a str, such as
+            ``'sideways'``, or ``'None'`` for :obj:`None`.
             This is not part of the frozen contract and may change.
 
         .. versionchanged:: 0.34.0
@@ -346,7 +347,8 @@ class ReferenceProxy:
         ``P[1].rel`` for ``P.rel = P.Child`` or ``P[1].Child.up`` for
         ``P.Child.up = P`` (see :ref:`reference-proxy-identity`, which
         gives the condition): the ItemSpace has a copy of that Reference,
-        which gives :obj:`True`, as ``P[1].h`` does.
+        a resolved slot (:ref:`toolapi-resolved-slots`), which gives
+        :obj:`True`, as ``P[1].h`` does.
 
         :obj:`None` when the proxy does not stand for a Reference,
         so a tool that asks every proxy in a model gets an answer
@@ -544,8 +546,8 @@ class ReferenceProxy:
             the proxy forwarded it to the base class of Model, Spaces and
             Cells, which gave :obj:`True` for every proxy, also after its
             Reference was deleted or bound again, and after the ItemSpace
-            of a slot that held the ItemSpace's copy of a value was
-            deleted.
+            that made it was deleted. ``repr()`` of such a proxy showed
+            the Reference.
         """
         impl = self._impl
         if not isinstance(impl, ReferenceImpl):
@@ -583,7 +585,8 @@ class DynamicReferenceProxy(ReferenceProxy):
     ``_space`` and ``_model`` of either Space, and the ItemSpace's copy of
     a Reference of its Space that refers to the ItemSpace's own copy of
     its value, as ``P[1].rel`` is for ``P.rel = P.Child``
-    (:ref:`reference-proxy-identity`). Any other Reference of a Space seen
+    (:ref:`reference-proxy-identity`), which tools call a resolved slot
+    (:ref:`toolapi-resolved-slots`). Any other Reference of a Space seen
     through one of its ItemSpaces, as ``P[1].k`` is ``P.k``, and a global
     Reference keep a :class:`ReferenceProxy`.
 
