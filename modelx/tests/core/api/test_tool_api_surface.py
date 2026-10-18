@@ -9,7 +9,8 @@ wire) of the design's section 3.4.  Only members that exist in this
 release are listed; a later release that freezes more members adds them
 here and to the page.  The members that 0.34 adds (the design's section
 3.1) are listed under their own ID as they land: T3's
-``ReferenceProxy._is_derived()``, on both proxy classes.
+``ReferenceProxy._is_derived()``, on both proxy classes, and T7's
+``BaseNode._get_repr()``, on both node classes.
 
 For each frozen member, on each class of object that a tool holds and
 that has the member, the golden records its kind (``property``,
@@ -165,6 +166,8 @@ FROZEN = [
     ("S1", PROXIES, ("_evalrepr",)),
     ("S1", ("Model",), ("_get_from_name",)),
     ("S1", SPACES, ("_named_itemspaces",)),
+    # New in 0.34 (T7): the display string of a node, defined on BaseNode.
+    ("T7", NODES, ("_get_repr",)),
 
     # S2 inheritance and dynamic objects
     ("S2", CELLS, ("_is_derived", "_is_defined")),

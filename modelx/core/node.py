@@ -109,10 +109,15 @@ class BaseNode:
             the lengths of :attr:`preds`, :attr:`succs` and
             ``precedents``;
             and ``'repr_parent'`` and ``'repr'``, display strings of
-            the parent of the node's object and of the object. For an
-            object in an ItemSpace of an ItemSpace, they name the parent
-            item by its ``__SpaceN`` name on this release, a known
-            limitation described in :ref:`toolapi-identity`.
+            the parent of the node's object and of the object. An
+            ItemSpace in them shows its arguments, as in
+            ``'Model1.Proj[1][5]'``.
+
+        .. versionchanged:: 0.34.0
+            For an object in an ItemSpace of an ItemSpace,
+            ``'repr_parent'`` and ``'repr'`` name the parent item by its
+            arguments, as in ``'Model1.Proj[1][5]'``, where they gave
+            its ``__SpaceN`` name, as in ``'Model1.__Space1[5]'``.
         """
 
         result = {
@@ -129,8 +134,61 @@ class BaseNode:
         }
         return result
 
+    def _get_repr(self, fullname=True, add_value=False):
+        """The display string of the node.
+
+        It is the display name of the node's object, as
+        ``obj._get_repr(fullname, add_params=False)`` gives it, followed
+        by the node's arguments by parameter name, each formatted by
+        :func:`repr`, as in ``'BasicTerm_S.Projection[2].claims(t=3)'``.
+        An ItemSpace in it shows its arguments, as in
+        ``'Model1.Proj[1][5].bar()'``. A
+        :class:`~modelx.core.reference.ReferenceNode` has no arguments,
+        and gives the display name of its Reference, as in
+        ``'Model1.Proj[1].i'``.
+
+        With ``add_value=True``, a node that has a value is followed by
+        ``'='`` and the :func:`repr` of the value, with a line break
+        before a value whose :func:`repr` spans lines. That is the
+        :func:`repr` of the node.
+
+        Args:
+            fullname(:obj:`bool`, optional): Start with the name of
+                the Model. Defaults to :obj:`True`.
+            add_value(:obj:`bool`, optional): Add the value, if the
+                node has one. Defaults to :obj:`False`.
+
+        Returns:
+            str: The display string, such as
+            ``'BasicTerm_S.Projection[2].claims(t=3)'``.
+
+        .. versionadded:: 0.34.0
+        """
+        obj = self.obj  # a new proxy on each read for a ReferenceNode
+        result = obj._get_repr(fullname=fullname, add_params=False)
+        args = self.args
+
+        if args is not None:    # ItemNode
+            params = obj._impl.formula.parameters
+            result += "(" + ", ".join(
+                "%s=%s" % (param, repr(arg)) for param, arg in
+                zip(params, args)
+            ) + ")"
+        elif not hasattr(obj, "formula"):   # ReferenceNode, or a Model's
+            pass
+        elif obj.formula is not None:   # a Cells', or a Space's with one
+            result += "(" + ", ".join(obj.parameters) + ")"
+
+        if add_value and self.has_value():
+            valrepr = repr(self.value)
+            if "\n" in valrepr:
+                valrepr = "\n" + valrepr
+            result += "=" + valrepr
+
+        return result
+
     def __repr__(self):
-        raise NotImplementedError
+        return self._get_repr(fullname=True, add_value=True)
 
 
 class ItemNode(BaseNode):
@@ -172,24 +230,6 @@ class ItemNode(BaseNode):
 
         """
         return self.obj.precedents(*self.args)
-
-    def __repr__(self):
-
-        name = self.obj._get_repr(fullname=True, add_params=False)
-        params = self.obj._impl.formula.parameters
-
-        arglist = ", ".join(
-            "%s=%s" % (param, repr(arg)) for param, arg in
-            zip(params, self.args)
-        )
-
-        if self.has_value():
-            valrepr = repr(self.value)
-            if "\n" in valrepr:
-                valrepr = "\n" + valrepr
-            return name + "(" + arglist + ")" + "=" + valrepr
-        else:
-            return name + "(" + arglist + ")"
 
 
 class ObjectNode(BaseNode):
@@ -235,31 +275,6 @@ class ObjectNode(BaseNode):
     # @property
     # def dependents(self):
     #     pass
-
-    def __repr__(self):
-
-        name = self.obj._get_repr(fullname=True, add_params=False)
-
-        if not hasattr(self.obj, "formula"):    # for Reference
-            params = None
-        elif self.obj.formula is None:      # for Space
-            params = None
-        else:
-            params = ", ".join(self.obj.parameters)
-
-        if self.has_value():
-            valrepr = repr(self.value)
-            if "\n" in valrepr:
-                valrepr = "\n" + valrepr
-            if params is None:
-                return name + "=" + valrepr
-            else:
-                return name + "(" + params + ")" + "=" + valrepr
-        else:
-            if params is None:
-                return name
-            else:
-                return name + "(" + params + ")"
 
 
 class NodeFactory:

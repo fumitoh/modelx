@@ -254,7 +254,8 @@ class Impl(BaseImpl):
 
     def repr_parent(self):
         # ItemSpaceImpl overrides this to skip one level, because its
-        # repr_self embeds the parent's name ("Space[1]"); ModelImpl
+        # repr_self embeds the parent's name ("Space[1]", and for an
+        # item of an item its parent's label, "Space[1][5]"); ModelImpl
         # terminates the recursion with "".
         return self.parent.get_repr(fullname=True)
 
@@ -716,20 +717,25 @@ class Interface:
         """The display string of the object.
 
         With ``fullname=True`` the string starts with the name of the
-        Model. With ``add_params=True`` a Cells shows its parameters and
-        an ItemSpace shows its arguments, as in ``'foo(x)'`` and
-        ``'Proj[1]'``. For an ItemSpace, ``add_params=False`` gives its
-        ``__SpaceN`` name on this release, and for an ItemSpace of an
-        ItemSpace, and every object inside it, the default display
-        string names the parent item by its ``__SpaceN`` name, as in
-        ``'__Space1[5]'`` for ``Proj[1][5]``. The same strings show in
-        the ``'repr'`` and ``'repr_parent'`` keys of the dicts of
-        :meth:`_get_attrdict`. These are known limitations described
-        in :ref:`toolapi-identity`.
+        Model. With ``add_params=True`` a Cells shows its parameters, as
+        in ``'foo(x)'``. An ItemSpace shows its arguments whatever
+        ``add_params`` is, as in ``'Proj[1]'``, and an ItemSpace of an
+        ItemSpace is shown by its parent's arguments and its own, as in
+        ``'Proj[1][5]'``. So ``_get_repr(fullname=True,
+        add_params=False)`` is the display name of every object, such
+        as ``'Model1.Proj[1][5].bar'``. The same strings show in the
+        ``'repr'`` and ``'repr_parent'`` keys of the dicts of
+        :meth:`_get_attrdict`.
 
         Returns:
             str: The display string, such as ``'Model1.Base.foo(x)'``
             with ``fullname=True``.
+
+        .. versionchanged:: 0.34.0
+            An ItemSpace shows its arguments with ``add_params=False``
+            too, where it gave its ``__SpaceN`` name, and an ItemSpace
+            of an ItemSpace names its parent by its arguments, as in
+            ``'Proj[1][5]'``, where it gave ``'__Space1[5]'``.
         """
         return self._impl.get_repr(fullname, add_params)
 

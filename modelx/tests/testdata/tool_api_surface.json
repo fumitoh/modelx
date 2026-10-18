@@ -367,6 +367,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=True, add_value=False)"
    }
   },
   "ItemSpace": {
@@ -558,6 +562,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=True, add_value=False)"
    }
   },
   "ReferenceProxy": {
