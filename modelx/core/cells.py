@@ -708,12 +708,17 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         """A dict of members expressed in literals"""
 
         result = super()._baseattrs
+        # 'Cells' for a DynamicCells too, where Interface writes the class
+        # name: spyder-modelx reads this key, and its snapshots keep their
+        # values (devnotes/ToolAPIDesign.md, decision 15).
+        result["type"] = "Cells"
         result["params"] = ", ".join(self.parameters)
         return result
 
     def _get_attrdict(self, extattrs=None, recursive=True):
 
         result = super()._get_attrdict(extattrs, recursive)
+        result["type"] = "Cells"     # also for a DynamicCells, as above
         result["parameters"] = self.parameters
 
         if extattrs:
@@ -801,6 +806,36 @@ class Cells(Interface, Mapping, Callable, NodeFactory):
         .. versionadded:: 0.14.0
         """
         self._impl.set_doc(doc, insert_indents=insert_indents)
+
+
+class DynamicCells(Cells):
+    """A Cells of an ItemSpace, or of a DynamicSpace in one.
+
+    modelx makes a DynamicCells for each Cells of a Space when it builds
+    an :class:`~modelx.core.space.ItemSpace` of the Space, and of its
+    child Spaces when it builds their
+    :class:`~modelx.core.space.DynamicSpace` copies. A Cells of a
+    :class:`~modelx.core.space.UserSpace` is a :class:`Cells`, whether it
+    is defined there or inherited from a base Space.
+
+    A DynamicCells is a Cells, so ``isinstance(c, Cells)`` is :obj:`True`
+    for it, while ``type(c) is Cells`` is :obj:`False`. Its formula is
+    that of the Cells it was copied from: setting or deleting its
+    ``formula`` and :meth:`~Cells.rename` raise an error. Input values
+    are still accepted.
+
+    A tool tells a DynamicCells from a Cells by the name of its class,
+    ``'DynamicCells'``, after checking that the class is defined in a
+    module of the ``modelx`` package, as for every kind of object (see
+    :ref:`toolapi-kinds`). ``repr()`` and :attr:`~Cells.info` show that
+    name, as in ``<DynamicCells Model1.Space1[1].foo(x)>``. The
+    ``'type'`` of its :meth:`~Cells._get_attrdict` and ``_baseattrs`` is
+    ``'Cells'``, as for any Cells.
+
+    .. versionadded:: 0.34.0
+    """
+
+    __slots__ = ()
 
 
 _cells_impl_base = (AlteredFunction, Derivable, NodeFactoryImpl, Impl)
@@ -1186,6 +1221,9 @@ class UserCellsImpl(CellsImpl):
 
 
 class DynamicCellsImpl(CellsImpl):
+
+    interface_cls = DynamicCells
+
     __slots__ = ()
 
 

@@ -157,8 +157,48 @@ class ReferenceProxy:
 
     __slots__ = ("_impl",)
 
+    def __new__(cls, impl=None):
+        """Make a :class:`DynamicReferenceProxy` for a dynamic Reference.
+
+        ``ReferenceProxy(impl)`` gives a DynamicReferenceProxy when the
+        Reference's parent is an ItemSpace or a DynamicSpace in one: an
+        argument of an ItemSpace, a ref that its Space formula returns,
+        and the ``_self``, ``_space`` and ``_model`` of either Space.
+        Every site that makes a proxy calls ``ReferenceProxy(impl)``, so
+        the rule is here.
+
+        A Reference that an ItemSpace shares with its Space, as
+        ``P[1].k`` is ``P.k``, keeps its Space as parent, so its proxy is
+        a ReferenceProxy. So is that of a slot of an ItemSpace holding
+        the ItemSpace's copy of a Space or a Cells, which is not a
+        Reference itself on this release: without the ``isinstance``
+        test the class would follow the parent of what the slot holds,
+        and a slot holding None would raise.
+
+        ``impl`` defaults to None because :func:`copy.copy` calls
+        ``cls.__new__(cls)`` with no argument; with ``impl`` required,
+        copying any proxy raised TypeError. The rule applies only when
+        ``cls`` is ReferenceProxy itself, so a copy keeps its class.
+        """
+        if (cls is ReferenceProxy and isinstance(impl, ReferenceImpl)
+                and not impl.parent.is_model()
+                and impl.parent.is_dynamic()):
+            cls = DynamicReferenceProxy
+        return object.__new__(cls)
+
     def __init__(self, impl):
         self._impl = impl
+
+    # Explicit, so a copy and a pickle get the impl back on every Python.
+    # From 3.11 object.__getstate__ is found first and gives the slots,
+    # (None, {'_impl': impl}), while __getattr__ forwards __setstate__ to
+    # Interface's, which takes the impl: on 3.11.15 copy.copy gave a proxy
+    # whose _impl was that tuple, and whose .value raised AttributeError.
+    def __getstate__(self):
+        return self._impl
+
+    def __setstate__(self, state):
+        self._impl = state
 
     def __getattr__(self, name):
         item = getattr(Interface, name)
@@ -289,6 +329,33 @@ class ReferenceProxy:
 
     def __repr__(self):
         return Interface.__repr__(self)
+
+
+class DynamicReferenceProxy(ReferenceProxy):
+    """A proxy to a Reference that an ItemSpace makes.
+
+    ``ReferenceProxy(impl)``, and every call that gets a proxy, such as
+    :func:`~modelx.get_object` with ``as_proxy=True``, gives a
+    DynamicReferenceProxy for a Reference whose parent is an
+    :class:`~modelx.core.space.ItemSpace` or a
+    :class:`~modelx.core.space.DynamicSpace` in one: an argument of an
+    ItemSpace, a ref that the Space formula returns, and the ``_self``,
+    ``_space`` and ``_model`` of either Space. A Reference of a Space seen
+    through one of its ItemSpaces, as ``P[1].k`` is ``P.k``, and a global
+    Reference keep a :class:`ReferenceProxy`.
+
+    A DynamicReferenceProxy is a ReferenceProxy, so ``isinstance`` against
+    ReferenceProxy is :obj:`True` for it. A tool tells it apart by the
+    name of its class, ``'DynamicReferenceProxy'``, after checking that
+    the class is defined in a module of the ``modelx`` package (see
+    :ref:`toolapi-kinds`). ``repr()`` shows that name. The ``'type'`` of
+    its :meth:`~ReferenceProxy._get_attrdict` and ``_baseattrs`` is
+    ``'Reference'``, as for any proxy.
+
+    .. versionadded:: 0.34.0
+    """
+
+    __slots__ = ()
 
 
 class ReferenceNode(ObjectNode):

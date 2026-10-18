@@ -32,6 +32,46 @@
   }
  },
  "forwarded": {
+  "DynamicReferenceProxy": {
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "()"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   },
+   "allow_none": {
+    "kind": "property"
+   },
+   "doc": {
+    "kind": "property"
+   },
+   "fullname": {
+    "kind": "property"
+   },
+   "model": {
+    "kind": "property"
+   },
+   "name": {
+    "kind": "property"
+   },
+   "parent": {
+    "kind": "property"
+   }
+  },
   "ReferenceProxy": {
    "_get_repr": {
     "kind": "method",
@@ -70,6 +110,70 @@
    },
    "parent": {
     "kind": "property"
+   }
+  }
+ },
+ "kinds": {
+  "T1": {
+   "Cells": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "Cells"
+   },
+   "DynamicCells": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "DynamicCells"
+   },
+   "DynamicReferenceProxy": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "DynamicReferenceProxy"
+   },
+   "DynamicSpace": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "DynamicSpace"
+   },
+   "ExcelRange": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "ExcelRange"
+   },
+   "ItemSpace": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "ItemSpace"
+   },
+   "Macro": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "Macro"
+   },
+   "Model": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "Model"
+   },
+   "ModuleData": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "ModuleData"
+   },
+   "PandasData": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "PandasData"
+   },
+   "ReferenceProxy": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "ReferenceProxy"
+   },
+   "UserSpace": {
+    "kind": "class",
+    "modelx_module": true,
+    "name": "UserSpace"
    }
   }
  },
@@ -127,6 +231,66 @@
     "signature": "(self, extattrs=None, recursive=True)"
    }
   },
+  "DynamicCells": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_object": {
+    "kind": "method",
+    "signature": "(self, name, as_proxy=False)"
+   },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
+   "_idtuple": {
+    "kind": "property"
+   },
+   "_is_defined": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_derived": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_name": {
+    "kind": "property"
+   },
+   "_parent": {
+    "kind": "property"
+   }
+  },
+  "DynamicReferenceProxy": {
+   "_baseattrs": {
+    "kind": "property"
+   },
+   "_evalrepr": {
+    "kind": "property"
+   },
+   "_get_attrdict": {
+    "kind": "method",
+    "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "is_derived": {
+    "kind": "method",
+    "signature": "(self)"
+   }
+  },
   "DynamicSpace": {
    "_baseattrs": {
     "kind": "property"
@@ -158,18 +322,6 @@
    "_is_base": {
     "kind": "method",
     "signature": "(self, other)"
-   },
-   "_is_dynamic": {
-    "kind": "method",
-    "signature": "(self)"
-   },
-   "_is_root": {
-    "kind": "method",
-    "signature": "(self)"
-   },
-   "_is_static": {
-    "kind": "method",
-    "signature": "(self)"
    },
    "_is_sub": {
     "kind": "method",
@@ -244,18 +396,6 @@
    "_is_base": {
     "kind": "method",
     "signature": "(self, other)"
-   },
-   "_is_dynamic": {
-    "kind": "method",
-    "signature": "(self)"
-   },
-   "_is_root": {
-    "kind": "method",
-    "signature": "(self)"
-   },
-   "_is_static": {
-    "kind": "method",
-    "signature": "(self)"
    },
    "_is_sub": {
     "kind": "method",
@@ -472,18 +612,6 @@
    "_is_base": {
     "kind": "method",
     "signature": "(self, other)"
-   },
-   "_is_dynamic": {
-    "kind": "method",
-    "signature": "(self)"
-   },
-   "_is_root": {
-    "kind": "method",
-    "signature": "(self)"
-   },
-   "_is_static": {
-    "kind": "method",
-    "signature": "(self)"
    },
    "_is_sub": {
     "kind": "method",

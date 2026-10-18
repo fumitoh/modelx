@@ -119,14 +119,13 @@ def test_inheritance(testspaces):
 
 
 def test_properties(testspaces):
-
+    # The class tells the kind of a Space: 0.34 removed _is_static() and
+    # _is_root() (devnotes/ToolAPIDesign.md, decision 16). A UserSpace is
+    # what _is_static() was True and _is_root() False for.
     target, source = testspaces
 
-    assert target._is_static()
-    assert source._is_static()
-
-    assert not source._is_root()
-    assert not target._is_root()
+    assert type(target).__name__ == "UserSpace"
+    assert type(source).__name__ == "UserSpace"
 
 
 def test_cellsmapproxy_contains(testspaces):

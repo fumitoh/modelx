@@ -70,5 +70,7 @@ def test_repr_dynspace(repr_test):
 
 
 def test_repr_cells_in_dynspace(repr_test):
+    # A Cells of an ItemSpace is a DynamicCells from 0.34, and repr()
+    # prints the class name (devnotes/ToolAPIDesign.md, decision 15).
     cells = repr_test.DynSpace(1, 2).Foo
-    assert repr(cells) == "<Cells ReprModel.DynSpace[1, 2].Foo(x, y)>"
+    assert repr(cells) == "<DynamicCells ReprModel.DynSpace[1, 2].Foo(x, y)>"

@@ -27,8 +27,12 @@ def test_info_type_name(testmodel):
 
 def test_info_header_uses_class_name_and_signature(testmodel):
     m = testmodel
+    first = repr(m.Space1.foo.info).splitlines()[0]
+    assert first == 'Cells: Model1.Space1.foo(t, i=0)'
+    # A Cells of an ItemSpace is a DynamicCells from 0.34, and the header
+    # names its class (devnotes/ToolAPIDesign.md, decision 15).
     first = repr(m.Space1[1].foo.info).splitlines()[0]
-    assert first == 'Cells: Model1.Space1[1].foo(t, i=0)'
+    assert first == 'DynamicCells: Model1.Space1[1].foo(t, i=0)'
 
 
 def test_info_shows_is_derived(testmodel):

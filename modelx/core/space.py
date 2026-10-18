@@ -158,25 +158,6 @@ class BaseSpace(BaseParent, NodeFactory):
         """True if the space is a sub space of ``other``, False otherwise."""
         return self._impl.is_sub(other._impl)
 
-    def _is_static(self):
-        """True if the space is a static space, False if dynamic."""
-        return isinstance(self._impl, UserSpaceImpl)
-
-    def _is_root(self):
-        """True if the space is an ItemSpace, False otherwise.
-
-        An ItemSpace is the root of a tree of dynamic spaces.
-        False for a UserSpace and for a DynamicSpace.
-        """
-        return isinstance(self._impl, ItemSpaceImpl)
-
-    def _is_dynamic(self):
-        """True if the space is an ItemSpace or a DynamicSpace.
-
-        False for a UserSpace.
-        """
-        return self._impl.is_dynamic()
-
     @property
     def cells(self):
         """Read-only mapping of cells names to :class:`~modelx.core.cells.Cells` objects.

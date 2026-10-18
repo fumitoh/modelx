@@ -554,8 +554,8 @@ class Interface:
             .. code-block:: python
 
                 >>> model.Space1[1].foo.info
-                Cells: Model1.Space1[1].foo(t, i=0)
-                is_derived: False
+                DynamicCells: Model1.Space1[1, 0].foo(t, i=0)
+                is_derived: True
                 is_cached: True
                 allow_none: None
                 formula:
@@ -565,6 +565,11 @@ class Interface:
                         return foo(t - 1, i) + 1
                 cached values: 1
                     (0, 0): 0
+
+        .. versionchanged:: 0.34.0
+            A Cells of an ItemSpace or a DynamicSpace is a
+            :class:`~modelx.core.cells.DynamicCells`, and its header
+            starts with that name.
         """
         from modelx.core.info import build_info
         return build_info(self)
