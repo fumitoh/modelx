@@ -1541,7 +1541,8 @@ class UserSpace(BaseSpace, EditableParent):
 
         Raises:
             AttributeError: If ``name`` conflicts with an existing attribute
-            ValueError: If ``refmode`` is not a valid mode
+            ValueError: If ``refmode`` is not a valid mode, one of
+                ``ReferenceProxy._refmodes``. Nothing is changed then.
 
         Example:
 
@@ -1569,7 +1570,28 @@ class UserSpace(BaseSpace, EditableParent):
             * :meth:`absref`: Convenience method for absolute references
             * :meth:`relref`: Convenience method for relative references
             * :attr:`refs`: View all references in this space
+
+        .. versionchanged:: 0.34.0
+            An invalid ``refmode`` raises :obj:`ValueError`, as documented.
+            Before, it was stored, and when the value was a Cells or a
+            Space, making a sub Space of the Space then failed with
+            ``ValueError: must not happen``.
         """
+        # Not while a model is read: a reader passes the mode its file holds.
+        # The readers of serializer versions 4-7 pass the third element of
+        # a Reference's tuple, which for an IOSpec's value is the IOSpec's
+        # id, an int. With the check applied there, six lifelib models
+        # failed to read (BasicTermASL_ME, BasicTerm_SC, ifrs17sim,
+        # nestedlife, solvency2, BasicTerm_ME_for_Cluster: 3 to 17 such
+        # References each), and so did models that 0.33 saved with a mode
+        # its set_ref accepted, 'sideways', None or 42.
+        if not (isinstance(refmode, str)
+                and refmode in ReferenceProxy._refmodes
+                ) and not self._impl.system.serializing:
+            raise ValueError(
+                "refmode must be one of %s, not %r"
+                % (", ".join(repr(m) for m in ReferenceProxy._refmodes),
+                   refmode))
         if hasattr(type(self), name):
             raise AttributeError("'%s' is already defined" % name)
         else:

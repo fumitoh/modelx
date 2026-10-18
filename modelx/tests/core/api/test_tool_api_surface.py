@@ -9,8 +9,11 @@ wire) of the design's section 3.4.  Only members that exist in this
 release are listed; a later release that freezes more members adds them
 here and to the page.  The members that 0.34 adds (the design's section
 3.1) are listed under their own ID as they land: T3's
-``ReferenceProxy._is_derived()``, on both proxy classes, and T7's
-``BaseNode._get_repr()``, on both node classes.
+``ReferenceProxy._is_derived()`` and T5's ``ReferenceProxy._refmodes``,
+on both proxy classes, and T7's ``BaseNode._get_repr()``, on both node
+classes.  T5 also defines ``_idstr``, ``_get_repr`` and ``_is_valid`` on
+ReferenceProxy, which a proxy answered by forwarding on 0.33, so they are
+listed in S1 as class members.
 
 For each frozen member, on each class of object that a tool holds and
 that has the member, the golden records its kind (``property``,
@@ -163,7 +166,9 @@ FROZEN = [
     # S1 identity and addressing
     ("S1", INTERFACES, ("_idstr", "_idtuple", "_evalrepr", "_get_repr",
                         "_name", "_parent", "_get_object", "_is_valid")),
-    ("S1", PROXIES, ("_evalrepr",)),
+    # Forwarded to Interface on 0.33, defined on ReferenceProxy from 0.34
+    # (T5): the bridge reads _idstr and _get_repr on every Reference.
+    ("S1", PROXIES, ("_evalrepr", "_idstr", "_get_repr", "_is_valid")),
     ("S1", ("Model",), ("_get_from_name",)),
     ("S1", SPACES, ("_named_itemspaces",)),
     # New in 0.34 (T7): the display string of a node, defined on BaseNode.
@@ -176,6 +181,8 @@ FROZEN = [
     ("S2", PROXIES, ("is_derived",)),
     # New in 0.34 (T3). Spaces and Models have none (decision 4).
     ("T3", PROXIES, ("_is_derived",)),
+    # New in 0.34 (T5): the modes set_ref takes, a class attribute.
+    ("T5", PROXIES, ("_refmodes",)),
     # _is_dynamic, _is_static and _is_root were removed in 0.34 (decision
     # 16): the class tells the kind of a Space (KINDS below).
     ("S2", SPACES, ("_is_base", "_is_sub", "_own_refs", "_direct_bases")),
@@ -194,7 +201,7 @@ FROZEN = [
 FORWARDED = [
     ("S1", ("_name", "_parent")),
     ("S3", ("name", "fullname", "parent", "model", "doc", "allow_none",
-            "_idtuple", "_idstr", "_get_repr", "_is_valid")),
+            "_idtuple")),
 ]
 
 # The classes of modelx.core.errors that toolapi.rst lists ("Errors and
