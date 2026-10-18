@@ -57,6 +57,7 @@ def test_read_iospec_refs_of_a_space(tmp_path, close_new_models, version):
     s.new_module("mod", "files/mod", testmod)
     s.new_cells("total", formula="lambda: df['a'].sum()")
     mx.write_model(m, tmp_path / "model", version=version)
+    m._impl._check_sanity()
     m.close()
 
     m2 = mx.read_model(tmp_path / "model")
@@ -81,6 +82,7 @@ def test_read_a_mode_set_ref_took_before_034(
     s.new_cells("usei", formula="lambda: ri()")
     s.set_ref("ri", s.foo, "auto")
     mx.write_model(m, tmp_path / "model", version=version)
+    m._impl._check_sanity()
     m.close()
 
     path = tmp_path / "model" / "S" / "__init__.py"
