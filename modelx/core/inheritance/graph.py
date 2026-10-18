@@ -79,6 +79,11 @@ class SpaceGraph(nx.DiGraph):
     """New implementation of inheritance graph"""
 
     def ordered_preds(self, node):
+        # in_edges() takes a str that is not a node for a bunch of
+        # nodes, its characters: 'P.__Space1', the idstr of P[1], gave
+        # the bases of the Spaces named P and S (F6).
+        if node not in self:
+            return []
         edges = [(self.edges[e]["index"], e) for e in self.in_edges(node)]
         return [e[0] for i, e in sorted(edges, key=lambda elm: elm[0])]
 

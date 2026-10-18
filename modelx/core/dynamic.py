@@ -214,6 +214,13 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         else:
             return []
 
+    @property
+    def direct_bases(self):
+        # A dynamic space has no node in the inheritance graph, so the
+        # graph's preds of its idstr named bases of unrelated spaces:
+        # P[1].Child gave the bases of P (F6). Its only base is _dynbase.
+        return self.bases
+
 
 class ItemSpaceImpl(DynamicSpaceImpl):
 

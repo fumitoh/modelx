@@ -146,9 +146,32 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def _direct_bases(self):
-        """Directly inherited base classes"""
-        return get_interface_list(
-            self._impl.spmgr.get_direct_bases(self._impl))
+        """List of the Spaces given as the bases of this Space, in order.
+
+        For a UserSpace, these are the Spaces passed to
+        :meth:`~UserSpace.add_bases` or to the ``bases`` parameter of
+        :meth:`~UserSpace.new_space`, in the order they were added.
+        :attr:`bases` is the full method resolution order instead:
+        for ``Derived`` with the bases ``Base1`` and ``Base2``, where
+        ``Base1`` has the base ``Base0``, ``_direct_bases`` lists
+        ``Base1`` and ``Base2``, and :attr:`bases` lists ``Base1``,
+        ``Base0`` and ``Base2``.
+
+        An ItemSpace or a DynamicSpace has one base, the UserSpace
+        whose members it has, so ``_direct_bases`` equals
+        :attr:`bases` there: ``P[1]._direct_bases`` lists ``P``, and
+        ``P[1].Child._direct_bases`` lists ``P.Child``.
+
+        Returns:
+            list of :class:`UserSpace`: A new list on each call.
+
+        .. versionchanged:: 0.34.0
+            On an ItemSpace or a DynamicSpace it returns the same list
+            as :attr:`bases`. On 0.33 it gave bases of other Spaces:
+            for ``P`` with the bases ``Base1`` and ``Base2``,
+            ``P[1].Child._direct_bases`` listed ``Base1`` and ``Base2``.
+        """
+        return get_interface_list(self._impl.direct_bases)
 
     def _is_base(self, other):
         """True if the space is a base space of ``other``, False otherwise."""
@@ -2020,6 +2043,11 @@ class BaseSpaceImpl(*_base_space_impl_base):
         """Return an iterator over direct base spaces"""
         spaces = self.spmgr.get_deriv_bases(self)
         return spaces
+
+    @property
+    def direct_bases(self):
+        """Return the list of the bases added to this space, in order"""
+        return self.spmgr.get_direct_bases(self)
 
     @staticmethod
     def _get_members(other):
