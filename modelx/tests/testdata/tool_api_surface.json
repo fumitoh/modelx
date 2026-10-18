@@ -33,19 +33,8 @@
  },
  "forwarded": {
   "DynamicReferenceProxy": {
-   "_get_repr": {
-    "kind": "method",
-    "signature": "(fullname=False, add_params=True)"
-   },
-   "_idstr": {
-    "kind": "property"
-   },
    "_idtuple": {
     "kind": "property"
-   },
-   "_is_valid": {
-    "kind": "method",
-    "signature": "()"
    },
    "_name": {
     "kind": "property"
@@ -73,19 +62,8 @@
    }
   },
   "ReferenceProxy": {
-   "_get_repr": {
-    "kind": "method",
-    "signature": "(fullname=False, add_params=True)"
-   },
-   "_idstr": {
-    "kind": "property"
-   },
    "_idtuple": {
     "kind": "property"
-   },
-   "_is_valid": {
-    "kind": "method",
-    "signature": "()"
    },
    "_name": {
     "kind": "property"
@@ -286,9 +264,23 @@
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
    },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
    "_is_derived": {
     "kind": "method",
     "signature": "(self)"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_refmodes": {
+    "kind": "attribute"
    },
    "is_derived": {
     "kind": "method",
@@ -308,6 +300,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_inheritance": {
+    "kind": "method",
+    "signature": "(self)"
    },
    "_get_object": {
     "kind": "method",
@@ -386,6 +382,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_inheritance": {
+    "kind": "method",
+    "signature": "(self)"
    },
    "_get_object": {
     "kind": "method",
@@ -579,9 +579,23 @@
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
    },
+   "_get_repr": {
+    "kind": "method",
+    "signature": "(self, fullname=False, add_params=True)"
+   },
+   "_idstr": {
+    "kind": "property"
+   },
    "_is_derived": {
     "kind": "method",
     "signature": "(self)"
+   },
+   "_is_valid": {
+    "kind": "method",
+    "signature": "(self)"
+   },
+   "_refmodes": {
+    "kind": "attribute"
    },
    "is_derived": {
     "kind": "method",
@@ -610,6 +624,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_inheritance": {
+    "kind": "method",
+    "signature": "(self)"
    },
    "_get_object": {
     "kind": "method",

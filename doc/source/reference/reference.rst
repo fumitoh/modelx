@@ -117,12 +117,15 @@ it stands for::
     is ``Model1``.
   * A Reference that a sub Space inherits from its base Space
     has the sub Space as its parent.
-  * In an :class:`~modelx.core.space.ItemSpace`, only the arguments
-    and the References that the Space formula returns in ``'refs'``
-    have the ItemSpace as their parent. The other References that the
-    ItemSpace sees are the References of its Space, which have that
-    Space as their parent, and the global References, with the
-    exception in the known limitation below.
+  * In an :class:`~modelx.core.space.ItemSpace`, the arguments,
+    the References that the Space formula returns in ``'refs'``,
+    and the ItemSpace's own copies of References described below
+    have the ItemSpace as their parent;
+    in a :class:`~modelx.core.space.DynamicSpace` in it,
+    such a copy has the DynamicSpace as its parent.
+    The other References that the ItemSpace sees are the References
+    of its Space, which have that Space as their parent,
+    and the global References.
 
 * :attr:`~ReferenceProxy.fullname` is the dotted name of the parent
   followed by the name, such as ``'Model1.Space1.foo'``,
@@ -149,23 +152,58 @@ A Reference whose value is outside ``B`` refers to that value, as it
 does in ``B``. So when ``Space1.Child`` has a formula,
 ``Space1[1].Child[2]`` is made from ``Space1.Child``,
 and its ``up`` refers to ``Space1``.
-modelx tells whether a value is inside ``B`` by its full name, which
-makes a Space outside ``B`` whose full name begins with that of ``B``
-a known limitation (see :ref:`the note on such References
-<toolapi-prefix-ref>`).
+modelx tells whether a value is inside ``B`` by its full name:
+``B`` itself, or a name that begins with the full name of ``B``
+followed by a dot.
+So a Space ``Space1X`` beside ``Space1`` is outside ``Space1``.
+A value inside ``B`` that the ItemSpace has no copy of,
+such as ``Space1.Child[3]``, an ItemSpace of a Space inside ``B``,
+which no ItemSpace copies, is referred to as it is in ``B``,
+whatever the :attr:`~ReferenceProxy.refmode` of the Reference.
 
-.. admonition:: Known limitation
+For each Reference that refers to the ItemSpace's own copy of its value,
+the ItemSpace, or the DynamicSpace in it whose Space holds the
+Reference, has a Reference of its own: its copy of the Reference of
+``B``, which tools call a *resolved slot*
+(see :ref:`toolapi-resolved-slots`).
+The ReferenceProxy that :func:`~modelx.get_object` returns for it
+through the ItemSpace or the DynamicSpace stands for that copy:
+its :attr:`~ReferenceProxy.name` is the name of the Reference,
+its :attr:`~ReferenceProxy.parent` is the ItemSpace or the DynamicSpace,
+its :attr:`~ReferenceProxy.value` is the ItemSpace's copy of the value,
+and its :attr:`~ReferenceProxy.refmode` is the mode of the Reference of
+``B``. Continuing with the example above::
 
-   For such a Reference, the ReferenceProxy that
-   :func:`~modelx.get_object` returns through the ItemSpace,
-   or through a DynamicSpace in it,
-   stands for the copy, not for the Reference:
+    >>> child = space.new_space("Child")
+
+    >>> space.rel = child
+
+    >>> space.formula = lambda i: None
+
+    >>> item = space[1]
+
+    >>> rel = mx.get_object(item.fullname + ".rel", as_proxy=True)
+
+    >>> rel.name, rel.fullname, rel.parent, rel.refmode
+    ('rel', 'Model1.Space1.__Space1.rel', <ItemSpace Model1.Space1[1]>, 'auto')
+
+    >>> rel.value
+    <DynamicSpace Model1.Space1[1].Child>
+
+Its proxy is a :class:`DynamicReferenceProxy`, and it is not equal to the
+proxy of ``Space1.rel``, which is the Reference it copies.
+
+.. versionchanged:: 0.34.0
+   Before, the ReferenceProxy of such a Reference obtained through the
+   ItemSpace or a DynamicSpace in it stood for the copy of the value:
    its :attr:`~ReferenceProxy.name`, :attr:`~ReferenceProxy.fullname`
-   and :attr:`~ReferenceProxy.parent` are those of ``Space1[1].Child``,
+   and :attr:`~ReferenceProxy.parent` were those of ``Space1[1].Child``,
    or of ``Space1[1]`` for ``up``,
-   and :attr:`~ReferenceProxy.refmode` raises :obj:`AttributeError`.
-   This is not part of the frozen contract (see :ref:`toolapi-tiers`)
-   and may change.
+   and :attr:`~ReferenceProxy.refmode` raised :obj:`AttributeError`.
+   A Reference to a Space beside ``B`` whose name begins with the name
+   of ``B``, as ``Space1X`` is for ``Space1``, was taken to be inside
+   ``B``: in the ItemSpace it was missing, and the formulas that read it
+   failed.
 
 
 .. _reference-proxy-refmode:
@@ -188,7 +226,14 @@ with:
   :meth:`UserSpace.relref <modelx.core.space.UserSpace.relref>`,
   or by :meth:`UserSpace.set_ref <modelx.core.space.UserSpace.set_ref>` with ``'relative'``;
 * :obj:`None` for a global Reference, which is set on a Model,
-  and for an argument of an :class:`~modelx.core.space.ItemSpace`.
+  for an argument of an :class:`~modelx.core.space.ItemSpace`,
+  and for the ``_self``, ``_space`` and ``_model`` of a Space.
+
+The three modes are ``ReferenceProxy._refmodes``,
+``('auto', 'absolute', 'relative')``
+(see :ref:`toolapi-references`).
+:meth:`UserSpace.set_ref <modelx.core.space.UserSpace.set_ref>`
+raises :obj:`ValueError` for any other mode, and changes nothing.
 
 .. admonition:: Known limitation
 
@@ -196,12 +241,20 @@ with:
    :meth:`~modelx.core.space.UserSpace.new_pandas`,
    :meth:`~modelx.core.space.UserSpace.new_module` or
    :meth:`~modelx.core.space.UserSpace.new_excel_range`
-   creates in a :class:`~modelx.core.space.UserSpace`.
+   creates in a :class:`~modelx.core.space.UserSpace`,
+   and for its copies in sub Spaces.
+   After :func:`~modelx.read_model`, it is what the model file holds:
+   an int for such a Reference in a model saved in serializer
+   version 7 or earlier, the default format before modelx 0.32,
+   and the str of a mode that ``set_ref`` accepted before modelx 0.34,
+   such as ``'sideways'``.
    This is not part of the frozen contract (see :ref:`toolapi-tiers`)
    and may change.
 
 A Reference that a sub Space inherits from its base Space has the mode
-of the base Reference. The mode matters only when the value is a modelx
+of the base Reference, and so has an ItemSpace's copy of a Reference
+of its Space (see :ref:`reference-proxy-identity`).
+The mode matters only when the value is a modelx
 object, such as a Cells or a Space; see
 :meth:`UserSpace.set_ref <modelx.core.space.UserSpace.set_ref>`.
 A model saved by :func:`~modelx.write_model` keeps the mode only for

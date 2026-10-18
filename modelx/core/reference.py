@@ -157,24 +157,37 @@ class ReferenceProxy:
 
     __slots__ = ("_impl",)
 
+    _refmodes = ("auto", "absolute", "relative")
+    """The reference modes, as :meth:`~modelx.core.space.UserSpace.set_ref`
+    takes them and :attr:`~ReferenceProxy.refmode` gives them.
+
+    ``set_ref`` raises :obj:`ValueError` for a mode not in it.
+
+    .. versionadded:: 0.34.0
+    """
+
     def __new__(cls, impl=None):
         """Make a :class:`DynamicReferenceProxy` for a dynamic Reference.
 
         ``ReferenceProxy(impl)`` gives a DynamicReferenceProxy when the
         Reference's parent is an ItemSpace or a DynamicSpace in one: an
         argument of an ItemSpace, a ref that its Space formula returns,
-        and the ``_self``, ``_space`` and ``_model`` of either Space.
+        the ``_self``, ``_space`` and ``_model`` of either Space, and a
+        Reference of its Space that refers to the ItemSpace's own copy
+        of its value, such as ``P[1].rel`` for ``P.rel = P.Child``
+        (:ref:`reference-proxy-identity`), which is the ItemSpace's copy
+        of the Reference.
         Every site that makes a proxy calls ``ReferenceProxy(impl)``, so
         the rule is here.
 
         A Reference that an ItemSpace shares with its Space, as
         ``P[1].k`` is ``P.k``, keeps its Space as parent, so its proxy is
-        a ReferenceProxy. So is that of a slot of an ItemSpace, or of a
-        DynamicSpace in one, holding the ItemSpace's copy of a Space or
-        a Cells, which is not a Reference itself on this release
-        (:ref:`reference-proxy-identity`): without the ``isinstance``
-        test the class would follow the parent of what the slot holds,
-        and a slot holding None would raise.
+        a ReferenceProxy. So is a proxy made over an object that is not
+        a Reference: without the ``isinstance`` test the class would
+        follow that object's parent, and None would raise. Before 0.34
+        a slot of an ItemSpace that referred to the ItemSpace's copy of
+        its value held the copy itself, or None for ``P.r = PX``, and
+        modelx made such proxies.
 
         ``impl`` defaults to None because :func:`copy.copy` calls
         ``cls.__new__(cls)`` with no argument; with ``impl`` required,
@@ -205,6 +218,44 @@ class ReferenceProxy:
     def __setstate__(self, state):
         self._impl = state
 
+    def __eq__(self, other):
+        """Whether ``other`` is a proxy to the same Reference.
+
+        Two proxies are equal when they stand for the same Reference,
+        however each was obtained, and of either class: a proxy
+        from :func:`~modelx.get_object` with ``as_proxy=True``, one from
+        a Space's ``_get_object`` and one from a
+        :class:`ReferenceNode`'s ``obj`` are equal, and so is a
+        :func:`copy.copy` of any of them. A Reference that an ItemSpace
+        shares with its Space, as ``P[1].k`` is ``P.k``, is one
+        Reference, so its proxy obtained through the ItemSpace is equal
+        to its proxy obtained through the Space.
+        A proxy is never equal to an object that is not a proxy,
+        such as the value of its Reference.
+
+        .. versionchanged:: 0.34.0
+            Proxies are equal by the Reference they stand for. Before,
+            each proxy was equal only to itself, so two proxies to one
+            Reference made a set of 2.
+        """
+        # False, not NotImplemented, for an object that is not a proxy.
+        # With NotImplemented (object.__eq__, before 0.34) Python then asks
+        # the other operand: proxy == P.h raised TypeError from
+        # Cells.__eq__ for a Cells with parameters, and proxy == P.sc ran
+        # the formula of a scalar Cells (len(tracegraph) 1 -> 2), so a
+        # comparison could evaluate the model.
+        if isinstance(other, ReferenceProxy):
+            return other._impl is self._impl
+        return False
+
+    def __hash__(self):
+        """The hash of the Reference, so equal proxies hash equally.
+
+        .. versionchanged:: 0.34.0
+            Before, the hash was that of the proxy object.
+        """
+        return hash(id(self._impl))
+
     def __getattr__(self, name):
         item = getattr(Interface, name)
         if isinstance(item, property):
@@ -221,33 +272,54 @@ class ReferenceProxy:
     def refmode(self):
         """Returns reference mode
 
-        Returns a string representing the reference mode,
-        or :obj:`None` or :obj:`False` for some References.
+        One of :attr:`_refmodes`, ``'auto'``, ``'absolute'`` or
+        ``'relative'``, for a Reference of a UserSpace, its copies, and a
+        ref that a Space formula returns, or :obj:`None` for the other
+        References, which have no mode.
+
+        * A Reference of a :class:`~modelx.core.space.UserSpace` has the
+          mode it was set with: ``'auto'`` when it is set by assignment
+          or by the ``refs`` of ``new_space``, and the mode given to
+          :meth:`~modelx.core.space.UserSpace.set_ref`,
+          ``'absolute'`` by :meth:`~modelx.core.space.UserSpace.absref`
+          and ``'relative'`` by
+          :meth:`~modelx.core.space.UserSpace.relref`.
+          Its copies in sub Spaces have the same mode, and so does the
+          Reference seen through an ItemSpace, or a DynamicSpace in one,
+          that shares it, as ``P[1].k`` is ``P.k``, or that is the
+          ItemSpace's copy of it, as ``P[1].rel`` is for
+          ``P.rel = P.Child`` (see :ref:`reference-proxy-identity`).
+        * A ref that the formula of a Space returns in ``'refs'`` is
+          ``'auto'``.
+        * A global Reference, also through a Space or an ItemSpace,
+          an argument of an :class:`~modelx.core.space.ItemSpace`, and
+          the ``_self``, ``_space`` and ``_model`` of a Space have no
+          mode: :obj:`None`.
 
         Returns:
-            str, None or bool: "auto", "absolute" or "relative" for
-            most References.
-            :obj:`None` for a global Reference and for an argument of
-            an :class:`~modelx.core.space.ItemSpace`.
-            **Known limitation:** :obj:`False` for a Reference that
-            ``new_pandas``, ``new_module`` or ``new_excel_range``
-            creates in a :class:`~modelx.core.space.UserSpace`.
+            str or None: One of :attr:`_refmodes`, or :obj:`None`.
+
+            **Known limitation:** some References give a value that is
+            neither: :obj:`False` for a Reference that ``new_pandas``,
+            ``new_module`` or ``new_excel_range`` creates in a
+            :class:`~modelx.core.space.UserSpace`, and for its copies
+            in sub Spaces; and, after :func:`~modelx.read_model`, the
+            value the model file holds: an int for a Reference of a
+            UserSpace whose value is that of an IOSpec, in a model
+            saved in serializer version 7 or earlier, the default format
+            before modelx 0.32, and a mode outside :attr:`_refmodes`
+            that ``set_ref`` accepted before 0.34, as a str, such as
+            ``'sideways'``, or ``'None'`` for :obj:`None`.
             This is not part of the frozen contract and may change.
 
-        Raises:
-            AttributeError: On this release, on a proxy got through an
-                :class:`~modelx.core.space.ItemSpace`, or a DynamicSpace
-                in one, for a Reference that refers to the ItemSpace's
-                own copy of its value, such as ``P[1].rel`` for
-                ``P.rel = P.Child`` or ``P[1].Child.up`` for
-                ``P.Child.up = P``, because such a proxy stands for the
-                copy (see :ref:`reference-proxy-identity`, which gives
-                the condition); and on a proxy got through either for a
-                Reference to a Space whose name begins with the name of
-                the Space, such as ``PX`` for ``P`` (see :ref:`the note
-                on such References <toolapi-prefix-ref>`).
-                These are known limitations, not part of the frozen
-                contract, and may change.
+        .. versionchanged:: 0.34.0
+            A Reference seen through an ItemSpace, or a DynamicSpace in
+            one, that refers to the ItemSpace's own copy of its value,
+            such as ``P[1].rel`` for ``P.rel = P.Child``, has the mode of
+            the Reference it copies. Before, its proxy stood for the
+            copy, and ``refmode`` raised :obj:`AttributeError`; so it did
+            for a Reference to a Space whose name begins with the name of
+            the Space, such as ``P.r = PX``.
 
         .. seealso::
 
@@ -270,24 +342,17 @@ class ReferenceProxy:
         for a Reference that a Space formula returns,
         and for the ``_self``, ``_space`` and ``_model`` of a Space.
         Through an ItemSpace, a Reference of its Space
-        gives the flag of that Reference.
+        gives the flag of that Reference. The exception is a Reference
+        that refers to the ItemSpace's own copy of its value, such as
+        ``P[1].rel`` for ``P.rel = P.Child`` or ``P[1].Child.up`` for
+        ``P.Child.up = P`` (see :ref:`reference-proxy-identity`, which
+        gives the condition): the ItemSpace has a copy of that Reference,
+        a resolved slot (:ref:`toolapi-resolved-slots`), which gives
+        :obj:`True`, as ``P[1].h`` does.
 
         :obj:`None` when the proxy does not stand for a Reference,
         so a tool that asks every proxy in a model gets an answer
-        from each, and no exception.
-
-        On this release that is the case for a proxy got through an
-        ItemSpace, or a DynamicSpace in one, for a Reference that refers
-        to the ItemSpace's own copy of its value, such as ``P[1].rel``
-        for ``P.rel = P.Child`` or ``P[1].Child.up`` for
-        ``P.Child.up = P``, because such a proxy stands for the copy
-        (see :ref:`reference-proxy-identity`, which gives the
-        condition), and for a proxy got through either for a Reference
-        to a Space whose name begins with the name of the Space, such as
-        ``PX`` for ``P`` (see
-        :ref:`the note on such References <toolapi-prefix-ref>`).
-        Which proxies these are is a known limitation, not part of the
-        frozen contract, and may change.
+        from each, and no exception. modelx makes no such proxy.
 
         Returns:
             bool or None: :obj:`True` for a derived Reference,
@@ -297,13 +362,14 @@ class ReferenceProxy:
         .. versionadded:: 0.34.0
         """
         impl = self._impl
-        # An isinstance test, not a try. On this release a proxy's impl can
-        # be an item's DynamicSpaceImpl, ItemSpaceImpl or DynamicCellsImpl,
-        # or None (see the docstring). Without the test, a whole-model
+        # An isinstance test, not a try. Before resolved slots, a proxy's
+        # impl could be an item's DynamicSpaceImpl, ItemSpaceImpl or
+        # DynamicCellsImpl, or None, and a whole-model
         # _get_attrdict(['_is_derived']) raised
         # "AttributeError: 'DynamicSpaceImpl' object has no attribute
-        # 'is_derived'". A try would not do: a DynamicCellsImpl has
-        # is_derived(), and gave its Cells' flag, True, for the proxy.
+        # 'is_derived'". modelx no longer makes such proxies; the test stays
+        # so a walk never raises on one made by hand. A try would not do: a
+        # DynamicCellsImpl has is_derived(), and gave its Cells' flag.
         if isinstance(impl, ReferenceImpl):
             return impl.is_derived()
         return None
@@ -317,9 +383,13 @@ class ReferenceProxy:
 
         .. versionchanged:: 0.34.0
             It calls :meth:`_is_derived`, so it returns :obj:`None` for a
-            proxy that does not stand for a Reference. On 0.33 it raised
-            :obj:`AttributeError` there, or returned :obj:`True` when the
-            proxy stood for an ItemSpace's copy of a Cells.
+            proxy that does not stand for a Reference. On 0.33 a proxy
+            got through an ItemSpace for a Reference that refers to the
+            ItemSpace's own copy of its value stood for the copy, and
+            ``is_derived()`` raised :obj:`AttributeError` when the copy
+            was a Space and returned the copy's flag, :obj:`True`, when
+            it was a Cells. From 0.34 such a proxy stands for the
+            ItemSpace's copy of the Reference, which is derived.
         """
         return self._is_derived()
 
@@ -366,16 +436,138 @@ class ReferenceProxy:
         followed by the name of the Reference. A global Reference has
         the name of its Model before its name, from whichever Space
         the proxy was obtained.
-        A proxy that stands for an ItemSpace's copy of a Reference's
-        value names the copy instead, a known limitation described
-        under "ReferenceProxy forwarding" in :ref:`toolapi-wire`.
 
         Returns:
             str: Such as ``'Model1.Base.rate'``, ``'Model1.scale'``
-            for a global Reference, or ``'Model1.Proj(1).i'`` for an
-            argument of an ItemSpace.
+            for a global Reference, ``'Model1.Proj(1).i'`` for an
+            argument of an ItemSpace, or ``'Model1.Proj(1).rel'`` for
+            ``Proj.rel = Proj.Child`` seen through ``Proj[1]``, which is
+            the ItemSpace's copy of the Reference
+            (:ref:`reference-proxy-identity`).
+
+        .. versionchanged:: 0.34.0
+            For a Reference seen through an ItemSpace that refers to the
+            ItemSpace's own copy of its value, the name of the Reference
+            after the ItemSpace's, ``'Model1.Proj(1).rel'``. Before, the
+            proxy stood for the copy, so it gave the copy's,
+            ``'Model1.Proj(1).Child'``.
         """
         return Interface._evalrepr.fget(self)
+
+    @property
+    def _idstr(self):
+        """The dotted name of the Reference without the name of its
+        Model.
+
+        It is the ``_idstr`` of the Reference's parent followed by the
+        name of the Reference, or the name alone for a global Reference,
+        from whichever Space the proxy was obtained. An ItemSpace
+        appears in it under its ``__SpaceN`` name, so an ``_idstr`` that
+        contains one is valid only while that ItemSpace lives.
+
+        Returns:
+            str: Such as ``'Base.rate'``, ``'scale'`` for a global
+            Reference, ``'Proj.__Space1.i'`` for an argument of an
+            ItemSpace, or ``'Proj.__Space1.rel'`` for
+            ``Proj.rel = Proj.Child`` seen through ``Proj[1]``, which is
+            the ItemSpace's copy of the Reference
+            (:ref:`reference-proxy-identity`).
+
+        .. versionchanged:: 0.34.0
+            Defined on the class, so ``getattr(type(proxy), '_idstr')``
+            finds it. Before, the proxy answered it by forwarding it to
+            the base class of Model, Spaces and Cells, with the same
+            value, except for a Reference seen through an ItemSpace that
+            refers to the ItemSpace's own copy of its value: its proxy
+            stood for the copy, so it gave the copy's,
+            ``'Proj.__Space1.Child'``.
+        """
+        return Interface._idstr.fget(self)
+
+    def _get_repr(self, fullname=False, add_params=True):
+        """The display string of the Reference.
+
+        It is the name of the Reference. With ``fullname=True`` it is
+        the display name of the Reference's parent, as the parent's
+        ``_get_repr(fullname=True, add_params=False)`` gives it, followed
+        by the name, so it starts with the name of the Model.
+        ``add_params`` changes nothing for a Reference.
+
+        Returns:
+            str: Such as ``'rate'``, or ``'Model1.Base.rate'`` and
+            ``'Model1.Proj[1].i'`` with ``fullname=True``.
+
+        .. versionchanged:: 0.34.0
+            Defined on the class, so ``getattr(type(proxy),
+            '_get_repr')`` finds it. Before, the proxy answered it by
+            forwarding it to the base class of Model, Spaces and Cells,
+            with the same value, except for a Reference seen through an
+            ItemSpace that refers to the ItemSpace's own copy of its
+            value (:ref:`reference-proxy-identity`): its proxy stood for
+            the copy, so it gave the copy's string, ``'Child'`` where it
+            now gives ``'rel'``.
+        """
+        return Interface._get_repr(self, fullname, add_params)
+
+    def _is_valid(self):
+        """Whether the Reference that the proxy stands for is still
+        bound.
+
+        :obj:`True` while the Space or the Model that holds the
+        Reference holds it under its name. :obj:`False` once the
+        Reference is deleted or bound again, as by ``space.x = 2``,
+        and once the Space that holds it is deleted.
+        Binding a Reference of a base Space again makes a new copy of it
+        in each sub Space, so a proxy to a copy turns :obj:`False` then.
+        An argument of an ItemSpace, a ref that its Space formula
+        returns, the ``_self``, ``_space`` and ``_model`` of an
+        ItemSpace or a DynamicSpace in it, and the ItemSpace's copy of a
+        Reference that refers to the ItemSpace's own copy of its value
+        (``P[1].rel`` for ``P.rel = P.Child``, see
+        :ref:`reference-proxy-identity`) turn :obj:`False` when the
+        ItemSpace is deleted, by ``del``, by ``clear_items()``, or by an
+        edit that deletes the ItemSpaces of its Space. They stay
+        :obj:`False` when an ItemSpace with the same arguments is made
+        again, because the new ItemSpace has References of its own.
+        The References of a closed Model stay valid, as the closed
+        Model's own ``_is_valid()`` does.
+
+        ``repr()`` of a proxy whose Reference is no longer bound shows a
+        null object, as for a deleted Cells:
+        ``<ReferenceProxy null object>``, or
+        ``<DynamicReferenceProxy null object>``.
+
+        Returns:
+            bool: :obj:`True` while the Reference is bound, :obj:`False`
+            after.
+
+        .. versionchanged:: 0.34.0
+            :obj:`False` once the Reference is no longer bound. Before,
+            the proxy forwarded it to the base class of Model, Spaces and
+            Cells, which gave :obj:`True` for every proxy, also after its
+            Reference was deleted or bound again, and after the ItemSpace
+            that made it was deleted. ``repr()`` of such a proxy showed
+            the Reference.
+        """
+        impl = self._impl
+        if not isinstance(impl, ReferenceImpl):
+            # Not a Reference. modelx makes no such proxy since resolved
+            # slots; before them a slot of an ItemSpace held the item's copy
+            # of a value, or None for P.r = PX. The answer Interface gives,
+            # and never a raise.
+            return Interface._is_valid(self)
+        # Two tests, both on impls. The container test alone is not enough:
+        # a deleted ItemSpace keeps its dicts, so an argument or a formula
+        # ref of a cleared ItemSpace passed it (fix-used-by/u04). The parent
+        # test must not ask the parent's interface for _is_valid(): an
+        # ItemSpace made again with the same arguments re-uses the old
+        # interface objects, and with that test a kept argument or formula
+        # ref proxy answered True again after del P[3]; P[3], after
+        # P.clear_items(); P[3] and after a rebind of P.rel and P[3]
+        # (refute2/r08b; fix-final/e03, both re-run on this code).
+        parent = impl.parent
+        return (parent.interface._impl is parent
+                and impl.container.get(impl.name) is impl)
 
     def __repr__(self):
         return Interface.__repr__(self)
@@ -389,8 +581,12 @@ class DynamicReferenceProxy(ReferenceProxy):
     DynamicReferenceProxy for a Reference whose parent is an
     :class:`~modelx.core.space.ItemSpace` or a
     :class:`~modelx.core.space.DynamicSpace` in one: an argument of an
-    ItemSpace, a ref that the Space formula returns, and the ``_self``,
-    ``_space`` and ``_model`` of either Space. A Reference of a Space seen
+    ItemSpace, a ref that the Space formula returns, the ``_self``,
+    ``_space`` and ``_model`` of either Space, and the ItemSpace's copy of
+    a Reference of its Space that refers to the ItemSpace's own copy of
+    its value, as ``P[1].rel`` is for ``P.rel = P.Child``
+    (:ref:`reference-proxy-identity`), which tools call a resolved slot
+    (:ref:`toolapi-resolved-slots`). Any other Reference of a Space seen
     through one of its ItemSpaces, as ``P[1].k`` is ``P.k``, and a global
     Reference keep a :class:`ReferenceProxy`.
 

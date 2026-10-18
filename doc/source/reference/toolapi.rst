@@ -30,6 +30,8 @@ Most examples on this page use this model:
 
     >>> child = proj.new_space("Child")
 
+    >>> proj.rel = child
+
     >>> bar = proj.new_cells("bar", formula=lambda: i)
 
     >>> m.scale = 10
@@ -285,11 +287,17 @@ Members
     .. admonition:: Known limitation
 
        On this release the forwarded members are not attributes of the
-       ReferenceProxy class: ``getattr(type(proxy), "_idstr", None)``
-       is :obj:`None` although ``proxy._idstr`` works.
+       ReferenceProxy class: ``getattr(type(proxy), "_idtuple", None)``
+       is :obj:`None` although ``proxy._idtuple`` works.
        Which of them the class defines and which it forwards
        is not part of the frozen contract and may change:
        a later release may define some of them on the class.
+
+    .. versionchanged:: 0.34.0
+       The ReferenceProxy class defines ``_idstr``, ``_get_repr`` and
+       ``_is_valid`` itself, and has the new ``_refmodes``.
+       Before, it forwarded the first three,
+       so ``getattr(type(proxy), "_idstr", None)`` was :obj:`None`.
 
 Kinds
     Tell a modelx object from any other value, and which kind of
@@ -333,10 +341,11 @@ These members name and find objects.
 Model, the Space classes, Cells and Macro define
 ``_idstr``, ``_idtuple``, ``_evalrepr``, ``_get_repr``,
 ``_name``, ``_parent``, ``_get_object`` and ``_is_valid``.
-A ReferenceProxy defines ``_evalrepr``, and also answers
-``_idstr``, ``_idtuple``, ``_get_repr``, ``_name``, ``_parent``
-and ``_is_valid``
-(see "ReferenceProxy forwarding" under :ref:`toolapi-wire`).
+A ReferenceProxy defines ``_idstr``, ``_evalrepr``, ``_get_repr``
+and ``_is_valid``, and also answers ``_idtuple``, ``_name`` and
+``_parent`` (see "ReferenceProxy forwarding" under :ref:`toolapi-wire`).
+Two proxies of one Reference are equal
+(see :ref:`toolapi-references`).
 The node classes define a ``_get_repr`` of their own,
 with other parameters.
 
@@ -350,8 +359,10 @@ with other parameters.
     so an ``_idstr`` that contains one is valid only while that ItemSpace lives.
     On a ReferenceProxy, a global Reference has its name alone as its
     ``_idstr``, from whichever Space the proxy was obtained,
-    and an argument of an ItemSpace has the ``_idstr`` of the ItemSpace
-    followed by its name.
+    and a Reference that an ItemSpace makes, such as an argument
+    or a :ref:`resolved slot <toolapi-resolved-slots>`,
+    has the ``_idstr`` of its parent, the ItemSpace or the DynamicSpace
+    in it, followed by its name.
     The ``'namedid'`` key of :ref:`attrdicts <toolapi-wire>` holds it.
 
     >>> [obj._idstr for obj in (m, base, foo, item, item.bar, item.Child)]
@@ -362,6 +373,9 @@ with other parameters.
 
     >>> item._get_object("i", as_proxy=True)._idstr
     'Proj.__Space1.i'
+
+    >>> item._get_object("rel", as_proxy=True)._idstr
+    'Proj.__Space1.rel'
 
 ``_idtuple``
     A tuple that starts with the name of the Model,
@@ -465,13 +479,14 @@ with other parameters.
        The type and the message of this exception are not part of
        the frozen contract and may change.
 
-    .. admonition:: Known limitation
-
-       In the ItemSpaces of a Space, a Reference of the Space to a Space
-       whose name begins with the name of the Space is not found,
-       or gives a broken proxy with ``as_proxy=True``;
-       see :ref:`the note on such References <toolapi-prefix-ref>`.
-       This is not part of the frozen contract and may change.
+    .. versionchanged:: 0.34.0
+       In the ItemSpaces of a Space ``P``, a Reference of ``P`` to a Space
+       outside ``P`` whose name begins with the name of ``P``,
+       as ``P.r`` is for ``P.r = PX``, is found:
+       it gives ``PX``, and with ``as_proxy=True`` the proxy of ``P.r``.
+       Before, it raised :obj:`NameError`,
+       and with ``as_proxy=True`` it gave a proxy whose ``value``,
+       ``name`` and ``_idstr`` raised :obj:`AttributeError`.
 
 ``Model._get_from_name(name)``
     Finds an object by its ``_idstr``.
@@ -503,8 +518,6 @@ with other parameters.
        What it returns for them, which other names it finds,
        and what it raises for the names it does not find,
        are not part of the frozen contract and may change.
-       See also :ref:`the known limitation on a Reference to a Space
-       whose name begins with the name of the Space <toolapi-prefix-ref>`.
 
 ``_named_itemspaces`` (Spaces)
     A mapping of the ItemSpaces that the Space has created and that exist,
@@ -520,17 +533,69 @@ with other parameters.
     Most other members of a deleted object raise
     :class:`~modelx.core.errors.DeletedObjectError`.
 
+    On a ReferenceProxy, it tells whether the Reference that the proxy
+    stands for is still bound.
+    It is :obj:`False` once the Reference is deleted or bound again,
+    as by ``space.x = 2``, and once the Space that holds it is deleted.
+    Binding a Reference of a base Space again gives each sub Space
+    a new copy of it, so a proxy of the old copy turns :obj:`False` too.
+    The References that an ItemSpace makes, which are its arguments,
+    the References that its Space formula returns, its
+    :ref:`resolved slots <toolapi-resolved-slots>`,
+    and the ``_self``, ``_space`` and ``_model`` of the ItemSpace and
+    of the DynamicSpaces in it,
+    turn :obj:`False` when the ItemSpace is deleted:
+    by ``del``, by ``clear_items()``, or by an edit that deletes
+    the ItemSpaces of its Space, such as binding a Reference of that
+    Space or of a base of it, or any global Reference,
+    whether the Reference is new or bound again.
+    They stay :obj:`False` when an ItemSpace with the same arguments
+    is made again, because the new ItemSpace makes References of its own,
+    and their proxies are not equal to the old ones.
+    The other members of a proxy whose Reference is no longer bound
+    still answer, and its ``value`` is the value that the Reference had,
+    so a tool gets a new proxy.
+    ``repr()`` of such a proxy shows a null object.
+
+    >>> base.tmp = 1
+
+    >>> tmp = base._get_object("tmp", as_proxy=True)
+
+    >>> base.tmp = 2
+
+    >>> tmp._is_valid(), tmp.value, tmp
+    (False, 1, <ReferenceProxy null object>)
+
+    >>> base._get_object("tmp", as_proxy=True)._is_valid()
+    True
+
+    >>> del base.tmp
+
+    >>> arg = proj[2]._get_object("i", as_proxy=True)
+
+    >>> del proj[2]
+
+    >>> arg._is_valid(), proj[2]._get_object("i", as_proxy=True) == arg
+    (False, False)
+
+    >>> del proj[2]
+
+    .. versionchanged:: 0.34.0
+       On a ReferenceProxy. Before, every proxy returned :obj:`True`,
+       also after its Reference was deleted or bound again,
+       and after the ItemSpace that made it was deleted.
+
     .. admonition:: Known limitation
 
        A :class:`~modelx.core.macro.Macro` returns :obj:`True` after
-       it has been deleted, and a ReferenceProxy returns :obj:`True`
-       after its Reference has been deleted or given another value.
+       it has been deleted.
        This is not part of the frozen contract and may change.
 
     .. admonition:: Known limitation
 
        Closing a Model does not make the Model or its objects
-       invalid on this release: their ``_is_valid()`` stays :obj:`True`.
+       invalid on this release: their ``_is_valid()`` stays :obj:`True`,
+       and so does that of the proxies of its References.
        This is not part of the frozen contract and may change.
 
     .. admonition:: Known limitation
@@ -541,7 +606,8 @@ with other parameters.
        because modelx reuses the same objects on this release.
        The ItemSpace's ``_idstr`` then has a new ``__SpaceN`` name.
        The Cells in it are not revived:
-       a Cells of the deleted item that a tool holds stays invalid.
+       a Cells of the deleted item that a tool holds stays invalid,
+       and so does a proxy of a Reference that the deleted item made.
        This is not part of the frozen contract and may change.
 
 ``_get_repr(fullname=True, add_value=False)`` (nodes)
@@ -664,7 +730,10 @@ with other parameters.
   :toctree: generated/
   :template: mxbase.rst
 
+  ReferenceProxy._idstr
   ReferenceProxy._evalrepr
+  ReferenceProxy._get_repr
+  ReferenceProxy._is_valid
 
 .. currentmodule:: modelx.core.node
 
@@ -747,11 +816,15 @@ The twelve names are:
      - A Macro.
    * - ``'ReferenceProxy'``
      - The proxy of a global Reference, and of a Reference of a UserSpace,
-       also when it is obtained through an ItemSpace of the Space.
+       also when it is obtained through an ItemSpace of the Space
+       that shares it, as ``Proj[1].k`` is ``Proj.k``.
    * - ``'DynamicReferenceProxy'``
      - The proxy of a Reference that an ItemSpace makes:
        an argument of the ItemSpace, a Reference that its Space formula
-       returns in ``'refs'``, and the ``_self``, ``_space`` and ``_model``
+       returns in ``'refs'``,
+       a :ref:`resolved slot <toolapi-resolved-slots>`, such as
+       ``Proj[1].rel``,
+       and the ``_self``, ``_space`` and ``_model``
        of the ItemSpace and of the DynamicSpaces in it
        (:class:`~modelx.core.reference.DynamicReferenceProxy`).
    * - ``'PandasData'``, ``'ExcelRange'``, ``'ModuleData'``
@@ -831,7 +904,9 @@ Dynamic objects
     the ItemSpace itself and the DynamicSpaces in it, their Cells,
     and the References that the ItemSpace makes,
     which are its arguments, the References that its Space formula
-    returns in ``'refs'``, and its ``_self``, ``_space`` and ``_model``.
+    returns in ``'refs'``,
+    its :ref:`resolved slots <toolapi-resolved-slots>`,
+    and its ``_self``, ``_space`` and ``_model``.
     Its kind is one of four:
 
     >>> DYNAMIC = frozenset({'ItemSpace', 'DynamicSpace', 'DynamicCells',
@@ -840,24 +915,19 @@ Dynamic objects
     >>> [kind(obj) in DYNAMIC for obj in (proj, item, item.Child, foo, item.bar)]
     [False, True, True, False, True]
 
+    >>> kind(item._get_object("rel", as_proxy=True)) in DYNAMIC
+    True
+
     Not dynamic are the Model, every UserSpace and its Cells,
     the global References, the References of a UserSpace,
-    also when they are seen through an ItemSpace of the Space,
+    also when an ItemSpace of the Space shares them,
     and Macros.
 
-    .. admonition:: Known limitation
-
-       Seen through an ItemSpace or a DynamicSpace in it,
-       a Reference that refers to the ItemSpace's own copy of its value,
-       as the note under :ref:`reference-proxy-identity` describes
-       (``P[1].rel`` for ``P.rel = P.Child``,
-       or ``P[1].Child.up`` for ``P.Child.up = P``),
-       has a proxy that stands for the copy,
-       and the proxy is a ReferenceProxy on this release.
-       So is the proxy of a Reference to a Space whose name begins
-       with the name of the Space
-       (see :ref:`the note on such References <toolapi-prefix-ref>`).
-       This is not part of the frozen contract and may change.
+    .. versionchanged:: 0.34.0
+       A resolved slot is a Reference of its own, and its proxy is
+       a DynamicReferenceProxy.
+       Before, its proxy stood for the ItemSpace's copy of the value
+       and was a ReferenceProxy.
 
     Until modelx 0.34.0, the Space classes had ``_is_dynamic()``,
     ``_is_static()`` and ``_is_root()``.
@@ -910,6 +980,22 @@ What a kind can do
          - ``'Model'`` and ``'UserSpace'``.
            An ItemSpace and a DynamicSpace take none,
            and a UserSpace, not a Model, takes new Cells.
+           These routes refuse a name that the parent already uses
+           for another kind of member, and change nothing:
+           :meth:`~modelx.core.space.UserSpace.set_ref`,
+           ``absref`` and ``relref`` raise :obj:`AttributeError`
+           for the name of a Cells of the UserSpace, defined or
+           inherited, or of its child Space,
+           and in a Model, ``new_space``, and ``rename`` and ``copy``
+           of a Space into it, raise :obj:`ValueError`
+           for the name of a Macro.
+           ``add_bases`` checks no names, so a Cells or a Reference
+           that a UserSpace inherits can have the name of a member
+           of the other kind,
+           and assigning to an attribute, as in ``space.a = 3``,
+           sets the input of a Cells ``a`` with no parameters.
+           Assigning to a read-only property of a Model or a UserSpace,
+           such as ``name`` or ``bases``, raises :obj:`AttributeError`.
        * - The Space that created an ItemSpace
          - Its ``parent``.
            For an ItemSpace of an ItemSpace, walk ``parent`` while the
@@ -922,6 +1008,22 @@ What a kind can do
 
     >>> item[5].parent is item, item.parent is proj
     (True, True)
+
+    >>> base.set_ref("foo", 1, "auto")
+    Traceback (most recent call last):
+      ...
+    AttributeError: 'foo' is already defined as a Cells
+
+    .. versionchanged:: 0.34.0
+       Before, ``set_ref``, ``absref`` and ``relref`` with the name
+       of a Cells with no parameters set the input of the Cells and made
+       no Reference, and with the name of a child Space raised
+       :obj:`ValueError`. A Space of a Model could take the name of
+       a Macro, and hid the Macro.
+       Assigning to a read-only property raised :obj:`TypeError`
+       (``'NoneType' object is not callable``).
+       Assigning to an attribute, as in ``space.a = 3``,
+       still sets the input of a Cells ``a`` with no parameters.
 
     .. admonition:: Known limitation
 
@@ -983,9 +1085,13 @@ not by a derived flag.
     for an argument of an ItemSpace,
     for a Reference that a Space formula returns,
     and for the ``_self``, ``_space`` and ``_model`` of a Space.
-    Through an ItemSpace, a Reference of its Space
-    gives the flag of that Reference.
-    It is :obj:`None` for a proxy that does not stand for a Reference,
+    Through an ItemSpace, a Reference of its Space that the ItemSpace
+    shares gives the flag of that Reference,
+    and a :ref:`resolved slot <toolapi-resolved-slots>`,
+    which is the ItemSpace's copy of a Reference of its Space,
+    gives :obj:`True`, as a DynamicCells does.
+    It is :obj:`None` only for a proxy made over an object that is
+    not a Reference, which modelx does not make,
     so a tool that asks every proxy in a model gets an answer from each,
     and no exception.
 
@@ -998,25 +1104,10 @@ not by a derived flag.
     >>> item._get_object("i", as_proxy=True)._is_derived()
     False
 
+    >>> item._get_object("rel", as_proxy=True)._is_derived()
+    True
+
     .. versionadded:: 0.34.0
-
-    .. admonition:: Known limitation
-
-       On this release, two kinds of proxies obtained through an ItemSpace,
-       or through a DynamicSpace in it,
-       do not stand for a Reference, and ``_is_derived()`` is :obj:`None`
-       on them:
-
-       * the proxy of a Reference that refers to the ItemSpace's own copy
-         of its value, as the note under :ref:`reference-proxy-identity`
-         describes, such as ``P[1].rel`` for ``P.rel = P.Child``,
-         or ``P[1].Child.up`` for ``P.Child.up = P``,
-         which stands for the copy;
-       * the proxy of a Reference to a Space whose name
-         begins with the name of the Space, such as ``P.r = PX``
-         (see :ref:`the note on such References <toolapi-prefix-ref>`).
-
-       This is not part of the frozen contract and may change.
 
 ``ReferenceProxy.is_derived()``
     Kept for modelx-bridge 0.10; use ``_is_derived()``.
@@ -1024,9 +1115,15 @@ not by a derived flag.
 
     .. versionchanged:: 0.34.0
        It is the same as ``_is_derived()``.
-       Before, on the proxies of the known limitation above,
-       it raised :obj:`AttributeError`, or returned :obj:`True`
-       for an ItemSpace's copy of a Cells.
+       Before, a proxy obtained through an ItemSpace for a Reference
+       that is now a resolved slot stood for the ItemSpace's copy
+       of the value: ``is_derived()`` raised :obj:`AttributeError`
+       when the copy was a Space, and returned the flag of the copy,
+       :obj:`True`, when it was a Cells.
+       For a Reference of a Space ``P`` to a Space outside ``P`` whose
+       name begins with the name of ``P``, such as ``P.r = PX``,
+       the proxy obtained through an ItemSpace of ``P``
+       raised :obj:`AttributeError`; it is now the proxy of ``P.r``.
 
 With the kinds of :ref:`toolapi-kinds`, a tool sorts the Cells and
 the References of a Space:
@@ -1037,8 +1134,10 @@ the References of a Space:
 * defined in the Space itself: ``_is_derived()`` is :obj:`False`
   and the kind is not in ``DYNAMIC``.
 
-A Reference of a Space seen through an ItemSpace of the Space
+A Reference of a Space that an ItemSpace of the Space shares
 is sorted as in that Space, which is its ``parent``.
+A resolved slot has the ItemSpace, or a DynamicSpace in it, as its
+``parent``, and is sorted as made for the ItemSpace.
 
 >>> [(kind(c), c._is_derived()) for c in (foo, sub.foo, item.bar)]
 [('Cells', False), ('Cells', True), ('DynamicCells', True)]
@@ -1052,6 +1151,82 @@ is sorted as in that Space, which is its ``parent``.
 
     >>> sub._is_sub(base), base._is_base(sub), proj._is_base(item)
     (True, True, True)
+
+``_get_inheritance()`` (Spaces)
+    One read of where each Cells and each Reference of the Space
+    is defined. It reads no value, so it evaluates nothing.
+    It returns a new dict on each call, and new lists and dicts in it,
+    with four keys:
+
+    * ``'bases'``: the list that ``bases`` returns;
+    * ``'direct_bases'``: the list that ``_direct_bases`` returns;
+    * ``'cells'``: for each name in ``cells``, in the same order,
+      ``{'state': ..., 'defined_in': ...}``;
+    * ``'refs'``: for each name in ``refs``, in the same order,
+      ``{'scope': ..., 'state': ..., 'defined_in': ...}``.
+
+    ``'state'`` is ``'defined'`` for a member defined in the Space and
+    in none of its bases, ``'overriding'`` for one defined in the Space
+    over a member of the same name in a base, and ``'derived'`` for one
+    inherited from a base.
+    ``'defined_in'`` is the Space whose definition is in use:
+    the Space itself for ``'defined'`` and ``'overriding'``, and for
+    ``'derived'`` the first Space in ``bases`` that defines the name.
+
+    ``'scope'`` tells what kind of binding a formula of the Space sees
+    for the name, where several kinds have it:
+
+    * ``'space'``: a Reference of a UserSpace, defined or inherited;
+    * ``'base'``: in an ItemSpace or a DynamicSpace, a Reference of
+      the UserSpace it was made from,
+      :ref:`resolved slots <toolapi-resolved-slots>` included;
+    * ``'argument'``: an argument of the ItemSpace, or of the ItemSpace
+      that a DynamicSpace is in. An argument hides a Reference of
+      the same name;
+    * ``'formula'``: a Reference that the Space formula returned
+      in ``'refs'``;
+    * ``'global'``: a global Reference;
+    * ``'builtins'``: ``__builtins__``, which modelx binds in every Model.
+
+    For the last four, ``'state'`` is :obj:`None`, and ``'defined_in'``
+    is the Model for ``'global'`` and :obj:`None` for the others.
+    An ItemSpace or a DynamicSpace has the states and the ``'defined_in'``
+    of the UserSpace it was made from, its only base.
+    The names ``_self``, ``_space`` and ``_model`` are not reported,
+    as ``refs`` does not list them; other names that start with
+    an underscore are reported, as ``refs`` lists them
+    (see the known limitation under :ref:`toolapi-underscore`).
+    A deleted Space raises :class:`~modelx.core.errors.DeletedObjectError`.
+
+    >>> inh = sub._get_inheritance()
+
+    >>> inh["bases"], inh["direct_bases"]
+    ([<UserSpace Model1.Base>], [<UserSpace Model1.Base>])
+
+    >>> inh["cells"]
+    {'foo': {'state': 'derived', 'defined_in': <UserSpace Model1.Base>}}
+
+    >>> inh["refs"]["rate"]
+    {'scope': 'space', 'state': 'derived', 'defined_in': <UserSpace Model1.Base>}
+
+    >>> {name: r["scope"] for name, r in item._get_inheritance()["refs"].items()}
+    {'__builtins__': 'builtins', 'scale': 'global', 'rel': 'base', 'i': 'argument'}
+
+    It costs about one read of ``bases`` and ``_direct_bases``,
+    plus a few tenths of a microsecond for each member:
+    one call for every UserSpace of lifelib's BasicTerm_S,
+    BasicTermASL_ME and simplelife models took 17–19, 108–111
+    and 164–172 µs in all (CPython 3.11.15).
+    A tool detects it with ``getattr(type(space), "_get_inheritance", None)``.
+    On modelx 0.33 it can compute the same answers member by member:
+    the states from the ``bases`` of the UserSpace and the
+    ``_is_derived()`` of each Cells and ``is_derived()`` of each
+    Reference proxy, the arguments from the ``parameters`` of each
+    ItemSpace's parent, and ``'formula'`` apart from ``'base'``
+    by ``_own_refs`` (below).
+    On the models tried, that gives the same answers on 0.34 too.
+
+    .. versionadded:: 0.34.0
 
 ``_own_refs`` (Spaces)
     A mapping of the References defined in or inherited by the Space,
@@ -1083,6 +1258,14 @@ is sorted as in that Space, which is its ``parent``.
 
     >>> dict(q[1].C._own_refs), list(q[1].C.refs)
     ({}, ['__builtins__', 'cref', 'i', 'j'])
+
+    ``_get_inheritance()`` tells every name in ``refs`` apart by its scope.
+    ``_own_refs`` holds the names of scope ``'space'`` in a UserSpace,
+    and in an ItemSpace those of scope ``'formula'``,
+    with any of them that an argument of the same name hides:
+
+    >>> {name: r["scope"] for name, r in q[1]._get_inheritance()["refs"].items()}
+    {'__builtins__': 'builtins', 'k': 'base', 'fr': 'formula', 'i': 'argument', 'j': 'argument'}
 
     >>> m3.close()
 
@@ -1140,20 +1323,235 @@ is sorted as in that Space, which is its ``parent``.
 
   UserSpace._is_base
   UserSpace._is_sub
+  UserSpace._get_inheritance
   UserSpace._own_refs
   UserSpace._direct_bases
   ItemSpace._is_base
   ItemSpace._is_sub
+  ItemSpace._get_inheritance
   ItemSpace._own_refs
   ItemSpace._direct_bases
   DynamicSpace._is_base
   DynamicSpace._is_sub
+  DynamicSpace._get_inheritance
   DynamicSpace._own_refs
   DynamicSpace._direct_bases
 
 .. autosummary::
 
   ItemSpace.argvalues
+
+
+.. _toolapi-references:
+
+References
+----------
+
+A tool reads a Reference through a
+:class:`~modelx.core.reference.ReferenceProxy`:
+``_get_object(name, as_proxy=True)`` of a Model or a Space and
+:func:`modelx.get_object` with ``as_proxy=True`` give one,
+and so do the ``obj`` of a :class:`~modelx.core.reference.ReferenceNode`,
+such as one in the ``precedents`` of a Cells,
+and :meth:`~modelx.core.model.Model._get_refs`.
+The ``_self``, ``_space`` and ``_model`` of a Space are in no ``refs``,
+so their proxies come only from ReferenceNodes.
+Each of these calls makes a new proxy object.
+
+Equality and hash
+    Two proxies are equal when they stand for the same Reference,
+    however each was obtained and of either class, and equal proxies
+    have the same :func:`hash`,
+    so a tool can keep proxies in a set or use them as dict keys.
+    A Reference that an ItemSpace shares with its Space is one Reference,
+    so its proxy obtained through the ItemSpace equals its proxy
+    obtained through the Space, and a global Reference has one proxy
+    through the Model and through every Space.
+    The References that a sub Space inherits, and those that each
+    ItemSpace makes, are References of their own,
+    and their proxies are not equal to the proxies of the References
+    they come from.
+    A proxy is never equal to an object that is not a proxy,
+    such as the value of its Reference,
+    and comparing it with one evaluates nothing.
+
+    >>> rate = m._get_object("Base.rate", as_proxy=True)
+
+    >>> rate == mx.get_object("Model1.Base.rate", as_proxy=True), len({rate, base._get_object("rate", as_proxy=True)})
+    (True, 1)
+
+    >>> item._get_object("scale", as_proxy=True) == m._get_object("scale", as_proxy=True)
+    True
+
+    >>> sub._get_object("rate", as_proxy=True) == rate, rate == 0.05
+    (False, False)
+
+    With a Cells on the left, ``cells == proxy`` is the comparison
+    of the Cells, which evaluates a Cells with no parameters and raises
+    :obj:`TypeError` for one with parameters,
+    so a tool puts the proxy on the left.
+
+    .. versionchanged:: 0.34.0
+       Before, a proxy was equal only to itself, so two proxies of one
+       Reference made a set of 2, and ``proxy == cells`` was the
+       comparison of the Cells.
+
+``refmode``, ``_refmodes``
+    ``ReferenceProxy._refmodes`` is the tuple of the modes a Reference
+    can have, ``('auto', 'absolute', 'relative')``.
+    :attr:`~modelx.core.reference.ReferenceProxy.refmode` is one of them
+    for a Reference of a UserSpace, for its copies in sub Spaces,
+    for a Reference that an ItemSpace shares with its Space,
+    and for a :ref:`resolved slot <toolapi-resolved-slots>`, which has
+    the mode of the Reference it copies.
+    A Reference that a Space formula returns in ``'refs'`` is ``'auto'``.
+    A global Reference, also through a Space or an ItemSpace,
+    an argument of an ItemSpace, and the ``_self``, ``_space`` and
+    ``_model`` of a Space have no mode: :obj:`None`.
+    See :ref:`reference-proxy-refmode` for what each mode does.
+
+    :meth:`~modelx.core.space.UserSpace.set_ref` raises
+    :obj:`ValueError` for any other mode, and changes nothing then.
+    That check is not made while :func:`~modelx.read_model` reads
+    a model, so a model file that holds another mode still reads.
+
+    >>> type(rate)._refmodes
+    ('auto', 'absolute', 'relative')
+
+    >>> [p.refmode for p in (rate, item._get_object("rel", as_proxy=True),
+    ...                      item._get_object("i", as_proxy=True),
+    ...                      m._get_object("scale", as_proxy=True))]
+    ['auto', 'auto', None, None]
+
+    >>> base.set_ref("half", 0.5, "sideways")
+    Traceback (most recent call last):
+      ...
+    ValueError: refmode must be one of 'auto', 'absolute', 'relative', not 'sideways'
+
+    .. admonition:: Known limitation
+
+       Some References have a ``refmode`` that is not in ``_refmodes``
+       and not :obj:`None`:
+
+       * :obj:`False` for a Reference that ``new_pandas``,
+         ``new_module`` or ``new_excel_range`` creates in a UserSpace,
+         and for its copies in sub Spaces;
+       * after :func:`~modelx.read_model`, an int for a Reference of a
+         UserSpace whose value is the value of an IOSpec,
+         in a model saved in serializer version 7 or earlier,
+         the default format before modelx 0.32;
+       * after :func:`~modelx.read_model`, the str of a mode that
+         ``set_ref`` accepted before 0.34, such as ``'sideways'``,
+         or ``'None'`` and ``'42'`` for :obj:`None` and ``42``.
+
+       This is not part of the frozen contract and may change.
+
+    .. versionadded:: 0.34.0
+       ``_refmodes``.
+
+    .. versionchanged:: 0.34.0
+       ``set_ref`` raises :obj:`ValueError` for a mode not in
+       ``_refmodes``. Before, it stored any mode, and a Reference
+       to a Cells or a Space with such a mode made the creation of
+       a sub Space fail later with ``ValueError: must not happen``,
+       and, when the value was outside the Space, the creation of
+       any ItemSpace of the Space fail with
+       :class:`~modelx.core.errors.FormulaError`
+       from ``RuntimeError: must not happen``.
+       A model read with such a mode fails in the same ways.
+
+.. _toolapi-resolved-slots:
+
+Resolved slots
+    An ItemSpace sees the References of the Space it was made from,
+    and a DynamicSpace in it those of the child Space it copies.
+    It shares most of them with that Space: ``Proj[1].k`` is
+    the Reference ``Proj.k``, whose parent is ``Proj``.
+    A Reference whose value the ItemSpace replaces by its own copy
+    of the value, as the note under :ref:`reference-proxy-identity`
+    describes, is the exception: ``Proj.rel`` is ``Proj.Child``,
+    and ``Proj[1].rel`` is ``Proj[1].Child``.
+    For each such Reference, the ItemSpace, or the DynamicSpace,
+    makes a Reference of its own, a *resolved slot*,
+    which is its copy of the Reference of the Space.
+
+    A resolved slot is a Reference like an argument of the ItemSpace.
+    Its ``name`` is the name of the Reference it copies,
+    its ``parent`` is the ItemSpace or the DynamicSpace,
+    and its ``_idstr``, ``_evalrepr`` and ``_get_repr()`` follow from them.
+    Its proxy is a DynamicReferenceProxy, ``_is_derived()`` is
+    :obj:`True`, and ``refmode`` is the mode of the Reference it copies.
+    Its ``value`` is the copy, which is what the formulas of the ItemSpace
+    see. Its proxy is not equal to the proxy of the Reference it copies,
+    or to that of the slot of another ItemSpace.
+    The Reference it copies is
+    ``slot.parent.bases[0]._get_object(slot.name, as_proxy=True)``,
+    because the only base of an ItemSpace or a DynamicSpace is the
+    UserSpace it was made from.
+    A resolved slot is valid only while its ItemSpace lives
+    (see ``_is_valid()`` under :ref:`toolapi-identity`).
+
+    >>> rel = item._get_object("rel", as_proxy=True)
+
+    >>> rel.value is item.Child, rel.parent is item, rel.name
+    (True, True, 'rel')
+
+    >>> rel._idstr, rel._evalrepr, rel._get_repr(fullname=True)
+    ('Proj.__Space1.rel', 'Model1.Proj(1).rel', 'Model1.Proj[1].rel')
+
+    >>> kind(rel), rel._is_derived(), rel.refmode
+    ('DynamicReferenceProxy', True, 'auto')
+
+    >>> rel == proj._get_object("rel", as_proxy=True)
+    False
+
+    >>> rel.parent.bases[0]._get_object(rel.name, as_proxy=True) == proj._get_object("rel", as_proxy=True)
+    True
+
+    Seen through an ItemSpace, or a DynamicSpace in it, a name in
+    ``refs`` is one of these:
+
+    .. list-table::
+       :header-rows: 1
+       :widths: 40 30 30
+
+       * - Reference
+         - Parent
+         - Proxy
+       * - A Reference of the Space that the ItemSpace shares,
+           which is every Reference of the Space other than those
+           that the note under :ref:`reference-proxy-identity` describes,
+           such as one whose value is not a modelx object
+           or whose mode is ``'absolute'``
+         - The Space
+         - The Space's, a ReferenceProxy
+       * - A global Reference
+         - The Model
+         - The Model's, a ReferenceProxy
+       * - An argument, a Reference that the Space formula returns,
+           a resolved slot
+         - The ItemSpace, or the DynamicSpace for a resolved slot in it
+         - Its own, a DynamicReferenceProxy
+
+    .. versionchanged:: 0.34.0
+       Before, the proxy of a Reference that is now a resolved slot
+       stood for the ItemSpace's copy of the value:
+       for ``Proj[1].rel``, its ``name`` was ``'Child'``,
+       its ``_idstr`` ``'Proj.__Space1.Child'`` and its ``_evalrepr``
+       ``'Model1.Proj(1).Child'``; it was a ReferenceProxy,
+       ``refmode`` raised :obj:`AttributeError`,
+       and it stayed valid after the ItemSpace was deleted.
+       A formula of the ItemSpace that read such a Reference as an
+       attribute of a namespace, as in ``_space.rel``, raised
+       :obj:`AssertionError`.
+
+.. currentmodule:: modelx.core.reference
+
+.. autosummary::
+  :toctree: generated/
+  :template: mxbase.rst
+
+  ReferenceProxy._refmodes
 
 
 .. _toolapi-wire:
@@ -1254,52 +1652,19 @@ for tools that show a model in another process, such as spyder-modelx.
        ``'repr'`` and ``'repr_parent'`` named the parent item by its
        ``__SpaceN`` name.
 
-    .. _toolapi-prefix-ref:
-
-    .. admonition:: Known limitation
-
-       Take a Space ``P`` that has a formula.
-       A Reference of ``P``, or of a Space inside ``P``,
-       is broken in the ItemSpaces of ``P`` and in the Spaces inside them
-       when its mode is not ``'absolute'`` and its value is a Space
-       outside ``P`` whose full name begins with the full name of ``P``,
-       such as a sibling Space ``PX``,
-       or a Cells or a Space inside such a Space.
-       With ``P.r = PX``,
-       ``P[1].refs`` lists ``r``, but ``P[1].r`` is missing,
-       and a formula in ``P[1]`` that reads ``r`` fails.
-       ``P[1]._get_object("r")`` raises :obj:`NameError`.
-       ``P[1]._get_object("r", as_proxy=True)`` returns a proxy
-       whose ``value``, ``name``, ``_idstr``, ``_evalrepr``,
-       ``_get_repr()``, ``refmode`` and
-       ``_get_attrdict()`` raise :obj:`AttributeError`,
-       and whose ``_is_derived()`` and ``is_derived()`` are :obj:`None`.
-       ``model._get_from_name("P.__Space1.r")`` raises
-       :obj:`AttributeError`.
-       The dict of ``P[1]`` with ``recursive=True``, and the dicts and
-       ``_baseattrs_private`` of its ``refs`` view, raise
-       :obj:`AttributeError`
-       (``'NoneType' object has no attribute 'name'``),
-       and so does the dict of every object that has ``P[1]`` in its tree,
-       the Model's included, so spyder-modelx cannot show the Model.
-       The Model's ``_baseattrs`` raises :obj:`RuntimeError`.
-       This is not part of the frozen contract and may change.
-
-    .. admonition:: Known limitation
-
-       An ItemSpace's dict can hold two records
-       with the same ``'id'`` and ``'namedid'``.
-       In an ItemSpace and in the DynamicSpaces in it, a Reference can
-       refer to the ItemSpace's own copy of its value, as the note under
-       :ref:`reference-proxy-identity` describes
-       (``P[1].rel`` for ``P.rel = P.Child``,
-       or ``P[1].Child.up`` for ``P.Child.up = P``).
-       Its record in the ``'refs'`` of that Space has the ``'type'``
-       ``'Reference'``, but its ``'id'``, ``'namedid'``, ``'name'`` and
-       ``'fullname'`` are those of the copy, the same as in the copy's
-       own record.
-       So do not key records by ``'id'`` or ``'namedid'`` alone.
-       This is not part of the frozen contract and may change.
+    .. versionchanged:: 0.34.0
+       The record of a :ref:`resolved slot <toolapi-resolved-slots>`
+       in the ``'refs'`` of an ItemSpace or a DynamicSpace has the slot's
+       own ``'id'``, ``'name'``, ``'fullname'``, ``'repr'`` and
+       ``'namedid'``, such as ``'Proj.__Space1.rel'``.
+       Before, they were those of the ItemSpace's copy of the value,
+       the same as in the copy's own record.
+       For a Reference of a Space ``P`` to a Space outside ``P`` whose
+       name begins with the name of ``P``, such as ``P.r = PX``,
+       the dicts of the ItemSpaces of ``P``, of their ``refs`` views
+       and of every object that has them in its tree, the Model's
+       included, raised :obj:`AttributeError`, and the Model's
+       ``_baseattrs`` raised :obj:`RuntimeError`.
 
     ``extattrs`` is a list of further names to add to the dicts.
     It is passed down to every object that the walk reaches.
@@ -1345,8 +1710,7 @@ for tools that show a model in another process, such as spyder-modelx.
          - Value
        * - ``_is_derived``
          - Cells and ReferenceProxy; no Space or Model
-         - :obj:`True` or :obj:`False`; also :obj:`None` on a
-           ReferenceProxy that does not stand for a Reference
+         - :obj:`True` or :obj:`False`
        * - ``_evalrepr``
          - Model, Spaces, Cells and ReferenceProxy
          - a str
@@ -1429,11 +1793,13 @@ for tools that show a model in another process, such as spyder-modelx.
 
 ReferenceProxy forwarding
     A :class:`~modelx.core.reference.ReferenceProxy` defines
-    ``value``, ``refmode``, ``_evalrepr``, ``_get_attrdict``,
-    ``_baseattrs``, ``_is_derived()`` and ``is_derived()`` itself.
+    ``value``, ``refmode``, ``_refmodes``, ``_idstr``, ``_evalrepr``,
+    ``_get_repr``, ``_is_valid``, ``_get_attrdict``,
+    ``_baseattrs``, ``_is_derived()`` and ``is_derived()`` itself,
+    and compares by the Reference it stands for
+    (see :ref:`toolapi-references`).
     It also answers ``name``, ``fullname``, ``parent``, ``model``,
-    ``doc``, ``allow_none``, ``_idtuple``, ``_idstr``, ``_get_repr``,
-    ``_is_valid``, ``_name`` and ``_parent``, as
+    ``doc``, ``allow_none``, ``_idtuple``, ``_name`` and ``_parent``, as
     the base class of Model, Spaces and Cells answers them,
     applied to the Reference.
     On this release it forwards them to that class
@@ -1446,21 +1812,17 @@ ReferenceProxy forwarding
     >>> proxy.name, proxy.parent, proxy._idstr, proxy._get_repr(fullname=True)
     ('rate', <UserSpace Model1.Base>, 'Base.rate', 'Model1.Base.rate')
 
-    .. admonition:: Known limitation
+    >>> slot = item._get_object("rel", as_proxy=True)
 
-       In an ItemSpace and in the DynamicSpaces in it, a Reference can
-       refer to the ItemSpace's own copy of its value, as the note under
-       :ref:`reference-proxy-identity` describes
-       (``P[1].Child.up`` for ``P.Child.up = P``, for example).
-       A proxy for it obtained through the ItemSpace or the DynamicSpace
-       stands for the copy, not for the Reference:
-       its ``name``, ``fullname``, ``parent``, ``_idstr``, ``_idtuple``
-       and ``_evalrepr`` name the copy,
-       and ``refmode`` raises :obj:`AttributeError`.
-       For ``P.rel = P.Child``, the proxy for ``rel`` in ``P[1]``
-       has the ``name`` ``'Child'`` and the ``_idstr``
-       ``'P.__Space1.Child'``.
-       This is not part of the frozen contract and may change.
+    >>> slot.name, slot.fullname, slot.parent, slot._idtuple
+    ('rel', 'Model1.Proj.__Space1.rel', <ItemSpace Model1.Proj[1]>, ('Model1', 'Proj', (1,), 'rel'))
+
+    .. versionchanged:: 0.34.0
+       ``_idstr``, ``_get_repr`` and ``_is_valid`` are defined
+       on the class. Their answers are the same as forwarding gave,
+       except for a :ref:`resolved slot <toolapi-resolved-slots>`,
+       whose proxy now stands for the slot, and except that
+       ``_is_valid()`` reports a Reference that is no longer bound.
 
 .. currentmodule:: modelx.core.model
 
