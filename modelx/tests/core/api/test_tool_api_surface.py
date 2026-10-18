@@ -10,7 +10,8 @@ release are listed; a later release that freezes more members adds them
 here and to the page.  The members that 0.34 adds (the design's section
 3.1) are listed under their own ID as they land: T3's
 ``ReferenceProxy._is_derived()`` and T5's ``ReferenceProxy._refmodes``,
-on both proxy classes, and T7's ``BaseNode._get_repr()``, on both node
+on both proxy classes, T4's ``BaseSpace._get_inheritance()``, on the
+three Space classes, and T7's ``BaseNode._get_repr()``, on both node
 classes.  T5 also defines ``_idstr``, ``_get_repr`` and ``_is_valid`` on
 ReferenceProxy, which a proxy answered by forwarding on 0.33, so they are
 listed in S1 as class members.
@@ -187,6 +188,9 @@ FROZEN = [
     # 16): the class tells the kind of a Space (KINDS below).
     ("S2", SPACES, ("_is_base", "_is_sub", "_own_refs", "_direct_bases")),
     ("S2", ("ItemSpace",), ("argvalues",)),
+    # New in 0.34 (T4): one read of the states and scopes of a Space's
+    # members.
+    ("T4", SPACES, ("_get_inheritance",)),
 
     # S3 snapshot wire
     ("S3", INTERFACES + PROXIES + VIEWS + NODES,

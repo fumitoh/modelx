@@ -55,6 +55,7 @@ from modelx.core.parent import (
     EditableParentImpl,
 )
 from modelx.core.formula import Formula, ModuleSource
+from modelx.core.inheritance.query import get_inheritance
 from modelx.core.cells import (
     Cells,
     DynamicCellsImpl,
@@ -180,6 +181,108 @@ class BaseSpace(BaseParent, NodeFactory):
     def _is_sub(self, other):
         """True if the space is a sub space of ``other``, False otherwise."""
         return self._impl.is_sub(other._impl)
+
+    def _get_inheritance(self):
+        """Where each Cells and each Reference of this Space is defined.
+
+        One read for the whole Space. For every Cells, and every name in
+        :attr:`refs`, it tells whether this Space defines the member,
+        defines it over a base Space's member of that name, or inherits
+        it, and which Space holds the definition in use. For a Reference
+        it also tells where the name comes from. It reads no value, so it
+        evaluates nothing.
+
+        An ItemSpace or a DynamicSpace reports the states of the UserSpace
+        it was made from, its only base: ``P[1]`` reports those of ``P``,
+        and ``P[1].Child`` those of ``P.Child``.
+
+        Returns:
+            dict: A new dict on each call, with four keys:
+
+            * ``'bases'``: the list :attr:`bases` returns, the method
+              resolution order; for an ItemSpace or a DynamicSpace, the
+              UserSpace it was made from.
+            * ``'direct_bases'``: the list :attr:`_direct_bases` returns.
+            * ``'cells'``: for each name in :attr:`cells`, in the same
+              order, ``{'state': ..., 'defined_in': ...}``.
+            * ``'refs'``: for each name in :attr:`refs`, in the same
+              order, ``{'scope': ..., 'state': ..., 'defined_in': ...}``.
+
+            ``'state'`` is one of:
+
+            * ``'defined'``: defined in this Space, and in none of its
+              bases;
+            * ``'overriding'``: defined in this Space, and a base Space
+              has a member of the same name;
+            * ``'derived'``: inherited from a base Space;
+            * :obj:`None`, for a name that is not a Reference of a Space:
+              scope ``'argument'``, ``'formula'``, ``'global'`` or
+              ``'builtins'``.
+
+            ``'defined_in'`` is the Space whose definition is in use: this
+            Space for ``'defined'`` and ``'overriding'``, and for
+            ``'derived'`` the first Space in :attr:`bases` that defines
+            the name. In an ItemSpace or a DynamicSpace these are Spaces
+            of its UserSpace's. It is the Model for a global Reference,
+            and :obj:`None` for an argument, a formula ref and
+            ``__builtins__``.
+
+            ``'scope'`` is the kind of binding a formula of this Space
+            sees for the name, where several have it:
+
+            * ``'space'``: a Reference of this UserSpace, defined in it
+              or inherited;
+            * ``'base'``: in an ItemSpace or a DynamicSpace, a Reference
+              of the UserSpace it was made from. That includes a
+              Reference whose value is replaced by the ItemSpace's own
+              copy of it, such as ``P[1].rel`` for ``P.rel = P.Child``;
+            * ``'argument'``: an argument of the ItemSpace, or of an
+              ItemSpace the DynamicSpace is in. Its names are the
+              parameters of the Space formula that made the ItemSpace,
+              which are those of the ItemSpace's parent, also when the
+              formula returns another Space as ``'base'``;
+            * ``'formula'``: a ref that the Space formula returned in
+              ``'refs'`` for the ItemSpace;
+            * ``'global'``: a global Reference;
+            * ``'builtins'``: ``__builtins__``, which modelx binds in
+              every Model.
+
+            The system names ``_self``, ``_space`` and ``_model`` are not
+            reported, as :attr:`refs` does not list them. Other names that
+            start with ``_`` are reported under their scope, as
+            :attr:`refs` lists them: global References, References made
+            by ``new_space(refs=...)``, arguments and formula refs.
+
+        Raises:
+            DeletedObjectError: The Space has been deleted.
+
+        Example:
+            .. code-block:: python
+
+                >>> base = model.new_space('Base')
+                >>> base.new_cells('foo', formula=lambda: 1)
+                >>> base.new_cells('bar', formula=lambda: 2)
+                >>> base.k = 1
+                >>> sub = model.new_space('Sub', bases=base)
+                >>> sub.bar.formula = lambda: 20
+                >>> model.glob = 3
+                >>> d = sub._get_inheritance()
+                >>> d['bases'], d['direct_bases']
+                ([<UserSpace Model1.Base>], [<UserSpace Model1.Base>])
+                >>> d['cells']
+                {'foo': {'state': 'derived', 'defined_in': <UserSpace Model1.Base>},
+                 'bar': {'state': 'overriding', 'defined_in': <UserSpace Model1.Sub>}}
+                >>> d['refs']['k'], d['refs']['glob']['scope']
+                ({'scope': 'space', 'state': 'derived', 'defined_in': <UserSpace Model1.Base>}, 'global')
+
+        See Also:
+            * :attr:`bases`, :attr:`_direct_bases`
+            * :meth:`Cells._is_derived <modelx.core.cells.Cells._is_derived>`
+            * :meth:`ReferenceProxy._is_derived <modelx.core.reference.ReferenceProxy._is_derived>`
+
+        .. versionadded:: 0.34.0
+        """
+        return get_inheritance(self._impl)
 
     @property
     def cells(self):
@@ -412,7 +515,24 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def _own_refs(self):
-        """A mapping associating names to self refs."""
+        """A read-only mapping of the References this Space holds itself.
+
+        In a UserSpace, these are the References defined in the Space or
+        inherited from its bases, without the global References and
+        ``__builtins__`` that :attr:`refs` also lists:
+        the names :meth:`_get_inheritance` reports with scope
+        ``'space'``.
+
+        In an ItemSpace, these are only the refs that the Space formula
+        returned in ``'refs'`` for it: the names :meth:`_get_inheritance`
+        reports with scope ``'formula'``, and any of them that an
+        argument of the same name hides. No Space formula makes a
+        DynamicSpace, so its ``_own_refs`` is empty. The arguments and
+        the References of the UserSpace that an ItemSpace or a
+        DynamicSpace was made from are in :attr:`refs`, and
+        :meth:`_get_inheritance` reports them with scopes ``'argument'``
+        and ``'base'``.
+        """
         return RefView(self._impl.own_refs)
 
     @property

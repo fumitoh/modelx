@@ -301,6 +301,10 @@
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
    },
+   "_get_inheritance": {
+    "kind": "method",
+    "signature": "(self)"
+   },
    "_get_object": {
     "kind": "method",
     "signature": "(self, name, as_proxy=False)"
@@ -378,6 +382,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_inheritance": {
+    "kind": "method",
+    "signature": "(self)"
    },
    "_get_object": {
     "kind": "method",
@@ -616,6 +624,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_get_inheritance": {
+    "kind": "method",
+    "signature": "(self)"
    },
    "_get_object": {
     "kind": "method",
