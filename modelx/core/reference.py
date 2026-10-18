@@ -251,28 +251,68 @@ class ReferenceProxy:
         """
         return self._impl.refmode
 
-    def is_derived(self):   # TODO: Rename this to _is_derived
-        """True if the Reference is inherited from a base Space
+    def _is_derived(self):
+        """Whether the Reference is a copy, not defined in its own Space.
 
-        Returns :obj:`True` if the Reference was copied from a base Space
-        into a sub Space and has not been redefined there,
-        and :obj:`False` otherwise, for example for a global Reference,
-        an argument of an :class:`~modelx.core.space.ItemSpace`
-        or a Reference that a Space formula returns.
+        :obj:`True` if the Reference was copied from a base Space
+        into a sub Space and has not been redefined there.
+        :obj:`False` for a Space's own Reference, also when it
+        overrides a Reference of a base Space,
+        for a global Reference, also through a Space,
+        for an argument of an :class:`~modelx.core.space.ItemSpace`,
+        for a Reference that a Space formula returns,
+        and for the ``_self``, ``_space`` and ``_model`` of a Space.
+        Through an ItemSpace, a Reference of its Space
+        gives the flag of that Reference.
 
-        A proxy got through an ItemSpace for a Reference of its Space
-        that is not ``'absolute'`` and whose value is the Space itself,
-        or a Cells or a Space inside it, stands for the ItemSpace's copy
-        of the value: on it ``is_derived()`` raises :obj:`AttributeError`
-        if the value is a Space, and returns :obj:`True` if it is a
-        Cells (see :ref:`reference-proxy-identity`). It also raises
-        :obj:`AttributeError` on a proxy got through an ItemSpace for a
-        Reference to a Space whose name begins with the name of the
-        Space, such as ``PX`` for ``P`` (see :ref:`toolapi-wire`).
-        These are known limitations, not part of the frozen contract,
-        and may change.
+        :obj:`None` when the proxy does not stand for a Reference,
+        so a tool that asks every proxy in a model gets an answer
+        from each, and no exception.
+
+        On this release that is the case for a proxy got through an
+        ItemSpace for a Reference of its Space that is not
+        ``'absolute'`` and whose value is the Space itself, or a Cells
+        or a Space inside it, because such a proxy stands for the
+        ItemSpace's copy of the value (see
+        :ref:`reference-proxy-identity`), and for a proxy got through an
+        ItemSpace for a Reference to a Space whose name begins with the
+        name of the Space, such as ``PX`` for ``P`` (see
+        :ref:`toolapi-wire`).
+        Which proxies these are is a known limitation, not part of the
+        frozen contract, and may change.
+
+        Returns:
+            bool or None: :obj:`True` for a derived Reference,
+            :obj:`False` for any other Reference, :obj:`None` for a
+            proxy that does not stand for a Reference.
+
+        .. versionadded:: 0.34.0
         """
-        return self._impl.is_derived()
+        impl = self._impl
+        # An isinstance test, not a try. On this release a proxy's impl can
+        # be an item's DynamicSpaceImpl, ItemSpaceImpl or DynamicCellsImpl,
+        # or None (see the docstring). Without the test, a whole-model
+        # _get_attrdict(['_is_derived']) raised
+        # "AttributeError: 'DynamicSpaceImpl' object has no attribute
+        # 'is_derived'". A try would not do: a DynamicCellsImpl has
+        # is_derived(), and gave its Cells' flag, True, for the proxy.
+        if isinstance(impl, ReferenceImpl):
+            return impl.is_derived()
+        return None
+
+    def is_derived(self):
+        """The same as :meth:`_is_derived`, kept for modelx-bridge 0.10.
+
+        It has no underscore. modelx-bridge 0.10 calls it, so it stays,
+        with no deprecation. New code calls :meth:`_is_derived`.
+
+        .. versionchanged:: 0.34.0
+            It calls :meth:`_is_derived`, so it returns :obj:`None` for a
+            proxy that does not stand for a Reference. On 0.33 it raised
+            :obj:`AttributeError` there, or returned :obj:`True` when the
+            proxy stood for an ItemSpace's copy of a Cells.
+        """
+        return self._is_derived()
 
     @property
     def _baseattrs(self):

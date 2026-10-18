@@ -1543,6 +1543,7 @@
    "items": {
     "df": {
      "_evalrepr": "SerializerCompat.df",
+     "_is_derived": false,
      "fullname": "SerializerCompat.df",
      "id": 0,
      "name": "df",
@@ -1553,6 +1554,7 @@
     },
     "gref": {
      "_evalrepr": "SerializerCompat.gref",
+     "_is_derived": false,
      "fullname": "SerializerCompat.gref",
      "id": 0,
      "name": "gref",
@@ -1661,6 +1663,7 @@
          "items": {
           "df": {
            "_evalrepr": "SerializerCompat.df",
+           "_is_derived": false,
            "fullname": "SerializerCompat.df",
            "id": 0,
            "name": "df",
@@ -1671,6 +1674,7 @@
           },
           "gref": {
            "_evalrepr": "SerializerCompat.gref",
+           "_is_derived": false,
            "fullname": "SerializerCompat.gref",
            "id": 0,
            "name": "gref",
@@ -1702,6 +1706,7 @@
       "items": {
        "dct": {
         "_evalrepr": "SerializerCompat.Base.dct",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.dct",
         "id": 0,
         "name": "dct",
@@ -1712,6 +1717,7 @@
        },
        "df": {
         "_evalrepr": "SerializerCompat.df",
+        "_is_derived": false,
         "fullname": "SerializerCompat.df",
         "id": 0,
         "name": "df",
@@ -1722,6 +1728,7 @@
        },
        "gref": {
         "_evalrepr": "SerializerCompat.gref",
+        "_is_derived": false,
         "fullname": "SerializerCompat.gref",
         "id": 0,
         "name": "gref",
@@ -1732,6 +1739,7 @@
        },
        "lst": {
         "_evalrepr": "SerializerCompat.Base.lst",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.lst",
         "id": 0,
         "name": "lst",
@@ -1742,6 +1750,7 @@
        },
        "m": {
         "_evalrepr": "SerializerCompat.Base.m",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.m",
         "id": 0,
         "name": "m",
@@ -1752,6 +1761,7 @@
        },
        "s": {
         "_evalrepr": "SerializerCompat.Base.s",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.s",
         "id": 0,
         "name": "s",
@@ -1762,6 +1772,7 @@
        },
        "self_space": {
         "_evalrepr": "SerializerCompat.Base.self_space",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.self_space",
         "id": 0,
         "name": "self_space",
@@ -1772,6 +1783,7 @@
        },
        "the_cells": {
         "_evalrepr": "SerializerCompat.Base.the_cells",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.the_cells",
         "id": 0,
         "name": "the_cells",
@@ -1782,6 +1794,7 @@
        },
        "the_model": {
         "_evalrepr": "SerializerCompat.Base.the_model",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.the_model",
         "id": 0,
         "name": "the_model",
@@ -1792,6 +1805,7 @@
        },
        "tpl": {
         "_evalrepr": "SerializerCompat.Base.tpl",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.tpl",
         "id": 0,
         "name": "tpl",
@@ -1802,6 +1816,7 @@
        },
        "xlr": {
         "_evalrepr": "SerializerCompat.Base.xlr",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Base.xlr",
         "id": 0,
         "name": "xlr",
@@ -1860,6 +1875,7 @@
          "items": {
           "df": {
            "_evalrepr": "SerializerCompat.df",
+           "_is_derived": false,
            "fullname": "SerializerCompat.df",
            "id": 0,
            "name": "df",
@@ -1870,6 +1886,7 @@
           },
           "gref": {
            "_evalrepr": "SerializerCompat.gref",
+           "_is_derived": false,
            "fullname": "SerializerCompat.gref",
            "id": 0,
            "name": "gref",
@@ -1949,6 +1966,7 @@
          "items": {
           "df": {
            "_evalrepr": "SerializerCompat.df",
+           "_is_derived": false,
            "fullname": "SerializerCompat.df",
            "id": 0,
            "name": "df",
@@ -1959,6 +1977,7 @@
           },
           "gref": {
            "_evalrepr": "SerializerCompat.gref",
+           "_is_derived": false,
            "fullname": "SerializerCompat.gref",
            "id": 0,
            "name": "gref",
@@ -1969,6 +1988,7 @@
           },
           "i": {
            "_evalrepr": "SerializerCompat.Params(3).i",
+           "_is_derived": false,
            "fullname": "SerializerCompat.Params.__Space1.i",
            "id": 0,
            "name": "i",
@@ -2033,6 +2053,7 @@
       "items": {
        "df": {
         "_evalrepr": "SerializerCompat.df",
+        "_is_derived": false,
         "fullname": "SerializerCompat.df",
         "id": 0,
         "name": "df",
@@ -2043,6 +2064,7 @@
        },
        "gref": {
         "_evalrepr": "SerializerCompat.gref",
+        "_is_derived": false,
         "fullname": "SerializerCompat.gref",
         "id": 0,
         "name": "gref",
@@ -2123,6 +2145,7 @@
       "items": {
        "dct": {
         "_evalrepr": "SerializerCompat.Sub.dct",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.dct",
         "id": 0,
         "name": "dct",
@@ -2133,6 +2156,7 @@
        },
        "df": {
         "_evalrepr": "SerializerCompat.df",
+        "_is_derived": false,
         "fullname": "SerializerCompat.df",
         "id": 0,
         "name": "df",
@@ -2143,6 +2167,7 @@
        },
        "gref": {
         "_evalrepr": "SerializerCompat.gref",
+        "_is_derived": false,
         "fullname": "SerializerCompat.gref",
         "id": 0,
         "name": "gref",
@@ -2153,6 +2178,7 @@
        },
        "lst": {
         "_evalrepr": "SerializerCompat.Sub.lst",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.lst",
         "id": 0,
         "name": "lst",
@@ -2163,6 +2189,7 @@
        },
        "m": {
         "_evalrepr": "SerializerCompat.Sub.m",
+        "_is_derived": false,
         "fullname": "SerializerCompat.Sub.m",
         "id": 0,
         "name": "m",
@@ -2173,6 +2200,7 @@
        },
        "s": {
         "_evalrepr": "SerializerCompat.Sub.s",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.s",
         "id": 0,
         "name": "s",
@@ -2183,6 +2211,7 @@
        },
        "self_space": {
         "_evalrepr": "SerializerCompat.Sub.self_space",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.self_space",
         "id": 0,
         "name": "self_space",
@@ -2193,6 +2222,7 @@
        },
        "the_cells": {
         "_evalrepr": "SerializerCompat.Sub.the_cells",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.the_cells",
         "id": 0,
         "name": "the_cells",
@@ -2203,6 +2233,7 @@
        },
        "the_model": {
         "_evalrepr": "SerializerCompat.Sub.the_model",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.the_model",
         "id": 0,
         "name": "the_model",
@@ -2213,6 +2244,7 @@
        },
        "tpl": {
         "_evalrepr": "SerializerCompat.Sub.tpl",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.tpl",
         "id": 0,
         "name": "tpl",
@@ -2223,6 +2255,7 @@
        },
        "xlr": {
         "_evalrepr": "SerializerCompat.Sub.xlr",
+        "_is_derived": true,
         "fullname": "SerializerCompat.Sub.xlr",
         "id": 0,
         "name": "xlr",

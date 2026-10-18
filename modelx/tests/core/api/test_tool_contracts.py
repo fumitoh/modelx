@@ -927,8 +927,9 @@ def static_space(space):
 
 
 def member_is_derived(obj):
-    """``_is_derived()`` where the class defines it (Cells); the 0.33
-    ``is_derived()`` of a ReferenceProxy otherwise."""
+    """``_is_derived()`` where the class defines it: Cells, and from 0.34
+    both proxy classes (T3); otherwise, on 0.33, ``is_derived()`` of a
+    ReferenceProxy, which 0.34 keeps as an alias (decision 11)."""
     if getattr(type(obj), "_is_derived", None) is not None:
         return obj._is_derived()
     return obj.is_derived()
@@ -1142,7 +1143,8 @@ def test_ref_scope_recipe(any_model):
     """0.33 fallback (design minimal/m06): the scope of every name in a
     Space's ``refs``, and the state of the Space's own References,
     computed from ``refs``, ``_own_refs``, ``bases``, ``parameters``,
-    the class names of the Spaces and ``is_derived()``. A ref that a
+    the class names of the Spaces and ``_is_derived()``, which is
+    ``is_derived()`` on 0.33 (``member_is_derived``). A ref that a
     Space formula returns is in the ItemSpace's ``_own_refs``, and a
     DynamicSpace reports the References of its static Space."""
     name, m = any_model

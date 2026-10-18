@@ -7,7 +7,9 @@ modelx-bridge, modelx-mcp and spyder-modelx call: sets S1 (identity and
 addressing), S2 (inheritance and dynamic objects) and S3 (the snapshot
 wire) of the design's section 3.4.  Only members that exist in this
 release are listed; a later release that freezes more members adds them
-here and to the page.
+here and to the page.  The members that 0.34 adds (the design's section
+3.1) are listed under their own ID as they land: T3's
+``ReferenceProxy._is_derived()``, on both proxy classes.
 
 For each frozen member, on each class of object that a tool holds and
 that has the member, the golden records its kind (``property``,
@@ -166,8 +168,11 @@ FROZEN = [
 
     # S2 inheritance and dynamic objects
     ("S2", CELLS, ("_is_derived", "_is_defined")),
-    # No underscore, but frozen: modelx-bridge 0.10 calls it.
+    # No underscore, but frozen: modelx-bridge 0.10 calls it. From 0.34 it
+    # is an alias of _is_derived(), kept for good (decision 11).
     ("S2", PROXIES, ("is_derived",)),
+    # New in 0.34 (T3). Spaces and Models have none (decision 4).
+    ("T3", PROXIES, ("_is_derived",)),
     # _is_dynamic, _is_static and _is_root were removed in 0.34 (decision
     # 16): the class tells the kind of a Space (KINDS below).
     ("S2", SPACES, ("_is_base", "_is_sub", "_own_refs", "_direct_bases")),

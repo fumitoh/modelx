@@ -286,6 +286,10 @@
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
    },
+   "_is_derived": {
+    "kind": "method",
+    "signature": "(self)"
+   },
    "is_derived": {
     "kind": "method",
     "signature": "(self)"
@@ -566,6 +570,10 @@
    "_get_attrdict": {
     "kind": "method",
     "signature": "(self, extattrs=None, recursive=True)"
+   },
+   "_is_derived": {
+    "kind": "method",
+    "signature": "(self)"
    },
    "is_derived": {
     "kind": "method",

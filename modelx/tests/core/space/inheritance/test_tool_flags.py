@@ -28,7 +28,17 @@ class each makes is recorded by wrapping ``ReferenceProxy.__init__``,
 which every proxy of either class runs.
 
 T3, ``_is_derived()`` on Cells and References, has its own section at
-the end of this module.
+the end of this module.  A Cells or a Reference is derived when it has
+no definition of its own where it is seen: it was copied from a base
+Space, or it is a dynamic Cells.  An argument, a formula ref and the
+system bindings of an item are dynamic but not derived; a Reference of
+a Space seen through an item, and a global Reference seen through any
+Space, give the flag of that Reference.  ``Cells._is_derived()`` is as
+on 0.33.  ``ReferenceProxy._is_derived()`` is new, and returns None for
+a proxy that stands for no Reference, such as the slot above, so that a
+whole-model ``_get_attrdict`` asking for it never raises.
+``ReferenceProxy.is_derived()`` stays for good as its alias (decision
+11).  No Space class, and not Model, has ``_is_derived`` (decision 4).
 
 The tests read only the tool API and the public API.  They import the
 classes Cells and ReferenceProxy only to check ``isinstance``, which code
@@ -58,12 +68,13 @@ def macro_one():
 @pytest.fixture
 def flags_model():
     """
-        FlagsModel--Base----foo(), bar(), k=1
+        FlagsModel--Base----foo(), bar(), k=1, q=2
           |  glob   Base2---baz()
-          |  mac    Sub(Base)----foo() overridden
+          |  mac    Sub(Base)----foo() overridden, q=20 overriding
           |         MI(Base, Base2)
+          |         Q(i)(Base)
           |
-          +---------P(i)----h(), sys(), k=5, rel -> P.Child
+          +---------P(i)----h(), sys(), k=5, rel -> P.Child, relc -> P.h
                     |       Space formula returns ref fr
                     +--Child(j)--w()
 
@@ -75,11 +86,14 @@ def flags_model():
     base.new_cells("foo", formula="lambda: 1")
     base.new_cells("bar", formula="lambda: k")
     base.k = 1
+    base.q = 2
     base2 = m.new_space("Base2")
     base2.new_cells("baz", formula="lambda: 2")
     sub = m.new_space("Sub", bases=base)
     sub.foo.formula = "lambda: 10"
+    sub.q = 20
     m.new_space("MI", bases=[base, base2])
+    m.new_space("Q", bases=base, formula="lambda i: None")
 
     p = m.new_space("P", formula="lambda i: {'refs': {'fr': 10 * i}}")
     p.new_cells("h", formula="lambda: i + fr + k + glob")
@@ -89,6 +103,7 @@ def flags_model():
     child.new_cells("w", formula="lambda: _self.n + _space.n + _model.glob")
     child.n = 1
     p.rel = child
+    p.relc = p.h
     m.glob = 7
     m.new_macro("mac", macro_one)
 
@@ -176,12 +191,13 @@ PROXIES = {
           "glob": "ReferenceProxy"},
     "P[1]": {"i": "DynamicReferenceProxy", "fr": "DynamicReferenceProxy",
              "k": "ReferenceProxy", "glob": "ReferenceProxy",
-             # The ItemSpace's copy of P.Child, in a slot that is not a
-             # Reference until T5 (PR 3): see the module docstring.
-             "rel": "ReferenceProxy"},
+             # The ItemSpace's copies of P.Child and P.h, in slots that
+             # are not References until T5 (PR 3): see the module
+             # docstring.
+             "rel": "ReferenceProxy", "relc": "ReferenceProxy"},
     "P[1][5]": {"i": "DynamicReferenceProxy", "fr": "DynamicReferenceProxy",
                 "k": "ReferenceProxy", "glob": "ReferenceProxy",
-                "rel": "ReferenceProxy"},
+                "rel": "ReferenceProxy", "relc": "ReferenceProxy"},
     "P[1].Child": {"i": "DynamicReferenceProxy", "n": "ReferenceProxy",
                    "glob": "ReferenceProxy"},
     "P[1].Child[2]": {"i": "DynamicReferenceProxy",
@@ -315,6 +331,30 @@ def test_isinstance_unchanged(flags_model):
     assert type(m.P._get_object("k", as_proxy=True)) is ReferenceProxy
 
 
+def walk_records(attrdict, obj):
+    """Yield ``(record, object)`` for ``attrdict``, the dict of ``obj``
+    from a recursive ``_get_attrdict``, and for each record in it, with
+    the object the record describes: a Space's through ``spaces`` and
+    ``_named_itemspaces``, a Cells' through ``cells``, and a Reference's
+    as ``_get_object(name, as_proxy=True)`` on the Space or the Model
+    whose ``refs`` lists it.
+
+    The key is ``'_named_itemspaces'``, not the ``'named_itemspaces'`` of
+    ``_baseattrs``: a walk that read the latter here reached no
+    ItemSpace, so on this fixture, with the items of
+    ``test_attrdict_type_unchanged``, it saw 13 of the 22 Cells records
+    and 20 of the 46 Reference records, and no dynamic one."""
+    yield attrdict, obj
+    for key, members in (("spaces", lambda o: o.spaces),
+                         ("_named_itemspaces", lambda o: o._named_itemspaces)):
+        for name, record in attrdict.get(key, {}).get("items", {}).items():
+            yield from walk_records(record, members(obj)[name])
+    for name, record in attrdict.get("cells", {}).get("items", {}).items():
+        yield record, obj.cells[name]
+    for name, record in attrdict.get("refs", {}).get("items", {}).items():
+        yield record, obj._get_object(name, as_proxy=True)
+
+
 def test_attrdict_type_unchanged(flags_model):
     """The attrdict ``'type'``: ``'Cells'`` for every Cells and
     ``'Reference'`` for every proxy, dynamic ones included, as spyder
@@ -330,18 +370,16 @@ def test_attrdict_type_unchanged(flags_model):
         assert proxy._baseattrs["type"] == "Reference"
 
     m.P[1][5].Child[2]
-    rows = {"cells": set(), "refs": set()}
-
-    def walk(attrdict):
-        for key in ("cells", "refs"):
-            for row in attrdict.get(key, {}).get("items", {}).values():
-                rows[key].add(row["type"])
-        for key in ("spaces", "named_itemspaces"):
-            for row in attrdict.get(key, {}).get("items", {}).values():
-                walk(row)
-
-    walk(m._get_attrdict(recursive=True))
-    assert rows == {"cells": {"Cells"}, "refs": {"Reference"}}
+    m.Q[1]
+    types = {}
+    for record, obj in walk_records(m._get_attrdict(recursive=True), m):
+        types.setdefault(kind(obj), set()).add(record["type"])
+    assert types == {
+        "Model": {"Model"}, "UserSpace": {"UserSpace"},
+        "ItemSpace": {"ItemSpace"}, "DynamicSpace": {"DynamicSpace"},
+        "Cells": {"Cells"}, "DynamicCells": {"Cells"},
+        "ReferenceProxy": {"Reference"},
+        "DynamicReferenceProxy": {"Reference"}}
 
 
 def test_repr_and_info_name_the_class(flags_model):
@@ -359,10 +397,193 @@ def test_repr_and_info_name_the_class(flags_model):
 
 
 # --------------------------------------------------------------------------
-# T3: the _is_derived table (design section 6, PR 2)
-#
-# Comes with ReferenceProxy._is_derived() (T3): the _is_derived() table on
-# static, derived, overriding and dynamic Cells and References; that
-# Spaces and Models have no _is_derived class attribute (decision 4); and
-# a whole-model _get_attrdict(['_is_derived', '_is_dynamic', '__len__',
-# '_evalrepr']) that does not raise.
+# T3: _is_derived() on Cells and References
+
+def composition(obj):
+    """Design T3's compositions, from the tool API alone: ``'generated'``
+    for a dynamic object (T2), ``'inherited'`` for any other derived one,
+    and ``'own'`` otherwise.  Telling an overriding member from one only
+    its own Space defines needs T4."""
+    if kind(obj) in DYNAMIC:
+        return "generated"
+    return "inherited" if obj._is_derived() else "own"
+
+
+DERIVED_CELLS = {
+    # label: (getter, _is_derived(), composition)
+    "Base.foo": (lambda m: m.Base.foo, False, "own"),
+    "Sub.foo, overriding": (lambda m: m.Sub.foo, False, "own"),
+    "Sub.bar, derived": (lambda m: m.Sub.bar, True, "inherited"),
+    "MI.baz, derived from the second base": (
+        lambda m: m.MI.baz, True, "inherited"),
+    "Q.bar, derived into a Space with a formula": (
+        lambda m: m.Q.bar, True, "inherited"),
+    "P.h": (lambda m: m.P.h, False, "own"),
+    "P.Child.w": (lambda m: m.P.Child.w, False, "own"),
+    "P[1].h": (lambda m: m.P[1].h, True, "generated"),
+    "P[1][5].h": (lambda m: m.P[1][5].h, True, "generated"),
+    "P[1].Child.w": (lambda m: m.P[1].Child.w, True, "generated"),
+    "P[1][5].Child.w": (lambda m: m.P[1][5].Child.w, True, "generated"),
+    "P[1].Child[2].w": (lambda m: m.P[1].Child[2].w, True, "generated"),
+    "Q[1].bar": (lambda m: m.Q[1].bar, True, "generated"),
+}
+
+
+def test_every_cells_of_the_dynamic_table_is_here():
+    assert set(CELLS) <= set(DERIVED_CELLS)
+
+
+@pytest.mark.parametrize("label", list(DERIVED_CELLS))
+def test_cells_is_derived(flags_model, label):
+    """``Cells._is_derived()``, which 0.34 leaves as it was, on both Cells
+    classes, and ``_is_defined()``, its negation.  Every dynamic Cells is
+    derived."""
+    get, derived, comp = DERIVED_CELLS[label]
+    cells = get(flags_model)
+    assert getattr(type(cells), "_is_derived", None) is not None
+    assert cells._is_derived() is derived
+    assert cells._is_defined() is (not derived)
+    assert composition(cells) == comp
+
+
+DERIVED_REFS = {
+    # label: (Space or Model, name, _is_derived(), composition)
+    "Base.k": (lambda m: m.Base, "k", False, "own"),
+    "P.k": (lambda m: m.P, "k", False, "own"),
+    "P.rel, the binding in P": (lambda m: m.P, "rel", False, "own"),
+    "Sub.k, derived": (lambda m: m.Sub, "k", True, "inherited"),
+    "Sub.q, overriding": (lambda m: m.Sub, "q", False, "own"),
+    "MI.k, derived": (lambda m: m.MI, "k", True, "inherited"),
+    "MI.q, derived where Sub overrides it": (
+        lambda m: m.MI, "q", True, "inherited"),
+    "Q.k, derived into a Space with a formula": (
+        lambda m: m.Q, "k", True, "inherited"),
+    # A Model-level Reference, also seen through a Space (inventory probe4)
+    "glob": (lambda m: m, "glob", False, "own"),
+    "Base.glob": (lambda m: m.Base, "glob", False, "own"),
+    "Sub.glob": (lambda m: m.Sub, "glob", False, "own"),
+    "P[1].glob": (lambda m: m.P[1], "glob", False, "own"),
+    "P[1].Child.glob": (lambda m: m.P[1].Child, "glob", False, "own"),
+    # A Reference of a Space seen through an item is the Space's own
+    # binding, so it gives that binding's flag.
+    "P[1].k": (lambda m: m.P[1], "k", False, "own"),
+    "P[1][5].k": (lambda m: m.P[1][5], "k", False, "own"),
+    "P[1].Child.n": (lambda m: m.P[1].Child, "n", False, "own"),
+    "Q[1].k, derived in Q": (lambda m: m.Q[1], "k", True, "inherited"),
+    # Made by the item: dynamic, and never derived.
+    "P[1].i, an argument": (lambda m: m.P[1], "i", False, "generated"),
+    "P[1].fr, a formula ref": (lambda m: m.P[1], "fr", False, "generated"),
+    "P[1][5].i": (lambda m: m.P[1][5], "i", False, "generated"),
+    "P[1][5].fr": (lambda m: m.P[1][5], "fr", False, "generated"),
+    "P[1].Child.i, an argument seen from a DynamicSpace": (
+        lambda m: m.P[1].Child, "i", False, "generated"),
+    "P[1].Child[2].j": (lambda m: m.P[1].Child[2], "j", False, "generated"),
+    "Q[1].i": (lambda m: m.Q[1], "i", False, "generated"),
+}
+
+
+@pytest.mark.parametrize("label", list(DERIVED_REFS))
+def test_reference_is_derived(flags_model, label):
+    """``ReferenceProxy._is_derived()`` (T3) on both proxy classes, and
+    ``is_derived()``, which is the same, kept for modelx-bridge 0.10
+    (decision 11)."""
+    get, name, derived, comp = DERIVED_REFS[label]
+    proxy = get(flags_model)._get_object(name, as_proxy=True)
+    assert getattr(type(proxy), "_is_derived", None) is not None
+    assert proxy._is_derived() is derived
+    assert proxy.is_derived() is derived
+    assert composition(proxy) == comp
+
+
+def test_system_bindings_are_not_derived(flags_model):
+    """The ``_self``, ``_space`` and ``_model`` of a UserSpace, and of an
+    ItemSpace and a DynamicSpace in it, got as a ReferenceNode's ``obj``,
+    are not derived; only the item's are dynamic."""
+    m = flags_model
+    system = ("_self", "_space", "_model")
+    for cells, comp in ((m.P.sys, "own"), (m.P.Child.w, "own"),
+                        (m.P[1].sys, "generated"),
+                        (m.P[1].Child.w, "generated")):
+        cells()
+        got = {n.obj.name: (n.obj._is_derived(), n.obj.is_derived(),
+                            composition(n.obj))
+               for n in cells.precedents() if n.obj.name in system}
+        assert got == {name: (False, False, comp) for name in system}, cells
+
+
+def test_is_derived_where_no_reference_is_held(flags_model):
+    """A proxy that stands for no Reference answers None, and raises
+    nothing.
+
+    On this release a Reference of ``P`` that is not ``'absolute'`` and
+    whose value is ``P.Child`` or ``P.h`` is seen in ``P[1]`` as
+    ``P[1]``'s copy of the value: the slot holds the copy, not a
+    Reference.  Before T3, ``is_derived()`` on its proxy raised
+    AttributeError for the copy of a Space and gave the copy's own flag,
+    True, for the copy of a Cells.  T5 (PR 3) gives each slot a
+    Reference of its own, and its ``_is_derived()`` is then True, as
+    ``P[1].h``'s is (design T3, decision 7), so these rows change
+    there."""
+    m = flags_model
+    for space in (m.P[1], m.P[1][5]):
+        for name, copy in (("rel", space.Child), ("relc", space.h)):
+            proxy = space._get_object(name, as_proxy=True)
+            assert proxy.value is copy
+            assert proxy._is_derived() is None
+            assert proxy.is_derived() is None
+
+
+def test_spaces_and_models_have_no_is_derived(flags_model):
+    """Decision 4: no Space is ever inherited, so no Space class and not
+    Model defines ``_is_derived``, and a dynamic Space is told by its
+    class (T2).  Macro defines none either: only Cells and References
+    are inherited.  Looked up on the class, as a tool detects a
+    member."""
+    m = flags_model
+    objs = [m, m.mac, m.Q, m.Q[1]] + [get(m) for get, _ in SPACES.values()]
+    assert {kind(o) for o in objs} == {
+        "Model", "Macro", "UserSpace", "ItemSpace", "DynamicSpace"}
+    for obj in objs:
+        assert getattr(type(obj), "_is_derived", None) is None, obj
+
+
+# spyder-modelx's tree request (test_spyder_requests.TREE_ATTRS) with
+# '_is_dynamic', which no class answers from 0.34 (decisions 15, 16).
+WALK_ATTRS = ["_is_derived", "_is_dynamic", "__len__", "_evalrepr"]
+
+
+def test_whole_model_walk(flags_model):
+    """``model._get_attrdict(WALK_ATTRS, recursive=True)`` does not
+    raise, and every record gets what its object answers: a Cells' and a
+    Reference's ``'_is_derived'`` is its ``_is_derived()``, a Cells'
+    ``'__len__'`` is its ``len()``, and every record's ``'_evalrepr'`` is
+    its object's.  No Space or Model record has ``'_is_derived'``
+    (decision 4), and no record has ``'_is_dynamic'``.
+
+    The walk reaches the slots of
+    ``test_is_derived_where_no_reference_is_held``, whose proxies stand
+    for no Reference: there a plain ``impl.is_derived()`` raised
+    AttributeError, as on 0.33 (design T3, minimal/m05)."""
+    m = flags_model
+    m.P[1][5].Child[2].w()
+    m.P[1].h()
+    m.Q[1].bar()
+    m.Sub.bar()
+    attrdict = m._get_attrdict(WALK_ATTRS, recursive=True)
+
+    seen = {}
+    for record, obj in walk_records(attrdict, m):
+        k = kind(obj)
+        seen[k] = seen.get(k, 0) + 1
+        assert "_is_dynamic" not in record, obj
+        assert record["_evalrepr"] == obj._evalrepr, obj
+        if k in ("Cells", "DynamicCells"):
+            assert record["_is_derived"] is obj._is_derived(), obj
+            assert record["__len__"] == len(obj), obj
+        elif k in ("ReferenceProxy", "DynamicReferenceProxy"):
+            assert record["_is_derived"] is obj._is_derived(), obj
+        else:
+            assert "_is_derived" not in record, obj
+    assert set(seen) == {
+        "Model", "UserSpace", "ItemSpace", "DynamicSpace", "Cells",
+        "DynamicCells", "ReferenceProxy", "DynamicReferenceProxy"}, seen

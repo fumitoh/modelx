@@ -295,10 +295,11 @@ def mismatches(golden, live, path=()):
     frozen member returns gain keys, and tells tools to ignore the keys
     they do not know.  So a dict that modelx returns matches when it has
     every key of the golden dict, with a matching value, whatever other
-    keys it has.  For example, design T3 (PR 2) adds
+    keys it has.  For example, design T3 (PR 2) added
     ``ReferenceProxy._is_derived``, and the Reference records of the
-    ``tree`` request then gain the ``'_is_derived'`` key that spyder asks
-    for.
+    ``tree`` request gained the ``'_is_derived'`` key that spyder asks
+    for: the golden written before then still matched, and the one
+    written with T3 pins the key.
 
     Three things are compared exactly, because they are not keys of a
     record:
