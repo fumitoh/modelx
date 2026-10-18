@@ -54,26 +54,26 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 
 Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) made `Cells.values()` and `Cells.items()` read each value by its stored key. That took them out of the Known limitation under "Value operations" in cells.rst, which now describes the key lookups that read a tuple as all the arguments, and `*args` Cells. Two older defects found on the way are filed as fumitoh/modelx#282 (a formula with `*args` receives its arguments wrapped in an extra tuple) and fumitoh/modelx#283 (`series`, `frame` and `to_series(args)` with tuple arguments).
 
-PR 2 (T1, T2, T3, T7, F1, F6, F11) is implemented on the branch `claude/stoic-bardeen-qpv3a0`, not yet merged, in eight commits on 10188ae (2026-10-18): bac9baa (T2, with T1's tests and golden), 73630b6 (T3 and decision 11's alias), 00a86ae (F1, T7), f1f63ed (F6), b7f260f (F11, decision 13, and the snapshot-wire rows of §9 assigned to PR 2), e946f99 (toolapi.rst, the release notes, this progress record), and the review's fixes: f8548f2 (kept class namespaces, which bring F11's lookup back near 0.33's cost) and the documentation fixes after it. The full suite gives 1,871 passed, 8 skipped and 1 failed on CPython 3.11.15, against 1,570 passed at 10188ae; the failure is the same in both, `export/test_lifelib.py::test_assets`, which needs QuantLib. On this branch, lifelib-app's bridge suite gives 835 passed, and modelx-mcp 0.1.0's gives 973 passed and 2 failed: test_basicterm_s.py:605 and :607, whose nodes are chosen by `type(...).__name__ == "Cells"` (:609), which leaves out DynamicCells (decision 15). Decisions 11 and 13 are implemented as recommended and await the owner's approval; decisions 14–16 are implemented as decided. What PR 2 found is in §9, "Found while implementing PR 2". PR 3 is next.
+PR 2 (T1, T2, T3, T7, F1, F6, F11) merged into `main` as fumitoh/modelx#284 on 2026-10-18 (merge commit fec516d), with CI green on Python 3.9–3.14 on Linux, macOS and Windows and on the free-threaded build. It was built in eight commits on 10188ae: bac9baa (T2, with T1's tests and golden), 73630b6 (T3 and decision 11's alias), 00a86ae (F1, T7), f1f63ed (F6), b7f260f (F11, decision 13, and the snapshot-wire rows of §9 assigned to PR 2), e946f99 (toolapi.rst, the release notes, this progress record), and the review's fixes: f8548f2 (kept class namespaces, which bring F11's lookup back near 0.33's cost) and the documentation fixes after it. The full suite gives 1,871 passed, 8 skipped and 1 failed on CPython 3.11.15, against 1,570 passed at 10188ae; the failure is the same in both, `export/test_lifelib.py::test_assets`, which needs QuantLib. On the PR's head, lifelib-app's bridge suite gives 835 passed, and modelx-mcp 0.1.0's gives 973 passed and 2 failed: test_basicterm_s.py:605 and :607, whose nodes are chosen by `type(...).__name__ == "Cells"` (:609), which leaves out DynamicCells (decision 15). The owner approved decisions 11 and 13, implemented as recommended, by merging the PR on 2026-10-18; decisions 14–16 are implemented as decided. What PR 2 found is in §9, "Found while implementing PR 2". PR 3 is next.
 
 | decision | settled in | status |
 |---|---|---|
 | 1. How the contract is written down | PR 1 (reference page, signature golden); PR 9 (downstream CI job) | **approved 2026-10-10**, with one change: PR 1's page covers only what exists today, and each later PR adds its own section |
 | 2. Deprecation signal and rule | PR 1 (the rule, on the reference page); PR 4 (the warning class); PR 9 (the audit) | **approved 2026-10-10** |
 | 3. Where the new names live | PR 4 (T12) | **decided 2026-10-09**: classes in `modelx.core.errors`; the top-level functions are still open (PR 4, PR 7, PR 8) |
-| 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09**; implemented in PR 2 (on the branch) |
+| 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09**; implemented in PR 2 (#284) |
 | 5. Address grammar | PR 4 (T6) | open |
 | 6. Lookup misses | PR 4 (T6, T12) | open |
 | 7. A relative Reference inside an ItemSpace | PR 3 (T5) | open |
 | 8. What 0.34 includes | PR 5 (the `saved` stamp), PR 8 (the provisional hook); the deferrals need no PR | open |
 | 9. Name checks and when they take effect | PR 4; PR 7 (the reserved-name warning) | open |
 | 10. Persisting "no formula" and Reference docstrings | PR 6 (T11's note); otherwise deferred | open |
-| 11. Small compatibility choices | PR 2 (T3's alias; F11 and `argvalues`) | implemented in PR 2 as recommended (on the branch); awaits the owner |
+| 11. Small compatibility choices | PR 2 (T3's alias; F11 and `argvalues`) | **approved 2026-10-18** as recommended; implemented in PR 2 (#284) |
 | 12. Bridge pin and release gate | PR 9, then a modelx-bridge release | open |
-| 13. Extattrs resolve on the class only | PR 2 (F11) | implemented in PR 2 as recommended (on the branch); awaits the owner |
-| 14. Kinds by class name, no `_kind` | PR 2 (T1) | **decided 2026-10-17**; implemented in PR 2 (on the branch) |
-| 15. Dynamic Cells and References have their own classes | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (on the branch) |
-| 16. Space flags removed in 0.34 | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (on the branch) |
+| 13. Extattrs resolve on the class only | PR 2 (F11) | **approved 2026-10-18** as recommended; implemented in PR 2 (#284) |
+| 14. Kinds by class name, no `_kind` | PR 2 (T1) | **decided 2026-10-17**; implemented in PR 2 (#284) |
+| 15. Dynamic Cells and References have their own classes | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (#284) |
+| 16. Space flags removed in 0.34 | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (#284) |
 
 
 1. **How the contract is written down.** Recommended:
