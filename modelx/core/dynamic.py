@@ -167,12 +167,19 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         # of the dynamic Spaces of a synthetic model and of simplelife's
         # items, 402 in all, was the same object as on 1d92c67.
         # A slot whose value is a Cells already gives the Cells, as before.
-        # An argument or a formula ref of the same name hides the slot.
+        # An argument or a formula ref of the same name hides the slot, and
+        # a Cells of the same name wins over it, as the loop above runs the
+        # Cells last: add_bases lets S have both, a Cells c inherited from B
+        # and S.c = S.Child. Without the Cells test, c() in a formula of
+        # S[1] raised FormulaError, as c was S[1].Child's namespace, where
+        # S's formulas and S[1]'s on 1d92c67 called the Cells.
         slots = self._dynbase_refs
         refs = self.refs
+        cells = self.cells
         ns_dict = self._ns_dict
         for name, ref in slots.items():
-            if ref.container is slots and refs[name] is ref:
+            if (ref.container is slots and refs[name] is ref
+                    and name not in cells):
                 target = ref.interface._impl
                 if isinstance(target, NamespaceServer):
                     ns_dict[name] = target._namespace

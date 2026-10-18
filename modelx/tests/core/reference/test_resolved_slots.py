@@ -66,7 +66,7 @@ def slots_model():
           |     |       rr -> P.Child (relative), out -> Other,
           |     |       ab -> P.Child (absolute), px -> PX, pxc -> PX.c,
           |     |       h(), viaspace(), viacells(), relupk(), seen(),
-          |     |       seenc(), hx()
+          |     |       seenc(), hx(), isrel(), seenout()
           |     +--Child---w(), up -> P, sib -> P.Child.w, upk()
           +-----Other
           +-----PX---c()
@@ -96,6 +96,8 @@ def slots_model():
     p.px = px
     p.pxc = px.c
     p.new_cells("hx", formula="lambda: px.c() + pxc()")
+    p.new_cells("isrel", formula="lambda: rel is _space.Child")
+    p.new_cells("seenout", formula="lambda: out")
     yield m
     m._impl._check_sanity()
     m.close()
@@ -207,7 +209,13 @@ def test_what_formulas_see(slots_model):
     and ``P[1].relupk()``, which reads ``rel.up.k``, where ``up`` is a
     slot of ``P[1].Child``.  The others gave these values there too, in
     this model without ``px`` and ``pxc``, whose None slots made every
-    formula of ``P[1]`` fail there."""
+    formula of ``P[1]`` fail there.
+
+    ``rel`` by name is the object ``_space.Child`` is, in ``P[1]`` as on
+    1d92c67, so a formula sees the same object as before; with
+    ``DynamicSpaceImpl.on_update_ns`` reduced to the base class's it was
+    ``P[1].Child`` and ``P[1].isrel()`` was False.  ``out``, a binding
+    that is not a slot, is ``Other`` itself."""
     m = slots_model
     assert m.P[1].h() == 12
     assert m.P[2].h() == 22
@@ -222,6 +230,54 @@ def test_what_formulas_see(slots_model):
     assert m.P[1].rel is m.P[1].Child
     assert m.P[1].relc is m.P[1].h
     assert m.P[1].Child.up is m.P[1]
+    assert m.P[1].isrel() is True
+    assert m.P[1][5].isrel() is True
+    assert m.P[1].seenout() is m.Other
+
+
+def test_slot_hidden_by_argument_or_formula_ref():
+    """``P.i = P.Child`` and ``P.rel = P.Child`` with the Space formula
+    ``lambda i: {'refs': {'rel': 2 * i}}``: in ``P[1]`` both names are
+    slots, hidden by the argument ``i`` and by the formula's ref ``rel``,
+    and a formula sees those, as on 1d92c67.  Without the hide test in
+    ``on_update_ns``, both gave ``P[1].Child``'s namespace."""
+    m = mx.new_model("SlotsHidden")
+    p = m.new_space("P", formula="lambda i: {'refs': {'rel': 2 * i}}")
+    child = p.new_space("Child")
+    p.i = child
+    p.rel = child
+    p.new_cells("geti", formula="lambda: i")
+    p.new_cells("getrel", formula="lambda: rel")
+    assert p.geti() is child and p.getrel() is child
+    item = p[1]
+    assert (item.geti(), item.getrel()) == (1, 2)
+    assert (item.i, item.rel) == (1, 2)
+    assert (p[3].geti(), p[3].getrel()) == (3, 6)
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_cells_and_slot_of_one_name():
+    """``S.c = S.Child``, then ``S.add_bases(B)`` for a Cells ``B.c``:
+    ``add_bases`` does not check names, so ``S`` has a Reference and a
+    Cells named ``c``.  A formula of ``S`` calls the Cells, and so does
+    one of ``S[1]``, as on 1d92c67.  With the slot put over the Cells,
+    ``S[1].h()`` raised FormulaError, as ``c`` was ``S[1].Child``'s
+    namespace."""
+    m = mx.new_model("SlotsCellsClash")
+    b = m.new_space("B")
+    b.new_cells("c", formula="lambda: 1")
+    s = m.new_space("S", formula="lambda i: None")
+    s.new_space("Child")
+    s.c = s.Child
+    s.add_bases(b)
+    s.new_cells("h", formula="lambda: c() + 1")
+    assert ("c" in s.cells, "c" in s.refs) == (True, True)
+    assert s.h() == 2
+    assert s[1].h() == 2
+    assert s[2].h() == s.h()
+    m._impl._check_sanity()
+    m.close()
 
 
 def test_bindings_that_are_not_slots(slots_model):
