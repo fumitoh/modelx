@@ -775,7 +775,7 @@ without a warning (see :ref:`toolapi-deprecation`).
   although its class is a subclass of DynamicSpace.
   An :func:`isinstance` test needs the class, and so an import from
   a module that is not tool API.
-* :func:`type` reads no attribute of the object,
+* :class:`type` reads no attribute of the object,
   so the check never reaches a user's member of a Model or a Space,
   never runs a formula, and answers also on a deleted object
   and on an object of a closed Model.
@@ -847,12 +847,13 @@ Dynamic objects
 
     .. admonition:: Known limitation
 
-       Seen through an ItemSpace, a Reference of its Space
-       whose value is the Space itself, or a Cells or a Space inside it,
-       and whose mode is not ``'absolute'``, stands for the ItemSpace's
-       copy of the value
-       (see the note under :ref:`reference-proxy-identity`),
-       and its proxy is a ReferenceProxy on this release.
+       Seen through an ItemSpace or a DynamicSpace in it,
+       a Reference that refers to the ItemSpace's own copy of its value,
+       as the note under :ref:`reference-proxy-identity` describes
+       (``P[1].rel`` for ``P.rel = P.Child``,
+       or ``P[1].Child.up`` for ``P.Child.up = P``),
+       has a proxy that stands for the copy,
+       and the proxy is a ReferenceProxy on this release.
        So is the proxy of a Reference to a Space whose name begins
        with the name of the Space
        (see :ref:`the note on such References <toolapi-prefix-ref>`).
@@ -895,9 +896,14 @@ What a kind can do
            a Space whose formula is ``lambda: None`` has ``()``
            as its ``parameters``, and calling it with no arguments
            gives an ItemSpace.
-           An ItemSpace or a DynamicSpace has the formula of the
-           Space it was made from, so ``Proj[1][5]`` is an ItemSpace,
+           An ItemSpace or a DynamicSpace has the formula that its
+           base, ``bases[0]``, had when the ItemSpace was made,
+           so ``Proj[1][5]`` is an ItemSpace,
            and so is ``P[1].Child[2]`` when ``P.Child`` has a formula.
+           The base is not always the parent: an ItemSpace of a Space
+           whose formula returns another Space as ``'base'`` has the
+           formula of that Space. So a tool reads the object's own
+           ``formula``.
            A Space without a formula has :obj:`None` as its
            ``parameters`` too.
        * - Takes new child Spaces and References
@@ -924,6 +930,18 @@ What a kind can do
        (``'NoneType' object has no attribute 'signature'``).
        The type and the message of this exception are not part of
        the frozen contract and may change.
+
+    .. admonition:: Known limitation
+
+       On this release, a formula given to a Space does not reach
+       the ItemSpaces and DynamicSpaces already made from it,
+       other than the Space's own ItemSpaces, which it deletes.
+       When ``P.Child`` gets a formula after ``P[1]`` was made,
+       ``P[1].Child.formula`` stays :obj:`None`,
+       and ``P[1].Child[2]`` raises :obj:`AttributeError` as above,
+       until ``P[1]`` is deleted, for example by ``P.clear_items()``,
+       and made again.
+       This is not part of the frozen contract and may change.
 
 
 .. _toolapi-inheritance:
@@ -984,15 +1002,17 @@ not by a derived flag.
 
     .. admonition:: Known limitation
 
-       On this release, two kinds of proxies obtained through an ItemSpace
+       On this release, two kinds of proxies obtained through an ItemSpace,
+       or through a DynamicSpace in it,
        do not stand for a Reference, and ``_is_derived()`` is :obj:`None`
        on them:
 
-       * the proxy of a Reference of its Space whose value is the Space
-         itself, or a Cells or a Space inside it, and whose mode is not
-         ``'absolute'``, which stands for the ItemSpace's copy of the value
-         (see the note under :ref:`reference-proxy-identity`);
-       * the proxy of a Reference of its Space to a Space whose name
+       * the proxy of a Reference that refers to the ItemSpace's own copy
+         of its value, as the note under :ref:`reference-proxy-identity`
+         describes, such as ``P[1].rel`` for ``P.rel = P.Child``,
+         or ``P[1].Child.up`` for ``P.Child.up = P``,
+         which stands for the copy;
+       * the proxy of a Reference to a Space whose name
          begins with the name of the Space, such as ``P.r = PX``
          (see :ref:`the note on such References <toolapi-prefix-ref>`).
 
@@ -1269,12 +1289,12 @@ for tools that show a model in another process, such as spyder-modelx.
 
        An ItemSpace's dict can hold two records
        with the same ``'id'`` and ``'namedid'``.
-       A Reference of the Space whose value is the Space itself,
-       or a Cells or a Space inside it, and whose mode is not
-       ``'absolute'``, is seen in an ItemSpace as the ItemSpace's copy of
-       the value, as the note under :ref:`reference-proxy-identity`
-       describes.
-       Its record in the ItemSpace's ``'refs'`` has the ``'type'``
+       In an ItemSpace and in the DynamicSpaces in it, a Reference can
+       refer to the ItemSpace's own copy of its value, as the note under
+       :ref:`reference-proxy-identity` describes
+       (``P[1].rel`` for ``P.rel = P.Child``,
+       or ``P[1].Child.up`` for ``P.Child.up = P``).
+       Its record in the ``'refs'`` of that Space has the ``'type'``
        ``'Reference'``, but its ``'id'``, ``'namedid'``, ``'name'`` and
        ``'fullname'`` are those of the copy, the same as in the copy's
        own record.
@@ -1295,12 +1315,13 @@ for tools that show a model in another process, such as spyder-modelx.
     Cells or Space, is read or called, whatever its name.
     What the class defines gives the value:
 
-    * A property is read.
+    * A property, or another data descriptor such as a slot, is read.
       A value whose class defines ``_get_attrdict`` is replaced by its
       dict, made with the same ``extattrs`` and ``recursive``,
       and any other value is added as it is,
       also when it is callable.
-    * A method is called with no arguments, and its result is added.
+    * A function, or another method, is bound to the object and
+      called with no arguments, and its result is added.
     * Any other class attribute is added as it is.
 
     A ReferenceProxy also answers the properties and the methods
@@ -1427,13 +1448,12 @@ ReferenceProxy forwarding
 
     .. admonition:: Known limitation
 
-       A Reference of a Space whose value is the Space itself,
-       or a Cells or a Space inside it, and whose mode
-       is not ``'absolute'``, is seen in an ItemSpace as the ItemSpace's
-       copy of the value
-       (see the note under :ref:`reference-proxy-identity`).
-       A proxy for it obtained through the ItemSpace stands for the copy,
-       not for the Reference:
+       In an ItemSpace and in the DynamicSpaces in it, a Reference can
+       refer to the ItemSpace's own copy of its value, as the note under
+       :ref:`reference-proxy-identity` describes
+       (``P[1].Child.up`` for ``P.Child.up = P``, for example).
+       A proxy for it obtained through the ItemSpace or the DynamicSpace
+       stands for the copy, not for the Reference:
        its ``name``, ``fullname``, ``parent``, ``_idstr``, ``_idtuple``
        and ``_evalrepr`` name the copy,
        and ``refmode`` raises :obj:`AttributeError`.

@@ -15,10 +15,11 @@ and ``.info`` print the new names.
 Not dynamic: the Model, every UserSpace and its Cells, derived ones
 included, Space and global References, a Reference of a Space seen
 through one of its ItemSpaces (``P[1].k`` is ``P.k``), and macros.  Nor,
-on this release, is the proxy of a slot of an ItemSpace that holds the
-ItemSpace's copy of a Space or a Cells (``P[1].rel`` for ``P.rel =
-P.Child``): the slot holds the copy itself, not a Reference, until T5
-(PR 3) gives it one.
+on this release, is the proxy of a slot of an ItemSpace, or of a
+DynamicSpace in one, that holds the ItemSpace's copy of a Space or a
+Cells (``P[1].rel`` for ``P.rel = P.Child``, ``P[1].Child.up`` for
+``P.Child.up = P``): the slot holds the copy itself, not a Reference,
+until T5 (PR 3) gives it one.
 
 Proxies are made at six sites, and each is checked: a ReferenceNode's
 ``obj``, ``Model._get_object`` and ``BaseSpace._get_object`` with
@@ -42,7 +43,8 @@ whole-model ``_get_attrdict`` asking for it never raises.
 
 The tests read only the tool API and the public API.  They import the
 classes Cells and ReferenceProxy only to check ``isinstance``, which code
-outside the tool API relies on, and to wrap ``__init__`` as above.  Each
+outside the tool API relies on, to wrap ``__init__`` as above, and once to
+subclass ReferenceProxy.  Each
 model is torn down by ``_impl._check_sanity()`` and then ``close()``.
 """
 
@@ -320,6 +322,25 @@ def test_copy_keeps_class_and_binding(flags_model):
         assert dup() == cells()
 
 
+def test_named_proxy_class_is_kept(flags_model):
+    """``ReferenceProxy.__new__`` picks DynamicReferenceProxy only when the
+    class asked for is ReferenceProxy itself, so a subclass stays itself.
+    Without that test, a subclass made over an argument of an ItemSpace
+    came back a DynamicReferenceProxy, and the copy test above still
+    passed, because a copy passes no Reference to ``__new__``.
+    The Reference is the proxy's own state, which copy and pickle use."""
+
+    class Mine(ReferenceProxy):
+        __slots__ = ()
+
+    m = flags_model
+    for proxy in (m.P[1]._get_object("i", as_proxy=True),
+                  m.P._get_object("k", as_proxy=True)):
+        mine = Mine(proxy.__getstate__())
+        assert type(mine) is Mine
+        assert (mine.value, mine.fullname) == (proxy.value, proxy.fullname)
+
+
 def test_isinstance_unchanged(flags_model):
     m = flags_model
     assert isinstance(m.P[1].h, Cells)
@@ -531,6 +552,55 @@ def test_is_derived_where_no_reference_is_held(flags_model):
             assert proxy.value is copy
             assert proxy._is_derived() is None
             assert proxy.is_derived() is None
+
+
+@pytest.fixture
+def child_refs_model():
+    """
+        ChildRefs--P(i)----Child----w(), up -> P, side -> P.Sib,
+          |          |              rw -> P.Child.w, out -> Q,
+          |          |              fixed -> P (absolute)
+          |          +-----Sib
+          +--------Q
+    """
+    m = mx.new_model("ChildRefs")
+    p = m.new_space("P", formula="lambda i: None")
+    child = p.new_space("Child")
+    child.new_cells("w", formula="lambda: 1")
+    sib = p.new_space("Sib")
+    q = m.new_space("Q")
+    child.up = p
+    child.side = sib
+    child.rw = child.w
+    child.out = q
+    child.absref(fixed=p)
+    yield m
+    m._impl._check_sanity()
+    m.close()
+
+
+def test_is_derived_none_through_a_dynamic_space(child_refs_model):
+    """The same holds through a DynamicSpace, for a Reference of a Space
+    inside ``P`` whose value is anywhere in ``P``'s tree: in
+    ``P[1].Child``, ``up``, ``side`` and ``rw`` are ``P[1]``,
+    ``P[1].Sib`` and ``P[1].Child.w``.  On 0.33 ``is_derived()`` raised
+    AttributeError on the first two (``'ItemSpaceImpl' object has no
+    attribute 'is_derived'``, and ``'DynamicSpaceImpl'``) and gave True
+    on the third.  A Reference whose value is outside ``P``, and an
+    absolute one, stand for the Reference of ``P.Child``."""
+    m = child_refs_model
+    dyn = m.P[1].Child
+    for name, target in (("up", m.P[1]), ("side", m.P[1].Sib),
+                         ("rw", dyn.w)):
+        proxy = dyn._get_object(name, as_proxy=True)
+        assert proxy.value is target
+        assert proxy._is_derived() is None
+        assert proxy.is_derived() is None
+    for name, target in (("out", m.Q), ("fixed", m.P)):
+        proxy = dyn._get_object(name, as_proxy=True)
+        assert proxy.value is target
+        assert (proxy.fullname, proxy._is_derived(), proxy.is_derived()) == (
+            "ChildRefs.P.Child." + name, False, False)
 
 
 def test_spaces_and_models_have_no_is_derived(flags_model):

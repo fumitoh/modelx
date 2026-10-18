@@ -241,11 +241,13 @@ Bug Fixes
 * :meth:`ReferenceProxy.is_derived()
   <modelx.core.reference.ReferenceProxy.is_derived>` returns
   :obj:`None` on a proxy that does not stand for a Reference, as
-  ``_is_derived()`` does. Through an ItemSpace, the proxy of a
-  Reference of its Space whose value is the Space, or a Space inside
-  it, and whose mode is not ``'absolute'``, made it raise
-  :obj:`AttributeError`, and it returned :obj:`True` for such a
-  Reference to a Cells. A Reference to a Space whose name begins with
+  ``_is_derived()`` does. Through an ItemSpace or a DynamicSpace in
+  one, the proxy of a Reference that refers to the ItemSpace's own
+  copy of its value (see :ref:`reference-proxy-identity`), such as
+  ``P[1].rel`` for ``P.rel = P.Child`` or ``P[1].Child.up`` for
+  ``P.Child.up = P``, made it raise :obj:`AttributeError` when the
+  value was a Space, and it returned :obj:`True` when the value was a
+  Cells. A Reference to a Space whose name begins with
   the name of the Space, such as ``PX`` for ``P``, made it raise
   :obj:`AttributeError` too. These proxies are known limitations of
   :ref:`toolapi`.

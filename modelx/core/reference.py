@@ -169,16 +169,21 @@ class ReferenceProxy:
 
         A Reference that an ItemSpace shares with its Space, as
         ``P[1].k`` is ``P.k``, keeps its Space as parent, so its proxy is
-        a ReferenceProxy. So is that of a slot of an ItemSpace holding
-        the ItemSpace's copy of a Space or a Cells, which is not a
-        Reference itself on this release: without the ``isinstance``
+        a ReferenceProxy. So is that of a slot of an ItemSpace, or of a
+        DynamicSpace in one, holding the ItemSpace's copy of a Space or
+        a Cells, which is not a Reference itself on this release
+        (:ref:`reference-proxy-identity`): without the ``isinstance``
         test the class would follow the parent of what the slot holds,
         and a slot holding None would raise.
 
         ``impl`` defaults to None because :func:`copy.copy` calls
         ``cls.__new__(cls)`` with no argument; with ``impl`` required,
-        copying any proxy raised TypeError. The rule applies only when
-        ``cls`` is ReferenceProxy itself, so a copy keeps its class.
+        copying any proxy raised TypeError. A copy keeps its class
+        because it passes no impl, so the rule never reaches it.
+        The rule applies only when ``cls`` is ReferenceProxy itself, so
+        a class that a subclass or a caller names is kept: without that
+        test, a subclass made over an argument of an ItemSpace came back
+        a DynamicReferenceProxy.
         """
         if (cls is ReferenceProxy and isinstance(impl, ReferenceImpl)
                 and not impl.parent.is_model()
@@ -231,15 +236,16 @@ class ReferenceProxy:
 
         Raises:
             AttributeError: On this release, on a proxy got through an
-                :class:`~modelx.core.space.ItemSpace` for a Reference of
-                its Space that is not ``'absolute'`` and whose value is
-                the Space itself, or a Cells or a Space inside it,
-                because such a proxy stands for the ItemSpace's copy of
-                the value (see :ref:`reference-proxy-identity`); and on
-                a proxy got through an ItemSpace for a Reference to a
-                Space whose name begins with the name of the Space, such
-                as ``PX`` for ``P`` (see :ref:`the note on such
-                References <toolapi-prefix-ref>`).
+                :class:`~modelx.core.space.ItemSpace`, or a DynamicSpace
+                in one, for a Reference that refers to the ItemSpace's
+                own copy of its value, such as ``P[1].rel`` for
+                ``P.rel = P.Child`` or ``P[1].Child.up`` for
+                ``P.Child.up = P``, because such a proxy stands for the
+                copy (see :ref:`reference-proxy-identity`, which gives
+                the condition); and on a proxy got through either for a
+                Reference to a Space whose name begins with the name of
+                the Space, such as ``PX`` for ``P`` (see :ref:`the note
+                on such References <toolapi-prefix-ref>`).
                 These are known limitations, not part of the frozen
                 contract, and may change.
 
@@ -271,13 +277,14 @@ class ReferenceProxy:
         from each, and no exception.
 
         On this release that is the case for a proxy got through an
-        ItemSpace for a Reference of its Space that is not
-        ``'absolute'`` and whose value is the Space itself, or a Cells
-        or a Space inside it, because such a proxy stands for the
-        ItemSpace's copy of the value (see
-        :ref:`reference-proxy-identity`), and for a proxy got through an
-        ItemSpace for a Reference to a Space whose name begins with the
-        name of the Space, such as ``PX`` for ``P`` (see
+        ItemSpace, or a DynamicSpace in one, for a Reference that refers
+        to the ItemSpace's own copy of its value, such as ``P[1].rel``
+        for ``P.rel = P.Child`` or ``P[1].Child.up`` for
+        ``P.Child.up = P``, because such a proxy stands for the copy
+        (see :ref:`reference-proxy-identity`, which gives the
+        condition), and for a proxy got through either for a Reference
+        to a Space whose name begins with the name of the Space, such as
+        ``PX`` for ``P`` (see
         :ref:`the note on such References <toolapi-prefix-ref>`).
         Which proxies these are is a known limitation, not part of the
         frozen contract, and may change.
@@ -302,7 +309,8 @@ class ReferenceProxy:
         return None
 
     def is_derived(self):
-        """The same as :meth:`_is_derived`, kept for modelx-bridge 0.10.
+        """The same as :meth:`~ReferenceProxy._is_derived`, kept for
+        modelx-bridge 0.10.
 
         It has no underscore. modelx-bridge 0.10 calls it, so it stays,
         with no deprecation. New code calls :meth:`_is_derived`.
@@ -317,7 +325,8 @@ class ReferenceProxy:
 
     @property
     def _baseattrs(self):
-        """The older form of :meth:`_get_attrdict`, kept for existing tools.
+        """The older form of :meth:`~ReferenceProxy._get_attrdict`, kept
+        for existing tools.
 
         Returns:
             dict: The same keys as :meth:`_get_attrdict` called without
