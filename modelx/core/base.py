@@ -21,6 +21,45 @@ from modelx.core.errors import DeletedObjectError
 
 _MISSING = object()
 
+# The namespaces of each class in a modelx or built-in class's __mro__, as
+# (mro, namespaces), by id(cls), so that no metaclass __hash__ runs. Each
+# namespace is the live mappingproxy of its class, so an attribute set or
+# deleted later, as monkeypatch does, is seen, and the entry is used only
+# while cls.__mro__ is the same tuple, which a new __bases__ replaces. The
+# mro holds cls, so its id is not reused. Other classes are not kept, so no
+# user class is held.
+# Walking cls.__mro__ with vars() on every call made F11's extattrs slower
+# than 0.33's getattr: a Cells' Properties request 3.55 -> 4.89 us, the
+# tree walk of BasicTerm_SE with 50 ItemSpaces 22.4 -> 23.8 ms.
+_MRO_NAMESPACES = {}
+
+
+# type's own __module__ getter, which no metaclass overrides. A built-in
+# type has no '__module__' in vars(), and gives 'builtins' here.
+_get_type_module = type.__dict__["__module__"].__get__
+
+
+def _get_mro_namespaces(cls):
+    mro = cls.__mro__
+    namespaces = tuple(vars(klass) for klass in mro)
+    try:
+        module = _get_type_module(cls)
+    except AttributeError:
+        module = None
+    # Not assumed a str: wrapt's proxy classes, for one, make it a property.
+    if isinstance(module, str) and (
+            module == "builtins" or module.startswith("modelx.")):
+        _MRO_NAMESPACES[id(cls)] = (mro, namespaces)
+    return namespaces
+
+
+def get_mro_namespaces(cls):
+    """The namespace of each class in ``cls.__mro__``, in that order."""
+    entry = _MRO_NAMESPACES.get(id(cls))
+    if entry is not None and entry[0] is cls.__mro__:
+        return entry[1]
+    return _get_mro_namespaces(cls)
+
 
 def get_class_attr(cls, name):
     """The attribute ``name`` that ``cls`` or a base of it defines.
@@ -29,11 +68,16 @@ def get_class_attr(cls, name):
     lookup does, so no descriptor runs, no instance is read and no
     ``__getattr__`` is reached. Returns ``_MISSING`` if none defines it.
     """
-    for klass in cls.__mro__:
-        attrs = vars(klass)
+    for attrs in get_mro_namespaces(cls):
         if name in attrs:
             return attrs[name]
     return _MISSING
+
+
+# Built-in types that take no new attribute, nor does object, so none ever
+# defines _get_attrdict. By id, so that no metaclass __hash__ runs.
+_PLAIN_TYPE_IDS = frozenset(id(t) for t in (
+    str, int, float, bool, type(None), tuple, list, dict, bytes))
 
 
 def get_interface_dict(impls):
@@ -762,6 +806,7 @@ class Interface:
         # called globals named formula and parameters on the Model
         # (tests/core/base/test_extattrs.py).
         cls = type(self)
+        namespaces = get_mro_namespaces(cls)
         # Only a ReferenceProxy calls this without being an Interface, as
         # Interface._get_attrdict_extra(proxy, ...). Its __getattr__
         # forwards Interface's properties and functions, and nothing else.
@@ -770,8 +815,17 @@ class Interface:
         for name in extattrs:
             if name in attrdict:
                 continue
-            attr = get_class_attr(cls, name)
-            if attr is _MISSING:
+            # get_class_attr(cls, name), inline, over the kept namespaces,
+            # and the two type tests below: a Cells' Properties request
+            # 4.1-4.5 us against 0.33's 3.7-4.0 us, and the tree walk of
+            # _MRO_NAMESPACES 18.8-20.3 ms against 21.6-21.7 ms (one CPU,
+            # min of 3 interleaved runs). Namespaces built once per
+            # request and not kept gave 5.5 us and 23.0 ms.
+            for attrs in namespaces:
+                if name in attrs:
+                    attr = attrs[name]
+                    break
+            else:
                 if not forwards:
                     continue
                 attr = get_class_attr(Interface, name)
@@ -779,14 +833,25 @@ class Interface:
                     continue
 
             attrcls = type(attr)
-            if not hasattr(attrcls, "__get__"):
+            if attrcls is property:
+                is_data = True
+            elif attrcls is FunctionType:
+                is_data = False
+            elif not hasattr(attrcls, "__get__"):
                 attrdict[name] = attr
-            elif hasattr(attrcls, "__set__") or hasattr(attrcls, "__delete__"):
+                continue
+            else:
+                is_data = (hasattr(attrcls, "__set__")
+                           or hasattr(attrcls, "__delete__"))
+
+            if is_data:
                 try:
                     value = attr.__get__(self, cls)
                 except AttributeError:
                     continue
-                if get_class_attr(type(value), "_get_attrdict") is _MISSING:
+                valuecls = type(value)
+                if (id(valuecls) in _PLAIN_TYPE_IDS or get_class_attr(
+                        valuecls, "_get_attrdict") is _MISSING):
                     attrdict[name] = value
                 else:
                     attrdict[name] = value._get_attrdict(extattrs, recursive)
