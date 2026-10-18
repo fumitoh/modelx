@@ -214,6 +214,13 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         else:
             return []
 
+    @property
+    def direct_bases(self):
+        # A dynamic space has no node in the inheritance graph, so the
+        # graph's preds of its idstr named bases of unrelated spaces:
+        # P[1].Child gave the bases of P (F6). Its only base is _dynbase.
+        return self.bases
+
 
 class ItemSpaceImpl(DynamicSpaceImpl):
 
@@ -313,13 +320,19 @@ class ItemSpaceImpl(DynamicSpaceImpl):
         return self.parent.repr_parent()
 
     def repr_self(self, add_params=True):
-
-        if add_params:
-            args = [repr(arg) for arg in get_interface_list(self.argvalues)]
-            param = ", ".join(args)
-            return "%s[%s]" % (self.parent.name, param)
+        # The argument form whatever add_params is, so that
+        # get_repr(fullname=True, add_params=False) is the display name
+        # of every object (F1), and an item of an item is labelled by
+        # its parent's argument form, recursively. On 0.33 P[1][5]
+        # displayed as 'Syn.__Space1[5]', and with add_params=False as
+        # 'Syn.__Space2', which left out P[1] altogether; P[1] gave
+        # 'Syn.__Space1' and P[1].Child[2] 'Syn.P[1].__Space1'.
+        args = [repr(arg) for arg in get_interface_list(self.argvalues)]
+        if isinstance(self.parent, ItemSpaceImpl):
+            label = self.parent.repr_self()
         else:
-            return self.name
+            label = self.parent.name
+        return "%s[%s]" % (label, ", ".join(args))
 
     @property
     def evalrepr(self):

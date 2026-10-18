@@ -157,8 +157,53 @@ class ReferenceProxy:
 
     __slots__ = ("_impl",)
 
+    def __new__(cls, impl=None):
+        """Make a :class:`DynamicReferenceProxy` for a dynamic Reference.
+
+        ``ReferenceProxy(impl)`` gives a DynamicReferenceProxy when the
+        Reference's parent is an ItemSpace or a DynamicSpace in one: an
+        argument of an ItemSpace, a ref that its Space formula returns,
+        and the ``_self``, ``_space`` and ``_model`` of either Space.
+        Every site that makes a proxy calls ``ReferenceProxy(impl)``, so
+        the rule is here.
+
+        A Reference that an ItemSpace shares with its Space, as
+        ``P[1].k`` is ``P.k``, keeps its Space as parent, so its proxy is
+        a ReferenceProxy. So is that of a slot of an ItemSpace, or of a
+        DynamicSpace in one, holding the ItemSpace's copy of a Space or
+        a Cells, which is not a Reference itself on this release
+        (:ref:`reference-proxy-identity`): without the ``isinstance``
+        test the class would follow the parent of what the slot holds,
+        and a slot holding None would raise.
+
+        ``impl`` defaults to None because :func:`copy.copy` calls
+        ``cls.__new__(cls)`` with no argument; with ``impl`` required,
+        copying any proxy raised TypeError. A copy keeps its class
+        because it passes no impl, so the rule never reaches it.
+        The rule applies only when ``cls`` is ReferenceProxy itself, so
+        a class that a subclass or a caller names is kept: without that
+        test, a subclass made over an argument of an ItemSpace came back
+        a DynamicReferenceProxy.
+        """
+        if (cls is ReferenceProxy and isinstance(impl, ReferenceImpl)
+                and not impl.parent.is_model()
+                and impl.parent.is_dynamic()):
+            cls = DynamicReferenceProxy
+        return object.__new__(cls)
+
     def __init__(self, impl):
         self._impl = impl
+
+    # Explicit, so a copy and a pickle get the impl back on every Python.
+    # From 3.11 object.__getstate__ is found first and gives the slots,
+    # (None, {'_impl': impl}), while __getattr__ forwards __setstate__ to
+    # Interface's, which takes the impl: on 3.11.15 copy.copy gave a proxy
+    # whose _impl was that tuple, and whose .value raised AttributeError.
+    def __getstate__(self):
+        return self._impl
+
+    def __setstate__(self, state):
+        self._impl = state
 
     def __getattr__(self, name):
         item = getattr(Interface, name)
@@ -191,14 +236,16 @@ class ReferenceProxy:
 
         Raises:
             AttributeError: On this release, on a proxy got through an
-                :class:`~modelx.core.space.ItemSpace` for a Reference of
-                its Space that is not ``'absolute'`` and whose value is
-                the Space itself, or a Cells or a Space inside it,
-                because such a proxy stands for the ItemSpace's copy of
-                the value (see :ref:`reference-proxy-identity`); and on
-                a proxy got through an ItemSpace for a Reference to a
-                Space whose name begins with the name of the Space, such
-                as ``PX`` for ``P`` (see :ref:`toolapi-wire`).
+                :class:`~modelx.core.space.ItemSpace`, or a DynamicSpace
+                in one, for a Reference that refers to the ItemSpace's
+                own copy of its value, such as ``P[1].rel`` for
+                ``P.rel = P.Child`` or ``P[1].Child.up`` for
+                ``P.Child.up = P``, because such a proxy stands for the
+                copy (see :ref:`reference-proxy-identity`, which gives
+                the condition); and on a proxy got through either for a
+                Reference to a Space whose name begins with the name of
+                the Space, such as ``PX`` for ``P`` (see :ref:`the note
+                on such References <toolapi-prefix-ref>`).
                 These are known limitations, not part of the frozen
                 contract, and may change.
 
@@ -211,32 +258,75 @@ class ReferenceProxy:
         """
         return self._impl.refmode
 
-    def is_derived(self):   # TODO: Rename this to _is_derived
-        """True if the Reference is inherited from a base Space
+    def _is_derived(self):
+        """Whether the Reference is a copy, not defined in its own Space.
 
-        Returns :obj:`True` if the Reference was copied from a base Space
-        into a sub Space and has not been redefined there,
-        and :obj:`False` otherwise, for example for a global Reference,
-        an argument of an :class:`~modelx.core.space.ItemSpace`
-        or a Reference that a Space formula returns.
+        :obj:`True` if the Reference was copied from a base Space
+        into a sub Space and has not been redefined there.
+        :obj:`False` for a Space's own Reference, also when it
+        overrides a Reference of a base Space,
+        for a global Reference, also through a Space,
+        for an argument of an :class:`~modelx.core.space.ItemSpace`,
+        for a Reference that a Space formula returns,
+        and for the ``_self``, ``_space`` and ``_model`` of a Space.
+        Through an ItemSpace, a Reference of its Space
+        gives the flag of that Reference.
 
-        A proxy got through an ItemSpace for a Reference of its Space
-        that is not ``'absolute'`` and whose value is the Space itself,
-        or a Cells or a Space inside it, stands for the ItemSpace's copy
-        of the value: on it ``is_derived()`` raises :obj:`AttributeError`
-        if the value is a Space, and returns :obj:`True` if it is a
-        Cells (see :ref:`reference-proxy-identity`). It also raises
-        :obj:`AttributeError` on a proxy got through an ItemSpace for a
-        Reference to a Space whose name begins with the name of the
-        Space, such as ``PX`` for ``P`` (see :ref:`toolapi-wire`).
-        These are known limitations, not part of the frozen contract,
-        and may change.
+        :obj:`None` when the proxy does not stand for a Reference,
+        so a tool that asks every proxy in a model gets an answer
+        from each, and no exception.
+
+        On this release that is the case for a proxy got through an
+        ItemSpace, or a DynamicSpace in one, for a Reference that refers
+        to the ItemSpace's own copy of its value, such as ``P[1].rel``
+        for ``P.rel = P.Child`` or ``P[1].Child.up`` for
+        ``P.Child.up = P``, because such a proxy stands for the copy
+        (see :ref:`reference-proxy-identity`, which gives the
+        condition), and for a proxy got through either for a Reference
+        to a Space whose name begins with the name of the Space, such as
+        ``PX`` for ``P`` (see
+        :ref:`the note on such References <toolapi-prefix-ref>`).
+        Which proxies these are is a known limitation, not part of the
+        frozen contract, and may change.
+
+        Returns:
+            bool or None: :obj:`True` for a derived Reference,
+            :obj:`False` for any other Reference, :obj:`None` for a
+            proxy that does not stand for a Reference.
+
+        .. versionadded:: 0.34.0
         """
-        return self._impl.is_derived()
+        impl = self._impl
+        # An isinstance test, not a try. On this release a proxy's impl can
+        # be an item's DynamicSpaceImpl, ItemSpaceImpl or DynamicCellsImpl,
+        # or None (see the docstring). Without the test, a whole-model
+        # _get_attrdict(['_is_derived']) raised
+        # "AttributeError: 'DynamicSpaceImpl' object has no attribute
+        # 'is_derived'". A try would not do: a DynamicCellsImpl has
+        # is_derived(), and gave its Cells' flag, True, for the proxy.
+        if isinstance(impl, ReferenceImpl):
+            return impl.is_derived()
+        return None
+
+    def is_derived(self):
+        """The same as :meth:`~ReferenceProxy._is_derived`, kept for
+        modelx-bridge 0.10.
+
+        It has no underscore. modelx-bridge 0.10 calls it, so it stays,
+        with no deprecation. New code calls :meth:`_is_derived`.
+
+        .. versionchanged:: 0.34.0
+            It calls :meth:`_is_derived`, so it returns :obj:`None` for a
+            proxy that does not stand for a Reference. On 0.33 it raised
+            :obj:`AttributeError` there, or returned :obj:`True` when the
+            proxy stood for an ItemSpace's copy of a Cells.
+        """
+        return self._is_derived()
 
     @property
     def _baseattrs(self):
-        """The older form of :meth:`_get_attrdict`, kept for existing tools.
+        """The older form of :meth:`~ReferenceProxy._get_attrdict`, kept
+        for existing tools.
 
         Returns:
             dict: The same keys as :meth:`_get_attrdict` called without
@@ -289,6 +379,33 @@ class ReferenceProxy:
 
     def __repr__(self):
         return Interface.__repr__(self)
+
+
+class DynamicReferenceProxy(ReferenceProxy):
+    """A proxy to a Reference that an ItemSpace makes.
+
+    ``ReferenceProxy(impl)``, and every call that gets a proxy, such as
+    :func:`~modelx.get_object` with ``as_proxy=True``, gives a
+    DynamicReferenceProxy for a Reference whose parent is an
+    :class:`~modelx.core.space.ItemSpace` or a
+    :class:`~modelx.core.space.DynamicSpace` in one: an argument of an
+    ItemSpace, a ref that the Space formula returns, and the ``_self``,
+    ``_space`` and ``_model`` of either Space. A Reference of a Space seen
+    through one of its ItemSpaces, as ``P[1].k`` is ``P.k``, and a global
+    Reference keep a :class:`ReferenceProxy`.
+
+    A DynamicReferenceProxy is a ReferenceProxy, so ``isinstance`` against
+    ReferenceProxy is :obj:`True` for it. A tool tells it apart by the
+    name of its class, ``'DynamicReferenceProxy'``, after checking that
+    the class is defined in a module of the ``modelx`` package (see
+    :ref:`toolapi-kinds`). ``repr()`` shows that name. The ``'type'`` of
+    its :meth:`~ReferenceProxy._get_attrdict` and ``_baseattrs`` is
+    ``'Reference'``, as for any proxy.
+
+    .. versionadded:: 0.34.0
+    """
+
+    __slots__ = ()
 
 
 class ReferenceNode(ObjectNode):

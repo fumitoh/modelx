@@ -234,3 +234,9 @@ Exporting to Pandas objects
   ~Cells.frame
   ~Cells.to_series
   ~Cells.to_frame
+
+
+DynamicCells
+------------
+
+.. autoclass:: DynamicCells

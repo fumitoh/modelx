@@ -7,7 +7,10 @@ modelx-bridge, modelx-mcp and spyder-modelx call: sets S1 (identity and
 addressing), S2 (inheritance and dynamic objects) and S3 (the snapshot
 wire) of the design's section 3.4.  Only members that exist in this
 release are listed; a later release that freezes more members adds them
-here and to the page.
+here and to the page.  The members that 0.34 adds (the design's section
+3.1) are listed under their own ID as they land: T3's
+``ReferenceProxy._is_derived()``, on both proxy classes, and T7's
+``BaseNode._get_repr()``, on both node classes.
 
 For each frozen member, on each class of object that a tool holds and
 that has the member, the golden records its kind (``property``,
@@ -34,8 +37,27 @@ its base classes, ``__bases__``, by module and qualified name, so the
 test fails when one disappears, stops being a class, becomes an alias
 of another class, or changes its base classes.
 
-A ReferenceProxy answers some frozen names by forwarding them through its
-``__getattr__``.  Those are recorded separately, under ``"forwarded"``,
+The names of the twelve classes that T1 lists (decisions 14 and 15) are
+frozen too, and so is the promise that each is defined in a module of
+the ``modelx`` package; the exact module paths are not.  A tool tells
+what a value is from them::
+
+    mod = type(v).__module__
+    if isinstance(mod, str) and mod.startswith('modelx.'):
+        name = type(v).__name__
+
+They are recorded under ``"kinds"``, from the object built for each
+name: its class's ``__name__`` and whether that module check passes.
+A listed class name cannot be deprecated with a warning, because
+reading ``type(v).__name__`` runs no modelx code.  So it follows the
+deprecation process without the warning (decision 14): it is marked
+deprecated on toolapi.rst and in the release notes' "Deprecations"
+section at least two minor releases before a rename or split, which
+then lands only when the downstream job is green, under "Backward
+Incompatible Changes".
+
+A ReferenceProxy, of either class, answers some frozen names by
+forwarding them through its ``__getattr__``.  Those are recorded separately, under ``"forwarded"``,
 and checked on a proxy instance; for a method the signature is that of
 what the proxy returns, so it has no ``self``.  Whether the class of the
 proxy defines such a name or forwards it is not recorded: toolapi.rst
@@ -49,7 +71,11 @@ a Space's formula is a ``ParamFunc``, a Cells without a formula holds a
 ``Formula``, ``NullFormula`` and ``ParamFunc``, and
 ``BaseIOSpec._get_attrdict`` on ``ModuleData``, ``PandasData`` and
 ``ExcelRange``, as no object a tool holds is a ``BaseIOSpec`` itself.
-toolapi.rst ("Frozen members and other members") says so.
+toolapi.rst ("Frozen members and other members") says so.  Likewise a
+Cells of an ItemSpace is a ``DynamicCells`` and the proxy of an
+ItemSpace's argument a ``DynamicReferenceProxy`` (decision 15), and
+their members, forwarded ones included, are pinned as on ``Cells`` and
+``ReferenceProxy``.
 
 The test pins the surface only, never behaviour.  The behaviour that
 toolapi.rst labels a known limitation is not part of the frozen
@@ -57,9 +83,10 @@ contract, and no test pins it.
 
 A frozen member changes only through the deprecation process (decision 2,
 and "Deprecation" on toolapi.rst).  If the change is additive, such as a
-new optional keyword parameter, or the member has been through that
-process, update toolapi.rst, and FROZEN, FORWARDED or FROZEN_ERRORS below
-if the list of members changes, regenerate the golden with::
+new optional keyword parameter or a new class name in KINDS, or the
+member has been through that process, update toolapi.rst, and FROZEN,
+FORWARDED, FROZEN_ERRORS or KINDS below if the list changes, regenerate
+the golden with::
 
     python -m modelx.tests.core.api.test_tool_api_surface --write
 
@@ -76,6 +103,7 @@ import pytest
 import modelx as mx
 import modelx.core.errors
 import modelx.tests.testdata
+from modelx.tests.core.base import test_kind
 from modelx.tests.testdata import XL_TESTDATA
 from modelx.tests.testdata.testpkg import testmod
 
@@ -95,10 +123,25 @@ RULE = (
     " removes or changes the member only once the released modelx-bridge"
     " and modelx-mcp pass without it. If this change is additive (such as"
     " a new optional keyword parameter) or has been through that process,"
-    " update toolapi.rst, and FROZEN, FORWARDED or FROZEN_ERRORS in this"
-    " file if the list of members changes, regenerate the golden with"
+    " update toolapi.rst, and FROZEN, FORWARDED, FROZEN_ERRORS or KINDS in"
+    " this file if the list changes, regenerate the golden with"
     " '%s', and call out"
     " the diff in the commit message." % WRITE_COMMAND
+)
+
+KINDS_RULE = (
+    "A class name that T1 lists is frozen tool API (devnotes/"
+    "ToolAPIDesign.md, decisions 14 and 15; doc/source/reference/"
+    "toolapi.rst, 'Deprecation'), and so is its definition in a module of"
+    " the modelx package. It cannot warn, because a tool reads"
+    " type(v).__name__ without running modelx code: a rename or split is"
+    " marked deprecated on toolapi.rst and in the release notes'"
+    " 'Deprecations' section at least two minor releases before it lands,"
+    " and lands only when the downstream job is green, under 'Backward"
+    " Incompatible Changes'. A new name is an addition: add it to KINDS in"
+    " this file and in modelx/tests/core/base/test_kind.py, and to"
+    " toolapi.rst, regenerate the golden with '%s', and call out the diff"
+    " in the commit message." % WRITE_COMMAND
 )
 
 # --------------------------------------------------------------------------
@@ -106,8 +149,10 @@ RULE = (
 # (set, class names, member names).  Class names are those of the objects
 # that build_objects() returns.
 
-INTERFACES = ("Model", "UserSpace", "ItemSpace", "DynamicSpace", "Cells",
-              "Macro")
+CELLS = ("Cells", "DynamicCells")
+PROXIES = ("ReferenceProxy", "DynamicReferenceProxy")
+INTERFACES = ("Model", "UserSpace", "ItemSpace", "DynamicSpace") + CELLS + (
+    "Macro",)
 SPACES = ("UserSpace", "ItemSpace", "DynamicSpace")
 VIEWS = ("SpaceView", "CellsView", "RefView", "MacroView")
 NODES = ("ItemNode", "ReferenceNode")
@@ -118,28 +163,34 @@ FROZEN = [
     # S1 identity and addressing
     ("S1", INTERFACES, ("_idstr", "_idtuple", "_evalrepr", "_get_repr",
                         "_name", "_parent", "_get_object", "_is_valid")),
-    ("S1", ("ReferenceProxy",), ("_evalrepr",)),
+    ("S1", PROXIES, ("_evalrepr",)),
     ("S1", ("Model",), ("_get_from_name",)),
     ("S1", SPACES, ("_named_itemspaces",)),
+    # New in 0.34 (T7): the display string of a node, defined on BaseNode.
+    ("T7", NODES, ("_get_repr",)),
 
     # S2 inheritance and dynamic objects
-    ("S2", ("Cells",), ("_is_derived", "_is_defined")),
-    # No underscore, but frozen: modelx-bridge 0.10 calls it.
-    ("S2", ("ReferenceProxy",), ("is_derived",)),
-    ("S2", SPACES, ("_is_dynamic", "_is_static", "_is_root", "_is_base",
-                    "_is_sub", "_own_refs", "_direct_bases")),
+    ("S2", CELLS, ("_is_derived", "_is_defined")),
+    # No underscore, but frozen: modelx-bridge 0.10 calls it. From 0.34 it
+    # is an alias of _is_derived(), kept for good (decision 11).
+    ("S2", PROXIES, ("is_derived",)),
+    # New in 0.34 (T3). Spaces and Models have none (decision 4).
+    ("T3", PROXIES, ("_is_derived",)),
+    # _is_dynamic, _is_static and _is_root were removed in 0.34 (decision
+    # 16): the class tells the kind of a Space (KINDS below).
+    ("S2", SPACES, ("_is_base", "_is_sub", "_own_refs", "_direct_bases")),
     ("S2", ("ItemSpace",), ("argvalues",)),
 
     # S3 snapshot wire
-    ("S3", INTERFACES + ("ReferenceProxy",) + VIEWS + NODES,
+    ("S3", INTERFACES + PROXIES + VIEWS + NODES,
      ("_get_attrdict", "_baseattrs")),
     ("S3", FORMULAS + IOSPECS, ("_get_attrdict",)),
     ("S3", ("Model",), ("_get_assoc_values", "_get_refs")),
 ]
 
-# Names a ReferenceProxy answers by forwarding them to the base class of
-# Model, Spaces and Cells (reference.py, ReferenceProxy.__getattr__),
-# not as class attributes.
+# Names a ReferenceProxy, of either class, answers by forwarding them to
+# the base class of Model, Spaces and Cells (reference.py,
+# ReferenceProxy.__getattr__), not as class attributes.
 FORWARDED = [
     ("S1", ("_name", "_parent")),
     ("S3", ("name", "fullname", "parent", "model", "doc", "allow_none",
@@ -154,7 +205,15 @@ FROZEN_ERRORS = [
                 "DeletedObjectError")),
 ]
 
-SECTIONS = ("members", "forwarded", "errors")
+# T1 (decisions 14 and 15): the class names a tool tells kinds by, once
+# the class's module is in the modelx package.  Recorded under "kinds",
+# from the object build_objects() returns for each name.
+KINDS_SET = "T1"
+KINDS = ("Model", "UserSpace", "ItemSpace", "DynamicSpace", "Cells",
+         "DynamicCells", "Macro", "ReferenceProxy", "DynamicReferenceProxy",
+         "PandasData", "ExcelRange", "ModuleData")
+
+SECTIONS = ("members", "forwarded", "errors", "kinds")
 
 # Classes whose objects need a package that modelx does not require.
 OPTIONAL = {"PandasData": "pandas", "ExcelRange": "openpyxl"}
@@ -170,15 +229,20 @@ def frozen_table():
                 assert key not in table, "listed twice: %s.%s" % key[1:]
                 table[key] = set_
     for set_, names in FORWARDED:
-        for name in names:
-            key = ("forwarded", "ReferenceProxy", name)
-            assert key not in table, "listed twice: %s.%s" % key[1:]
-            table[key] = set_
+        for cls_name in PROXIES:
+            for name in names:
+                key = ("forwarded", cls_name, name)
+                assert key not in table, "listed twice: %s.%s" % key[1:]
+                table[key] = set_
     for set_, names in FROZEN_ERRORS:
         for name in names:
             key = ("errors", ERRORS_MODULE, name)
             assert key not in table, "listed twice: %s.%s" % key[1:]
             table[key] = set_
+    for name in KINDS:
+        key = ("kinds", KINDS_SET, name)
+        assert key not in table, "listed twice: %s.%s" % key[1:]
+        table[key] = KINDS_SET
     return table
 
 
@@ -200,6 +264,7 @@ def build_objects(m):
 
     proj = m.new_space("Proj", formula=lambda i: None)
     proj.new_space("Child")
+    proj.new_cells("bar", formula=lambda: i)
 
     mac = m.new_macro("mac", lambda: 1)
     mod = m.new_module("mod", "files/mod", testmod)
@@ -227,6 +292,7 @@ def build_objects(m):
     # the values, and with them the nodes the getters below read.
     foo(3)
     baz()
+    proj[1].bar()
 
     getters.update({
         "Model": lambda: m,
@@ -234,8 +300,11 @@ def build_objects(m):
         "ItemSpace": lambda: proj[1],
         "DynamicSpace": lambda: proj[1].Child,
         "Cells": lambda: foo,
+        "DynamicCells": lambda: proj[1].bar,
         "Macro": lambda: mac,
         "ReferenceProxy": lambda: baz.precedents()[0].obj,
+        # The proxy of the argument i, which proj[1].bar reads.
+        "DynamicReferenceProxy": lambda: proj[1].bar.precedents()[0].obj,
         "SpaceView": lambda: m.spaces,
         "CellsView": lambda: base.cells,
         "RefView": lambda: base.refs,
@@ -349,13 +418,27 @@ def record_error(name):
             "bases": [qualified_name(c) for c in obj.__bases__]}
 
 
+def record_kind(obj):
+    """The ``__name__`` of the class of ``obj``, and whether T1's module
+    check passes for it: the class's ``__module__`` is a str that starts
+    with ``'modelx.'``."""
+    cls = type(obj)
+    mod = cls.__module__
+    return {"kind": "class", "name": cls.__name__,
+            "modelx_module": isinstance(mod, str) and mod.startswith(
+                "modelx.")}
+
+
 def build_surface():
     """Record the frozen members on objects of a fresh model.
 
     Returns a dict:
 
     ``surface``
-        the golden's layout: {section: {class name: {member: entry}}};
+        the golden's layout: {section: {class name: {member: entry}}},
+        with the module's name in place of a class name under
+        ``"errors"`` and ``"T1"`` under ``"kinds"``, whose entries are
+        keyed by class name;
     ``classes``
         {class name in the table: class name of the object built for it};
     ``skipped``
@@ -383,6 +466,11 @@ def build_surface():
 
         source = forwarding_class(objs)
         for section, cls_name, name in sorted(frozen_table()):
+            if section == "kinds":
+                if name in objs:
+                    surface["kinds"].setdefault(cls_name, {})[name] = (
+                        record_kind(objs[name]))
+                continue
             if section == "errors" or cls_name not in objs:
                 continue
             if section == "members":
@@ -506,6 +594,32 @@ def compare_errors(golden, live):
     return problems
 
 
+def compare_kind(golden, live, name):
+    """Return a list of problems with the frozen class name ``name``."""
+    if name in live["errors"]:
+        return ["could not get an object of class %s from public API: %s"
+                % (name, live["errors"][name])]
+    want = golden.get("kinds", {}).get(KINDS_SET, {}).get(name)
+    got = live["surface"]["kinds"].get(KINDS_SET, {}).get(name)
+    if got is None:
+        return ["build_objects() returns no object for the kind %s" % name]
+    if want is None:
+        return ["the kind %s is listed but not in the golden; regenerate it"
+                " with '%s'" % (name, WRITE_COMMAND)]
+
+    problems = []
+    if got["name"] != want["name"]:
+        problems.append(
+            "the object built for the kind %s is of a class named %s: the"
+            " class was renamed, or the object is now of another class"
+            % (want["name"], got["name"]))
+    if got["modelx_module"] != want["modelx_module"]:
+        problems.append(
+            "the class of the kind %s is no longer defined in a module of"
+            " the modelx package, so T1's module check fails for it" % name)
+    return problems
+
+
 def absent_members(surface):
     return sorted(
         "%s.%s" % (cls_name, name)
@@ -520,7 +634,7 @@ def absent_members(surface):
 # Tests
 
 ALL_CLASSES = sorted({cls_name for section, cls_name, _ in frozen_table()
-                      if section != "errors"})
+                      if section not in ("errors", "kinds")})
 
 
 @pytest.fixture(scope="module")
@@ -544,6 +658,24 @@ def test_frozen_members_unchanged(golden, live, cls_name):
     assert not problems, (
         "Frozen tool API of %s changed:\n  %s\n%s"
         % (cls_name, "\n  ".join(problems), RULE))
+
+
+@pytest.mark.parametrize("name", KINDS)
+def test_kind_names_unchanged(golden, live, name):
+    if name in live["skipped"]:
+        pytest.skip("%s needs %s: %s" % (
+            name, OPTIONAL[name], live["skipped"][name]))
+
+    problems = compare_kind(golden, live, name)
+    assert not problems, (
+        "Frozen class name of T1 changed:\n  %s\n%s"
+        % ("\n  ".join(problems), KINDS_RULE))
+
+
+def test_kinds_are_the_recipes():
+    """KINDS here is the set of T1's recipe in test_kind.py."""
+    assert len(set(KINDS)) == len(KINDS) == 12
+    assert set(KINDS) == test_kind.KINDS
 
 
 def test_frozen_errors_unchanged(golden, live):
@@ -595,6 +727,13 @@ def write_golden(path=GOLDEN_PATH):
     if aliases:
         sys.exit("cannot write: not a class of that name in %s: %s"
                  % (ERRORS_MODULE, aliases))
+    kinds = live["surface"]["kinds"].get(KINDS_SET, {})
+    wrong = sorted(name for name in KINDS if name not in kinds
+                   or kinds[name]["name"] != name
+                   or not kinds[name]["modelx_module"])
+    if wrong:
+        sys.exit("cannot write: kinds not of a modelx class of that name: %s"
+                 % wrong)
     with pathlib.Path(path).open("w", encoding="utf-8") as f:
         json.dump(live["surface"], f, indent=1, sort_keys=True)
         f.write("\n")

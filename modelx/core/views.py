@@ -240,15 +240,41 @@ class MacroView(BaseView):
 
 class RefView(BaseView):
 
+    # The three dicts below read the impls by key, and skip a key that is
+    # not a str. A Space formula can return a ref under one, as in
+    # {'refs': {1: 'one'}}, which no formula can read. Through self.items()
+    # such a key raised KeyError: 1 from BaseView.__getitem__, in this
+    # view's dict and in the dict of every object that has the ItemSpace
+    # in its tree, the Model's included.
+
     @property
     def _baseattrs(self):
 
         result = {"type": type(self).__name__}
 
         result["items"] = items = {}
-        for name, item in self.items():
-            if name[0] != "_":
-                items[name] = ReferenceProxy(self._impls[name])._baseattrs
+        for name, impl in self._impls.items():
+            if isinstance(name, str) and name[:1] != "_":
+                items[name] = ReferenceProxy(impl)._baseattrs
+
+        return result
+
+    @property
+    def _baseattrs_private(self):
+        """``_baseattrs`` with the names that start with an underscore.
+
+        .. versionchanged:: 0.34.0
+            It works. Before, it was BaseView's, which reads each member
+            of the view, here the value of each Reference, such as the
+            :mod:`builtins` module of ``__builtins__``, and asks it for
+            its ``_baseattrs``. So it raised :obj:`RuntimeError`.
+        """
+        result = {"type": type(self).__name__}
+
+        result["items"] = items = {}
+        for name, impl in self._impls.items():
+            if isinstance(name, str):
+                items[name] = ReferenceProxy(impl)._baseattrs
 
         return result
 
@@ -257,9 +283,9 @@ class RefView(BaseView):
         result = {"type": type(self).__name__}
         result["items"] = items = {}
 
-        for name, item in self.items():
-            if name[0] != "_":
-                items[name] = ReferenceProxy(
-                    self._impls[name])._get_attrdict(extattrs, recursive)
+        for name, impl in self._impls.items():
+            if isinstance(name, str) and name[:1] != "_":
+                items[name] = ReferenceProxy(impl)._get_attrdict(
+                    extattrs, recursive)
 
         return result

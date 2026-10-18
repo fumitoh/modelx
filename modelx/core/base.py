@@ -14,8 +14,70 @@
 from __future__ import annotations
 
 from typing import Optional
+from types import FunctionType
 from collections.abc import Sequence, Mapping
 from modelx.core.errors import DeletedObjectError
+
+
+_MISSING = object()
+
+# The namespaces of each class in a modelx or built-in class's __mro__, as
+# (mro, namespaces), by id(cls), so that no metaclass __hash__ runs. Each
+# namespace is the live mappingproxy of its class, so an attribute set or
+# deleted later, as monkeypatch does, is seen, and the entry is used only
+# while cls.__mro__ is the same tuple, which a new __bases__ replaces. The
+# mro holds cls, so its id is not reused. Other classes are not kept, so no
+# user class is held.
+# Walking cls.__mro__ with vars() on every call made F11's extattrs slower
+# than 0.33's getattr: a Cells' Properties request 3.55 -> 4.89 us, the
+# tree walk of BasicTerm_SE with 50 ItemSpaces 22.4 -> 23.8 ms.
+_MRO_NAMESPACES = {}
+
+
+# type's own __module__ getter, which no metaclass overrides. A built-in
+# type has no '__module__' in vars(), and gives 'builtins' here.
+_get_type_module = type.__dict__["__module__"].__get__
+
+
+def _get_mro_namespaces(cls):
+    mro = cls.__mro__
+    namespaces = tuple(vars(klass) for klass in mro)
+    try:
+        module = _get_type_module(cls)
+    except AttributeError:
+        module = None
+    # Not assumed a str: wrapt's proxy classes, for one, make it a property.
+    if isinstance(module, str) and (
+            module == "builtins" or module.startswith("modelx.")):
+        _MRO_NAMESPACES[id(cls)] = (mro, namespaces)
+    return namespaces
+
+
+def get_mro_namespaces(cls):
+    """The namespace of each class in ``cls.__mro__``, in that order."""
+    entry = _MRO_NAMESPACES.get(id(cls))
+    if entry is not None and entry[0] is cls.__mro__:
+        return entry[1]
+    return _get_mro_namespaces(cls)
+
+
+def get_class_attr(cls, name):
+    """The attribute ``name`` that ``cls`` or a base of it defines.
+
+    Reads the namespace of each class in ``cls.__mro__``, as Python's own
+    lookup does, so no descriptor runs, no instance is read and no
+    ``__getattr__`` is reached. Returns ``_MISSING`` if none defines it.
+    """
+    for attrs in get_mro_namespaces(cls):
+        if name in attrs:
+            return attrs[name]
+    return _MISSING
+
+
+# Built-in types that take no new attribute, nor does object, so none ever
+# defines _get_attrdict. By id, so that no metaclass __hash__ runs.
+_PLAIN_TYPE_IDS = frozenset(id(t) for t in (
+    str, int, float, bool, type(None), tuple, list, dict, bytes))
 
 
 def get_interface_dict(impls):
@@ -254,7 +316,8 @@ class Impl(BaseImpl):
 
     def repr_parent(self):
         # ItemSpaceImpl overrides this to skip one level, because its
-        # repr_self embeds the parent's name ("Space[1]"); ModelImpl
+        # repr_self embeds the parent's name ("Space[1]", and for an
+        # item of an item its parent's label, "Space[1][5]"); ModelImpl
         # terminates the recursion with "".
         return self.parent.get_repr(fullname=True)
 
@@ -486,7 +549,9 @@ class Interface:
            behavior may change in future releases without notice.
 
         Returns a lightweight wrapper whose string representation displays
-        a human-readable snapshot of this object. The exact fields depend
+        a human-readable snapshot of this object. Its first line starts
+        with the name of the class of the object, such as ``UserSpace``,
+        ``ItemSpace`` or ``DynamicCells``. The exact fields depend
         on the concrete type:
 
         * For :class:`~modelx.core.model.Model`: the model's name,
@@ -496,7 +561,7 @@ class Interface:
         * For spaces (:class:`~modelx.core.space.UserSpace`,
           :class:`~modelx.core.space.ItemSpace`,
           :class:`~modelx.core.space.DynamicSpace`): the space's
-          fully-qualified representation (e.g., ``Model1.Space1[1]``),
+          fully-qualified representation (e.g., ``Model1.Space1[1, 0]``),
           the list of base spaces' fullnames,
           :attr:`~modelx.core.space.BaseSpace.parameters` (when defined,
           shown as a signature string such as ``i, j=0``),
@@ -505,7 +570,7 @@ class Interface:
 
         * For :class:`~modelx.core.cells.Cells`: the cells' fully-qualified
           representation including its signature
-          (e.g., ``Model1.Space1[1].foo(t, i=0)``),
+          (e.g., ``Model1.Space1[1, 0].foo(t, i=0)``),
           whether the cells is derived from a base space,
           :attr:`~modelx.core.cells.Cells.is_cached`,
           :attr:`allow_none`, the source of the
@@ -542,7 +607,8 @@ class Interface:
 
                 >>> model.Space1[1].info
                 ItemSpace: Model1.Space1[1, 0]
-                bases: []
+                bases: [Model1.Space1]
+                parameters: i, j=0
                 itemspaces: 0
 
             For a :class:`~modelx.core.space.DynamicSpace`, the layout
@@ -554,8 +620,8 @@ class Interface:
             .. code-block:: python
 
                 >>> model.Space1[1].foo.info
-                Cells: Model1.Space1[1].foo(t, i=0)
-                is_derived: False
+                DynamicCells: Model1.Space1[1, 0].foo(t, i=0)
+                is_derived: True
                 is_cached: True
                 allow_none: None
                 formula:
@@ -565,6 +631,11 @@ class Interface:
                         return foo(t - 1, i) + 1
                 cached values: 1
                     (0, 0): 0
+
+        .. versionchanged:: 0.34.0
+            A Cells of an ItemSpace or a DynamicSpace is a
+            :class:`~modelx.core.cells.DynamicCells`, and its header
+            starts with that name.
         """
         from modelx.core.info import build_info
         return build_info(self)
@@ -696,35 +767,121 @@ class Interface:
         }
 
     def _get_attrdict_extra(self, attrdict, extattrs=None, recursive=True):
+        """Add to ``attrdict`` each name in ``extattrs`` it does not have.
+
+        Each name is looked up on the class of the object and its bases,
+        never on the object itself, so no member of a Model or a Space,
+        such as a user's Reference, Cells or Space, is read or called,
+        whatever its name. What the class defines gives the value:
+
+        * A property, or another data descriptor, is read with its
+          getter. A value whose class defines ``_get_attrdict`` is
+          replaced by its dict, made with ``extattrs`` and
+          ``recursive``. Any other value is added as it is.
+        * A function, or another method, is bound to the object and
+          called with no arguments, and its result is added as it is.
+        * Any other class attribute is added as it is.
+
+        A :class:`~modelx.core.reference.ReferenceProxy` also looks on
+        :class:`Interface`, for properties and functions only, as its
+        attribute forwarding does.
+        A name that the class does not define is skipped,
+        and so is a property whose getter raises :obj:`AttributeError`.
+
+        Args:
+            attrdict(dict): The dict to add to. It is changed in place.
+            extattrs(list): The names to add.
+            recursive(bool): Passed to the ``_get_attrdict`` of a value.
+
+        .. versionchanged:: 0.34.0
+            Names are looked up on the class only. Before, they were read
+            from the object, so on a Model or a Space a name that its
+            class does not define reached a member of that name, and a
+            callable value was called.
+        """
+        # With getattr on the object, as on 0.33, a model with global
+        # References named __len__ and _is_derived and a Space formula that
+        # returns a ref named _is_derived had spyder's tree list call those
+        # user functions 20 times in one walk, and its Properties list
+        # called globals named formula and parameters on the Model
+        # (tests/core/base/test_extattrs.py).
+        cls = type(self)
+        namespaces = get_mro_namespaces(cls)
+        # Only a ReferenceProxy calls this without being an Interface, as
+        # Interface._get_attrdict_extra(proxy, ...). Its __getattr__
+        # forwards Interface's properties and functions, and nothing else.
+        forwards = not isinstance(self, Interface)
 
         for name in extattrs:
-            if name not in attrdict and hasattr(self, name):
-                attr = getattr(self, name)
-                if hasattr(attr, "_get_attrdict"):
-                    attrdict[name] = attr._get_attrdict(extattrs, recursive)
-                elif callable(attr):
-                    attrdict[name] = attr()
+            if name in attrdict:
+                continue
+            # get_class_attr(cls, name), inline, over the kept namespaces,
+            # and the two type tests below: a Cells' Properties request
+            # 4.1-4.5 us against 0.33's 3.7-4.0 us, and the tree walk of
+            # _MRO_NAMESPACES 18.8-20.3 ms against 21.6-21.7 ms (one CPU,
+            # min of 3 interleaved runs). Namespaces built once per
+            # request and not kept gave 5.5 us and 23.0 ms.
+            for attrs in namespaces:
+                if name in attrs:
+                    attr = attrs[name]
+                    break
+            else:
+                if not forwards:
+                    continue
+                attr = get_class_attr(Interface, name)
+                if not isinstance(attr, (property, FunctionType)):
+                    continue
+
+            attrcls = type(attr)
+            if attrcls is property:
+                is_data = True
+            elif attrcls is FunctionType:
+                is_data = False
+            elif not hasattr(attrcls, "__get__"):
+                attrdict[name] = attr
+                continue
+            else:
+                is_data = (hasattr(attrcls, "__set__")
+                           or hasattr(attrcls, "__delete__"))
+
+            if is_data:
+                try:
+                    value = attr.__get__(self, cls)
+                except AttributeError:
+                    continue
+                valuecls = type(value)
+                if (id(valuecls) in _PLAIN_TYPE_IDS or get_class_attr(
+                        valuecls, "_get_attrdict") is _MISSING):
+                    attrdict[name] = value
                 else:
-                    attrdict[name] = attr
+                    attrdict[name] = value._get_attrdict(extattrs, recursive)
+            else:
+                method = attr.__get__(self, cls)
+                attrdict[name] = method() if callable(method) else method
 
     def _get_repr(self, fullname=False, add_params=True):
         """The display string of the object.
 
         With ``fullname=True`` the string starts with the name of the
-        Model. With ``add_params=True`` a Cells shows its parameters and
-        an ItemSpace shows its arguments, as in ``'foo(x)'`` and
-        ``'Proj[1]'``. For an ItemSpace, ``add_params=False`` gives its
-        ``__SpaceN`` name on this release, and for an ItemSpace of an
-        ItemSpace, and every object inside it, the default display
-        string names the parent item by its ``__SpaceN`` name, as in
-        ``'__Space1[5]'`` for ``Proj[1][5]``. The same strings show in
-        the ``'repr'`` and ``'repr_parent'`` keys of the dicts of
-        :meth:`_get_attrdict`. These are known limitations described
-        in :ref:`toolapi-identity`.
+        Model. With ``add_params=True`` a Cells shows its parameters, as
+        in ``'foo(x)'``. An ItemSpace shows its arguments whatever
+        ``add_params`` is, as in ``'Proj[1]'``, and an ItemSpace of an
+        ItemSpace is shown by its parent's arguments and its own, as in
+        ``'Proj[1][5]'``. So ``_get_repr(fullname=True,
+        add_params=False)`` is the display name of every object, such
+        as ``'Model1.Proj[1][5].bar'``. The same strings show in the
+        ``'repr'`` and ``'repr_parent'`` keys of the dicts of
+        :meth:`_get_attrdict`.
 
         Returns:
             str: The display string, such as ``'Model1.Base.foo(x)'``
             with ``fullname=True``.
+
+        .. versionchanged:: 0.34.0
+            An ItemSpace shows its arguments with ``add_params=False``
+            too, where it gave its ``__SpaceN`` name, and an ItemSpace
+            of an ItemSpace names its parent by its arguments, as in
+            ``'Proj[1][5]'``, where it gave ``'__Space1[5]'``.
         """
         return self._impl.get_repr(fullname, add_params)
 

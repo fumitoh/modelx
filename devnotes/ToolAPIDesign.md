@@ -1,14 +1,14 @@
 # modelx tool API additions for 0.34: design for approval
 
 **Status:** draft accepted by the owner as the plan (2026-10-10). The owner approves each decision when the PR that implements it is ready; until then every recommendation below is only a recommendation. The tracker at the start of §2 records where each decision is settled. First written 2026-10-07.
-**Decided by the owner:** decision 3, where the new exceptions live, and decision 4, that Spaces have no "derived" (both 2026-10-09).
+**Decided by the owner:** decision 3, where the new exceptions live, and decision 4, that Spaces have no "derived" (both 2026-10-09); decision 14, that kinds are told by class name and there is no `_kind` (2026-10-17); decision 15, that dynamic Cells and References have their own classes, and decision 16, that the Space flags `_is_dynamic()`, `_is_static()` and `_is_root()` are removed (both 2026-10-18).
 **Scope:** the introspection work in lifelib-app PLAN.md §3.2. It unblocks the two features PLAN §5a records as blocked on modelx (PLAN.md:424-429).
 **Basis:** this document builds on Design A ("minimal additions"). Judge 1 picked A, and A had the highest combined score over the two judges: A 98, C 96, B 82. Both judges recommended adding pieces of B and C to it. Those pieces are included here, and §3.0 records where each element came from. Where the judges disagreed, the choice is put to you in §2.
 **Review:** two verifiers checked the first draft and raised 28 findings (5 major). Six fixers and an integrator resolved all 28, each by probe; two fresh verifiers then raised 19 more (6 major), which a final pass resolved. Nothing has re-checked the document since that final pass.
 
 **Conventions**
 - *Tool API* means the owner's definition. Underscore members of Model, Spaces, Cells, ReferenceProxy and the Node and view objects are public. They are meant for other software, not for end users.
-- modelx citations are `file:line` in modelx 0.33.0 (commit 4fa720f). Bridge and mcp citations are relative to `lifelib-app/python/`. spyder citations are relative to `fumitoh/spyder-modelx/`. spymx-kernels citations are taken from the inventory, because that package is not in this checkout.
+- modelx citations are `file:line` in modelx 0.33.0 (commit 4fa720f). Bridge and mcp citations are relative to `lifelib-app/python/`. spyder citations are relative to `fumitoh/spyder-modelx/`. spymx-kernels citations were taken from the inventory of v0.3.0; fumitoh/spymx-kernels v0.4.0 (2b3d52c) was checked out on 2026-10-18 for decision 16, and the inventory's kernel.py lines still match there.
 - **Measured** facts name their probe. **Inferred** facts say so.
 - Probes are named by folder and script (for example `fix-final/e04`). They are the scripts the design and review agents ran in the session that wrote this document, and they are **not in this repository**. §9 restates each measured number with what it was measured on, and §6 turns the ones the design relies on into tests.
   - `final/f01`–`f04` were written and run for this document, on CPython 3.11.15 with modelx 0.33.0 from GitHub. `f03` also ran on CPython 3.10.20, 3.12.3, 3.13.14 and 3.14.8.
@@ -20,7 +20,7 @@
 
 **What.** modelx 0.34 gains:
 - fourteen tool-API elements, T1–T14 in §3:
-  - eleven sets of underscore members on Model, Spaces, Cells, Macro, ReferenceProxy, IOSpecs and nodes;
+  - nine sets of underscore members on Model, Spaces, Cells, Macro, ReferenceProxy and nodes (T3–T11), two new classes for dynamic Cells and dynamic References, with the Space flags `_is_dynamic()`, `_is_static()` and `_is_root()` removed (T2, decisions 15 and 16), and a documented recipe that tells kinds apart by twelve frozen class names (T1, decisions 14 and 15);
   - new exception and warning classes in `modelx.core.errors`, which becomes a supported import path for tools; they are not re-exported at the top level (decision 3);
   - two groups of top-level names: a name check with a model-file reader, and a provisional calculation hook;
 - eleven fixes to existing members, F1–F11;
@@ -45,28 +45,35 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 
 **Tracker.** Each decision is put to the owner, in plain words, when the PR that implements it is ready (§6), and recorded here.
 
-**Progress.** PR 1 is implemented on this branch (7a12fc2, 2026-10-10); what it found is in §9, "Found while implementing PR 1". The owner approved the five choices made inside it on 2026-10-11, and it goes to `main` as a pull request:
+**Progress.** PR 1 merged into `main` as fumitoh/modelx#278 on 2026-10-12 (merge commit 1e5e3c4); what it found is in §9, "Found while implementing PR 1". The owner approved the five choices made inside it on 2026-10-11:
 1. **Which objects have a tool API:** Model, the Space classes, Cells, Macro, ReferenceProxy, the views, the nodes, Formula and the IOSpec classes. `_impl`, a view's `_impls`, and an IOSpec's `_io` and `_manager` are internal, and so are Python's special names and the attributes a class gets from `collections.abc` and `typing` bases, such as `_abc_impl`.
 2. **Known limitations:** where a listed member has a defect, or behaviour a later PR changes, the page says so in a "Known limitation" box. That behaviour is not frozen, may change without deprecation, and no test pins it.
 3. **Additions are not changes:** a frozen member may gain an optional keyword, and a dict it returns may gain keys. A fix that makes a member match the page is a bug fix.
 4. **The tool API that is not frozen** may change or be removed in any release, with a note in the release notes.
 5. **Freezing starts at 0.34.0,** the first release with the page.
 
+Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) made `Cells.values()` and `Cells.items()` read each value by its stored key. That took them out of the Known limitation under "Value operations" in cells.rst, which now describes the key lookups that read a tuple as all the arguments, and `*args` Cells. Two older defects found on the way are filed as fumitoh/modelx#282 (a formula with `*args` receives its arguments wrapped in an extra tuple) and fumitoh/modelx#283 (`series`, `frame` and `to_series(args)` with tuple arguments).
+
+PR 2 (T1, T2, T3, T7, F1, F6, F11) is implemented on the branch `claude/stoic-bardeen-qpv3a0`, not yet merged, in eight commits on 10188ae (2026-10-18): bac9baa (T2, with T1's tests and golden), 73630b6 (T3 and decision 11's alias), 00a86ae (F1, T7), f1f63ed (F6), b7f260f (F11, decision 13, and the snapshot-wire rows of §9 assigned to PR 2), e946f99 (toolapi.rst, the release notes, this progress record), and the review's fixes: f8548f2 (kept class namespaces, which bring F11's lookup back near 0.33's cost) and the documentation fixes after it. The full suite gives 1,871 passed, 8 skipped and 1 failed on CPython 3.11.15, against 1,570 passed at 10188ae; the failure is the same in both, `export/test_lifelib.py::test_assets`, which needs QuantLib. On this branch, lifelib-app's bridge suite gives 835 passed, and modelx-mcp 0.1.0's gives 973 passed and 2 failed: test_basicterm_s.py:605 and :607, whose nodes are chosen by `type(...).__name__ == "Cells"` (:609), which leaves out DynamicCells (decision 15). Decisions 11 and 13 are implemented as recommended and await the owner's approval; decisions 14–16 are implemented as decided. What PR 2 found is in §9, "Found while implementing PR 2". PR 3 is next.
+
 | decision | settled in | status |
 |---|---|---|
 | 1. How the contract is written down | PR 1 (reference page, signature golden); PR 9 (downstream CI job) | **approved 2026-10-10**, with one change: PR 1's page covers only what exists today, and each later PR adds its own section |
 | 2. Deprecation signal and rule | PR 1 (the rule, on the reference page); PR 4 (the warning class); PR 9 (the audit) | **approved 2026-10-10** |
 | 3. Where the new names live | PR 4 (T12) | **decided 2026-10-09**: classes in `modelx.core.errors`; the top-level functions are still open (PR 4, PR 7, PR 8) |
-| 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09** |
+| 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09**; implemented in PR 2 (on the branch) |
 | 5. Address grammar | PR 4 (T6) | open |
 | 6. Lookup misses | PR 4 (T6, T12) | open |
 | 7. A relative Reference inside an ItemSpace | PR 3 (T5) | open |
 | 8. What 0.34 includes | PR 5 (the `saved` stamp), PR 8 (the provisional hook); the deferrals need no PR | open |
 | 9. Name checks and when they take effect | PR 4; PR 7 (the reserved-name warning) | open |
 | 10. Persisting "no formula" and Reference docstrings | PR 6 (T11's note); otherwise deferred | open |
-| 11. Small compatibility choices | PR 2 (T3's alias; F11 and `argvalues`) | open |
+| 11. Small compatibility choices | PR 2 (T3's alias; F11 and `argvalues`) | implemented in PR 2 as recommended (on the branch); awaits the owner |
 | 12. Bridge pin and release gate | PR 9, then a modelx-bridge release | open |
-| 13. Extattrs resolve on the class only | PR 2 (F11) | open |
+| 13. Extattrs resolve on the class only | PR 2 (F11) | implemented in PR 2 as recommended (on the branch); awaits the owner |
+| 14. Kinds by class name, no `_kind` | PR 2 (T1) | **decided 2026-10-17**; implemented in PR 2 (on the branch) |
+| 15. Dynamic Cells and References have their own classes | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (on the branch) |
+| 16. Space flags removed in 0.34 | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (on the branch) |
 
 
 1. **How the contract is written down.** Recommended:
@@ -77,7 +84,7 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
    The page does not reclassify anything. By the owner's rule every underscore member of an object users hold is tool API. The page and the golden *freeze* the members listed on it; the others stay tool API without that promise (§5's two tiers). The classes users hold define 55 non-dunder underscore members on 0.33, most of the unlisted ones Formula and IOSpec hooks (measured critic2/k03, re-run in fix-final).
 
    Rejected: Design C's runtime registry of all 81 underscore members, which would freeze every one of them, hooks included, and a `TOOL_API_LEVEL` integer. Use `modelx.VERSION` plus class-level detection instead (§5).
-2. **Deprecation signal.** Recommended: add `ToolAPIDeprecationWarning(UserWarning)` to `modelx.core.errors` (decision 3). It keeps the house style, because it is still a UserWarning, and it lets CI find exactly these warnings: the downstream job records every one, in every interpreter the suites start, and fails (§8). A warning filter cannot do this. Each suite runs in its own interpreter, so a filter set in the runner left the bridge suites at 831 passed, exit 0, while a deprecated member was in use, and `PYTHONWARNINGS` cannot name the category (measured fix-bridge-adoption/b06, b06b, b06d). The subclass is still what makes the audit's `issubclass` test exact. A tool-API member is removed only after both:
+2. **Deprecation signal.** Recommended: add `ToolAPIDeprecationWarning(UserWarning)` to `modelx.core.errors` (decision 3). It keeps the house style, because it is still a UserWarning, and it lets CI find exactly these warnings: the downstream job records every one, in every interpreter the suites start, and fails (§8). A warning filter cannot do this. Each suite runs in its own interpreter, so a filter set in the runner left the bridge suites at 831 passed, exit 0, while a deprecated member was in use, and `PYTHONWARNINGS` cannot name the category (measured fix-bridge-adoption/b06, b06b, b06d). The subclass is still what makes the audit's `issubclass` test exact. A frozen tool-API member is removed only after both:
    - two minor releases of warning;
    - the downstream job being green against the latest released bridge and mcp.
 3. **Where the new names live.** Decided by the owner on 2026-10-09:
@@ -86,11 +93,11 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
      - Adding no top-level name means none of these classes can hide a model of the same name from `mx.<name>`, and `from modelx import *` gains none of them.
      - The bridge's `from modelx.core.errors import FormulaError` (#20) is therefore tool API, not INTERNAL. The rule that a `modelx.core.*` import is INTERNAL now has this one exception.
 
-   Still recommended, for the owner to confirm: the functions go in `api.py`, beside `get_object`: `is_valid_name`, `get_model_info`, `set_calc_hook`, `clear_calc_hook`, and a new keyword on an existing function, `read_model(..., if_exists=)`. The cost: each new name hides a model of the same name from `mx.<name>`, because models are found only on a miss (api.py:614-620). No `get_kind()` function is added; `getattr(type(v), '_kind', None)` covers it.
+   Still recommended, for the owner to confirm: the functions go in `api.py`, beside `get_object`: `is_valid_name`, `get_model_info`, `set_calc_hook`, `clear_calc_hook`, and a new keyword on an existing function, `read_model(..., if_exists=)`. The cost: each new name hides a model of the same name from `mx.<name>`, because models are found only on a miss (api.py:614-620). No `get_kind()` function is added; T1's class-name check covers it (decision 14).
 4. **Spaces have no "derived".** Decided by the owner on 2026-10-09:
    - Space classes have no "derived" concept. Since 0.24 a base Space's child Spaces are not copied into a sub Space (relnotes_v0_24_0.rst:20-58), so no Space is ever inherited. Only Cells and References are, and only they have `_is_derived()` (T3). There is no `BaseSpace._is_derived()` and no `Model._is_derived()`.
-   - A dynamic copy, an ItemSpace or a DynamicSpace, is told by `_is_dynamic()` (T2), never by a derived flag.
-   - For a Cells or a Reference, "inherited" in a UI means `_is_derived() and not _is_dynamic()`, and "overrides" comes from T4's `state`.
+   - A dynamic copy, an ItemSpace or a DynamicSpace, is told by its class (T2, decisions 15 and 16), never by a derived flag.
+   - For a Cells or a Reference, "inherited" in a UI means `_is_derived()` and a class that is not `DynamicCells` or `DynamicReferenceProxy` (decision 15), and "overrides" comes from T4's `state`.
    - The two needs that asked a Space for a derived flag are not applicable: #10 (the bridge's `_derived()` on a Space) and the Space part of #47 (spyder's "Is Derived" column). spyder already leaves a Space row's cell blank when the key is absent (mxtreemodel.py:121-124), which is the right answer.
    - An earlier draft proposed `BaseSpace._is_derived()` returning `_is_dynamic()`, for uniformity across kinds. It was dropped: it would only repeat `_is_dynamic()` under a name that suggests inheritance.
 5. **Address grammar.** Recommended:
@@ -105,7 +112,7 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
    `get_object` stays getattr-based in 0.34. Only `_get_from_name` resolves members first, which avoids shadowing by class attributes. Making `get_object` member-first is a user-visible change; it is better left for later.
 7. **A relative Reference inside an ItemSpace** (`P[1].rel`, where `P.rel = P.Child`). Today the slot holds `P[1].Child`'s impl. Its proxy therefore has the target's name and id (`'Child'`, `'P.__Space1.Child'`), and `is_derived()` and `refmode` raise (measured f01, g01). Recommended: give the slot a ReferenceImpl of its own in the dynamic Space (T5).
    - Its proxy is then a Reference like an argument: `_idstr` `'P.__Space1.rel'`, `_address` `'P(1).rel'`, and `.value` `P[1].Child`, which is what a formula in `P[1]` sees.
-   - It round-trips through both ids, and `_is_dynamic()` and `_is_derived()` are True. Its binding `P.rel` is `r.parent.bases[0]._get_object('rel', as_proxy=True)`.
+   - It round-trips through both ids, its proxy is a `DynamicReferenceProxy` (decision 15), and `_is_derived()` is True. Its binding `P.rel` is `r.parent.bases[0]._get_object('rel', as_proxy=True)`.
    - It needs a one-line fix to `wrap_impl`'s in-tree test (T5, g06).
    - Measured: 75 of 75 proxies on a synthetic model and 72 of 72 on lifelib's simplelife round-trip. The previous recommendation scored 56 and 58 (g02, g03).
 
@@ -154,10 +161,53 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
     - Output was identical on five lifelib models (53,526 objects), and the spyder gate passes (s03).
 
     Rejected: leaving it alone. Then spyder's walk keeps calling `_`-named global References and Space-formula refs until decision 9's errors arrive in 0.36. Its Properties list keeps calling global References named `formula` or `parameters` for good, because those names are valid and stay valid (s02).
+14. **Kinds are told by class name; there is no `_kind` (T1).** Decided by the owner on 2026-10-17:
+    - A tool tells what a value is from its class: it first checks that the class is modelx's own, that `type(v).__module__` is a str starting with `"modelx."`, then reads `type(v).__name__`. No new member is added.
+    - The names of the classes T1 lists become frozen tool API: `Model`, `UserSpace`, `ItemSpace`, `DynamicSpace`, `Cells`, `Macro`, `ReferenceProxy`, `PandasData`, `ExcelRange` and `ModuleData`, and, by decision 15, `DynamicCells` and `DynamicReferenceProxy`. So does the promise that each is defined in a module of the `modelx` package. The exact module paths stay internal.
+    - The module check is not optional. A Reference can hold an instance of a user's own class named `Model` or `Cells`, and only the module tells it from a modelx object: the bridge's fallback to the name alone failed on exactly that (fix-bridge-adoption/b01b). On `main` on 2026-10-17 the recipe gave `None` for such classes, and for a class whose `__module__` is None (kindcheck/probe_names.py, names14/probe_t1.py).
+    - The check must not assume `__module__` is a str. wrapt's pure-Python ObjectProxy copies a `__module__` property into every proxy class, so `type(proxy).__module__.startswith` raises AttributeError, and a Reference holding such a proxy would fail to encode instead of staying opaque (names14/probe_edge.py).
+    - The recipe already works on 0.33, so consumers need no version gate for it.
+    - Cost: a frozen class name cannot be deprecated with a warning, because reading `type(v).__name__` runs no modelx code. **Decided by the owner on 2026-10-17:** a listed name follows decision 2 without its warning. It is marked deprecated on toolapi.rst and in the release notes' "Deprecations" section at least two minor releases before a rename or split, which then lands only when the downstream job (§8) is green, under "Backward Incompatible Changes". This is the one exception to decision 2's warning step, and §8's audit cannot see it (§9, risk 14).
+    - The check costs 0.13 µs on a modelx object and 0.10 µs on any other value. In the same harness, the `_kind` lookup this replaces cost 0.03 µs on a hit and 0.14 µs on a miss, which most Reference values take (kindcheck/names14/probe_t1.py, min of 7 × 1,000,000).
+    - This changes PR 1's page in three places, all in PR 2:
+      - "What is not tool API" keeps tests of a class by its name only for classes T1 does not list. Its example becomes an unlisted class (`NullFormula`), and it says that a name test of a listed class is tool API only after the module check.
+      - The same list's imports bullet widens from `modelx.core` to every `modelx` module path other than `modelx.core.errors`, so the `modelx.io` paths of the three IOSpec classes are declared internal too.
+      - The Deprecation section, and the golden's module docstring, gain the class-name exception above.
+
+    Rejected: the `_kind` class attribute that an earlier revision recommended (`Model._kind = 'Model'`, `ReferenceProxy._kind = 'Reference'`, `BaseIOSpec._kind = 'IOSpec'`, read with `getattr(type(v), '_kind', None)`). It would have kept class names internal and grouped the three IOSpec classes, but it adds a member to every class and gives tools two names for one thing.
+15. **Dynamic Cells and References have their own classes; no kind has `_is_dynamic()` (T2).** Decided by the owner on 2026-10-18:
+    - Only Spaces, Cells and References can be dynamic. A Model never is, and Macros live only on the Model.
+    - A dynamic Cells is a `DynamicCells`, a subclass of `Cells`. modelx already has `DynamicCellsImpl` (cells.py:1030); it gets `interface_cls = DynamicCells`, where today every Cells is a `Cells` (cells.py:654).
+    - A proxy of a dynamic Reference is a `DynamicReferenceProxy`, a subclass of `ReferenceProxy`, chosen from the Reference's parent when the proxy is made. Dynamic References are an ItemSpace's arguments, the refs its formula returns and T5's resolved slots. A dynbase binding seen through an item (`P[1].k` is `P.k`) stays a `ReferenceProxy`.
+    - With decision 14 the class answers "is it dynamic?": `ItemSpace`, `DynamicSpace`, `DynamicCells` and `DynamicReferenceProxy` are. No `_is_dynamic()` is added to Cells, ReferenceProxy, Model or Macro, and decision 16 removes the Spaces' own.
+    - T1's set grows to twelve names. "Any Cells" is `kind(v) in {'Cells', 'DynamicCells'}`, and "any Reference" is `kind(v) in {'ReferenceProxy', 'DynamicReferenceProxy'}`. Code that uses `isinstance` is unaffected, because both are subclasses; `type(c) is Cells` turns False for a dynamic Cells.
+    - The attrdict `'type'` that spyder-modelx reads stays `'Cells'` and `'Reference'` for the dynamic classes, so its snapshot keeps its values. The class name and the wire `'type'` then differ, as `ReferenceProxy` and `'Reference'` already do.
+    - `repr()` and `.info` print the class name, as they do today, so they show the new names: `repr(P[1].h)` is `<DynamicCells Model1.P[1].h(x)>`, and the `.info` header reads `DynamicCells: Model1.P[1].h(x)`. A dynamic Reference's proxy prints `<DynamicReferenceProxy ...>`. This is listed under "Backward Incompatible Changes". On the prototype, `test_repr.py:74` and `test_cells_info.py:31` fail until they expect the new names, and toolapi.rst:414 shows `<Cells Model1.Proj[1].bar()>` for a dynamic Cells (d15/proto, d15/whole-doc).
+    - It lands in 0.34, before the class names freeze. Later it would split the frozen `Cells` name and need decision 14's deprecation.
+    - An ItemSpace's system bindings `_self`, `_space` and `_model` have the dynamic Space as parent, so their proxies are `DynamicReferenceProxy` too: modelx makes them with the item. A UserSpace's stay `ReferenceProxy`.
+    - modelx-bridge 0.10.0 pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.toml:54), so pip never pairs it with 0.34. §8's downstream job does, with `--no-deps`. On a prototype of this decision (d15/proto), the released bridge's 835 tests still pass, but modelx-mcp 0.1.0's test_basicterm_s fails 2 checks: its walk skips every Cells whose class name is not exactly `'Cells'` (test_basicterm_s.py:591, :609; test_lifelib.py:104). So the modelx-mcp release with §7's `kind()` walk ships before 0.34.
+    - The unadopted bridge's wire also changes, which its suites do not check: on the prototype, `doc.get` and `formula.get` send `'DynamicCells'`, the codec's `mx` tag says `'DynamicCells'`, `doc.get` of an argument sends `'DynamicReferenceProxy'`, and `cells.page` and `formula.set` refuse a dynamic Cells as "a DynamicCells". The adopted bridge maps the two names before every comparison and every send (§7).
+
+    Rejected: an earlier revision's `_is_dynamic()` on every kind. On a Model and a Macro it was always False, and on Cells and References it repeated what the class can say.
+16. **The Space flags `_is_dynamic()`, `_is_static()` and `_is_root()` are removed in 0.34, without deprecation (T2).** Decided by the owner on 2026-10-18:
+    - Each is answered by the class:
+
+      | removed (space.py:161-171) | class check (T1) |
+      |---|---|
+      | `_is_dynamic()`, True for an ItemSpace or a DynamicSpace | `kind(s) in {'ItemSpace', 'DynamicSpace'}` |
+      | `_is_static()`, `isinstance(self._impl, UserSpaceImpl)` | `kind(s) == 'UserSpace'` |
+      | `_is_root()`, True for an ItemSpace | `kind(s) == 'ItemSpace'` |
+
+    - The class check equals the flag on every live Space, including a nested ItemSpace and an ItemSpace whose base a formula chooses (d16check/probe.py). On a deleted Space it differs: `_is_dynamic()` raised DeletedObjectError, and `_is_static()` and `_is_root()` gave False, while the class still answers (T1).
+    - No caller outside modelx: none in the spyder-modelx plugin (fumitoh/spyder-modelx at 0406582), spymx-kernels (fumitoh/spymx-kernels v0.4.0, 2b3d52c), modelx-bridge 0.10.0, which reads impl class names instead (methods.py:2617-2627), or modelx-mcp 0.1.0. Inside modelx nothing calls them; only tests do: PR 1's tool tests and test_space_inheritance.py:125-129. They have had these underscore names since v0.0.21, when they were renamed from public names (old_mx_releases.rst:226-235). By the owner's rule they are tool API, so notebook or tool code may call them.
+    - Removing them in 0.34 is allowed: until 0.34.0 they are tool API that is not frozen, which may be changed or removed in any release with a release note (§2, approved choice 4; §5). They are listed under "Backward Incompatible Changes", with the class checks above as the migration. PR 1's page, which lists them as frozen from 0.34.0, drops them before the release.
+    - `_is_base(other)` and `_is_sub(other)` stay: they ask about inheritance between two Spaces, which no class answers.
+
+    Rejected: deprecating them for two minor releases first, as decision 2 requires for frozen members. The owner chose removal, since no consumer calls them.
 
 ## 2a. Classification
 
-TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import other than `modelx.core.errors` (decision 3), a type-name check, or undocumented behaviour of a call. UNMET means there is no way to get the fact today. N/A means the need asks for something modelx has no concept of (decision 4). B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
+TOOL_API means an underscore member on an object users hold, or behaviour such a member documents. INTERNAL means access through `_impl`, a `modelx.core.*` import other than `modelx.core.errors` (decision 3), a type-name check other than T1's recipe for the classes it lists (decision 14, frozen from 0.34), or undocumented behaviour of a call. UNMET means there is no way to get the fact today. N/A means the need asks for something modelx has no concept of (decision 4). B = modelx-bridge/mcp; S = spyder-modelx/spymx-kernels.
 
 **Totals: TOOL_API 23, INTERNAL 27, UNMET 11, N/A 1.** By consumer: B 4/20/8 and 1 N/A, S 19/7/3.
 
@@ -241,7 +291,7 @@ Some rows were judgement calls:
 
 **Placement**
 - Each fact goes on the object it describes, as an underscore member. `is_valid_name` rejects a leading `_` (util.py:48-61), so in a static Space a new member cannot shadow a user's Cells, Space, or a Reference made by `set_ref` or by assignment (r03, r03b). A non-underscore name would make saved models holding a Reference of that name unloadable (inventory risk 1b), and it would hide a user's member of that name (T13).
-- Four paths still take `_` names: global References (r03), `new_space(refs=)` on a Model or a Space (refute2/r07), Space-formula parameter names, and refs a Space formula returns (r12). Decision 9 refuses `_self`, `_space`, `_model` and `__builtins__` at once in `new_space(refs=)` and as parameters, and `__builtins__` as a global, and deprecates the other `_` names on all four routes. Until 0.36, a new class-level member hides such a name from attribute access outside formulas. With `ItemSpace._kind` set, `R[7]._kind` gives `'ItemSpace'` where it gave 7, while a formula in `R[7]` still reads 7 (fix-spyder-snapshot/s05). The same holds in a static Space: `new_space('S', refs={'_kind': 'user-kind'})` makes `S._kind` return `'user-kind'` today (refute2/r07). Tools are not affected: F11 (C3) reads only class members, and T6 resolves members first.
+- Four paths still take `_` names: global References (r03), `new_space(refs=)` on a Model or a Space (refute2/r07), Space-formula parameter names, and refs a Space formula returns (r12). Decision 9 refuses `_self`, `_space`, `_model` and `__builtins__` at once in `new_space(refs=)` and as parameters, and `__builtins__` as a global, and deprecates the other `_` names on all four routes. Until 0.36, a new class-level member hides such a name from attribute access outside formulas. s05 measured it with the `_kind` of an earlier revision, which decision 14 dropped: with `ItemSpace._kind` set, `R[7]._kind` gave `'ItemSpace'` where it gave 7, while a formula in `R[7]` still read 7 (fix-spyder-snapshot/s05). The same holds for any member 0.34 does add, such as `_address`. In a static Space, `new_space('S', refs={'_kind': 'user-kind'})` makes `S._kind` return `'user-kind'` today (refute2/r07). Tools are not affected: F11 (C3) reads only class members, and T6 resolves members first.
 - Once Model defines a member, `EditableParent.__setattr__` (parent.py:87-98) refuses a global Reference of that name. Today `m._get_revision = 1` is accepted as a global Reference (measured f01).
 - Facts that have no object go into `api.py` next to `get_object` (api.py:629).
 
@@ -266,8 +316,8 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
 
 | ID | Element | Kind | Origin |
 |---|---|---|---|
-| T1 | `_kind` class attribute | new | A N1 |
-| T2 | `_is_dynamic()` on every kind | new (Space: existing) | B/C, judge 1 graft 8 |
+| T1 | Kinds by class name (decision 14) | documented, no new member | A N1 |
+| T2 | Dynamic objects by class (decisions 15, 16) | new classes `DynamicCells` and `DynamicReferenceProxy`; the Space flags `_is_dynamic()`, `_is_static()` and `_is_root()` removed | B/C, judge 1 graft 8 |
 | T3 | `_is_derived()` on Cells and References | new for References (Cells: existing) | A N4 |
 | T4 | `BaseSpace._get_inheritance()` | new | C E12 + B "definition in use" |
 | T5 | ReferenceProxy: equality, liveness, `_refmodes`, resolved slots | new + fix | B/C E13, A F2 |
@@ -286,19 +336,28 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
 
 ### 3.1 New members on objects
 
-#### T1 `_kind`
+#### T1 Kinds by class name (decision 14)
 
-- **Signature.** A class attribute:
-  - `Model._kind = 'Model'`, `UserSpace._kind = 'UserSpace'`, `ItemSpace._kind = 'ItemSpace'`, `DynamicSpace._kind = 'DynamicSpace'`, `Cells._kind = 'Cells'`, `Macro._kind = 'Macro'`;
-  - `ReferenceProxy._kind = 'Reference'`, `BaseIOSpec._kind = 'IOSpec'`;
-  - `Interface._kind = None`.
+- **Recipe.** No new member. A tool checks that the class is modelx's own, then reads its name:
 
-  Read it with `getattr(type(v), '_kind', None)`. On a modelx object, `obj._kind` also works.
-- **Returns.** A string from a vocabulary that only ever grows, or `None` for any other value.
+  ```python
+  KINDS = frozenset({'Model', 'UserSpace', 'ItemSpace', 'DynamicSpace', 'Cells', 'DynamicCells',
+                     'Macro', 'ReferenceProxy', 'DynamicReferenceProxy',
+                     'PandasData', 'ExcelRange', 'ModuleData'})
+  def kind(v):
+      t = type(v)
+      mod = t.__module__               # not always a str: wrapt's ObjectProxy makes it a property
+      if not (isinstance(mod, str) and mod.startswith('modelx.')):
+          return None                  # never a user's own class named Model
+      return t.__name__ if t.__name__ in KINDS else None
+  ```
+- **What is frozen.** The twelve class names above (decisions 14 and 15), and that each is defined in a module of the `modelx` package. The exact module paths (`modelx.core.model`, `modelx.io.pandasio`, ...) stay internal. modelx adds names to the set; a rename or split of a listed class follows decision 14's deprecation without a warning, because no warning can be raised when a tool reads `type(v).__name__`.
 - **Semantics.**
-  - It names the exact kind. An ItemSpace is never reported as a DynamicSpace, although it subclasses one (space.py:2152).
-  - Because it is a class attribute, reading it never runs `Model.__getattr__` or `BaseSpace.__getattr__`. It never evaluates, and it still answers on a deleted object or an object of a closed model.
-  - The attrdict `'type'` becomes `type(self)._kind or type(self).__name__`. That is byte-identical today (minimal/m02).
+  - The name is the exact kind. An ItemSpace reports `'ItemSpace'`, never `'DynamicSpace'`, although its class subclasses DynamicSpace (space.py:2152); `isinstance` against modelx classes stays internal for this reason and because it needs imports from modelx's internal modules, `modelx.core.*` or, for the three IOSpec classes, `modelx.io.*`.
+  - `type()` reads no attribute of the object, so the check never runs `Model.__getattr__` or `BaseSpace.__getattr__`, never evaluates, and still answers on a deleted object and on an object of a closed model.
+  - A Reference proxy is `'ReferenceProxy'`, or `'DynamicReferenceProxy'` for a dynamic Reference, and a dynamic Cells is `'DynamicCells'` (T2). The attrdict `'type'` of a proxy stays `'Reference'` (reference.py:199, 205), and that of a DynamicCells `'Cells'`, as spyder reads them; the class name and the wire `'type'` are different contracts.
+  - The three IOSpec classes have their own names. A tool that wants "any IOSpec" tests membership in `{'PandasData', 'ExcelRange', 'ModuleData'}`. When modelx adds an IOSpec class, the release notes' Tool API section names it; until a consumer adds the name, `kind()` gives `None` for it, which the bridge's codec treats as opaque.
+  - The attrdict `'type'` is unchanged.
   - Every Model, Space, Cells, Macro and Reference resolves from its own `_idstr` and `_address` through `Model._get_from_name` (T6), with the exceptions T6 lists. That includes macros: a macro's `_idstr` is its name (`'mac'`), and on 0.33 `_get_from_name('mac')` raises KeyError (measured g01). An IOSpec has no `_idstr` (io/baseio.py:335), so it has no address.
 - **Capability table** (documented with it):
 
@@ -311,52 +370,63 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
   | object to bind instead of an ItemSpace | walk `.parent` while the kind is `'ItemSpace'` |
 
 - **Edge cases.**
-  - A Reference whose value is a modelx object: the value reports its own kind. Only the proxy reports `'Reference'`. That holds for a resolved slot too (T5).
-  - ExcelRange is both a Reference value and an IOSpec, so it reports `'IOSpec'`.
-  - Views, nodes, and the Namespace objects formulas see report `None`. Views and nodes keep their class name as attrdict `'type'`.
-  - Guard against a foreign class that defines `_kind`: test membership in the vocabulary. 0 of 34 common value types define `_kind` (minimal/m02).
-- **Internals.** Class lines model.py:225, space.py:729, :2112, :2152, cells.py:66, macro.py:51, reference.py:126, io/baseio.py:335; `Interface` at base.py:350. The attrdict `'type'` is set at base.py:660, :690 and reference.py:199, :205.
+  - A Reference whose value is a modelx object: the value reports its own kind. Only the proxy reports `'ReferenceProxy'` or `'DynamicReferenceProxy'`. A resolved slot's proxy is a `DynamicReferenceProxy` (T2, T5).
+  - ExcelRange is both a Reference value and an IOSpec, so the value of a Reference holding one, and its entry in `model.iospecs` (the same object), report `'ExcelRange'`; the proxy reports `'ReferenceProxy'`.
+  - Views, nodes, and the Namespace objects formulas see are defined in modelx modules but are not in the set, so `kind()` gives `None` for them. Their attrdict `'type'` keeps their class name.
+  - A user's own class named `Model` or `Cells`, a class whose `__module__` is None, a DataFrame, an int, numpy scalars and a module all give `None`. So do the Namespace objects a formula sees for `_self`, `_space` and `_model`, and the bound method it sees for a Cells name. A Space-, Cells- or ExcelRange-valued Reference read inside a formula gives the value's kind (measured 2026-10-17 on `main` at 1b90682 and on 0.33.0 at 4fa720f, with identical answers: kindcheck/names14/probe_t1.py). That was before decision 15: on those builds a dynamic Cells is a `Cells` and every proxy a `ReferenceProxy`; on 0.34 they report `'DynamicCells'` and `'DynamicReferenceProxy'`.
+- **Internals.** None: the classes are model.py:225, space.py:729, :2112, :2152, cells.py:66, macro.py:51, reference.py:126, io/pandasio.py:65, io/excelio.py:253 and io/moduleio.py:66, unchanged. `DynamicCells` and `DynamicReferenceProxy` are new (T2), beside cells.py:66 and reference.py:126.
 - **Cost.**
-  - 0.078 µs (minimal/m02).
-  - A miss on a non-modelx value costs 0.253 µs (measured f01).
+  - 0.126–0.138 µs on a UserSpace, Cells, ReferenceProxy or ExcelRange, and 0.101–0.107 µs on an int, a user's class named `Model` or a DataFrame (kindcheck/names14/probe_t1.py, min of 7 × 1,000,000, CPython 3.11.15).
   - The bridge codec's in-function imports cost 1.68–1.73 µs today.
 
-#### T2 `_is_dynamic()` on every kind
+#### T2 Dynamic objects by class (decision 15)
 
-- **Signature.** `obj._is_dynamic() -> bool` on Model, UserSpace/ItemSpace/DynamicSpace, Cells, Macro and ReferenceProxy.
-- **Semantics.** True when modelx generated the object inside an ItemSpace:
+- **Classes.** New `DynamicCells`, a subclass of `Cells`, and `DynamicReferenceProxy`, a subclass of `ReferenceProxy`. With `ItemSpace` and `DynamicSpace`, a value is dynamic when T1's `kind(v)` is one of four names:
+
+  ```python
+  DYNAMIC = frozenset({'ItemSpace', 'DynamicSpace', 'DynamicCells', 'DynamicReferenceProxy'})
+  ```
+
+  No kind has `_is_dynamic()`: Cells, ReferenceProxy, Model and Macro get none, and the Spaces' `_is_dynamic()`, `_is_static()` and `_is_root()` (space.py:161-171) are removed (decision 16).
+- **Semantics.** Dynamic means that modelx generated the object inside an ItemSpace:
   - the ItemSpace itself and its DynamicSpace children;
   - their Cells;
-  - the References an ItemSpace creates, i.e. its arguments, the refs its Space formula returns, and its resolved slots (T5).
+  - the References an ItemSpace creates, i.e. its arguments, the refs its Space formula returns, its resolved slots (T5), and its system bindings `_self`, `_space` and `_model`.
 
   A dynamic object's formula, name, doc and `is_cached` belong to its dynbase, and editing them raises `DynamicObjectError` (T12). Input values are still accepted, so "dynamic" does not mean "read-only".
 
-  It is False for:
+  Not dynamic:
   - the Model, every UserSpace, and Cells in a UserSpace;
   - Space-level and global References;
-  - the dynbase bindings an ItemSpace shares (`P[1].k` is `P.k`).
+  - the dynbase bindings an ItemSpace shares (`P[1].k` is `P.k`);
+  - macros, which live only on the Model.
 - **Internals.**
-  - Existing `BaseSpace._is_dynamic` (space.py:169-171) is kept.
-  - New `CellsImpl.is_dynamic()` returns False, and `DynamicCellsImpl` (cells.py:1030) returns True.
-  - `ReferenceProxy._is_dynamic()` returns `not impl.parent.is_model() and impl.parent.is_dynamic()`. That covers arguments (dynamic.py:296-300) and formula refs (dynamic.py:97-101). With T5 a resolved slot is a ReferenceImpl whose parent is the dynamic Space, so the recipe answers True (measured fix-reference-identity/g02).
-  - `Model._is_dynamic()` and `Macro._is_dynamic()` return False.
+  - `DynamicCellsImpl` (cells.py:1030) sets `interface_cls = DynamicCells`. `CellsImpl.interface_cls` stays `Cells` (cells.py:654).
+  - A proxy's class is chosen when the proxy is made: `DynamicReferenceProxy` when `isinstance(impl, ReferenceImpl) and not impl.parent.is_model() and impl.parent.is_dynamic()`. That covers arguments (dynamic.py:296-300), formula refs (dynamic.py:97-101) and an item's system bindings, which are NameSpaceReferenceImpl, a ReferenceImpl (reference.py:122). With T5 a resolved slot is a ReferenceImpl whose parent is the dynamic Space, so the rule answers True (measured fix-reference-identity/g02, with the rule written as a method). Before T5, in PR 2 alone, a slot holds the raw target impl, and the guard keeps its proxy a `ReferenceProxy`; without the guard the answer would follow the target's parent, and a slot holding `None` would raise (d15/proto).
+  - Proxies are made at six sites (reference.py:225, model.py:655, :676, space.py:94, views.py:251, :262), so the choice goes in `ReferenceProxy.__new__(cls, impl=None)`, which they all reach. The default keeps `copy.copy` working: copy calls `cls.__new__(cls)` with no argument, and `__new__(cls, impl)` made `copy.copy` of every proxy raise TypeError (d15/proto). A copy keeps its class because it passes no impl, so the rule never reaches it. The rule applies only when `cls is ReferenceProxy`, so a class that a subclass or a caller names is kept: without the test, a subclass made over an argument of an ItemSpace came back a `DynamicReferenceProxy` (PR 2 review, M7b).
+  - Cost: making a proxy goes from 0.09 µs to 0.20–0.25 µs, and `_get_object(name, as_proxy=True)` from 0.96 µs to 1.13–1.19 µs (d15/proto, min of 7 runs). No formula reads a proxy.
+  - The attrdict `'type'` stays `'Cells'` for a DynamicCells, where base.py:660 and :690 would write `type(self).__name__`, and `'Reference'` for a DynamicReferenceProxy, which reference.py:199 and :205 already write as a literal.
+  - T5's equality (`isinstance(o, ReferenceProxy) and o._impl is self._impl`) covers both proxy classes.
 - **Edge cases.**
-  - Measured on 0.33 (f01): `P[1]._is_dynamic()` and `P[1].Child._is_dynamic()` are True; `Sub._is_dynamic()` is False.
-  - On 0.33, `cells.parent._is_dynamic()` matched the impl truth for 739 of 739 Cells (minimal/m06). The bridge can fix its ItemSpace false negative today.
-  - A deleted Cells raises DeletedObjectError through NullImpl (base.py:332).
-  - Cost: 0.166 µs for a Space (measured f01).
+  - Measured on 0.33 (f01), before decision 16 removed the flag: `P[1]._is_dynamic()` and `P[1].Child._is_dynamic()` are True; `Sub._is_dynamic()` is False, matching their classes.
+  - On 0.33, `cells.parent._is_dynamic()` matched the impl truth for 739 of 739 Cells (minimal/m06), so the class rule for Cells agrees with the parent's class. The bridge can fix its ItemSpace false negative today with the Space's own class, and read a Cells by its parent's class instead of its impl's, which works on 0.33 and 0.34 (§7).
+  - `repr()` and `.info` print `DynamicCells` and `DynamicReferenceProxy` (decision 15).
+  - `isinstance(c, Cells)` stays True for a DynamicCells, and `isinstance(r, ReferenceProxy)` for a DynamicReferenceProxy. `type(c) is Cells` turns False for a dynamic Cells: a "Backward Incompatible Changes" entry.
+  - A deleted Cells keeps its class, so T1's recipe still reports it.
+  - Measured on the prototype (d15/proto): test_spyder_surface.py, test_spyder_requests.py, test_tool_api_surface.py, test_tool_contracts.py and test_model_pickle.py pass unchanged; `write_model`/`read_model` of a model with ItemSpaces, nested items and dynamic inputs round-trips, and the read-back Cells are `DynamicCells`; `copy.copy` of a DynamicCells works; the rule gives the expected class at all six proxy sites. No modelx test checks `type(x) is Cells`.
+  - A tool that tests `kind(v) == 'Cells'` now misses dynamic Cells, as modelx-mcp 0.1.0's walk does (§9, risk 15).
 
 #### T3 `_is_derived()` on Cells and References
 
 - **Signature.** `obj._is_derived() -> bool` (ReferenceProxy: `bool | None`).
-- **Semantics.** True when the Cells or Reference has no definition of its own here: it is inherited from a base Space, or it is a dynamic copy. Spaces and Models have no `_is_derived()`: no Space is ever inherited (decision 4), and a dynamic Space is told by `_is_dynamic()` (T2).
+- **Semantics.** True when the Cells or Reference has no definition of its own here: it is inherited from a base Space, or it is a dynamic copy. Spaces and Models have no `_is_derived()`: no Space is ever inherited (decision 4), and a dynamic Space is told by its class (T2).
   - `Cells._is_derived()` (cells.py:582-583) is unchanged. Measured f01: `Sub.bar` True, overridden `Sub.foo` False, `P[1].h` True, `P[1].Child.w` True.
   - New `ReferenceProxy._is_derived()` returns `impl.is_derived() if isinstance(impl, ReferenceImpl) else None` (reference.py:27; base.py:313-314). The guard stays even after T5, so spyder's whole-model extattr walk can never raise.
   - A resolved slot answers True: it is a dynamic copy, like `P[1].h` (measured fix-reference-identity/g02).
   - `ReferenceProxy.is_derived()` (reference.py:193) stays as an alias (decision 11).
 - **Compositions** (documented):
-  - inherited = `_is_derived() and not _is_dynamic()`;
-  - generated = `_is_dynamic()`;
+  - inherited = `_is_derived()` and `kind(v)` not in T2's `DYNAMIC`;
+  - generated = `kind(v)` in T2's `DYNAMIC`;
   - overriding comes from T4.
 - **Edge cases.**
   - A Model-level Reference seen through a Space answers False (inventory probe4).
@@ -406,7 +476,7 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
   - `__eq__`/`__hash__` by binding: `isinstance(o, ReferenceProxy) and o._impl is self._impl`, and `hash(id(self._impl))`.
   - A stricter `_is_valid() -> bool`.
   - A class attribute `_refmodes = ('auto', 'absolute', 'relative')`.
-  - Explicit definitions of `_kind`, `_is_dynamic`, `_is_derived`, `_address` and `_has_formula`, and of the existing `_idstr` and `_get_repr`, each with a signature-golden entry. On 0.33 a proxy answers `_idstr` and `_get_repr` only through `__getattr__` forwarding (measured fix-final/k07), and the bridge reads both on every Reference (`_objid`, methods.py:2745-2749; `_display`, methods.py:2829-2848). ReferenceProxy gets no `_get_referents` or `_get_formula_links`: neither is on Interface, so forwarding keeps raising AttributeError (T10; fix-used-by/u06).
+  - Explicit definitions of `_is_derived`, `_address` and `_has_formula`, and of the existing `_idstr` and `_get_repr`, each with a signature-golden entry. On 0.33 a proxy answers `_idstr` and `_get_repr` only through `__getattr__` forwarding (measured fix-final/k07), and the bridge reads both on every Reference (`_objid`, methods.py:2745-2749; `_display`, methods.py:2829-2848). ReferenceProxy gets no `_get_referents` or `_get_formula_links`: neither is on Interface, so forwarding keeps raising AttributeError (T10; fix-used-by/u06).
   - A resolved slot gets a binding of its own (decision 7).
   - `UserSpace.set_ref` validates `refmode` (F2).
 - **Semantics.**
@@ -419,7 +489,7 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
     - name `'rel'`, parent `P[1]`, `_idstr` `'P.__Space1.rel'`, `_address` `'P(1).rel'`, `_evalrepr` `'G2.P(1).rel'` in model `G2`;
     - `.value` is `P[1].Child`, the object a formula in `P[1]` sees;
     - its own `_idstr` and `_address` resolve back to it (T6);
-    - `_is_dynamic()` and `_is_derived()` are True, like `P[1].h`. `refmode` is the binding's (`'auto'`);
+    - its proxy is a `DynamicReferenceProxy` and `_is_derived()` is True, like `P[1].h`, a `DynamicCells`. `refmode` is the binding's (`'auto'`);
     - it equals neither `P[2].rel` nor `P.rel`. Each has its own binding and its own value;
     - `_is_valid()` turns False when its ItemSpace goes, and stays False when an ItemSpace with the same arguments is built again.
 
@@ -674,8 +744,11 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
 - **"Used by"** for a Reference or a Cells `r`:
 
   ```python
-  def is_ref(v):
-      return getattr(type(v), '_kind', None) == 'Reference'
+  def is_ref(v):                # T1's check, both Reference names (decision 15)
+      t = type(v)
+      mod = t.__module__
+      return (isinstance(mod, str) and mod.startswith('modelx.')
+              and t.__name__ in ('ReferenceProxy', 'DynamicReferenceProxy'))
 
   def same(x, r):               # never == on a Cells or a Space
       return x is r or (is_ref(x) and is_ref(r) and x == r)
@@ -688,7 +761,7 @@ T8 adds one node-count check to the top-level miss branch (`_start_exec`, execut
   - the bare `==` recipe raised for every target: 42 of 42 on BasicTerm_S, 195 of 195 on BasicTermASL_ME and 235 of 235 on simplelife, with ValueError, TypeError, or a FormulaError from evaluating a scalar Cells. It moved `len(tracegraph)` from 0 to 2 or 3;
   - `same` raised nothing, left `len(tracegraph)` as it was, and gave the prototype's set for every target.
 
-  For a resolved slot (`r._is_dynamic()` and T4 scope `'base'`), first map `r` to its binding: `r.parent.bases[0]._get_object(r.name, as_proxy=True)` (measured fix-reference-identity/g02: True for `P[1].rel` and `P[1][5].rel`). It returns:
+  For a resolved slot (`kind(r) == 'DynamicReferenceProxy'` and T4 scope `'base'`), first map `r` to its binding: `r.parent.bases[0]._get_object(r.name, as_proxy=True)` (measured fix-reference-identity/g02: True for `P[1].rel` and `P[1][5].rel`). It returns:
   - the formulas that read this binding (`same(p, r)`);
   - for a defined `r`, also every formula in a sub Space, at any depth, that reads an inherited copy of it (`same(src, r)`). Inherited and overriding formulas both count;
   - never the formulas of a sub Space that defines the name again, because they read their own binding;
@@ -912,7 +985,7 @@ These members are frozen as tool API from 0.34, with no rename. They are the fro
 | | `_is_valid()` | base.py:728-729; ReferenceProxy's stricter one (T5) | serializers, bridge |
 | S2 inheritance and dynamic objects | `Cells._is_derived()`, `_is_defined()` | cells.py:582-586 | bridge, spyder |
 | | `ReferenceProxy.is_derived()` (alias; not a first-class entry) | reference.py:193 | bridge 0.10 (methods.py:2726-2738) |
-| | `BaseSpace._is_dynamic()`, `_is_static()`, `_is_root()`, `_is_base()`, `_is_sub()` | space.py:153-171 | bridge (from adoption) |
+| | `BaseSpace._is_base()`, `_is_sub()` | space.py:153-159 | — |
 | | `BaseSpace._own_refs`, `_direct_bases` | space.py:402-405, 146-151 | 0.33 fallbacks; spymx kernel for #48 (C3) |
 | | `ItemSpace.argvalues` (public) | space.py:2205-2208 | — (not on the wire; C3) |
 | S3 snapshot wire | `_get_attrdict(extattrs, recursive)` on Interface, Model, BaseSpace, Cells, ReferenceProxy, the views, BaseNode, Formula and BaseIOSpec | base.py:686-708; model.py:659-671; space.py:704-726; cells.py:572-580; reference.py:203-210; views.py:120-129, 255-265; node.py:92-106; formula.py:480-481; io/baseio.py:562-570; extattrs resolve on the class only from 0.34 (F11, C3) | spyder, bridge (`value_type`) |
@@ -920,6 +993,8 @@ These members are frozen as tool API from 0.34, with no rename. They are the fro
 | | `Model._get_assoc_values()`, `_get_refs()` | model.py:673-691 | spyder |
 | | `ReferenceProxy` forwarding of `name`, `fullname`, `parent`, `model`, `doc`, `allow_none`, `_idtuple` | reference.py:163-168 | spyder, bridge |
 | | `ReferenceProxy._idstr`, `_get_repr` and `_is_valid`: forwarded on 0.33, defined explicitly from 0.34 (T5) | reference.py:124-217 | bridge (`_objid`, methods.py:2745-2749; `_display`, 2829-2848) |
+
+The Space flags `_is_dynamic()`, `_is_static()` and `_is_root()`, which this table listed before decision 16, are removed in 0.34.
 
 Contract notes on S1–S3:
 - Attrdict keys are additive only. test_spyder_surface.py compares whole snapshots for equality (test_spyder_surface.py:62-73), so even an additive key needs a regenerated golden. This design adds no always-present key.
@@ -992,7 +1067,7 @@ Probes `s01`–`s06` below were run for C2(2) and C3 in `fix-spyder-snapshot/`, 
 An underscore does not protect a name. Global References and `new_space(refs=)` take any name until 0.36, and Space-formula parameters and refs skip the name check (C2(2)).
 
 *Fix F11 (0.34): extattrs resolve on the class only.* `_get_attrdict_extra` looks each name up on `type(self)`, never on the instance:
-- a property is read with its getter, a function is bound and called, and any other class attribute (such as `_kind`) is taken as it is;
+- a property is read with its getter, a function is bound and called, and any other class attribute (such as ReferenceProxy's `_refmodes`) is taken as it is;
 - a ReferenceProxy also looks on `Interface`, for properties and functions only. That is the rule its `__getattr__` already uses (reference.py:163-168), so `allow_none` still answers;
 - a name the class does not define is skipped. So is a getter that raises AttributeError, as `hasattr` skips it today.
 
@@ -1008,13 +1083,14 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 
 | name | answered on | value |
 |---|---|---|
-| `_is_dynamic` | every kind (T2) | bool |
 | `_is_derived` | Cells and ReferenceProxy only (T3); absent on Spaces and Models (decision 4) | bool; a ReferenceProxy's can be `None` |
-| `_kind`, `_has_formula` | every kind (T1, T11) | str; bool |
+| `_has_formula` | every kind (T11) | bool |
 | `_evalrepr`, `_address` | every kind (S1, T6) | str; str or `None` |
 | `__len__` | Cells | int, the number of stored values (C1(2)) |
 | `formula`, `parameters` | Cells and Spaces | Formula attrdict or `None`; tuple of str or `None` |
 | `allow_none` | every kind | bool or `None` |
+
+`_is_dynamic` is answered by no class from 0.34 (decisions 15, 16), so F11 skips it on every row; on 0.33 only Space rows answer it.
 
 `_evalrepr` formats ItemSpace arguments with `repr()`, as the always-present `'repr'` key already does (s04).
 
@@ -1040,9 +1116,9 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 | 3 | reference-as-object | INTERNAL | T5; C2(4) documents `name`, `fullname`, `parent`, `model` and `doc`; T6 `as_proxy=True` |
 | 4 | display-name | INTERNAL | F1 + S1 `_get_repr(fullname=True, add_params=False)`; T7 for nodes |
 | 5 | valid-name-rule | INTERNAL | T13 `is_valid_name` (the syntax rule), the reserved-name rule and the free-name recipe; decision 9 checks the four routes that skip the rule today; C2(1); F10 |
-| 6 | object-kind | INTERNAL | T1 `_kind`; §5 class-level detection |
-| 7 | is-modelx-object | INTERNAL | T1 (`getattr(type(v), '_kind', None)` in the vocabulary) |
-| 8 | is-dynamic | INTERNAL | T2 |
+| 6 | object-kind | INTERNAL | T1: the listed class names after the module check (decision 14); §5 class-level detection |
+| 7 | is-modelx-object | INTERNAL | T1 (the module check, then the name in the listed set) |
+| 8 | is-dynamic | INTERNAL | T2: `kind(v)` in `DYNAMIC` (decisions 15, 16) |
 | 9 | derived-flag-cells-refs | INTERNAL | S2 `Cells._is_derived()` (kept); T3 `ReferenceProxy._is_derived()` replaces the undocumented `is_derived()`, which stays as an alias (decision 11); T4 `state` separates inherited from generated |
 | 10 | derived-flag-space | N/A | Not applicable: a Space has no derived concept (decision 4). The bridge stops asking (§7) |
 | 11 | space-ref-membership | INTERNAL | T4 `refs[...]['scope']`; C2(2) |
@@ -1077,8 +1153,8 @@ F11 is a Bug Fix in §5's terms (decision 13). It changes only keys whose values
 | 40 | itemspace-address | UNMET | T6 |
 | 41 | get-object-leaf-path | TOOL_API | S1 `_get_object` leaf traversal (kept); C2(6) states it on `get_object`, pinned by a test |
 | 42 | lookup-miss-exception | INTERNAL | T12 `ObjectNotFoundError`; F4; F7 |
-| 43 | kind-type-name | TOOL_API | S3 `'type'`, read from T1 (byte-identical) |
-| 44 | value-kind-tests | INTERNAL | T1, including `'IOSpec'` |
+| 43 | kind-type-name | TOOL_API | S3 `'type'`, unchanged |
+| 44 | value-kind-tests | INTERNAL | T1, including the three IOSpec class names `PandasData`, `ExcelRange` and `ModuleData` (decision 14) |
 | 45 | container-capabilities | INTERNAL | T1 capability table |
 | 46 | user-visible-members | INTERNAL | C2(2); T4 scope `'builtins'` |
 | 47 | is-derived | UNMET | T3 for Reference rows, through the `'_is_derived'` extattr; Space rows N/A (decision 4). F11 makes requesting it safe on every kind |
@@ -1106,11 +1182,12 @@ Every INTERNAL and UNMET need maps to an element except #26, which is deferred (
 
 **What the tool API is.** The owner's rule decides it, and this design keeps it: every underscore member of an object users hold is tool API, public and meant for other software. Those objects are Model, the Spaces, Cells, Macro, ReferenceProxy, the views, nodes, Formula and the IOSpecs. The tool API has two tiers:
 - **Frozen.** The members and behaviours listed on `doc/source/reference/toolapi.rst`: S1–S3, T1–T11, the classes in `modelx.core.errors` (`FormulaError` and T12's), the top-level names in T13, and the contracts C1–C3, with T14 marked **provisional**. They are in the signature golden, and the stability promise and the deprecation policy below apply to them.
-- **Tool API, not frozen.** Every other underscore member of those objects. On 0.33 the classes users hold define 55 non-dunder underscore members; 26 of them were named nowhere in the previous revision of this document, and most of those are Formula and IOSpec hooks (measured critic2/k03, re-run in fix-final). Examples: Formula's `_init_from_source`, `_reload` and `_set_signature`; BaseIOSpec's `_on_update`, `_on_load_value` and `_can_update_value`; `CellsView._set_keys`; `_baseattrs_private` (views.py:93); `_reduce_serialize_3` on six kinds. A release may change them, with a release note. A consumer that needs one frozen asks for it to be listed, and it then joins the first tier.
+- **Tool API, not frozen.** Every other underscore member of those objects. On 0.33 the classes users hold define 55 non-dunder underscore members; 26 of them were named nowhere in the previous revision of this document, and most of those are Formula and IOSpec hooks (measured critic2/k03, re-run in fix-final). Examples: Formula's `_init_from_source`, `_reload` and `_set_signature`; BaseIOSpec's `_on_update`, `_on_load_value` and `_can_update_value`; `CellsView._set_keys`; `_baseattrs_private` (views.py:93); `_reduce_serialize_3` on six kinds. A release may change or remove them, with a release note (§2, approved choice 4). A consumer that needs one frozen asks for it to be listed, and it then joins the first tier.
 
 Internal, and not tool API, means:
 - `_impl` and anything reached through it, including `tracegraph` node tuples, `refgraph` and `repr_parent()`;
-- `modelx.core.*` module paths and class names; use `_kind` instead;
+- module paths other than `modelx.core.errors` (decision 3);
+- tests of a class by its name, except T1's recipe for the twelve classes it lists (decisions 14 and 15). The attrdict `'type'` key is part of the snapshot wire (S3);
 - `mxsys`;
 - undocumented behaviour of a call, such as what ReferenceProxy's `__getattr__` forwards beyond the names S3 lists.
 
@@ -1128,7 +1205,7 @@ Internal, and not tool API, means:
 - A listed member's name, signature, return type and documented semantics change only additively:
   - new optional keyword parameters;
   - new keys in returned dicts and attrdicts, never removed or retyped;
-  - `_kind` values only added;
+  - T1's class names only added to; a rename or removal follows decision 14's deprecation without a warning;
   - stamps only growing;
   - a new exception only if it subclasses the one raised before.
 - A bug fix that makes a member match its documentation is allowed, with a "Bug Fixes" note and, where a golden changes, a regenerated golden called out in the commit message.
@@ -1140,6 +1217,8 @@ Internal, and not tool API, means:
 3. Using it emits `warnings.warn("'X' is deprecated and will be removed in a future release.", modelx.core.errors.ToolAPIDeprecationWarning, stacklevel=2)`.
 4. It stays for **at least two minor releases**, and until the downstream job (§8) is green against the latest released modelx-bridge and modelx-mcp.
 5. Only then is it removed, under "Backward Incompatible Changes", with migration text, as 0.24 did.
+
+A class name T1 lists cannot warn (decision 14): steps 1, 2, 4 and 5 apply, and step 3 does not. The owner decided this on 2026-10-17.
 
 **Gates.**
 - `core/base/test_spyder_surface.py` stays byte-stable.
@@ -1158,6 +1237,8 @@ Internal, and not tool API, means:
 - Names that no saved model can hold, or that break the Space's own formulas, are refused at once with ValueError (decision 9): a global or `new_space(refs=)` name that is not an identifier, a `new_space(refs=)` keyword, `__builtins__` as a global, and `_self`, `_space`, `_model` or `__builtins__` as a `new_space(refs=)` name or a Space-formula parameter. On 0.33 each is accepted, and the model then fails to write, fails to read, or fails in its formulas (refute2/r06, r07; fix-final/e04).
 - A relative Reference seen through an ItemSpace with its target in the tree gets its own id, name, refmode and flags (`'P.__Space1.rel'`, not `'P.__Space1.Child'`). It equals neither `P.rel` nor another item's slot. `_space.<ref>` in its formulas stops raising AssertionError (space.py:1888; fix-reference-identity/g01, g02).
 - `_get_repr` of nested ItemSpaces changes (Bug Fix).
+- A dynamic Cells is a `DynamicCells` and a proxy of a dynamic Reference a `DynamicReferenceProxy` (decision 15). `isinstance` against `Cells` and `ReferenceProxy` is unchanged, `type(c) is Cells` is False for them, and the attrdict `'type'` keeps `'Cells'` and `'Reference'`. `repr()` and `.info` print the new names.
+- `_is_dynamic()`, `_is_static()` and `_is_root()` are removed from Spaces (decision 16). Use the class: `type(s).__name__ in ('ItemSpace', 'DynamicSpace')`, `== 'UserSpace'` and `== 'ItemSpace'`, after T1's module check. That equals the old flags on a live Space; a deleted Space now answers by its class.
 - Dynamic Cells doc and `is_cached` raise `DynamicObjectError` (Bug Fix).
 - The UserSpace formula is validated before the old one is deleted (Bug Fix).
 - `_get_attrdict` extattrs resolve on the class only. A key whose value came from a user member is no longer emitted, and the `refs` view skips a key that is not a str (Bug Fix, F11).
@@ -1211,14 +1292,18 @@ Each PR stands alone and keeps `test_spyder_surface.py` byte-identical.
   - a second spyder golden for what spyder actually requests: the tree list `['_is_derived', '__len__', '_evalrepr']`, the Properties list `['formula', '_evalrepr', 'allow_none', 'parameters']` per object, node and IOSpec records, and `_get_assoc_values` keys. Today's golden requests only `get_referents`, which is a no-op.
 
 **PR 2: Kinds, flags, display and extattrs (T1, T2, T3, T7, F1, F6, F11)**
+- T1 adds no code (decision 14). toolapi.rst gains a "Kinds" section with T1's recipe and capability table, and the three page changes decision 14 lists. The signature golden records each listed class's `__name__` and that its `__module__` starts with `modelx.`, and pins the S1–S3 members on `DynamicCells` and `DynamicReferenceProxy` as on `Cells` and `ReferenceProxy`, from a Cells of `proj[1]` and an argument proxy.
+- T2's page changes (decisions 15, 16): the attrdict table's `'type'` reads "the class name, except `'Cells'` for a DynamicCells" (toolapi.rst:833-834); an ItemSpace or DynamicSpace is "told apart by its class", not by `_is_dynamic()` (toolapi.rst:622-623); the `_is_dynamic()`, `_is_static()` and `_is_root()` entry and its example go (toolapi.rst:678-688), and so do their rows in the Space tables (toolapi.rst:781-783, 788-790 and 795-797); the `_get_object` example prints `<DynamicCells Model1.Proj[1].bar()>` (toolapi.rst:414); and the `Interface.info` docstring example of a Cells in an ItemSpace prints a `DynamicCells:` header (base.py:556-558, whose `is_derived: False` line also prints `True` on 0.33).
+- T2's code: remove the three methods (space.py:161-171; 161-178 on main); the signature golden drops them (test_tool_api_surface.py:129's S2 tuple; tool_api_surface.json:162-172, 248-258, 476-486 on main) and gains the two new classes; PR 1's tests that call or name them (test_tool_contracts.py:44, :914, :953-954, :981, :1133, :1143, :1152, :1162-1172; test_space_inheritance.py:125-129) use the class instead; test_repr.py:74 and test_cells_info.py:31 expect `DynamicCells`.
 - Files:
-  - base.py:350, 660, 690, 698-708;
-  - model.py:225; space.py:146-171, 729, 2112, 2152; cells.py:66, 582-586, 1030; macro.py:51; reference.py:126, 193, 199-210; io/baseio.py:335;
+  - base.py:698-708;
+  - T2: cells.py:66, :654, :1030 (DynamicCells and its impl's `interface_cls`); reference.py:126 (DynamicReferenceProxy and `ReferenceProxy.__new__`); base.py:556-558 (the `.info` example), :660, :690 (`'type'` stays `'Cells'`); space.py:146-171; cells.py:582-586; reference.py:193, 199-210;
+  - doc/source/reference/toolapi.rst; tests/core/api/test_tool_api_surface.py and testdata/tool_api_surface.json (T1, T2);
   - dynamic.py:315-322; node.py:152-238; inheritance/graph.py:81-83.
 - Tests:
-  - `core/base/test_kind.py`: every kind, including nested `P[1][5]`; proxies to scalar, global, Space-valued and argument References; PandasData, ExcelRange and ModuleData give `'IOSpec'`; `None` for the 34 value types of minimal/m02 and for Namespace objects; deleted and closed objects; attrdict `'type'` unchanged;
+  - `core/base/test_kind.py`: T1's recipe gives the class name of every kind, including nested `P[1][5]` and a DynamicSpace; proxies to scalar, global, Space-valued and argument References; PandasData, ExcelRange and ModuleData by name; `None` for the 34 value types of minimal/m02, for views, nodes and Namespace objects, and for a user's own classes named `Model` and `Cells`; deleted and closed objects; attrdict `'type'` unchanged;
   - `core/space/dynamic_spaces/test_itemspace_repr.py`: `P[1]`, `P[1][5]`, `P[1].Child[2]`, `Q[1, 2]`, `N[]`, `MI[5]`, Cells inside them, and node reprs;
-  - `core/space/inheritance/test_tool_flags.py`: the `_is_dynamic` table on Model, UserSpaces including multiple inheritance, ItemSpace and DynamicSpace; the `_is_derived` table on static, derived, overriding and dynamic Cells and References; that Spaces and Models have no `_is_derived` class attribute (decision 4); a whole-model `_get_attrdict(['_is_derived', '_is_dynamic', '__len__', '_evalrepr'])` that does not raise;
+  - `core/space/inheritance/test_tool_flags.py`: the dynamic table (decisions 15, 16). The class of UserSpaces including multiple inheritance, ItemSpaces, nested items and DynamicSpaces, and that no class defines `_is_dynamic`, `_is_static` or `_is_root`. `DynamicCells` for the Cells of ItemSpaces, DynamicSpaces and nested items, and `Cells` elsewhere, derived Cells included. `DynamicReferenceProxy` for arguments, formula refs and an item's system bindings, and `ReferenceProxy` for Space, global and dynbase bindings seen through an item and for a pre-T5 slot, from all six proxy sites. `copy.copy` of both proxy classes works and keeps the class. `isinstance` against `Cells` and `ReferenceProxy` still True; attrdict `'type'` still `'Cells'` and `'Reference'`; `repr()` and `.info` name the new classes. The `_is_derived` table on static, derived, overriding and dynamic Cells and References; that Spaces and Models have no `_is_derived` class attribute (decision 4); a whole-model `_get_attrdict(['_is_derived', '_is_dynamic', '__len__', '_evalrepr'])` that does not raise;
   - `core/base/test_extattrs.py` (F11): a model with global References named `__len__`, `_is_derived`, `formula` and `parameters`, a Space Reference and a Cells named `argvalues`, and a Space formula returning a `_is_derived` ref. spyder's tree and Properties lists call nothing and emit no key from a member. The fixture and lifelib outputs are unchanged. `allow_none` still answers on a proxy, and a getter that raises AttributeError is skipped (fix-spyder-snapshot/s02, s03). A Space formula returning `{'refs': {1: 'one'}}`: the whole-model walk passes and the item's row lists its str refs (refute2/r14; fix-final/e05).
 
 **PR 3: References and inheritance (T4, T5, F2, F10)**
@@ -1228,7 +1313,7 @@ Each PR stands alone and keeps `test_spyder_surface.py` byte-identical.
     - equality and hash;
     - `_is_valid` by the container test on global, Space, derived, argument, formula-ref and system bindings; False after a rebind, a delete, an ItemSpace clear, and a rebind of the base of a derived copy (fix-used-by/u04); still False for an argument, a formula ref and a resolved slot after their ItemSpace is deleted and built again with the same arguments, by `del P[3]; P[3]`, by `clear_items()` and by a rebind (refute2/r08, r08b; fix-final/e03); a closed model's bindings documented as valid (e03);
     - `_refmodes`; ValueError for `'sideways'`, `None` and `42`;
-  - resolved slots (fix-reference-identity/g02, g06): `P[1].rel != P[2].rel != P.rel`; `_is_valid` is False after `del P[1]`, `clear_items` and a rebind; `r.parent.bases[0]._get_object(r.name, as_proxy=True)` is the binding; formula results and `len(tracegraph)` are unchanged; `_space.rel` works; the `P`/`PX` prefix case. The round trips through `_idstr` and `_address` are PR 4's;
+  - resolved slots (fix-reference-identity/g02, g06): a slot's proxy is a `DynamicReferenceProxy` (decision 15); `P[1].rel != P[2].rel != P.rel`; `_is_valid` is False after `del P[1]`, `clear_items` and a rebind; `r.parent.bases[0]._get_object(r.name, as_proxy=True)` is the binding; formula results and `len(tracegraph)` are unchanged; `_space.rel` works; the `P`/`PX` prefix case. The round trips through `_idstr` and `_address` are PR 4's;
   - F10: `set_ref` on a scalar Cells' name raises AttributeError; `Model.new_space` with a macro's name raises ValueError; `S.bases = 1` raises AttributeError;
   - `core/space/inheritance/test_get_inheritance.py`: the inheritance/i05 and i12 expectations and the i08 regression; scopes of `_` globals, `_` refs made by `new_space(refs=)`, arguments and formula refs; no system name is reported (fix-spyder-snapshot/s01).
 
@@ -1345,17 +1430,17 @@ def top(name):                                   # top-level: never mx.__getattr
 from modelx.core import errors as mxerrors       # a supported import path (decision 3)
 def err(name):                                   # exception and warning classes
     return getattr(mxerrors, name, None)
-KINDS = frozenset({'Model', 'UserSpace', 'ItemSpace', 'DynamicSpace', 'Cells',
-                   'Macro', 'Reference', 'IOSpec'})
-ADDRESSABLE = KINDS - {'IOSpec'}                 # an IOSpec has no _idstr and no _get_repr
-def kind(v):
-    k = getattr(type(v), '_kind', None)
-    if k in KINDS:
-        return k
-    if V034 or not (type(v).__module__ or '').startswith('modelx.'):
+IOSPECS = frozenset({'PandasData', 'ExcelRange', 'ModuleData'})
+DYNAMIC = frozenset({'ItemSpace', 'DynamicSpace', 'DynamicCells', 'DynamicReferenceProxy'})
+KINDS = frozenset({'Model', 'UserSpace', 'ItemSpace', 'DynamicSpace', 'Cells', 'DynamicCells',
+                   'Macro', 'ReferenceProxy', 'DynamicReferenceProxy'}) | IOSPECS
+ADDRESSABLE = KINDS - IOSPECS                    # an IOSpec has no _idstr and no _get_repr
+def kind(v):                                     # T1 (decision 14); the same on 0.33
+    t = type(v)
+    mod = t.__module__                           # not always a str (wrapt's ObjectProxy)
+    if not (isinstance(mod, str) and mod.startswith('modelx.')):
         return None                              # never a user's own class named Model
-    n = type(v).__name__                         # 0.33 fallback
-    return 'Reference' if n == 'ReferenceProxy' else (n if n in KINDS else None)
+    return t.__name__ if t.__name__ in KINDS else None
 def is_valid_name(name):                         # T13; on 0.33 a copy of util.py:51-61
     f = top('is_valid_name')
     if f is not None:
@@ -1368,11 +1453,11 @@ def is_valid_name(name):                         # T13; on 0.33 a copy of util.p
 
 | bridge code | ≥0.34 | works on 0.33 too |
 |---|---|---|
-| `_is_model`, `_is_reference` (methods.py:2681-2686); wire `kind` (495, 533, 656, 664, 800, 852, 1036, 1225, 2015) | `kind(v)`. `doc.get` then sends `'Reference'`, not `'ReferenceProxy'` | the fallback branch |
-| codec `_mx_ref` (codec.py:63-77) | An `mx` tag only when `kind(v) in ADDRESSABLE`. Any other value, an IOSpec included, stays `opaque` as today. This drops both `modelx.core` imports. mxcompat is imported after the `sys.modules` check (codec.py:65-67), so the codec still never imports modelx itself | the same rule, through the fallback |
+| `_is_model`, `_is_reference` (methods.py:2681-2686); wire `kind` (495, 533, 656, 664, 800, 852, 1036, 1225, 2015) | `kind(v)`, mapped before every comparison and every send: `'DynamicCells'` to `'Cells'` and `'DynamicReferenceProxy'` to `'ReferenceProxy'` (decision 15). That covers `doc.get` (533), `formula.get`, `cells.page` (1225), `formula.set`'s refusal (664) and the codec's `mx` tag (codec.py:71). The wire values then stay as they are; unmapped, the prototype sent `'DynamicCells'` and `'DynamicReferenceProxy'` and refused a dynamic Cells in `cells.page` (d15/proto). The Explorer's Cells and Reference rows already send literals (methods.py:2094, :2104) | the same; the recipe needs no version branch |
+| codec `_mx_ref` (codec.py:63-77) | An `mx` tag only when `kind(v) in ADDRESSABLE`. Any other value, an IOSpec included, stays `opaque` as today. This drops both `modelx.core` imports. mxcompat is imported after the `sys.modules` check (codec.py:65-67), so the codec still never imports modelx itself | the same rule |
 | Capability probes by a public name: `hasattr(parent, "set_ref")` (methods.py:778, 847); `getattr(target, "formula", None)` (491); `obj.parameters` in `_parameters` (2817-2821); `getattr(target, "node", None)` in `_make_node` (2852); `getattr(space, "cells", None)` (1032) | `has(obj, name)` first, then the member. On a Model, a name that is not a class attribute resolves a global Reference (model.py:595-596); on a Space it resolves a member (space.py:75-84) | the same. It needs no version branch |
-| `_is_dynamic` (methods.py:2617-2627) | `obj._is_dynamic()` | Spaces: `obj._is_dynamic()`; Cells: `obj.parent._is_dynamic()`. Fixes the ItemSpace false negative now |
-| `_derived` (methods.py:2726-2738); tree.get `derived` | Cells and References only: `_is_derived() and not _is_dynamic()`; `overrides` and `dynamic` from T4. A Space is never asked, and tree.get's Space entries drop `derived` (decision 4) | Cells as today, asked through `has()`. Never `getattr(space, 'is_derived')`, which finds and calls a member |
+| `_is_dynamic` (methods.py:2617-2627) | `kind(obj) in DYNAMIC` (decisions 15, 16) | Spaces: `kind(obj) in DYNAMIC`; Cells: `kind(obj.parent) in DYNAMIC`. Fixes the ItemSpace false negative now, without the Space flag decision 16 removes |
+| `_derived` (methods.py:2726-2738); tree.get `derived` | Cells and References only: `_is_derived()` and `kind(obj) not in DYNAMIC`; `overrides` from T4's state, `dynamic` from `kind(obj) in DYNAMIC` (T2). A Space is never asked, and tree.get's Space entries drop `derived` (decision 4) | Cells as today, asked through `has()`; `dynamic` and the inherited test use `kind(obj.parent) in DYNAMIC`, because on 0.33 a dynamic Cells is a `Cells` and its proxy a `ReferenceProxy` (d16check/probe2.py). Never `getattr(space, 'is_derived')`, which finds and calls a member |
 | `_ref_names` (methods.py:2741-2742) | `_get_inheritance()['refs']` scopes. Until 0.36 it still drops `_` names, because T4 reports a user's `_` global, `new_space(refs=)` Reference, argument or formula ref under its scope (C2(2)) | today's filter |
 | `_objid` (methods.py:2745-2749) | `obj._idstr`; drop the dead `namedid` fallback | same |
 | `_resolve`, `_lookup` (methods.py:2752-2778) | `model._get_from_name(obj, as_proxy=True)`, mapping `ObjectNotFoundError` to `not_found` | today's walk |
@@ -1389,9 +1474,9 @@ def is_valid_name(name):                         # T13; on 0.33 a copy of util.p
 | files.py:398-473, `backup_limit` (files.py:245-249) | `top('get_model_info')`: `name`, `backups`, `max_backups` | the heuristics |
 | samples.py:617-643 | `read_model(..., if_exists='error')` | **Stop closing a same-named model after a failed read on both versions**: it closes the user's model, because the snapshot already restored it (other/p03) |
 
-**Measured for this table.** Probes are in `fix-bridge-adoption/`. T1 is simulated by setting the `_kind` class attributes in the probe process.
+**Measured for this table.** Probes are in `fix-bridge-adoption/`. T1 was simulated by setting the `_kind` class attributes of the earlier design in the probe process. With decision 14 the codec reads class names; decision 15 adds `'DynamicCells'` and `'DynamicReferenceProxy'` on 0.34, which `ADDRESSABLE` includes.
 - **Codec** (b01). Over its static Spaces, simplelife holds 29 Reference values. 13 are ExcelRange: 8 in Input (s6models/simplelife_model/Input/__init__.py:7-47) and 5 in LifeTable, Economic and two Projection children. Tagging every kind except `None` raised `AttributeError: 'ExcelRange' object has no attribute '_idstr'` for all 13, and `value.get` of `Input.PolicyData` came back `internal`. With `ADDRESSABLE`, all 29 encoded byte for byte as today. So did a Model, UserSpace, ItemSpace, Cells, dynamic Cells, Macro, ReferenceProxy, ExcelRange and module.
-- **Foreign class names** (b01b). A fallback to `type(v).__name__` whenever `_kind` is absent broke a Reference that holds a user's own `class Model` or `class Cells`: `value.get` failed with `AttributeError: 'Model' object has no attribute '_idstr'`, on 0.33 and with T1 simulated. The module test and the 0.34 cut-off keep both values `opaque`, as today.
+- **Foreign class names** (b01b). A fallback to `type(v).__name__` whenever `_kind` is absent broke a Reference that holds a user's own `class Model` or `class Cells`: `value.get` failed with `AttributeError: 'Model' object has no attribute '_idstr'`, on 0.33 and with T1 simulated. The module test keeps both values `opaque`, as today; it is why decision 14 makes the module check part of T1's recipe.
 - **Capability probes** (b03). The Model held global References named `set_ref`, `formula`, `parameters` and `node`. Today:
   - `ref.set` of an unrelated global `rate` failed with `TypeError: 'int' object is not callable`, and `rate` kept its value (also critic_complete/c07);
   - `formula.get` of the Model returned a formula it does not have: `{"source": "lambda: 42", "kind": "Model", "parameters": ["a", "b"]}`;
@@ -1437,7 +1522,7 @@ modelx-mcp pins `modelx-bridge>=0.10.0,<0.11` (modelx-mcp/pyproject.toml:40) and
 - The resolver (tools.py:396-470, 563-595) maps `Space[k]` onto `_address` and `_get_from_name`, and stops constructing `__SpaceN` ids (tools.py:422). The LEAK checks in tests/checks.py:27-29 then pass by construction.
 - With F1 and the bridge's `_display` row, map.get's display of an ItemSpace stops being its `__SpaceN` name (inferred), so the workaround that prints the ref instead (tools.py:1314-1317) can go once `session.info`'s existing `modelx` field reports 0.34.
 - `formula_error_text` (tools.py:2338-2392) reads the bridge's new `formula_frames` (Protocol, above) when they are present. It names the gap from each frame's `i` and quotes the last frame's `text`. It parses `formula_traceback` only from bridge 0.10.0. mcp cannot read `FormulaError.traceback` itself: it sees only the wire.
-- `"(inherited)"` (tools.py:1075, 1187) keeps reading tree.get's `derived`, which the bridge computes as `_is_derived() and not _is_dynamic()` from 0.34 (its `_derived` row), and adds a per-Space roll-up from the new `overrides` and `dynamic` fields (T4).
+- `"(inherited)"` (tools.py:1075, 1187) keeps reading tree.get's `derived`, which the bridge computes as `_is_derived()` of an object that is not dynamic by T2's classes from 0.34 (its `_derived` row), and adds a per-Space roll-up from the new `overrides` field (T4) and `dynamic` field (T2's classes).
 - `trace` of a Reference (tools.py:2028-2032) answers from the bridge's `links.used_by` (Protocol, above) when `session.info.features` lists it, so readers in sub Spaces are listed under the defining Reference. Without the feature it keeps today's ToolError, which points to `get_formulas`. mcp never calls `_get_formula_links()` itself: it never imports modelx or the bridge (tools.py:3-7).
 - `run_python`'s change report (python_tool.py:73-181) uses `_get_revision()` and `_get_serial()`. Today it already diffs models by object, not by name (python_tool.py:86-92, 116, 161-164), which C2(3) makes a contract.
 - Its tests change with the bridge's: the impl-tuple walks in test_basicterm_s.py:586-609 and test_lifelib.py:102-104 (above).
@@ -1446,14 +1531,14 @@ modelx-mcp pins `modelx-bridge>=0.10.0,<0.11` (modelx-mcp/pyproject.toml:40) and
 
 All of these changes are additive. An un-updated plugin keeps working against 0.34 (inferred from the additive-keys rule and minimal/m01, m02). F11 alone leaves its payloads identical on ordinary models, and stops its tree walk from calling user members (s02, s03; the probes are listed in §3.5).
 - **Explorer tree** (`update_modeltree`, mxshell_6.py:364-367):
-  - On ≥0.34 the extattrs become `['_is_derived', '__len__', '_evalrepr', '_is_dynamic']`. All four are C3 wire names. `'_is_derived'` fills the blank "Is Derived" cells of References; Space rows stay blank, correctly (decision 4) (mxtreemodel.py:120-124).
-  - On 0.33 the list stays `['_is_derived', '__len__', '_evalrepr']`. `_is_dynamic` is not a Model class attribute there, so on the Model row it would resolve a global Reference of that name (s01), the same path that called a global `_is_derived` in s02. The three names spyder requests today already reach user members on a model with global References named `__len__` or `_is_derived` (s02: 28 calls in one walk). Only F11 closes that.
+  - On ≥0.34 the extattrs stay `['_is_derived', '__len__', '_evalrepr']`, all C3 wire names. `'_is_dynamic'` is not requested: no class defines it on 0.34 (decisions 15, 16). A Space row is dynamic when its `'type'` is `'ItemSpace'` or `'DynamicSpace'`, and a Cells row inside such a row is dynamic by that row. Reference rows cannot be told apart from the snapshot: an item's refs list its arguments beside the dynbase bindings it shares, such as `P[1].k`, all with `'type'` `'Reference'`. `'_is_derived'` fills the blank "Is Derived" cells of References; Space rows stay blank, correctly (decision 4) (mxtreemodel.py:120-124).
+  - On 0.33 the list is the same. Requesting `_is_dynamic` there would, without F11, resolve a global Reference of that name on the Model row (s01), the same path that called a global `_is_derived` in s02. The three names spyder requests today already reach user members on a model with global References named `__len__` or `_is_derived` (s02: 28 calls in one walk). Only F11 closes that.
   - `'argvalues'` is not requested, on any version (C3). Requested, it would call a Space Reference of that name, and one Space-valued argument would stop the whole tree from transferring (s02, s04).
   - The Parameters column of an ItemSpace row comes from `_evalrepr`, which the walk already requests. Override `getParams` in `ItemSpaceItem` (mxtreemodel.py:244-256): take the row's `_evalrepr`, cut off its parent Space row's `_evalrepr`, and drop the parentheses. That gives `'1'`, `"'x'"`, `'1, 2'` and `'<UserSpace S05.B>'`, and `'5'` for a nested item whose column-0 repr still reads `'__Space1[5]'` before F1 (s05: 1,060 of 1,060 rows). The parent Space row is `self.parent().parent()`, because an ItemSpaceMapItem sits between them (mxtreemodel.py:226-230, 259-264). This works on 0.33 too.
 - **Properties** (`update_mxproperty`, mxshell_6.py:331-334) and the Analyzer (mxshell_6.py:233-236) keep `['formula', '_evalrepr', 'allow_none', 'parameters']`; all four are C3 wire names.
   - For a Space, spymx's `mx_get_attrdict` (kernel.py:257-273) adds `'direct_bases'`, the idstrs of `obj._direct_bases`. On 0.33 it uses `obj.bases` for a dynamic Space instead (C3, s06). The kernel already post-processes payloads in `mx_get_value_info` (kernel.py:393-414).
   - The "Base Spaces" row (mxproperty.py:161-162, 175-176) then shows the direct bases. Today it shows `bases`, the MRO, so `Derived(Base1(Base0), Base2)` reads `Base1, Base0, Base2` (s04).
-- Replace the kernel's isinstance dispatch (kernel.py:159-199, 416-504) with `getattr(type(v), '_kind', None)`, keeping the version-gated imports for <0.34.
+- Replace the kernel's isinstance dispatch (kernel.py:159-199, 416-504) with T1's class-name check, taking `DynamicCells` as a Cells and `DynamicReferenceProxy` as a Reference. It works on 0.33 too, so the version-gated imports can go.
 - Fix the ItemSpace walk-up at kernel.py:176-177 (`parent = parent.parent`).
 - Properties, the Data viewer and the Analyzer store `_address` and resolve it with `model._get_from_name(addr, as_proxy=True)` instead of `__SpaceN` fullnames (mxproperty.py:358-362; dataview_plugin_6.py:224-226; mxanalyzer_6.py:684-710).
 - `update_mx_widgets` (mxshell_6.py:85-98) skips the re-read and the deep compare when no open model's `_get_revision()[:2]` moved. A save moves `saved`, and moves `values` only when it changes `model.path` and that clears a value computed from `_model.path`; the re-read then shows the cleared value (T8; refute2/r13). Today that costs 0.51 ms to 742 ms per execution.
@@ -1649,7 +1734,7 @@ It sees every call, because modelx calls `warnings.warn` through the module ever
 - **The model staging** (b07). As the job was written before, with only `lifelib.create`, there is no `models/` folder. test_lifelib then reported SKIPPED and the step exited 1, so the job is red for a reason that has nothing to do with modelx. With the `mkdir` and `mv` step, under `-eo pipefail` and the audit: test_lifelib passed 190, the mcp suites 1,165 in all, the step exited 0, and the audit file stayed empty. (The lifelib here was installed without `--no-compile`, so the staged folders also held `__pycache__`; test_lifelib passed regardless.)
 - **The pipe** (b07). The same two lines with a `run_all` that fails: under `bash -e`, which GitHub documents as the default for `run` without `shell`, the step exits 0; under `bash --noprofile --norc -eo pipefail`, what `shell: bash` runs, it exits 1.
 
-**Transition.** While the released bridge is 0.10.0, the job also gates modelx on that release's internal reads: `_impl.tracegraph`/`refgraph`, class names and `repr_parent()`. This is intended, and it ends when the adopted bridge ships.
+**Transition.** While the released bridge is 0.10.0, the job also gates modelx on that release's internal reads: `_impl.tracegraph`/`refgraph`, unlisted class names (`NullFormula` and impl classes) and `repr_parent()`. It also gates on modelx-mcp 0.1.0's exact tests of the listed name `'Cells'` (test_basicterm_s.py:591, :609; test_lifelib.py:104), which decision 15 breaks, so the mcp release with the `kind()` walk ships before 0.34. This is intended, and it ends when the adopted bridge and mcp ship.
 
 **Policy.** A red job blocks the release. A deliberate break ships a bridge release that handles it first.
 
@@ -1687,6 +1772,8 @@ It sees every call, because modelx calls `warnings.warn` through the module ever
 11. **No thread safety is promised.** Core state is unlocked (api.py:1469-1470) and the stamps are not atomic. Cold O(model) scans (6.6–76 ms for the T10 prototype, fix-used-by/u08) block Pyodide's single thread; T10's cache, with F3's code-object keys for global names and chains, brings a rebuild to 0.32–1.94 ms on CPython.
 12. **`id()` reuse in spyder's `'id'` key remains** (198 of 200), because a per-object uid is deferred (decision 8).
 13. **Every new class member reserves a name.** A new public member hides a user's member of that name from attribute access and `get_object` (T13). Until 0.36 a new underscore member also hides a user's `_` global, `_` Space Reference made by `new_space(refs=)`, `_` argument or `_` formula ref (§3.0). Formulas, F11's walk and T6's resolver still find the user's member. No lifelib model collides today: 0 of 5,347 member names (fix-validation-and-fixes/v02).
+14. **A frozen class name is deprecated without a warning** (decision 14). Nothing at run time tells a consumer that a listed name will change, and §8's audit, which records ToolAPIDeprecationWarning, cannot see it. The notice is toolapi.rst and the release notes, two minor releases ahead, and the downstream job is the gate.
+15. **Two names for a Cells and for a Reference** (decision 15). A tool that tests `kind(v) == 'Cells'` or `'ReferenceProxy'` misses the dynamic ones, silently; modelx-mcp 0.1.0's walk already does (§8). The recipe documents `{'Cells', 'DynamicCells'}` and `{'ReferenceProxy', 'DynamicReferenceProxy'}`.
 
 ### Measured (what, value, on what, probe)
 
@@ -1715,7 +1802,7 @@ Two later verifiers wrote `critic2/probes/` (k01–k07) and `refute2/` (r01–r1
 | Dynamic Cells doc / `is_cached` | AttributeError / NetworkXError | synthetic | final/f01 |
 | Lambda truncation | `'import os\nlambda x: os.sep'` stored as `'lambda x: os.sep'` | synthetic | final/f01 |
 | `get_traceback()` after the next run | `[]` | synthetic | final/f01 |
-| Costs (µs) | absent `_kind` 0.253; `_idstr` 0.910; full `_get_repr` 1.006; `_idtuple` 1.506; `len(tracegraph)` 0.217; Cells `_is_derived` 0.104; ItemSpace `_is_dynamic` 0.166 | CPython 3.11.15 | final/f01 |
+| Costs (µs) | absent `_kind` (the earlier T1) 0.253; `_idstr` 0.910; full `_get_repr` 1.006; `_idtuple` 1.506; `len(tracegraph)` 0.217; Cells `_is_derived` 0.104; ItemSpace `_is_dynamic` 0.166 (removed by decision 16) | CPython 3.11.15 | final/f01 |
 | Static links (T10 prototype), model-wide | uncached 6.6–76 ms; cached rebuild 0.32–1.94 ms; same links both ways; tracegraph unchanged | BasicTerm_S, CashValue_ME, simplelife, BasicTermASL_ME | fix-used-by/u02, u08 |
 | Used by across inheritance | `same(p, r)` alone misses 55 of 82 Reference and 319 of 496 Cells entries on BasicTermASL_ME, and 153 of 400 Cells entries on simplelife | lifelib models | fix-used-by/u02 |
 | 0.33 `get_referents` order | reports a child Space where a run reads a same-named global | synthetic | fix-used-by/u03 |
@@ -1741,7 +1828,9 @@ Two later verifiers wrote `critic2/probes/` (k01–k07) and `refute2/` (r01–r1
 | Argument or returned ref named like a Cells | accepted; proxy and Cells share `'P.__Space1.h'`; `_get_from_name` gives the Cells; 0 of 9 lifelib models | synthetic, lifelib | refute2/r11, r12 |
 | ReferenceProxy members by forwarding | `_idstr`, `_get_repr`, `_is_valid`, `_idtuple`, `doc`, `name`, `parent` not defined on the class | synthetic | critic2/k07 |
 | Underscore members on user-held classes | 55 non-dunder; 26 named nowhere in the previous revision, 18 nowhere in this one, all Formula, IOSpec or Cells helpers | 0.33 classes | critic2/k03; fix-final/k03 on this revision |
-| `_kind` lookup; foreign `_kind` | 0.078 µs; 0 of 34 common types | BasicTerm_S | minimal/m02 |
+| `_kind` lookup; foreign `_kind` (the earlier T1, before decision 14) | 0.078 µs; 0 of 34 common types | BasicTerm_S | minimal/m02 |
+| T1's class-name check (decision 14; measured before decision 15, when a dynamic Cells was a `Cells`) | 0.126–0.138 µs on modelx objects, 0.101–0.107 on others; `_kind` in the same harness 0.03 hit, 0.14 miss. Right for every kind, including ExcelRange, PandasData and ModuleData specs, nested items, a DynamicSpace, dynamic Cells, every kind of Reference proxy, deleted objects and a closed model's objects; `None` for user classes `Model` and `Cells`, a `__module__` of None, views, nodes, Namespace objects, a DataFrame, numpy scalars, an int and a module; identical answers on 0.33.0. Raises on a non-str `__module__` unless guarded | synthetic, `main` at 1b90682 and 4fa720f, CPython 3.11.15 | kindcheck/probe_names.py; kindcheck/names14/probe_t1.py, probe_edge.py |
+| T2's classes, prototyped (decision 15) | right class at all six proxy sites and for Cells in items, DynamicSpaces and nested items; suite 1568 passed, 3 failed (QuantLib, test_repr.py:74 and test_cells_info.py:31; decision 15); spyder snapshots, signature golden, contracts and pickling unchanged; bridge 835 passed; mcp test_basicterm_s 2 checks fail; proxy creation 0.09 → 0.20–0.25 µs | synthetic, BasicTerm_S | d15/proto, d15/whole-doc |
 | E2 recipes on 0.33 | 0 of 739 Cells, 0 of 179 refs mismatched | 5 models | minimal/m06 |
 | `_idtuple` walk | 62 of 62, nothing created | synthetic | minimal/m03 |
 | Address round trip | 11 of 11 literal cases; build 7.5 µs, resolve 16.1 µs | synthetic | itemspaces_dynamic/p08 |
@@ -1790,10 +1879,29 @@ Each was measured on 0.33.0 while writing the "API for tools" page and its tests
 | After a failed v4–v8 read, the open models are restored but their order is not | PR 7 (F8) |
 | doc/source/samples/sample_inheritance.py, which the API tutorial includes, does not run on 0.33 | a docs follow-up outside this plan |
 
+### Found while implementing PR 2 (2026-10-18)
+
+Each was measured on the branch, on CPython 3.11.15 unless it says otherwise, against 10188ae or the commit before the stage. The commit messages of bac9baa–b7f260f carry the probes' numbers.
+
+| what | picked up by |
+|---|---|
+| `copy.copy` of any ReferenceProxy gave a proxy whose `_impl` was the tuple `(None, {'_impl': impl})`, so its `.value` raised AttributeError. On 3.10.20 it worked: from 3.11, `object.__getstate__` is found before the proxy's `__getattr__` forwarding | fixed in PR 2 (T2: `ReferenceProxy.__getstate__` and `__setstate__`) |
+| `_get_repr(add_params=False)` gave the `__SpaceN` name of every ItemSpace, not only of nested ones (`P[1]` → `'Syn.__Space1'`), and for `P[1][5]` it gave `'Syn.__Space2'`, which left out `P[1]`. F1 also changes the `_input_log.txt` of `write_model(..., log_input=True)` for inputs in an item of an item, which builds its names that way | fixed in PR 2 (F1) |
+| A global Reference, or a ref a Space formula returns, named `''` made the whole-model walk, the `refs` dicts and `_baseattrs` raise IndexError (`name[0]`) | fixed in PR 2 (the `refs` view, with F11); decision 9 refuses a `''` global (PR 4) |
+| `P[1].relc` for `P.relc = P.h`, a slot holding the item's copy of a Cells, answered `is_derived()` True; with T3's alias and its guard it answers None, like the other slots that hold an item's copy | PR 3 (T5 makes these True) |
+| The `'value_type'` of a Reference whose value is a dynamic Cells is now `'DynamicCells'`, by T2, because it is `type(proxy.value).__name__`. §5 did not list it. On simplelife: 20 records of the tree list, 10 of the Properties list and 60 of `_baseattrs` | the 0.34 release notes (PR 2) |
+| In the prefix case (`P.r = PX`) the dicts of `P[1]`, its `refs` view and the Model still raise AttributeError, but the message is `'NoneType' object has no attribute 'name'`, not `'interface'`, and `P[1].refs._baseattrs_private` raises it where it raised RuntimeError | PR 3 (T5's `wrap_impl` boundary) |
+| `DynamicSpaceImpl.wrap_impl` calls `value.direct_bases[0]` on a ReferenceImpl, which has no `direct_bases`. One probe did not reach the line, because the Reference resolved as absolute | PR 3 (T5's `wrap_impl`) |
+| `SpaceGraph.max_index` reads a name that is not a node as its characters, as `ordered_preds` did: `max_index('P.__Space1') == 2` on a graph built alone. Its two callers (NewSpace.validate, AddBases.validate) add or check the node first, so nothing reaches it | not changed |
+| F6 also changes the impl-level `bases` of dynamic Cells and References, which `get_deriv_bases` reads from the parent's MRO: `P[1].h._impl.bases` was `[Base1.h, B.h]` and is `[]`. No tool-API or public member reads it | internal; nothing to do |
+| The `Interface.info` docstring's ItemSpace example printed `bases: []` and no `parameters` line, where modelx prints `bases: [Model1.Space1]` and `parameters: i, j=0` | fixed in PR 2 (the documentation commit) |
+| A formula given as a lambda made modelx parse the whole source file that defines it, about 0.12 s per formula in a long test file (cProfile: asttokens). PR 2's new tests give formulas as source text: test_kind.py took 22 s with lambdas and takes 0.5 s | outside this plan |
+| The 0.34 release notes have no entry yet for PR 1's "API for tools" page, and no "Tool API" section (§6, "Release notes") | before the 0.34 release |
+
 ### Not measured
 
 - **Pyodide:** every timing above is CPython. Pyodide's speed, the T14 callback polling Pyodide's interrupt buffer, and Pyodide 314's bytecode (inferred equal to CPython 3.14.8's).
-- **Real implementations:** T5's resolved slots, T6's resolver, T8's bump points, T10's links, F8 and F11 exist only as prototypes patched into a probe process (fix-reference-identity/g02–g07, fix-revision-counter/proto_t8.py, fix-used-by/t10proto.py, fix-validation-and-fixes/v10, fix-spyder-snapshot/s02–s03). T10's chain resolution cost was measured on four lifelib models (u08), and simplelife resolved 45 of 45 listed chains (u02). Its agreement with run-time reads was not measured. T8's snapshot restore (fix-final/e01), F11's RefView skip (e05) and the `same` recipe (e02) were patched in the same way. Decision 9's checks were not prototyped: e04 measured only which routes reach their sites and that the reader runs with `System.serializing` set. The bridge's `links.used_by` was not prototyped.
+- **Real implementations:** T5's resolved slots, T6's resolver, T8's bump points, T10's links and F8 exist only as prototypes patched into a probe process (fix-reference-identity/g02–g07, fix-revision-counter/proto_t8.py, fix-used-by/t10proto.py, fix-validation-and-fixes/v10). T2's classes and F11, which were prototypes too (d15/proto; fix-spyder-snapshot/s02–s03), are implemented in PR 2, with T1, T3, T7, F1 and F6, and their tests run in the suite. T10's chain resolution cost was measured on four lifelib models (u08), and simplelife resolved 45 of 45 listed chains (u02). Its agreement with run-time reads was not measured. T8's snapshot restore (fix-final/e01) and the `same` recipe (e02) were patched in the same way; F11's RefView skip (e05) is implemented in PR 2. Decision 9's checks were not prototyped: e04 measured only which routes reach their sites and that the reader runs with `System.serializing` set. The bridge's `links.used_by` was not prototyped.
 - **F8 on real pre-0.9 models:** only minimal hand-written v1–v3 models were tried. References, data files and `_method` calls in those formats were not.
 - **All changes together:** each change was checked against `test_spyder_surface.py` separately, in process. The combined suite was not run, because pytest is not installed here. T5's effect on RefView output for relative refs inside ItemSpaces is inferred to leave the spyder fixture unchanged, because the fixture has none.
 - **Python 3.9** (in modelx's CI matrix): the `ObjectNotFoundError` layout and chain extraction.

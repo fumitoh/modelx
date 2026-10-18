@@ -133,20 +133,36 @@ it stands for::
   none of the ways to create one takes a docstring,
   and assigning to ``doc`` raises :obj:`AttributeError`.
 
-In an ItemSpace, a Reference of its Space whose value is the Space
-itself, or a Cells or a Space inside it, and whose
-:attr:`~ReferenceProxy.refmode` is not ``'absolute'``,
+An ItemSpace is a copy of the Space it is made from, its ``bases[0]``:
+the Space whose formula makes it, or the Space that the formula returns
+as ``'base'``. Take that Space, ``B``.
+In the ItemSpace, and in the DynamicSpaces in it,
+a Reference of ``B`` or of a Space inside ``B``
+whose :attr:`~ReferenceProxy.refmode` is not ``'absolute'``
+and whose value is ``B`` itself, or a Space or a Cells inside ``B``,
 refers to the ItemSpace's own copy of that value:
 when ``Space1.rel`` is ``Space1.Child``, ``Space1[1].rel`` is
-``Space1[1].Child``.
+``Space1[1].Child``,
+and when ``Space1.Child.up`` is ``Space1``, ``Space1[1].Child.up`` is
+``Space1[1]``.
+A Reference whose value is outside ``B`` refers to that value, as it
+does in ``B``. So when ``Space1.Child`` has a formula,
+``Space1[1].Child[2]`` is made from ``Space1.Child``,
+and its ``up`` refers to ``Space1``.
+modelx tells whether a value is inside ``B`` by its full name, which
+makes a Space outside ``B`` whose full name begins with that of ``B``
+a known limitation (see :ref:`the note on such References
+<toolapi-prefix-ref>`).
 
 .. admonition:: Known limitation
 
    For such a Reference, the ReferenceProxy that
-   :func:`~modelx.get_object` returns through the ItemSpace
+   :func:`~modelx.get_object` returns through the ItemSpace,
+   or through a DynamicSpace in it,
    stands for the copy, not for the Reference:
    its :attr:`~ReferenceProxy.name`, :attr:`~ReferenceProxy.fullname`
    and :attr:`~ReferenceProxy.parent` are those of ``Space1[1].Child``,
+   or of ``Space1[1]`` for ``up``,
    and :attr:`~ReferenceProxy.refmode` raises :obj:`AttributeError`.
    This is not part of the frozen contract (see :ref:`toolapi-tiers`)
    and may change.
@@ -193,3 +209,10 @@ those References: when the value is not a modelx object,
 the model that :func:`~modelx.read_model` reads back gives the Reference
 the mode ``'auto'``, whatever mode it was created with.
 
+
+DynamicReferenceProxy
+---------------------
+
+.. currentmodule:: modelx.core.reference
+
+.. autoclass:: DynamicReferenceProxy

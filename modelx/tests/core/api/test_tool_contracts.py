@@ -38,12 +38,15 @@ result.
 * The 0.33 fallback recipes: resolving an ``_idtuple`` with
   ``node(*args).has_value()``/``.value``, which creates nothing, and the
   inheritance state of Cells and the scope of References computed from
-  the tool API alone, against tables written out by hand.
+  the tool API alone, against tables written out by hand.  They tell a
+  dynamic Space by its class name, T1's recipe (``kind`` from
+  test_kind.py), which works on 0.33 too; 0.34 removed the Space flags
+  ``_is_dynamic()``, ``_is_static()`` and ``_is_root()`` (decision 16).
 * Frozen S1 and S2 members whose behaviour no other test checks:
   ``Model._get_from_name`` resolves every Space and Cells from its
-  ``_idstr``, ``_is_dynamic()``, ``_is_static()`` and ``_is_root()``
-  tell the kinds of Space apart, and in an ItemSpace or a DynamicSpace
+  ``_idstr``, and in an ItemSpace or a DynamicSpace
   ``_own_refs`` holds only the refs that the Space formula returned.
+  T1's recipe tells the kinds of Space apart on the same fixtures.
   What ``_get_from_name`` raises for a name it does not find is a known
   limitation, and is not checked.
 
@@ -63,6 +66,7 @@ import warnings
 import pytest
 
 import modelx as mx
+from modelx.tests.core.base.test_kind import kind
 from modelx.tests.testdata.serializer_compat import fixturemodel
 
 
@@ -908,15 +912,24 @@ def test_idtuple_walk_misses_create_nothing(inheritance_model):
 # --------------------------------------------------------------------------
 # 0.33 fallback recipes: inheritance state of Cells, scope of References
 
+DYNAMIC_SPACES = frozenset({"ItemSpace", "DynamicSpace"})
+
+
+def is_dynamic_space(space):
+    """True for an ItemSpace or a DynamicSpace, by T1's recipe."""
+    return kind(space) in DYNAMIC_SPACES
+
+
 def static_space(space):
     """The static Space whose members ``space`` has: ``space`` itself, or
     for an ItemSpace or a DynamicSpace its only base."""
-    return space.bases[0] if space._is_dynamic() else space
+    return space.bases[0] if is_dynamic_space(space) else space
 
 
 def member_is_derived(obj):
-    """``_is_derived()`` where the class defines it (Cells); the 0.33
-    ``is_derived()`` of a ReferenceProxy otherwise."""
+    """``_is_derived()`` where the class defines it: Cells, and from 0.34
+    both proxy classes (T3); otherwise, on 0.33, ``is_derived()`` of a
+    ReferenceProxy, which 0.34 keeps as an alias (decision 11)."""
     if getattr(type(obj), "_is_derived", None) is not None:
         return obj._is_derived()
     return obj.is_derived()
@@ -950,8 +963,8 @@ def argument_names(space):
     """Names of the ItemSpace arguments a dynamic Space sees: those of
     each ItemSpace from ``space`` up, from its parent's ``parameters``."""
     names = []
-    while space._is_dynamic():
-        if space._is_root():
+    while is_dynamic_space(space):
+        if kind(space) == "ItemSpace":
             names.extend(n for n in space.parent.parameters
                          if n not in names)
         space = space.parent
@@ -978,7 +991,7 @@ def refs_recipe(space):
     static Space's ``_own_refs``.
     """
     static = static_space(space)
-    dynamic = space._is_dynamic()
+    dynamic = is_dynamic_space(space)
     args = argument_names(space) if dynamic else []
     result = {}
     for name in space.refs:
@@ -1130,7 +1143,8 @@ def test_ref_scope_recipe(any_model):
     """0.33 fallback (design minimal/m06): the scope of every name in a
     Space's ``refs``, and the state of the Space's own References,
     computed from ``refs``, ``_own_refs``, ``bases``, ``parameters``,
-    ``_is_dynamic()``, ``_is_root()`` and ``is_derived()``. A ref that a
+    the class names of the Spaces and ``_is_derived()``, which is
+    ``is_derived()`` on 0.33 (``member_is_derived``). A ref that a
     Space formula returns is in the ItemSpace's ``_own_refs``, and a
     DynamicSpace reports the References of its static Space."""
     name, m = any_model
@@ -1140,17 +1154,20 @@ def test_ref_scope_recipe(any_model):
 
 def test_cells_dynamic_recipe(any_model):
     """0.33 fallback (design T2, minimal/m06): a Cells is dynamic exactly
-    when its parent Space's ``_is_dynamic()`` is True, that is, when it
-    is in an ItemSpace or in a DynamicSpace inside one, and a dynamic
-    Cells is derived."""
+    when its parent Space is an ItemSpace or a DynamicSpace by class
+    name, that is, when it is in an ItemSpace or in a DynamicSpace inside
+    one, and a dynamic Cells is derived. From 0.34 the Cells' own class
+    says the same: ``DynamicCells`` (decision 15)."""
     name, m = any_model
     seen = 0
-    for space, kind in iter_spaces_by_kind(m):
+    for space, reached in iter_spaces_by_kind(m):
         for c in space.cells.values():
             seen += 1
             assert c.parent is space
-            assert c.parent._is_dynamic() is (kind != "user"), c
-            if kind != "user":
+            assert is_dynamic_space(c.parent) is (reached != "user"), c
+            assert kind(c) == (
+                "Cells" if reached == "user" else "DynamicCells"), c
+            if reached != "user":
                 assert c._is_derived(), c
     assert seen
 
@@ -1158,18 +1175,25 @@ def test_cells_dynamic_recipe(any_model):
 # --------------------------------------------------------------------------
 # S1 and S2 members whose signatures alone the surface golden pins
 
-def test_space_kind_flags(any_model):
-    """``_is_dynamic()`` is True for an ItemSpace and a DynamicSpace and
-    False for a UserSpace, ``_is_static()`` is always its negation, and
-    ``_is_root()`` is True only for an ItemSpace, including an ItemSpace
-    of a DynamicSpace."""
+SPACE_KIND = {"user": "UserSpace", "item": "ItemSpace",
+              "dynamic": "DynamicSpace"}
+
+
+def test_space_kinds(any_model):
+    """T1's recipe gives ``'UserSpace'`` for a Space reached through
+    ``spaces`` outside any ItemSpace, ``'ItemSpace'`` for one reached
+    through ``_named_itemspaces``, including an ItemSpace of a
+    DynamicSpace, and ``'DynamicSpace'`` for one reached through
+    ``spaces`` inside an ItemSpace. These are the answers of the Space
+    flags ``_is_dynamic()``, ``_is_static()`` and ``_is_root()``, which
+    0.34 removed (decision 16), and no Space class defines them."""
     name, m = any_model
     kinds = list(iter_spaces_by_kind(m))
     assert kinds
-    for space, kind in kinds:
-        assert space._is_dynamic() is (kind != "user"), space
-        assert space._is_static() is (not space._is_dynamic()), space
-        assert space._is_root() is (kind == "item"), space
+    for space, reached in kinds:
+        assert kind(space) == SPACE_KIND[reached], space
+        for flag in ("_is_dynamic", "_is_static", "_is_root"):
+            assert getattr(type(space), flag, None) is None, (space, flag)
 
 
 def test_own_refs_in_dynamic_spaces(inheritance_model):
