@@ -155,9 +155,11 @@ and its ``up`` refers to ``Space1``.
 modelx tells whether a value is inside ``B`` by its full name:
 ``B`` itself, or a name that begins with the full name of ``B``
 followed by a dot.
-So a Space ``Space1X`` beside ``Space1`` is outside ``Space1``,
-and so is an ItemSpace of a Space inside ``B``, such as
-``Space1.Child[3]``, because no ItemSpace has a copy of it.
+So a Space ``Space1X`` beside ``Space1`` is outside ``Space1``.
+A value inside ``B`` that the ItemSpace has no copy of,
+such as ``Space1.Child[3]``, an ItemSpace of a Space inside ``B``,
+which no ItemSpace copies, is referred to as it is in ``B``,
+whatever the :attr:`~ReferenceProxy.refmode` of the Reference.
 
 For each Reference that refers to the ItemSpace's own copy of its value,
 the ItemSpace, or the DynamicSpace in it whose Space holds the

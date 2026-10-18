@@ -211,7 +211,8 @@ Backward Incompatible Changes
   and after ``space.x = 2``, after the Space of the Reference was
   deleted, and after the ItemSpace that made the Reference, such as an
   argument, was deleted, by ``del``, by ``clear_items()``, or by an edit
-  such as binding a Reference of its Space or any global Reference again.
+  such as binding a Reference of its Space or of a base of it, or any
+  global Reference, whether new or bound again.
   ``repr()`` of such a proxy shows a null object, as for a deleted Cells:
   ``<ReferenceProxy null object>`` or
   ``<DynamicReferenceProxy null object>``, where it showed the
@@ -249,8 +250,10 @@ Backward Incompatible Changes
   ``Proj.me = Proj``, ``parent`` changes too: it was ``Proj`` and is
   ``Proj[1]``, and ``name`` was the ``__SpaceN`` name of the ItemSpace.
   For a value that is a Cells, such as ``Proj.relc = Proj.Child.w``,
-  ``name`` was ``'w'`` and ``_get_repr()`` ``'w()'``, and
-  ``is_derived()`` was :obj:`True`.
+  ``name`` was ``'w'``, ``_get_repr()`` ``'w()'`` and ``parent``
+  ``Proj[1].Child``, and ``is_derived()`` was :obj:`True`.
+  In each case, ``parent`` was the parent of the copy, and is the
+  ItemSpace, or the DynamicSpace in it whose Space holds the Reference.
   The record of such a Reference in the ``'refs'`` of the dicts of
   ``_get_attrdict`` and ``_baseattrs`` changes in the same way:
   its ``'id'``, ``'name'``, ``'fullname'``, ``'repr'`` and ``'namedid'``
@@ -263,9 +266,12 @@ Backward Incompatible Changes
   and changes nothing. Before, it stored any mode, such as
   ``'sideways'``, :obj:`None` or ``42``, and for a Reference to a Cells
   or a Space such a mode made the creation of a sub Space fail later
-  with ``ValueError: must not happen``.
+  with ``ValueError: must not happen``, and, when the value was outside
+  the Space, the creation of any ItemSpace of the Space fail with
+  :class:`~modelx.core.errors.FormulaError` from
+  ``RuntimeError: must not happen``.
   :func:`~modelx.read_model` does not check the mode, so a model saved
-  with such a mode still reads.
+  with such a mode still reads, and fails in the same ways.
 
 * :meth:`UserSpace.set_ref <modelx.core.space.UserSpace.set_ref>`,
   :meth:`~modelx.core.space.UserSpace.absref` and

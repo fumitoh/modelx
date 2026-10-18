@@ -361,7 +361,8 @@ with other parameters.
     ``_idstr``, from whichever Space the proxy was obtained,
     and a Reference that an ItemSpace makes, such as an argument
     or a :ref:`resolved slot <toolapi-resolved-slots>`,
-    has the ``_idstr`` of the ItemSpace followed by its name.
+    has the ``_idstr`` of its parent, the ItemSpace or the DynamicSpace
+    in it, followed by its name.
     The ``'namedid'`` key of :ref:`attrdicts <toolapi-wire>` holds it.
 
     >>> [obj._idstr for obj in (m, base, foo, item, item.bar, item.Child)]
@@ -546,7 +547,8 @@ with other parameters.
     turn :obj:`False` when the ItemSpace is deleted:
     by ``del``, by ``clear_items()``, or by an edit that deletes
     the ItemSpaces of its Space, such as binding a Reference of that
-    Space, or any global Reference, again.
+    Space or of a base of it, or any global Reference,
+    whether the Reference is new or bound again.
     They stay :obj:`False` when an ItemSpace with the same arguments
     is made again, because the new ItemSpace makes References of its own,
     and their proxies are not equal to the old ones.
@@ -978,8 +980,8 @@ What a kind can do
          - ``'Model'`` and ``'UserSpace'``.
            An ItemSpace and a DynamicSpace take none,
            and a UserSpace, not a Model, takes new Cells.
-           A name that the parent already uses for another kind of member
-           is refused, and nothing is changed:
+           These routes refuse a name that the parent already uses
+           for another kind of member, and change nothing:
            :meth:`~modelx.core.space.UserSpace.set_ref`,
            ``absref`` and ``relref`` raise :obj:`AttributeError`
            for the name of a Cells of the UserSpace, defined or
@@ -987,6 +989,11 @@ What a kind can do
            and in a Model, ``new_space``, and ``rename`` and ``copy``
            of a Space into it, raise :obj:`ValueError`
            for the name of a Macro.
+           ``add_bases`` checks no names, so a Cells or a Reference
+           that a UserSpace inherits can have the name of a member
+           of the other kind,
+           and assigning to an attribute, as in ``space.a = 3``,
+           sets the input of a Cells ``a`` with no parameters.
            Assigning to a read-only property of a Model or a UserSpace,
            such as ``name`` or ``bases``, raises :obj:`AttributeError`.
        * - The Space that created an ItemSpace
@@ -1446,7 +1453,12 @@ Equality and hash
        ``set_ref`` raises :obj:`ValueError` for a mode not in
        ``_refmodes``. Before, it stored any mode, and a Reference
        to a Cells or a Space with such a mode made the creation of
-       a sub Space fail later with ``ValueError: must not happen``.
+       a sub Space fail later with ``ValueError: must not happen``,
+       and, when the value was outside the Space, the creation of
+       any ItemSpace of the Space fail with
+       :class:`~modelx.core.errors.FormulaError`
+       from ``RuntimeError: must not happen``.
+       A model read with such a mode fails in the same ways.
 
 .. _toolapi-resolved-slots:
 

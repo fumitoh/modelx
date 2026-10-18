@@ -1709,7 +1709,10 @@ class UserSpace(BaseSpace, EditableParent):
             An invalid ``refmode`` raises :obj:`ValueError`, as documented.
             Before, it was stored, and when the value was a Cells or a
             Space, making a sub Space of the Space then failed with
-            ``ValueError: must not happen``.
+            ``ValueError: must not happen``, and when the value was
+            outside the Space, so did making any of its ItemSpaces,
+            with :class:`~modelx.core.errors.FormulaError` from
+            ``RuntimeError: must not happen``.
 
         .. versionchanged:: 0.34.0
             The name of a Cells or a child Space raises
