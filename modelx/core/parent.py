@@ -88,7 +88,12 @@ class EditableParent(BaseParent):
         if hasattr(type(self), name):
             attr = getattr(type(self), name)
             if isinstance(attr, property):
-                if hasattr(attr, 'fset'):
+                # Every property has an fset attribute, None without a
+                # setter: on 0.33 the hasattr test passed for all 23
+                # read-only properties of UserSpace and all 16 of Model,
+                # and assigning to one raised TypeError, 'NoneType' object
+                # is not callable.
+                if attr.fset is not None:
                     attr.fset(self, value)
                 else:
                     raise AttributeError("%s is read-only" % name)
@@ -115,6 +120,12 @@ class EditableParent(BaseParent):
 
         Returns:
             The new child space.
+
+        .. versionchanged:: 0.34.0
+            In a Model, the name of a macro raises :obj:`ValueError`, as
+            the name of a Space or a global Reference does. Before, the
+            Space was made and hid the macro. Without ``name``, the
+            automatic name skips a macro's name.
         """
         space = self._impl.model.currentspace = self._impl.model.updater.new_space(
             self._impl,

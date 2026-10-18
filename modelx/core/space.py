@@ -993,6 +993,11 @@ class UserSpace(BaseSpace, EditableParent):
 
         See Also:
             * :meth:`rename`: Rename a space in place
+
+        .. versionchanged:: 0.34.0
+            In a Model, the name of a macro raises :obj:`ValueError`, as
+            the name of a Space or a global Reference does. Before, the
+            copy was made and hid the macro.
         """
         return self._impl.model.updater.copy_space(
             parent._impl, self._impl, name, defined_only).interface
@@ -1039,6 +1044,11 @@ class UserSpace(BaseSpace, EditableParent):
             * :meth:`copy`: Create a copy with a different name
 
         .. versionadded:: 0.16.0
+
+        .. versionchanged:: 0.34.0
+            In a Model, the name of a macro raises :obj:`ValueError`, as
+            the name of a Space or a global Reference does. Before, the
+            Space was renamed and hid the macro.
         """
         self._impl.spmgr.rename_space(self._impl, name)
 
@@ -1660,7 +1670,10 @@ class UserSpace(BaseSpace, EditableParent):
             refmode (str): Reference mode - must be "auto", "absolute", or "relative".
 
         Raises:
-            AttributeError: If ``name`` conflicts with an existing attribute
+            AttributeError: If ``name`` conflicts with an existing attribute:
+                an attribute of the class, a Cells of this Space,
+                defined or inherited, or a child Space of this Space.
+                Nothing is changed then.
             ValueError: If ``refmode`` is not a valid mode, one of
                 ``ReferenceProxy._refmodes``. Nothing is changed then.
 
@@ -1696,6 +1709,14 @@ class UserSpace(BaseSpace, EditableParent):
             Before, it was stored, and when the value was a Cells or a
             Space, making a sub Space of the Space then failed with
             ``ValueError: must not happen``.
+
+        .. versionchanged:: 0.34.0
+            The name of a Cells or a child Space raises
+            :obj:`AttributeError`, as documented. Before, the name of a
+            Cells with no parameters set that Cells' input and made no
+            Reference, and the name of a child Space raised
+            :obj:`ValueError`. Assigning to the attribute,
+            ``space.name = value``, still sets the Cells' input.
         """
         # Not while a model is read: a reader passes the mode its file holds.
         # The readers of serializer versions 4-7 pass the third element of
@@ -1714,8 +1735,24 @@ class UserSpace(BaseSpace, EditableParent):
                    refmode))
         if hasattr(type(self), name):
             raise AttributeError("'%s' is already defined" % name)
-        else:
-            self._impl.set_attr(name, value, refmode=refmode)
+        # set_attr gives a member's name to the member: on 0.33,
+        # set_ref('a', 3, 'auto') on a Cells with no parameters set its
+        # input and made no Reference, and a child Space's name raised a
+        # ValueError with no message. Not while a model is read either:
+        # 0.33 saves a Reference whose name a Cells of a base also has
+        # (S.c = Other, then S.add_bases(B) with Cells B.c), and its
+        # reader restores a Reference to a modelx object with set_ref,
+        # which sets the Cells' input. With the check, the file failed
+        # to read with this AttributeError.
+        impl = self._impl
+        if not impl.system.serializing:
+            if name in impl.cells:
+                raise AttributeError(
+                    "'%s' is already defined as a Cells" % name)
+            if name in impl.spaces:
+                raise AttributeError(
+                    "'%s' is already defined as a Space" % name)
+        impl.set_attr(name, value, refmode=refmode)
 
 
     def __delattr__(self, name):
