@@ -238,7 +238,8 @@ class ReferenceProxy:
                 the value (see :ref:`reference-proxy-identity`); and on
                 a proxy got through an ItemSpace for a Reference to a
                 Space whose name begins with the name of the Space, such
-                as ``PX`` for ``P`` (see :ref:`toolapi-wire`).
+                as ``PX`` for ``P`` (see :ref:`the note on such
+                References <toolapi-prefix-ref>`).
                 These are known limitations, not part of the frozen
                 contract, and may change.
 
@@ -277,7 +278,7 @@ class ReferenceProxy:
         :ref:`reference-proxy-identity`), and for a proxy got through an
         ItemSpace for a Reference to a Space whose name begins with the
         name of the Space, such as ``PX`` for ``P`` (see
-        :ref:`toolapi-wire`).
+        :ref:`the note on such References <toolapi-prefix-ref>`).
         Which proxies these are is a known limitation, not part of the
         frozen contract, and may change.
 

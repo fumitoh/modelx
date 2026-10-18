@@ -193,3 +193,10 @@ those References: when the value is not a modelx object,
 the model that :func:`~modelx.read_model` reads back gives the Reference
 the mode ``'auto'``, whatever mode it was created with.
 
+
+DynamicReferenceProxy
+---------------------
+
+.. currentmodule:: modelx.core.reference
+
+.. autoclass:: DynamicReferenceProxy

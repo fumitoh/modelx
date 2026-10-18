@@ -52,26 +52,28 @@ That is why modelx-bridge pins `modelx>=0.33.0,<0.34` (modelx-bridge/pyproject.t
 4. **The tool API that is not frozen** may change or be removed in any release, with a note in the release notes.
 5. **Freezing starts at 0.34.0,** the first release with the page.
 
-Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) made `Cells.values()` and `Cells.items()` read each value by its stored key. That took them out of the Known limitation under "Value operations" in cells.rst, which now describes the key lookups that read a tuple as all the arguments, and `*args` Cells. Two older defects found on the way are filed as fumitoh/modelx#282 (a formula with `*args` receives its arguments wrapped in an extra tuple) and fumitoh/modelx#283 (`series`, `frame` and `to_series(args)` with tuple arguments). PR 2 is next.
+Outside the plan, fumitoh/modelx#281 (merged 2026-10-12, merge commit 1b90682) made `Cells.values()` and `Cells.items()` read each value by its stored key. That took them out of the Known limitation under "Value operations" in cells.rst, which now describes the key lookups that read a tuple as all the arguments, and `*args` Cells. Two older defects found on the way are filed as fumitoh/modelx#282 (a formula with `*args` receives its arguments wrapped in an extra tuple) and fumitoh/modelx#283 (`series`, `frame` and `to_series(args)` with tuple arguments).
+
+PR 2 (T1, T2, T3, T7, F1, F6, F11) is implemented on the branch `claude/stoic-bardeen-qpv3a0`, not yet merged, in six commits on 10188ae (2026-10-18): bac9baa (T2, with T1's tests and golden), 73630b6 (T3 and decision 11's alias), 00a86ae (F1, T7), f1f63ed (F6), b7f260f (F11, decision 13, and the snapshot-wire rows of §9 assigned to PR 2), and the documentation commit after them (toolapi.rst, the release notes, this progress record). The full suite gives 1,864 passed, 8 skipped and 1 failed on CPython 3.11.15, against 1,570 passed at 10188ae; the failure is the same in both, `export/test_lifelib.py::test_assets`, which needs QuantLib. Decisions 11 and 13 are implemented as recommended and await the owner's approval; decisions 14–16 are implemented as decided. What PR 2 found is in §9, "Found while implementing PR 2". PR 3 is next.
 
 | decision | settled in | status |
 |---|---|---|
 | 1. How the contract is written down | PR 1 (reference page, signature golden); PR 9 (downstream CI job) | **approved 2026-10-10**, with one change: PR 1's page covers only what exists today, and each later PR adds its own section |
 | 2. Deprecation signal and rule | PR 1 (the rule, on the reference page); PR 4 (the warning class); PR 9 (the audit) | **approved 2026-10-10** |
 | 3. Where the new names live | PR 4 (T12) | **decided 2026-10-09**: classes in `modelx.core.errors`; the top-level functions are still open (PR 4, PR 7, PR 8) |
-| 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09** |
+| 4. No "derived" for Spaces | PR 2 (T3) | **decided 2026-10-09**; implemented in PR 2 (on the branch) |
 | 5. Address grammar | PR 4 (T6) | open |
 | 6. Lookup misses | PR 4 (T6, T12) | open |
 | 7. A relative Reference inside an ItemSpace | PR 3 (T5) | open |
 | 8. What 0.34 includes | PR 5 (the `saved` stamp), PR 8 (the provisional hook); the deferrals need no PR | open |
 | 9. Name checks and when they take effect | PR 4; PR 7 (the reserved-name warning) | open |
 | 10. Persisting "no formula" and Reference docstrings | PR 6 (T11's note); otherwise deferred | open |
-| 11. Small compatibility choices | PR 2 (T3's alias; F11 and `argvalues`) | open |
+| 11. Small compatibility choices | PR 2 (T3's alias; F11 and `argvalues`) | implemented in PR 2 as recommended (on the branch); awaits the owner |
 | 12. Bridge pin and release gate | PR 9, then a modelx-bridge release | open |
-| 13. Extattrs resolve on the class only | PR 2 (F11) | open |
-| 14. Kinds by class name, no `_kind` | PR 2 (T1) | **decided 2026-10-17** |
-| 15. Dynamic Cells and References have their own classes | PR 2 (T2) | **decided 2026-10-18** |
-| 16. Space flags removed in 0.34 | PR 2 (T2) | **decided 2026-10-18** |
+| 13. Extattrs resolve on the class only | PR 2 (F11) | implemented in PR 2 as recommended (on the branch); awaits the owner |
+| 14. Kinds by class name, no `_kind` | PR 2 (T1) | **decided 2026-10-17**; implemented in PR 2 (on the branch) |
+| 15. Dynamic Cells and References have their own classes | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (on the branch) |
+| 16. Space flags removed in 0.34 | PR 2 (T2) | **decided 2026-10-18**; implemented in PR 2 (on the branch) |
 
 
 1. **How the contract is written down.** Recommended:
@@ -1877,10 +1879,29 @@ Each was measured on 0.33.0 while writing the "API for tools" page and its tests
 | After a failed v4–v8 read, the open models are restored but their order is not | PR 7 (F8) |
 | doc/source/samples/sample_inheritance.py, which the API tutorial includes, does not run on 0.33 | a docs follow-up outside this plan |
 
+### Found while implementing PR 2 (2026-10-18)
+
+Each was measured on the branch, on CPython 3.11.15 unless it says otherwise, against 10188ae or the commit before the stage. The commit messages of bac9baa–b7f260f carry the probes' numbers.
+
+| what | picked up by |
+|---|---|
+| `copy.copy` of any ReferenceProxy gave a proxy whose `_impl` was the tuple `(None, {'_impl': impl})`, so its `.value` raised AttributeError. On 3.10.20 it worked: from 3.11, `object.__getstate__` is found before the proxy's `__getattr__` forwarding | fixed in PR 2 (T2: `ReferenceProxy.__getstate__` and `__setstate__`) |
+| `_get_repr(add_params=False)` gave the `__SpaceN` name of every ItemSpace, not only of nested ones (`P[1]` → `'Syn.__Space1'`), and for `P[1][5]` it gave `'Syn.__Space2'`, which left out `P[1]`. F1 also changes the `_input_log.txt` of `write_model(..., log_input=True)` for inputs in an item of an item, which builds its names that way | fixed in PR 2 (F1) |
+| A global Reference, or a ref a Space formula returns, named `''` made the whole-model walk, the `refs` dicts and `_baseattrs` raise IndexError (`name[0]`) | fixed in PR 2 (the `refs` view, with F11); decision 9 refuses a `''` global (PR 4) |
+| `P[1].relc` for `P.relc = P.h`, a slot holding the item's copy of a Cells, answered `is_derived()` True; with T3's alias and its guard it answers None, like the other slots that hold an item's copy | PR 3 (T5 makes these True) |
+| The `'value_type'` of a Reference whose value is a dynamic Cells is now `'DynamicCells'`, by T2, because it is `type(proxy.value).__name__`. §5 did not list it. On simplelife: 20 records of the tree list, 10 of the Properties list and 60 of `_baseattrs` | the 0.34 release notes (PR 2) |
+| In the prefix case (`P.r = PX`) the dicts of `P[1]`, its `refs` view and the Model still raise AttributeError, but the message is `'NoneType' object has no attribute 'name'`, not `'interface'`, and `P[1].refs._baseattrs_private` raises it where it raised RuntimeError | PR 3 (T5's `wrap_impl` boundary) |
+| `DynamicSpaceImpl.wrap_impl` calls `value.direct_bases[0]` on a ReferenceImpl, which has no `direct_bases`. One probe did not reach the line, because the Reference resolved as absolute | PR 3 (T5's `wrap_impl`) |
+| `SpaceGraph.max_index` reads a name that is not a node as its characters, as `ordered_preds` did: `max_index('P.__Space1') == 2` on a graph built alone. Its two callers (NewSpace.validate, AddBases.validate) add or check the node first, so nothing reaches it | not changed |
+| F6 also changes the impl-level `bases` of dynamic Cells and References, which `get_deriv_bases` reads from the parent's MRO: `P[1].h._impl.bases` was `[Base1.h, B.h]` and is `[]`. No tool-API or public member reads it | internal; nothing to do |
+| The `Interface.info` docstring's ItemSpace example printed `bases: []` and no `parameters` line, where modelx prints `bases: [Model1.Space1]` and `parameters: i, j=0` | fixed in PR 2 (the documentation commit) |
+| A formula given as a lambda made modelx parse the whole source file that defines it, about 0.12 s per formula in a long test file (cProfile: asttokens). PR 2's new tests give formulas as source text: test_kind.py took 22 s with lambdas and takes 0.5 s | outside this plan |
+| The 0.34 release notes have no entry yet for PR 1's "API for tools" page, and no "Tool API" section (§6, "Release notes") | before the 0.34 release |
+
 ### Not measured
 
 - **Pyodide:** every timing above is CPython. Pyodide's speed, the T14 callback polling Pyodide's interrupt buffer, and Pyodide 314's bytecode (inferred equal to CPython 3.14.8's).
-- **Real implementations:** T2's classes (a throwaway prototype, d15/proto), T5's resolved slots, T6's resolver, T8's bump points, T10's links, F8 and F11 exist only as prototypes patched into a probe process (fix-reference-identity/g02–g07, fix-revision-counter/proto_t8.py, fix-used-by/t10proto.py, fix-validation-and-fixes/v10, fix-spyder-snapshot/s02–s03). T10's chain resolution cost was measured on four lifelib models (u08), and simplelife resolved 45 of 45 listed chains (u02). Its agreement with run-time reads was not measured. T8's snapshot restore (fix-final/e01), F11's RefView skip (e05) and the `same` recipe (e02) were patched in the same way. Decision 9's checks were not prototyped: e04 measured only which routes reach their sites and that the reader runs with `System.serializing` set. The bridge's `links.used_by` was not prototyped.
+- **Real implementations:** T5's resolved slots, T6's resolver, T8's bump points, T10's links and F8 exist only as prototypes patched into a probe process (fix-reference-identity/g02–g07, fix-revision-counter/proto_t8.py, fix-used-by/t10proto.py, fix-validation-and-fixes/v10). T2's classes and F11, which were prototypes too (d15/proto; fix-spyder-snapshot/s02–s03), are implemented in PR 2, with T1, T3, T7, F1 and F6, and their tests run in the suite. T10's chain resolution cost was measured on four lifelib models (u08), and simplelife resolved 45 of 45 listed chains (u02). Its agreement with run-time reads was not measured. T8's snapshot restore (fix-final/e01) and the `same` recipe (e02) were patched in the same way; F11's RefView skip (e05) is implemented in PR 2. Decision 9's checks were not prototyped: e04 measured only which routes reach their sites and that the reader runs with `System.serializing` set. The bridge's `links.used_by` was not prototyped.
 - **F8 on real pre-0.9 models:** only minimal hand-written v1–v3 models were tried. References, data files and `_method` calls in those formats were not.
 - **All changes together:** each change was checked against `test_spyder_surface.py` separately, in process. The combined suite was not run, because pytest is not installed here. T5's effect on RefView output for relative refs inside ItemSpaces is inferred to leave the spyder fixture unchanged, because the fixture has none.
 - **Python 3.9** (in modelx's CI matrix): the `ObjectNotFoundError` layout and chain extraction.

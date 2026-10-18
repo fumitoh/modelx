@@ -505,7 +505,9 @@ class Interface:
            behavior may change in future releases without notice.
 
         Returns a lightweight wrapper whose string representation displays
-        a human-readable snapshot of this object. The exact fields depend
+        a human-readable snapshot of this object. Its first line starts
+        with the name of the class of the object, such as ``UserSpace``,
+        ``ItemSpace`` or ``DynamicCells``. The exact fields depend
         on the concrete type:
 
         * For :class:`~modelx.core.model.Model`: the model's name,
@@ -515,7 +517,7 @@ class Interface:
         * For spaces (:class:`~modelx.core.space.UserSpace`,
           :class:`~modelx.core.space.ItemSpace`,
           :class:`~modelx.core.space.DynamicSpace`): the space's
-          fully-qualified representation (e.g., ``Model1.Space1[1]``),
+          fully-qualified representation (e.g., ``Model1.Space1[1, 0]``),
           the list of base spaces' fullnames,
           :attr:`~modelx.core.space.BaseSpace.parameters` (when defined,
           shown as a signature string such as ``i, j=0``),
@@ -524,7 +526,7 @@ class Interface:
 
         * For :class:`~modelx.core.cells.Cells`: the cells' fully-qualified
           representation including its signature
-          (e.g., ``Model1.Space1[1].foo(t, i=0)``),
+          (e.g., ``Model1.Space1[1, 0].foo(t, i=0)``),
           whether the cells is derived from a base space,
           :attr:`~modelx.core.cells.Cells.is_cached`,
           :attr:`allow_none`, the source of the
@@ -561,7 +563,8 @@ class Interface:
 
                 >>> model.Space1[1].info
                 ItemSpace: Model1.Space1[1, 0]
-                bases: []
+                bases: [Model1.Space1]
+                parameters: i, j=0
                 itemspaces: 0
 
             For a :class:`~modelx.core.space.DynamicSpace`, the layout
