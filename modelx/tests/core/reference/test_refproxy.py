@@ -12,8 +12,9 @@ devnotes/ToolAPIDesign.md, section 6, PR 3: T5's members and F2.
   Reference still holds it under its name, and that Space has not been
   deleted or made again.  It turns False after a rebind or a
   delete of the Reference, of the base Reference of a derived copy, of
-  the Space, and of the ItemSpace that holds an argument, a formula ref
-  or a system binding, and stays False when an ItemSpace with the same
+  the Space, and of the ItemSpace that holds an argument, a formula ref,
+  a system binding or a resolved slot (``P[1].rel`` for
+  ``P.rel = P.Child``), and stays False when an ItemSpace with the same
   arguments is made again.  A closed Model's References stay valid.
 * ``_refmodes`` is the tuple of modes, and ``refmode`` is one of them or
   None, as documented, apart from the known limitations it lists, which
@@ -47,8 +48,11 @@ def build():
           |       Sub(B)
           |       S0---z=4, sys()
           |       NS---nr=5 (new_space(refs=))
-          |       P(i)----k=3, sys(), Child----sys()
+          |       P(i)----k=3, sys(), rel -> P.Child, Child----sys()
           |               Space formula returns ref fr
+
+    ``P[i].rel`` is a resolved slot: the ItemSpace's own Reference, whose
+    value is its copy of ``P.Child`` (T5).
     """
     m = mx.new_model("RefProxy")
     m.g = 1
@@ -68,6 +72,7 @@ def build():
     p.k = 3
     p.new_cells("sys", formula=SYS_FORMULA)
     p.new_space("Child").new_cells("sys", formula=SYS_FORMULA)
+    p.rel = p.Child
     return m
 
 
@@ -89,7 +94,8 @@ def system(cells):
 def item_bindings(item):
     """Fresh proxies of the References an ItemSpace makes."""
     got = {"argument": item._get_object("i", as_proxy=True),
-           "formula ref": item._get_object("fr", as_proxy=True)}
+           "formula ref": item._get_object("fr", as_proxy=True),
+           "resolved slot": item._get_object("rel", as_proxy=True)}
     for where, cells in (("item", item.sys), ("item.Child", item.Child.sys)):
         for name, proxy in system(cells).items():
             got["system %s.%s" % (where, name)] = proxy
@@ -114,7 +120,7 @@ def bindings(m):
     return got
 
 
-ITEM_LABELS = ("argument", "formula ref") + tuple(
+ITEM_LABELS = ("argument", "formula ref", "resolved slot") + tuple(
     "system %s.%s" % (where, name)
     for where in ("item", "item.Child") for name in SYSTEM)
 
@@ -175,6 +181,12 @@ def test_unequal_bindings(refmodel):
             != m.P[2]._get_object("i", as_proxy=True))
     assert (m.P[1]._get_object("fr", as_proxy=True)
             != m.P[2]._get_object("fr", as_proxy=True))
+    slots = [m.P[1]._get_object("rel", as_proxy=True),
+             m.P[2]._get_object("rel", as_proxy=True),
+             m.P._get_object("rel", as_proxy=True)]
+    for a, b in itertools.combinations(slots, 2):
+        assert a != b, (a, b)
+    assert len(set(slots)) == 3
 
 
 def test_never_equal_to_other_objects(refmodel):
@@ -316,31 +328,45 @@ def test_invalid_after_itemspace_made_again(refmodel, make_again):
         assert old[label].name == new[label].name
 
 
-def test_is_valid_where_no_reference_is_held():
-    """A proxy that stands for no Reference answers a bool and raises
-    nothing: on this release, a slot of an ItemSpace that holds the
-    ItemSpace's copy of a Space or a Cells (``P[1].rel`` for
-    ``P.rel = P.Child``), and one that holds None (``PP[1].r`` for
-    ``PP.r = PPX``).  Which bool is a known limitation, not pinned.  A
-    whole-model ``_get_attrdict(['_is_valid'])`` asks every proxy."""
-    m = mx.new_model("NoRef")
+def test_is_valid_of_item_rows_in_the_whole_model_walk():
+    """A whole-model ``_get_attrdict(['_is_valid'])`` asks every proxy,
+    and each Reference row of an ItemSpace answers True while the
+    ItemSpace lives: the resolved slots whose values are the ItemSpace's
+    copies of a Space and a Cells (``P[1].rel`` for ``P.rel = P.Child``),
+    and ``PP[1].r`` for ``PP.r = PPX``, a sibling whose name begins with
+    ``PP``, which is the binding ``PP.r``.
+
+    Before T5 the first two slots held the copies, and ``_is_valid()``
+    answered for them as Interface does; the third held None, and the
+    walk raised AttributeError ('NoneType' object has no attribute
+    'name'), so this test deleted ``PP`` before the walk."""
+    m = mx.new_model("ItemRows")
     p = m.new_space("P", formula="lambda i: None")
     p.rel = p.new_space("Child")
     p.relc = p.new_cells("h", formula="lambda: 1")
     pp = m.new_space("PP", formula="lambda i: None")
     pp.r = m.new_space("PPX")
     item = p[1]
+    slots = {}
     for name, copy_ in (("rel", item.Child), ("relc", item.h)):
-        proxy = item._get_object(name, as_proxy=True)
-        assert proxy.value is copy_
-        assert isinstance(proxy._is_valid(), bool), name
-    assert isinstance(pp[1]._get_object("r", as_proxy=True)._is_valid(), bool)
-    del m.PP
+        slots[name] = item._get_object(name, as_proxy=True)
+        assert slots[name].value is copy_
+        assert slots[name]._is_valid() is True, name
+    r = pp[1]._get_object("r", as_proxy=True)
+    assert r == pp._get_object("r", as_proxy=True)
+    assert r._is_valid() is True
     record = m._get_attrdict(["_is_valid"], recursive=True)
-    items = record["spaces"]["items"]["P"]["_named_itemspaces"]["items"]
-    refs = items["__Space1"]["refs"]["items"]
-    assert isinstance(refs["rel"]["_is_valid"], bool)
-    assert isinstance(refs["relc"]["_is_valid"], bool)
+    spaces = record["spaces"]["items"]
+    for space, names in (("P", ("rel", "relc", "i")), ("PP", ("r", "i"))):
+        rows = spaces[space]["_named_itemspaces"]["items"]["__Space1"][
+            "refs"]["items"]
+        for name in names:
+            assert rows[name]["_is_valid"] is True, (space, name)
+    del p[1]
+    del pp[1]
+    for name, proxy in slots.items():
+        assert proxy._is_valid() is False, name
+    assert r._is_valid() is True       # the binding of PP, not of the item
     m._impl._check_sanity()
     m.close()
 
@@ -387,6 +413,7 @@ def test_refmode_by_kind(refmodel):
     proxies = bindings(m)
     assert proxies["shared through an ItemSpace"].refmode == "auto"
     assert proxies["formula ref"].refmode == "auto"
+    assert proxies["resolved slot"].refmode == "auto"
     for label in ("global", "global through a Space", "argument") + tuple(
             label for label in proxies if label.startswith("system ")):
         assert proxies[label].refmode is None, label

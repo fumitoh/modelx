@@ -31,6 +31,7 @@ from modelx.core.base import (
     get_mixin_slots,
     Interface,
 )
+from modelx.core.binding.namespace import NamespaceServer
 from modelx.core.chainmap import CustomChainMap
 from modelx.core.reference import ReferenceImpl
 from modelx.core.cells import DynamicCellsImpl
@@ -131,11 +132,50 @@ class DynamicSpaceImpl(BaseSpaceImpl):
         # Populate _dynbase_refs creating relative reference within
         # the dynamic space tree.
         # Called from ItemSpaceParent.__init__ at last.
+        #
+        # A Reference re-pointed at the tree's own copy of its value (a
+        # resolved slot, ToolAPIDesign T5, decision 7) gets a ReferenceImpl
+        # of its own here, a derived copy of the binding with this Space as
+        # parent and _dynbase_refs as container, like an argument has in
+        # _arguments. Before 0.34 the slot held the copy's impl itself, so
+        # its proxy had the copy's name and _idstr ('Child',
+        # 'P.__Space1.Child' for P[1].rel with P.rel = P.Child), its
+        # refmode and is_derived() raised AttributeError, it never went
+        # stale, and _space.rel in a formula of P[1] failed the assert in
+        # Namespace.__getattr__. on_update_ns gives formulas the same object
+        # as before for such a slot.
+        slots = self._dynbase_refs
         for name, ref in self._dynbase.own_refs.items():
-            self._dynbase_refs[name] = self.wrap_impl(ref)
+            impl = self.wrap_impl(ref)
+            if not isinstance(impl, ReferenceImpl):
+                impl = ReferenceImpl(
+                    self, name, impl.interface, container=slots,
+                    is_derived=True, refmode=ref.refmode)
+            slots[name] = impl
 
         for space in self.named_spaces.values():
             space._init_dynbaserefs()
+
+    def on_update_ns(self):
+        BaseSpaceImpl.on_update_ns(self)
+        # A resolved slot whose value is a Space of the tree gives formulas
+        # that Space's namespace, as the slot holding the Space's impl did
+        # before 0.34, not the interface the loop above puts there for a
+        # Reference. With the interface, recomputing P[1].h(), which reads
+        # rel.w(), cost 10.48-10.88 us against 9.35-9.95 us (min of 7 x
+        # 20,000, 3 processes each); with the namespace every ns_dict entry
+        # of the dynamic Spaces of a synthetic model and of simplelife's
+        # items, 402 in all, was the same object as on 1d92c67.
+        # A slot whose value is a Cells already gives the Cells, as before.
+        # An argument or a formula ref of the same name hides the slot.
+        slots = self._dynbase_refs
+        refs = self.refs
+        ns_dict = self._ns_dict
+        for name, ref in slots.items():
+            if ref.container is slots and refs[name] is ref:
+                target = ref.interface._impl
+                if isinstance(target, NamespaceServer):
+                    ns_dict[name] = target._namespace
 
     def wrap_impl(self, value):
 
@@ -149,19 +189,39 @@ class DynamicSpaceImpl(BaseSpaceImpl):
 
                 impl = value.interface._impl.idstr
                 root = self.rootspace._dynbase.idstr
-                rootlen = len(root)
 
                 if root == impl:
                     return self.rootspace
-                elif root == impl[:rootlen]:
-                    return self.rootspace.get_impl_from_name(
-                        impl[rootlen+1:]) # +1 to remove preceding dot
+                elif impl.startswith(root + "."):
+                    # A dot boundary: before 0.34 the test was
+                    # root == impl[:len(root)], so for P.r = PX, a sibling
+                    # whose name starts with 'P', the slot held None: every
+                    # formula of P[1] raised AttributeError ('NoneType'
+                    # object has no attribute 'interface'), and so did the
+                    # dicts of P[1], of its refs view and of the Model
+                    # ('... no attribute 'name'') (fix-reference-identity/
+                    # g06). With 'relative', P[1] is now refused as for any
+                    # other sibling: "'PX' referred as 'P.r' is out of 'P'".
+                    copy = self.rootspace.get_impl_from_name(
+                        impl[len(root) + 1:])   # +1 to remove preceding dot
+                    if copy is not None:
+                        return copy
+                    # The tree has no copy of the value, such as for
+                    # P.r = P.Child[3], an ItemSpace, which no item copies:
+                    # before 0.34 the slot held None, with the failures
+                    # above. The item sees what its Space sees, as for a
+                    # value outside the tree.
+                    return value
                 else:
                     if value.refmode == "auto":
-                        if value.is_defined():
-                            return value
-                        else:
-                            return value.direct_bases[0]
+                        # The binding, also when it is derived: its value
+                        # is already the one its Space sees. Before 0.34 a
+                        # derived binding went to value.direct_bases[0],
+                        # which a ReferenceImpl does not have, so making the
+                        # ItemSpace raised AttributeError, as for Y.P[1]
+                        # with Y.P(X.P) and X.P.r = X.Other relative to
+                        # Y.Other.
+                        return value
 
                     elif value.refmode == "relative":
                         raise ValueError(

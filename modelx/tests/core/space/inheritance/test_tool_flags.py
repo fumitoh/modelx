@@ -14,12 +14,13 @@ and ``.info`` print the new names.
 
 Not dynamic: the Model, every UserSpace and its Cells, derived ones
 included, Space and global References, a Reference of a Space seen
-through one of its ItemSpaces (``P[1].k`` is ``P.k``), and macros.  Nor,
-on this release, is the proxy of a slot of an ItemSpace, or of a
-DynamicSpace in one, that holds the ItemSpace's copy of a Space or a
-Cells (``P[1].rel`` for ``P.rel = P.Child``, ``P[1].Child.up`` for
-``P.Child.up = P``): the slot holds the copy itself, not a Reference,
-until T5 (PR 3) gives it one.
+through one of its ItemSpaces (``P[1].k`` is ``P.k``), and macros.  A
+Reference of a Space seen through an ItemSpace, or a DynamicSpace in
+one, that refers to the ItemSpace's own copy of its value
+(``P[1].rel`` for ``P.rel = P.Child``, ``P[1].Child.up`` for
+``P.Child.up = P``) is dynamic: it is a resolved slot, the ItemSpace's
+copy of the Reference (T5, decision 7).  Before T5 the slot held the
+copy itself, not a Reference, and its proxy was a ReferenceProxy.
 
 Proxies are made at six sites, and each is checked: a ReferenceNode's
 ``obj``, ``Model._get_object`` and ``BaseSpace._get_object`` with
@@ -34,10 +35,12 @@ no definition of its own where it is seen: it was copied from a base
 Space, or it is a dynamic Cells.  An argument, a formula ref and the
 system bindings of an item are dynamic but not derived; a Reference of
 a Space seen through an item, and a global Reference seen through any
-Space, give the flag of that Reference.  ``Cells._is_derived()`` is as
+Space, give the flag of that Reference, except a resolved slot, which is
+derived, as the item's Cells are.  ``Cells._is_derived()`` is as
 on 0.33.  ``ReferenceProxy._is_derived()`` is new, and returns None for
-a proxy that stands for no Reference, such as the slot above, so that a
-whole-model ``_get_attrdict`` asking for it never raises.
+a proxy that stands for no Reference, so that a whole-model
+``_get_attrdict`` asking for it never raises; since T5 modelx makes no
+such proxy.
 ``ReferenceProxy.is_derived()`` stays for good as its alias (decision
 11).  No Space class, and not Model, has ``_is_derived`` (decision 4).
 
@@ -193,13 +196,16 @@ PROXIES = {
           "glob": "ReferenceProxy"},
     "P[1]": {"i": "DynamicReferenceProxy", "fr": "DynamicReferenceProxy",
              "k": "ReferenceProxy", "glob": "ReferenceProxy",
-             # The ItemSpace's copies of P.Child and P.h, in slots that
-             # are not References until T5 (PR 3): see the module
-             # docstring.
-             "rel": "ReferenceProxy", "relc": "ReferenceProxy"},
+             # Resolved slots, the item's copies of P.rel and P.relc,
+             # whose values are the item's copies of P.Child and P.h
+             # (T5). They were ReferenceProxy before T5, when the slot
+             # held the copy itself: see the module docstring.
+             "rel": "DynamicReferenceProxy",
+             "relc": "DynamicReferenceProxy"},
     "P[1][5]": {"i": "DynamicReferenceProxy", "fr": "DynamicReferenceProxy",
                 "k": "ReferenceProxy", "glob": "ReferenceProxy",
-                "rel": "ReferenceProxy", "relc": "ReferenceProxy"},
+                "rel": "DynamicReferenceProxy",
+                "relc": "DynamicReferenceProxy"},
     "P[1].Child": {"i": "DynamicReferenceProxy", "n": "ReferenceProxy",
                    "glob": "ReferenceProxy"},
     "P[1].Child[2]": {"i": "DynamicReferenceProxy",
@@ -500,6 +506,13 @@ DERIVED_REFS = {
         lambda m: m.P[1].Child, "i", False, "generated"),
     "P[1].Child[2].j": (lambda m: m.P[1].Child[2], "j", False, "generated"),
     "Q[1].i": (lambda m: m.Q[1], "i", False, "generated"),
+    # Resolved slots (T5): the item's copies of P.rel and P.relc, derived
+    # like P[1].h, and dynamic.
+    "P[1].rel, a resolved slot": (lambda m: m.P[1], "rel", True, "generated"),
+    "P[1].relc, a resolved slot": (
+        lambda m: m.P[1], "relc", True, "generated"),
+    "P[1][5].rel": (lambda m: m.P[1][5], "rel", True, "generated"),
+    "P[1][5].relc": (lambda m: m.P[1][5], "relc", True, "generated"),
 }
 
 
@@ -532,26 +545,25 @@ def test_system_bindings_are_not_derived(flags_model):
         assert got == {name: (False, False, comp) for name in system}, cells
 
 
-def test_is_derived_where_no_reference_is_held(flags_model):
-    """A proxy that stands for no Reference answers None, and raises
-    nothing.
+def test_is_derived_of_resolved_slots(flags_model):
+    """A Reference of ``P`` that is not ``'absolute'`` and whose value is
+    ``P.Child`` or ``P.h`` is seen in ``P[1]`` as a resolved slot, whose
+    value is ``P[1]``'s copy of the value (T5).  Its proxy stands for the
+    slot, which is derived, as ``P[1].h`` is (design T3, decision 7).
 
-    On this release a Reference of ``P`` that is not ``'absolute'`` and
-    whose value is ``P.Child`` or ``P.h`` is seen in ``P[1]`` as
-    ``P[1]``'s copy of the value: the slot holds the copy, not a
-    Reference.  Before T3, ``is_derived()`` on its proxy raised
-    AttributeError for the copy of a Space and gave the copy's own flag,
-    True, for the copy of a Cells.  T5 (PR 3) gives each slot a
-    Reference of its own, and its ``_is_derived()`` is then True, as
-    ``P[1].h``'s is (design T3, decision 7), so these rows change
-    there."""
+    Before T5 the slot held the copy, not a Reference: on 0.33
+    ``is_derived()`` raised AttributeError for the copy of a Space and
+    gave the copy's own flag, True, for the copy of a Cells, and in PR 2
+    ``_is_derived()`` and ``is_derived()`` gave None for both."""
     m = flags_model
     for space in (m.P[1], m.P[1][5]):
         for name, copy in (("rel", space.Child), ("relc", space.h)):
             proxy = space._get_object(name, as_proxy=True)
             assert proxy.value is copy
-            assert proxy._is_derived() is None
-            assert proxy.is_derived() is None
+            assert (proxy.name, proxy.parent) == (name, space)
+            assert proxy._is_derived() is True
+            assert proxy.is_derived() is True
+            assert composition(proxy) == "generated"
 
 
 @pytest.fixture
@@ -579,28 +591,33 @@ def child_refs_model():
     m.close()
 
 
-def test_is_derived_none_through_a_dynamic_space(child_refs_model):
+def test_is_derived_through_a_dynamic_space(child_refs_model):
     """The same holds through a DynamicSpace, for a Reference of a Space
     inside ``P`` whose value is anywhere in ``P``'s tree: in
-    ``P[1].Child``, ``up``, ``side`` and ``rw`` are ``P[1]``,
-    ``P[1].Sib`` and ``P[1].Child.w``.  On 0.33 ``is_derived()`` raised
-    AttributeError on the first two (``'ItemSpaceImpl' object has no
-    attribute 'is_derived'``, and ``'DynamicSpaceImpl'``) and gave True
-    on the third.  A Reference whose value is outside ``P``, and an
-    absolute one, stand for the Reference of ``P.Child``."""
+    ``P[1].Child``, ``up``, ``side`` and ``rw`` are resolved slots whose
+    values are ``P[1]``, ``P[1].Sib`` and ``P[1].Child.w``, and they are
+    derived and dynamic.  On 0.33 ``is_derived()`` raised AttributeError
+    on the first two (``'ItemSpaceImpl' object has no attribute
+    'is_derived'``, and ``'DynamicSpaceImpl'``) and gave True on the
+    third; in PR 2, before T5, all three gave None.  A Reference whose
+    value is outside ``P``, and an absolute one, stand for the Reference
+    of ``P.Child``."""
     m = child_refs_model
     dyn = m.P[1].Child
     for name, target in (("up", m.P[1]), ("side", m.P[1].Sib),
                          ("rw", dyn.w)):
         proxy = dyn._get_object(name, as_proxy=True)
         assert proxy.value is target
-        assert proxy._is_derived() is None
-        assert proxy.is_derived() is None
+        assert proxy.fullname == "ChildRefs.P.__Space1.Child." + name
+        assert proxy._is_derived() is True
+        assert proxy.is_derived() is True
+        assert kind(proxy) == "DynamicReferenceProxy"
     for name, target in (("out", m.Q), ("fixed", m.P)):
         proxy = dyn._get_object(name, as_proxy=True)
         assert proxy.value is target
         assert (proxy.fullname, proxy._is_derived(), proxy.is_derived()) == (
             "ChildRefs.P.Child." + name, False, False)
+        assert kind(proxy) == "ReferenceProxy"
 
 
 def test_spaces_and_models_have_no_is_derived(flags_model):
@@ -630,10 +647,10 @@ def test_whole_model_walk(flags_model):
     its object's.  No Space or Model record has ``'_is_derived'``
     (decision 4), and no record has ``'_is_dynamic'``.
 
-    The walk reaches the slots of
-    ``test_is_derived_where_no_reference_is_held``, whose proxies stand
-    for no Reference: there a plain ``impl.is_derived()`` raised
-    AttributeError, as on 0.33 (design T3, minimal/m05)."""
+    The walk reaches the resolved slots of
+    ``test_is_derived_of_resolved_slots``.  Before T5 their proxies stood
+    for no Reference, and a plain ``impl.is_derived()`` raised
+    AttributeError there, as on 0.33 (design T3, minimal/m05)."""
     m = flags_model
     m.P[1][5].Child[2].w()
     m.P[1].h()
