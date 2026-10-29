@@ -12,7 +12,7 @@ says which of them are frozen, and shows how a tool detects
 what the installed modelx provides.
 Users who write models do not need anything on this page.
 
-Most examples on this page use this model:
+Most examples on this page use this model::
 
     >>> import modelx as mx
 
@@ -263,21 +263,21 @@ Members
     instead of a tool member.
     The example below names a global Reference with an underscore,
     which this release accepts but a later release may refuse
-    (see the known limitation under :ref:`toolapi-underscore`):
+    (see the known limitation under :ref:`toolapi-underscore`)::
 
-    >>> m2 = mx.new_model("Model2")
+        >>> m2 = mx.new_model("Model2")
 
-    >>> s2 = m2.new_space("Space1")
+        >>> s2 = m2.new_space("Space1")
 
-    >>> m2._new_member = 1
+        >>> m2._new_member = 1
 
-    >>> hasattr(m2, "_new_member"), hasattr(s2, "_new_member")
-    (True, True)
+        >>> hasattr(m2, "_new_member"), hasattr(s2, "_new_member")
+        (True, True)
 
-    >>> getattr(type(m2), "_new_member", None) is None
-    True
+        >>> getattr(type(m2), "_new_member", None) is None
+        True
 
-    >>> m2.close()
+        >>> m2.close()
 
     A :class:`~modelx.core.reference.ReferenceProxy` answers some members
     by forwarding them (see :ref:`toolapi-wire`).
@@ -312,17 +312,17 @@ Top-level names
 
     When the :mod:`modelx` module has no attribute of a name,
     ``modelx.<name>`` returns the open Model of that name,
-    so :func:`getattr` on the module can return a Model:
+    so :func:`getattr` on the module can return a Model::
 
-    >>> fe = mx.new_model("FormulaError")
+        >>> fe = mx.new_model("FormulaError")
 
-    >>> getattr(mx, "FormulaError")
-    <Model FormulaError>
+        >>> getattr(mx, "FormulaError")
+        <Model FormulaError>
 
-    >>> vars(mx).get("FormulaError") is None
-    True
+        >>> vars(mx).get("FormulaError") is None
+        True
 
-    >>> fe.close()
+        >>> fe.close()
 
 Behaviour
     Compare ``modelx.VERSION``, a tuple of integers,
@@ -363,19 +363,19 @@ with other parameters.
     or a :ref:`resolved slot <toolapi-resolved-slots>`,
     has the ``_idstr`` of its parent, the ItemSpace or the DynamicSpace
     in it, followed by its name.
-    The ``'namedid'`` key of :ref:`attrdicts <toolapi-wire>` holds it.
+    The ``'namedid'`` key of :ref:`attrdicts <toolapi-wire>` holds it. ::
 
-    >>> [obj._idstr for obj in (m, base, foo, item, item.bar, item.Child)]
-    ['', 'Base', 'Base.foo', 'Proj.__Space1', 'Proj.__Space1.bar', 'Proj.__Space1.Child']
+        >>> [obj._idstr for obj in (m, base, foo, item, item.bar, item.Child)]
+        ['', 'Base', 'Base.foo', 'Proj.__Space1', 'Proj.__Space1.bar', 'Proj.__Space1.Child']
 
-    >>> base._get_object("scale", as_proxy=True)._idstr
-    'scale'
+        >>> base._get_object("scale", as_proxy=True)._idstr
+        'scale'
 
-    >>> item._get_object("i", as_proxy=True)._idstr
-    'Proj.__Space1.i'
+        >>> item._get_object("i", as_proxy=True)._idstr
+        'Proj.__Space1.i'
 
-    >>> item._get_object("rel", as_proxy=True)._idstr
-    'Proj.__Space1.rel'
+        >>> item._get_object("rel", as_proxy=True)._idstr
+        'Proj.__Space1.rel'
 
 ``_idtuple``
     A tuple that starts with the name of the Model,
@@ -402,22 +402,22 @@ with other parameters.
     and an ItemSpace of an ItemSpace shows the arguments of its parent
     item before its own.
     So ``_get_repr(fullname=True, add_params=False)`` is
-    the display name of every object, and no ``__SpaceN`` name is in it.
+    the display name of every object, and no ``__SpaceN`` name is in it. ::
 
-    >>> foo._get_repr(), foo._get_repr(fullname=True)
-    ('foo(x)', 'Model1.Base.foo(x)')
+        >>> foo._get_repr(), foo._get_repr(fullname=True)
+        ('foo(x)', 'Model1.Base.foo(x)')
 
-    >>> foo._get_repr(fullname=True, add_params=False)
-    'Model1.Base.foo'
+        >>> foo._get_repr(fullname=True, add_params=False)
+        'Model1.Base.foo'
 
-    >>> item._get_repr(), item.bar._get_repr(fullname=True)
-    ('Proj[1]', 'Model1.Proj[1].bar()')
+        >>> item._get_repr(), item.bar._get_repr(fullname=True)
+        ('Proj[1]', 'Model1.Proj[1].bar()')
 
-    >>> item._get_repr(fullname=True, add_params=False)
-    'Model1.Proj[1]'
+        >>> item._get_repr(fullname=True, add_params=False)
+        'Model1.Proj[1]'
 
-    >>> item[5]._get_repr(), item[5].bar._get_repr(fullname=True, add_params=False)
-    ('Proj[1][5]', 'Model1.Proj[1][5].bar')
+        >>> item[5]._get_repr(), item[5].bar._get_repr(fullname=True, add_params=False)
+        ('Proj[1][5]', 'Model1.Proj[1][5].bar')
 
     .. versionchanged:: 0.34.0
        Before, ``add_params=False`` gave the ``__SpaceN`` name of an
@@ -442,22 +442,22 @@ with other parameters.
     instead of its value.
     A name that is not found raises :obj:`NameError`.
     :func:`modelx.get_object` resolves the name of the Model,
-    then calls this method of the Model.
+    then calls this method of the Model. ::
 
-    >>> m._get_object("Base.foo")
-    <Cells Model1.Base.foo(x)>
+        >>> m._get_object("Base.foo")
+        <Cells Model1.Base.foo(x)>
 
-    >>> m._get_object("Base.rate"), m._get_object("Base.rate", as_proxy=True)
-    (0.05, <ReferenceProxy Model1.Base.rate>)
+        >>> m._get_object("Base.rate"), m._get_object("Base.rate", as_proxy=True)
+        (0.05, <ReferenceProxy Model1.Base.rate>)
 
-    >>> m._get_object("Proj.__Space1.bar")
-    <DynamicCells Model1.Proj[1].bar()>
+        >>> m._get_object("Proj.__Space1.bar")
+        <DynamicCells Model1.Proj[1].bar()>
 
-    >>> m._get_object("Base.foo.formula")
-    lambda x: 2 * x
+        >>> m._get_object("Base.foo.formula")
+        lambda x: 2 * x
 
-    >>> mx.get_object("Model1.Base.cells")
-    {foo}
+        >>> mx.get_object("Model1.Base.cells")
+        {foo}
 
     .. admonition:: Known limitation
 
@@ -555,30 +555,30 @@ with other parameters.
     The other members of a proxy whose Reference is no longer bound
     still answer, and its ``value`` is the value that the Reference had,
     so a tool gets a new proxy.
-    ``repr()`` of such a proxy shows a null object.
+    ``repr()`` of such a proxy shows a null object. ::
 
-    >>> base.tmp = 1
+        >>> base.tmp = 1
 
-    >>> tmp = base._get_object("tmp", as_proxy=True)
+        >>> tmp = base._get_object("tmp", as_proxy=True)
 
-    >>> base.tmp = 2
+        >>> base.tmp = 2
 
-    >>> tmp._is_valid(), tmp.value, tmp
-    (False, 1, <ReferenceProxy null object>)
+        >>> tmp._is_valid(), tmp.value, tmp
+        (False, 1, <ReferenceProxy null object>)
 
-    >>> base._get_object("tmp", as_proxy=True)._is_valid()
-    True
+        >>> base._get_object("tmp", as_proxy=True)._is_valid()
+        True
 
-    >>> del base.tmp
+        >>> del base.tmp
 
-    >>> arg = proj[2]._get_object("i", as_proxy=True)
+        >>> arg = proj[2]._get_object("i", as_proxy=True)
 
-    >>> del proj[2]
+        >>> del proj[2]
 
-    >>> arg._is_valid(), proj[2]._get_object("i", as_proxy=True) == arg
-    (False, False)
+        >>> arg._is_valid(), proj[2]._get_object("i", as_proxy=True) == arg
+        (False, False)
 
-    >>> del proj[2]
+        >>> del proj[2]
 
     .. versionchanged:: 0.34.0
        On a ReferenceProxy. Before, every proxy returned :obj:`True`,
@@ -622,25 +622,25 @@ with other parameters.
     a value whose :func:`repr` spans lines.
     That is the :func:`repr` of the node.
     A node with no value gives the same string either way.
-    A tool does not need to format the arguments itself.
+    A tool does not need to format the arguments itself. ::
 
-    >>> foo(3)
-    6
+        >>> foo(3)
+        6
 
-    >>> foo.node(3)._get_repr(), foo.node(3)._get_repr(add_value=True)
-    ('Model1.Base.foo(x=3)', 'Model1.Base.foo(x=3)=6')
+        >>> foo.node(3)._get_repr(), foo.node(3)._get_repr(add_value=True)
+        ('Model1.Base.foo(x=3)', 'Model1.Base.foo(x=3)=6')
 
-    >>> foo.node(4)._get_repr(fullname=False, add_value=True)
-    'foo(x=4)'
+        >>> foo.node(4)._get_repr(fullname=False, add_value=True)
+        'foo(x=4)'
 
-    >>> item.bar()
-    1
+        >>> item.bar()
+        1
 
-    >>> [node._get_repr() for node in item.bar.precedents()]
-    ['Model1.Proj[1].i']
+        >>> [node._get_repr() for node in item.bar.precedents()]
+        ['Model1.Proj[1].i']
 
-    >>> proj.node(1)._get_repr()
-    'Model1.Proj(i=1)'
+        >>> proj.node(1)._get_repr()
+        'Model1.Proj(i=1)'
 
     .. versionadded:: 0.34.0
 
@@ -762,7 +762,7 @@ It first checks that the class is one of modelx's own:
 that ``type(v).__module__`` is a str that starts with ``"modelx."``.
 Then it reads the name of the class, ``type(v).__name__``.
 There is no member for this,
-so the check reads nothing from the object itself:
+so the check reads nothing from the object itself::
 
     >>> KINDS = frozenset({
     ...     'Model', 'UserSpace', 'ItemSpace', 'DynamicSpace',
@@ -857,13 +857,13 @@ without a warning (see :ref:`toolapi-deprecation`).
   ``Model`` or ``Cells``, and only its module tells it from a modelx object.
   The check must not assume that ``__module__`` is a str either:
   the proxy classes of the wrapt package, for example,
-  make it a property.
+  make it a property. ::
 
-  >>> class Cells:
-  ...     pass
+      >>> class Cells:
+      ...     pass
 
-  >>> type(Cells()).__name__, kind(Cells())
-  ('Cells', None)
+      >>> type(Cells()).__name__, kind(Cells())
+      ('Cells', None)
 
 * :obj:`None` is also the answer for the views and the nodes,
   for the objects that a formula sees as ``_self``, ``_space`` and
@@ -907,16 +907,16 @@ Dynamic objects
     returns in ``'refs'``,
     its :ref:`resolved slots <toolapi-resolved-slots>`,
     and its ``_self``, ``_space`` and ``_model``.
-    Its kind is one of four:
+    Its kind is one of four::
 
-    >>> DYNAMIC = frozenset({'ItemSpace', 'DynamicSpace', 'DynamicCells',
-    ...                      'DynamicReferenceProxy'})
+        >>> DYNAMIC = frozenset({'ItemSpace', 'DynamicSpace', 'DynamicCells',
+        ...                      'DynamicReferenceProxy'})
 
-    >>> [kind(obj) in DYNAMIC for obj in (proj, item, item.Child, foo, item.bar)]
-    [False, True, True, False, True]
+        >>> [kind(obj) in DYNAMIC for obj in (proj, item, item.Child, foo, item.bar)]
+        [False, True, True, False, True]
 
-    >>> kind(item._get_object("rel", as_proxy=True)) in DYNAMIC
-    True
+        >>> kind(item._get_object("rel", as_proxy=True)) in DYNAMIC
+        True
 
     Not dynamic are the Model, every UserSpace and its Cells,
     the global References, the References of a UserSpace,
@@ -1003,16 +1003,18 @@ What a kind can do
            ``Proj``. It ends at a DynamicSpace for an ItemSpace of
            a DynamicSpace, such as ``P[1].Child[2]``.
 
-    >>> proj.formula is not None, item.Child.formula is None
-    (True, True)
+    ::
 
-    >>> item[5].parent is item, item.parent is proj
-    (True, True)
+        >>> proj.formula is not None, item.Child.formula is None
+        (True, True)
 
-    >>> base.set_ref("foo", 1, "auto")
-    Traceback (most recent call last):
-      ...
-    AttributeError: 'foo' is already defined as a Cells
+        >>> item[5].parent is item, item.parent is proj
+        (True, True)
+
+        >>> base.set_ref("foo", 1, "auto")
+        Traceback (most recent call last):
+          ...
+        AttributeError: 'foo' is already defined as a Cells
 
     .. versionchanged:: 0.34.0
        Before, ``set_ref``, ``absref`` and ``relref`` with the name
@@ -1093,19 +1095,19 @@ not by a derived flag.
     It is :obj:`None` only for a proxy made over an object that is
     not a Reference, which modelx does not make,
     so a tool that asks every proxy in a model gets an answer from each,
-    and no exception.
+    and no exception. ::
 
-    >>> sub._get_object("rate", as_proxy=True)._is_derived()
-    True
+        >>> sub._get_object("rate", as_proxy=True)._is_derived()
+        True
 
-    >>> base._get_object("rate", as_proxy=True)._is_derived()
-    False
+        >>> base._get_object("rate", as_proxy=True)._is_derived()
+        False
 
-    >>> item._get_object("i", as_proxy=True)._is_derived()
-    False
+        >>> item._get_object("i", as_proxy=True)._is_derived()
+        False
 
-    >>> item._get_object("rel", as_proxy=True)._is_derived()
-    True
+        >>> item._get_object("rel", as_proxy=True)._is_derived()
+        True
 
     .. versionadded:: 0.34.0
 
@@ -1196,21 +1198,21 @@ A resolved slot has the ItemSpace, or a DynamicSpace in it, as its
     as ``refs`` does not list them; other names that start with
     an underscore are reported, as ``refs`` lists them
     (see the known limitation under :ref:`toolapi-underscore`).
-    A deleted Space raises :class:`~modelx.core.errors.DeletedObjectError`.
+    A deleted Space raises :class:`~modelx.core.errors.DeletedObjectError`. ::
 
-    >>> inh = sub._get_inheritance()
+        >>> inh = sub._get_inheritance()
 
-    >>> inh["bases"], inh["direct_bases"]
-    ([<UserSpace Model1.Base>], [<UserSpace Model1.Base>])
+        >>> inh["bases"], inh["direct_bases"]
+        ([<UserSpace Model1.Base>], [<UserSpace Model1.Base>])
 
-    >>> inh["cells"]
-    {'foo': {'state': 'derived', 'defined_in': <UserSpace Model1.Base>}}
+        >>> inh["cells"]
+        {'foo': {'state': 'derived', 'defined_in': <UserSpace Model1.Base>}}
 
-    >>> inh["refs"]["rate"]
-    {'scope': 'space', 'state': 'derived', 'defined_in': <UserSpace Model1.Base>}
+        >>> inh["refs"]["rate"]
+        {'scope': 'space', 'state': 'derived', 'defined_in': <UserSpace Model1.Base>}
 
-    >>> {name: r["scope"] for name, r in item._get_inheritance()["refs"].items()}
-    {'__builtins__': 'builtins', 'scale': 'global', 'rel': 'base', 'i': 'argument'}
+        >>> {name: r["scope"] for name, r in item._get_inheritance()["refs"].items()}
+        {'__builtins__': 'builtins', 'scale': 'global', 'rel': 'base', 'i': 'argument'}
 
     It costs about one read of ``bases`` and ``_direct_bases``,
     plus a few tenths of a microsecond for each member:
@@ -1243,31 +1245,31 @@ A resolved slot has the ItemSpace, or a DynamicSpace in it, as its
     or the global References.
     No Space formula is called to make a DynamicSpace,
     so the ``_own_refs`` of a DynamicSpace is always empty.
-    Read ``refs`` for the full set:
+    Read ``refs`` for the full set::
 
-    >>> m3 = mx.new_model("Model3")
+        >>> m3 = mx.new_model("Model3")
 
-    >>> q = m3.new_space("Q", formula=lambda i, j=2: {"refs": {"fr": i * j}})
+        >>> q = m3.new_space("Q", formula=lambda i, j=2: {"refs": {"fr": i * j}})
 
-    >>> q.k = 5
+        >>> q.k = 5
 
-    >>> q.new_space("C").cref = 9
+        >>> q.new_space("C").cref = 9
 
-    >>> dict(q[1]._own_refs), list(q[1].refs)
-    ({'fr': 2}, ['__builtins__', 'k', 'fr', 'i', 'j'])
+        >>> dict(q[1]._own_refs), list(q[1].refs)
+        ({'fr': 2}, ['__builtins__', 'k', 'fr', 'i', 'j'])
 
-    >>> dict(q[1].C._own_refs), list(q[1].C.refs)
-    ({}, ['__builtins__', 'cref', 'i', 'j'])
+        >>> dict(q[1].C._own_refs), list(q[1].C.refs)
+        ({}, ['__builtins__', 'cref', 'i', 'j'])
 
     ``_get_inheritance()`` tells every name in ``refs`` apart by its scope.
     ``_own_refs`` holds the names of scope ``'space'`` in a UserSpace,
     and in an ItemSpace those of scope ``'formula'``,
-    with any of them that an argument of the same name hides:
+    with any of them that an argument of the same name hides::
 
-    >>> {name: r["scope"] for name, r in q[1]._get_inheritance()["refs"].items()}
-    {'__builtins__': 'builtins', 'k': 'base', 'fr': 'formula', 'i': 'argument', 'j': 'argument'}
+        >>> {name: r["scope"] for name, r in q[1]._get_inheritance()["refs"].items()}
+        {'__builtins__': 'builtins', 'k': 'base', 'fr': 'formula', 'i': 'argument', 'j': 'argument'}
 
-    >>> m3.close()
+        >>> m3.close()
 
 ``_direct_bases`` (Spaces)
     The list of the Spaces that were given as the bases of the Space,
@@ -1373,18 +1375,18 @@ Equality and hash
     they come from.
     A proxy is never equal to an object that is not a proxy,
     such as the value of its Reference,
-    and comparing it with one evaluates nothing.
+    and comparing it with one evaluates nothing. ::
 
-    >>> rate = m._get_object("Base.rate", as_proxy=True)
+        >>> rate = m._get_object("Base.rate", as_proxy=True)
 
-    >>> rate == mx.get_object("Model1.Base.rate", as_proxy=True), len({rate, base._get_object("rate", as_proxy=True)})
-    (True, 1)
+        >>> rate == mx.get_object("Model1.Base.rate", as_proxy=True), len({rate, base._get_object("rate", as_proxy=True)})
+        (True, 1)
 
-    >>> item._get_object("scale", as_proxy=True) == m._get_object("scale", as_proxy=True)
-    True
+        >>> item._get_object("scale", as_proxy=True) == m._get_object("scale", as_proxy=True)
+        True
 
-    >>> sub._get_object("rate", as_proxy=True) == rate, rate == 0.05
-    (False, False)
+        >>> sub._get_object("rate", as_proxy=True) == rate, rate == 0.05
+        (False, False)
 
     With a Cells on the left, ``cells == proxy`` is the comparison
     of the Cells, which evaluates a Cells with no parameters and raises
@@ -1413,20 +1415,20 @@ Equality and hash
     :meth:`~modelx.core.space.UserSpace.set_ref` raises
     :obj:`ValueError` for any other mode, and changes nothing then.
     That check is not made while :func:`~modelx.read_model` reads
-    a model, so a model file that holds another mode still reads.
+    a model, so a model file that holds another mode still reads. ::
 
-    >>> type(rate)._refmodes
-    ('auto', 'absolute', 'relative')
+        >>> type(rate)._refmodes
+        ('auto', 'absolute', 'relative')
 
-    >>> [p.refmode for p in (rate, item._get_object("rel", as_proxy=True),
-    ...                      item._get_object("i", as_proxy=True),
-    ...                      m._get_object("scale", as_proxy=True))]
-    ['auto', 'auto', None, None]
+        >>> [p.refmode for p in (rate, item._get_object("rel", as_proxy=True),
+        ...                      item._get_object("i", as_proxy=True),
+        ...                      m._get_object("scale", as_proxy=True))]
+        ['auto', 'auto', None, None]
 
-    >>> base.set_ref("half", 0.5, "sideways")
-    Traceback (most recent call last):
-      ...
-    ValueError: refmode must be one of 'auto', 'absolute', 'relative', not 'sideways'
+        >>> base.set_ref("half", 0.5, "sideways")
+        Traceback (most recent call last):
+          ...
+        ValueError: refmode must be one of 'auto', 'absolute', 'relative', not 'sideways'
 
     .. admonition:: Known limitation
 
@@ -1489,24 +1491,24 @@ Resolved slots
     because the only base of an ItemSpace or a DynamicSpace is the
     UserSpace it was made from.
     A resolved slot is valid only while its ItemSpace lives
-    (see ``_is_valid()`` under :ref:`toolapi-identity`).
+    (see ``_is_valid()`` under :ref:`toolapi-identity`). ::
 
-    >>> rel = item._get_object("rel", as_proxy=True)
+        >>> rel = item._get_object("rel", as_proxy=True)
 
-    >>> rel.value is item.Child, rel.parent is item, rel.name
-    (True, True, 'rel')
+        >>> rel.value is item.Child, rel.parent is item, rel.name
+        (True, True, 'rel')
 
-    >>> rel._idstr, rel._evalrepr, rel._get_repr(fullname=True)
-    ('Proj.__Space1.rel', 'Model1.Proj(1).rel', 'Model1.Proj[1].rel')
+        >>> rel._idstr, rel._evalrepr, rel._get_repr(fullname=True)
+        ('Proj.__Space1.rel', 'Model1.Proj(1).rel', 'Model1.Proj[1].rel')
 
-    >>> kind(rel), rel._is_derived(), rel.refmode
-    ('DynamicReferenceProxy', True, 'auto')
+        >>> kind(rel), rel._is_derived(), rel.refmode
+        ('DynamicReferenceProxy', True, 'auto')
 
-    >>> rel == proj._get_object("rel", as_proxy=True)
-    False
+        >>> rel == proj._get_object("rel", as_proxy=True)
+        False
 
-    >>> rel.parent.bases[0]._get_object(rel.name, as_proxy=True) == proj._get_object("rel", as_proxy=True)
-    True
+        >>> rel.parent.bases[0]._get_object(rel.name, as_proxy=True) == proj._get_object("rel", as_proxy=True)
+        True
 
     Seen through an ItemSpace, or a DynamicSpace in it, a name in
     ``refs`` is one of these:
@@ -1736,13 +1738,15 @@ for tools that show a model in another process, such as spyder-modelx.
     * a method that does work, such as ``clear_all``,
       which Model, the Space classes and Cells define: it is called.
 
-    >>> foo._get_attrdict(["_is_derived", "_evalrepr"], recursive=False)["_evalrepr"]
-    'Model1.Base.foo'
+    ::
 
-    >>> rec = m._get_attrdict(["_is_derived", "_evalrepr"], recursive=False)
+        >>> foo._get_attrdict(["_is_derived", "_evalrepr"], recursive=False)["_evalrepr"]
+        'Model1.Base.foo'
 
-    >>> "_is_derived" in rec, rec["_evalrepr"]
-    (False, 'Model1')
+        >>> rec = m._get_attrdict(["_is_derived", "_evalrepr"], recursive=False)
+
+        >>> "_is_derived" in rec, rec["_evalrepr"]
+        (False, 'Model1')
 
     .. versionchanged:: 0.34.0
        Names are looked up on the class only.
@@ -1805,17 +1809,17 @@ ReferenceProxy forwarding
     On this release it forwards them to that class
     (see the known limitation under :ref:`toolapi-detection`).
     ``doc`` is :obj:`None`.
-    What the proxy answers for any other name is undocumented.
+    What the proxy answers for any other name is undocumented. ::
 
-    >>> proxy = m._get_object("Base.rate", as_proxy=True)
+        >>> proxy = m._get_object("Base.rate", as_proxy=True)
 
-    >>> proxy.name, proxy.parent, proxy._idstr, proxy._get_repr(fullname=True)
-    ('rate', <UserSpace Model1.Base>, 'Base.rate', 'Model1.Base.rate')
+        >>> proxy.name, proxy.parent, proxy._idstr, proxy._get_repr(fullname=True)
+        ('rate', <UserSpace Model1.Base>, 'Base.rate', 'Model1.Base.rate')
 
-    >>> slot = item._get_object("rel", as_proxy=True)
+        >>> slot = item._get_object("rel", as_proxy=True)
 
-    >>> slot.name, slot.fullname, slot.parent, slot._idtuple
-    ('rel', 'Model1.Proj.__Space1.rel', <ItemSpace Model1.Proj[1]>, ('Model1', 'Proj', (1,), 'rel'))
+        >>> slot.name, slot.fullname, slot.parent, slot._idtuple
+        ('rel', 'Model1.Proj.__Space1.rel', <ItemSpace Model1.Proj[1]>, ('Model1', 'Proj', (1,), 'rel'))
 
     .. versionchanged:: 0.34.0
        ``_idstr``, ``_get_repr`` and ``_is_valid`` are defined
