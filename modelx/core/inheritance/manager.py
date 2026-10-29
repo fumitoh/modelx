@@ -64,10 +64,19 @@ class SpaceManager:
         :obj:`False` if ``name`` is already defined
         as an instance of ``klass`` and ``overwirte`` is :obj:`True`,
         otherwise :obj:`True`.
+        For a Model ``parent``, :obj:`False` if ``name`` is the name of
+        a Space, a global Reference or a macro of the Model.
         """
         # TODO: Reflect the overwriting order of names
         if parent is self.model:
-            return name not in parent.namespace
+            # The Model's namespace holds its Spaces and global References,
+            # not its macros. On 0.33 new_space('mac'), S.rename('mac') and
+            # S.copy(model, 'mac') made a Space that hid macro mac (m.mac
+            # gave the Space), though new_macro refuses a Space's name, and
+            # read_model could not read the model back: ValueError, Name
+            # 'mac' already used.
+            return (name not in parent.namespace
+                    and name not in parent.macros)
         else:   # parent is a Space
             child = parent.get_attr(name)
             if child is not None:

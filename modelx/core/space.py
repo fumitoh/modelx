@@ -55,6 +55,7 @@ from modelx.core.parent import (
     EditableParentImpl,
 )
 from modelx.core.formula import Formula, ModuleSource
+from modelx.core.inheritance.query import get_inheritance
 from modelx.core.cells import (
     Cells,
     DynamicCellsImpl,
@@ -180,6 +181,108 @@ class BaseSpace(BaseParent, NodeFactory):
     def _is_sub(self, other):
         """True if the space is a sub space of ``other``, False otherwise."""
         return self._impl.is_sub(other._impl)
+
+    def _get_inheritance(self):
+        """Where each Cells and each Reference of this Space is defined.
+
+        One read for the whole Space. For every Cells, and every name in
+        :attr:`refs`, it tells whether this Space defines the member,
+        defines it over a base Space's member of that name, or inherits
+        it, and which Space holds the definition in use. For a Reference
+        it also tells where the name comes from. It reads no value, so it
+        evaluates nothing.
+
+        An ItemSpace or a DynamicSpace reports the states of the UserSpace
+        it was made from, its only base: ``P[1]`` reports those of ``P``,
+        and ``P[1].Child`` those of ``P.Child``.
+
+        Returns:
+            dict: A new dict on each call, with four keys:
+
+            * ``'bases'``: the list :attr:`bases` returns, the method
+              resolution order; for an ItemSpace or a DynamicSpace, the
+              UserSpace it was made from.
+            * ``'direct_bases'``: the list :attr:`_direct_bases` returns.
+            * ``'cells'``: for each name in :attr:`cells`, in the same
+              order, ``{'state': ..., 'defined_in': ...}``.
+            * ``'refs'``: for each name in :attr:`refs`, in the same
+              order, ``{'scope': ..., 'state': ..., 'defined_in': ...}``.
+
+            ``'state'`` is one of:
+
+            * ``'defined'``: defined in this Space, and in none of its
+              bases;
+            * ``'overriding'``: defined in this Space, and a base Space
+              has a member of the same name;
+            * ``'derived'``: inherited from a base Space;
+            * :obj:`None`, for a name that is not a Reference of a Space:
+              scope ``'argument'``, ``'formula'``, ``'global'`` or
+              ``'builtins'``.
+
+            ``'defined_in'`` is the Space whose definition is in use: this
+            Space for ``'defined'`` and ``'overriding'``, and for
+            ``'derived'`` the first Space in :attr:`bases` that defines
+            the name. An ItemSpace or a DynamicSpace has those of the
+            UserSpace it was made from. It is the Model for a global
+            Reference, and :obj:`None` for an argument, a formula ref and
+            ``__builtins__``.
+
+            ``'scope'`` is the kind of binding a formula of this Space
+            sees for the name, where several have it:
+
+            * ``'space'``: a Reference of this UserSpace, defined in it
+              or inherited;
+            * ``'base'``: in an ItemSpace or a DynamicSpace, a Reference
+              of the UserSpace it was made from. That includes a
+              Reference whose value is replaced by the ItemSpace's own
+              copy of it, such as ``P[1].rel`` for ``P.rel = P.Child``;
+            * ``'argument'``: an argument of the ItemSpace, or of an
+              ItemSpace the DynamicSpace is in. Its names are the
+              parameters of the Space formula that made the ItemSpace,
+              which are those of the ItemSpace's parent, also when the
+              formula returns another Space as ``'base'``;
+            * ``'formula'``: a ref that the Space formula returned in
+              ``'refs'`` for the ItemSpace;
+            * ``'global'``: a global Reference;
+            * ``'builtins'``: ``__builtins__``, which modelx binds in
+              every Model.
+
+            The system names ``_self``, ``_space`` and ``_model`` are not
+            reported, as :attr:`refs` does not list them. Other names that
+            start with ``_`` are reported under their scope, as
+            :attr:`refs` lists them: global References, References made
+            by ``new_space(refs=...)``, arguments and formula refs.
+
+        Raises:
+            DeletedObjectError: The Space has been deleted.
+
+        Example:
+            .. code-block:: python
+
+                >>> base = model.new_space('Base')
+                >>> base.new_cells('foo', formula=lambda: 1)
+                >>> base.new_cells('bar', formula=lambda: 2)
+                >>> base.k = 1
+                >>> sub = model.new_space('Sub', bases=base)
+                >>> sub.bar.formula = lambda: 20
+                >>> model.glob = 3
+                >>> d = sub._get_inheritance()
+                >>> d['bases'], d['direct_bases']
+                ([<UserSpace Model1.Base>], [<UserSpace Model1.Base>])
+                >>> d['cells']
+                {'foo': {'state': 'derived', 'defined_in': <UserSpace Model1.Base>},
+                 'bar': {'state': 'overriding', 'defined_in': <UserSpace Model1.Sub>}}
+                >>> d['refs']['k'], d['refs']['glob']['scope']
+                ({'scope': 'space', 'state': 'derived', 'defined_in': <UserSpace Model1.Base>}, 'global')
+
+        See Also:
+            * :attr:`bases`, :attr:`_direct_bases`
+            * :meth:`Cells._is_derived <modelx.core.cells.Cells._is_derived>`
+            * :meth:`ReferenceProxy._is_derived <modelx.core.reference.ReferenceProxy._is_derived>`
+
+        .. versionadded:: 0.34.0
+        """
+        return get_inheritance(self._impl)
 
     @property
     def cells(self):
@@ -412,7 +515,24 @@ class BaseSpace(BaseParent, NodeFactory):
 
     @property
     def _own_refs(self):
-        """A mapping associating names to self refs."""
+        """A read-only mapping of the References this Space holds itself.
+
+        In a UserSpace, these are the References defined in the Space or
+        inherited from its bases, without the global References and
+        ``__builtins__`` that :attr:`refs` also lists:
+        the names :meth:`_get_inheritance` reports with scope
+        ``'space'``.
+
+        In an ItemSpace, these are only the refs that the Space formula
+        returned in ``'refs'`` for it: the names :meth:`_get_inheritance`
+        reports with scope ``'formula'``, and any of them that an
+        argument of the same name hides. No Space formula makes a
+        DynamicSpace, so its ``_own_refs`` is empty. The arguments and
+        the References of the UserSpace that an ItemSpace or a
+        DynamicSpace was made from are in :attr:`refs`, and
+        :meth:`_get_inheritance` reports them with scopes ``'argument'``
+        and ``'base'``.
+        """
         return RefView(self._impl.own_refs)
 
     @property
@@ -873,6 +993,11 @@ class UserSpace(BaseSpace, EditableParent):
 
         See Also:
             * :meth:`rename`: Rename a space in place
+
+        .. versionchanged:: 0.34.0
+            In a Model, the name of a macro raises :obj:`ValueError`, as
+            the name of a Space or a global Reference does. Before, the
+            copy was made and hid the macro.
         """
         return self._impl.model.updater.copy_space(
             parent._impl, self._impl, name, defined_only).interface
@@ -919,6 +1044,11 @@ class UserSpace(BaseSpace, EditableParent):
             * :meth:`copy`: Create a copy with a different name
 
         .. versionadded:: 0.16.0
+
+        .. versionchanged:: 0.34.0
+            In a Model, the name of a macro raises :obj:`ValueError`, as
+            the name of a Space or a global Reference does. Before, the
+            Space was renamed and hid the macro.
         """
         self._impl.spmgr.rename_space(self._impl, name)
 
@@ -1540,8 +1670,13 @@ class UserSpace(BaseSpace, EditableParent):
             refmode (str): Reference mode - must be "auto", "absolute", or "relative".
 
         Raises:
-            AttributeError: If ``name`` conflicts with an existing attribute
-            ValueError: If ``refmode`` is not a valid mode
+            AttributeError: If ``name`` conflicts with an existing attribute:
+                an attribute of the class, a Cells of this Space,
+                defined or inherited, or a child Space of this Space.
+                Nothing is changed then.
+            ValueError: If ``refmode`` is not one of
+                ``ReferenceProxy._refmodes``, ``'auto'``, ``'absolute'``
+                or ``'relative'``. Nothing is changed then.
 
         Example:
 
@@ -1569,11 +1704,63 @@ class UserSpace(BaseSpace, EditableParent):
             * :meth:`absref`: Convenience method for absolute references
             * :meth:`relref`: Convenience method for relative references
             * :attr:`refs`: View all references in this space
+
+        .. versionchanged:: 0.34.0
+            An invalid ``refmode`` raises :obj:`ValueError`, as documented.
+            Before, it was stored, and when the value was a Cells or a
+            Space, making a sub Space of the Space then failed with
+            ``ValueError: must not happen``, and when the value was
+            outside the Space, so did making any of its ItemSpaces,
+            with :class:`~modelx.core.errors.FormulaError` from
+            ``RuntimeError: must not happen``.
+
+        .. versionchanged:: 0.34.0
+            The name of a Cells or a child Space raises
+            :obj:`AttributeError`, as documented. Before, the name of a
+            Cells with no parameters set that Cells' input and made no
+            Reference, and the name of a child Space raised
+            :obj:`ValueError`. Assigning to the attribute,
+            ``space.name = value``, still sets the Cells' input.
+
+            Neither check is made while :func:`~modelx.read_model` reads
+            a model, so a model that an earlier version saved with such
+            a mode or such a name still reads as it did.
         """
+        # Not while a model is read: a reader passes the mode its file holds.
+        # The readers of serializer versions 4-7 pass the third element of
+        # a Reference's tuple, which for an IOSpec's value is the IOSpec's
+        # id, an int. With the check applied there, six lifelib models
+        # failed to read (BasicTermASL_ME, BasicTerm_SC, ifrs17sim,
+        # nestedlife, solvency2, BasicTerm_ME_for_Cluster: 3 to 17 such
+        # References each), and so did models that 0.33 saved with a mode
+        # its set_ref accepted, 'sideways', None or 42.
+        if not (isinstance(refmode, str)
+                and refmode in ReferenceProxy._refmodes
+                ) and not self._impl.system.serializing:
+            raise ValueError(
+                "refmode must be one of %s, not %r"
+                % (", ".join(repr(m) for m in ReferenceProxy._refmodes),
+                   refmode))
         if hasattr(type(self), name):
             raise AttributeError("'%s' is already defined" % name)
-        else:
-            self._impl.set_attr(name, value, refmode=refmode)
+        # set_attr gives a member's name to the member: on 0.33,
+        # set_ref('a', 3, 'auto') on a Cells with no parameters set its
+        # input and made no Reference, and a child Space's name raised a
+        # ValueError with no message. Not while a model is read either:
+        # 0.33 saves a Reference whose name a Cells of a base also has
+        # (S.c = Other, then S.add_bases(B) with Cells B.c), and its
+        # reader restores a Reference to a modelx object with set_ref,
+        # which sets the Cells' input. With the check, the file failed
+        # to read with this AttributeError.
+        impl = self._impl
+        if not impl.system.serializing:
+            if name in impl.cells:
+                raise AttributeError(
+                    "'%s' is already defined as a Cells" % name)
+            if name in impl.spaces:
+                raise AttributeError(
+                    "'%s' is already defined as a Space" % name)
+        impl.set_attr(name, value, refmode=refmode)
 
 
     def __delattr__(self, name):
