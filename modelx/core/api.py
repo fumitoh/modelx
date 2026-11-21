@@ -256,7 +256,7 @@ def new_model(name=None):
     return _system.new_model(name).interface
 
 
-def new_space(name=None, bases=None, formula=None):
+def new_space(name=None, bases=None, formula=None, refs=None, *, collect_over=None, collect_outputs=None):
     """Create a new space in the current model.
 
     Creates a new :class:`~modelx.core.space.UserSpace` in the current model.
@@ -278,6 +278,13 @@ def new_space(name=None, bases=None, formula=None):
             
         formula (callable or str, optional): Parameter formula for creating
             dynamic space instances. If provided, the space becomes parameterized.
+        refs (dict, optional): References to define in the created space.
+        collect_over (mapping, optional): The one Space parameter and its
+            domain iterated by ``collect()``. Other Space parameters remain
+            ordinary arguments to ``collect()``. If a model member is named
+            ``collect``, call ``_mx_collect()`` to aggregate the outputs.
+        collect_outputs (callable or str, optional): Zero-argument per-ItemSpace
+            formula returning optional 'individual' and 'sum' output sections.
 
     Returns:
         :class:`~modelx.core.space.UserSpace`: The newly created space.
@@ -310,7 +317,9 @@ def new_space(name=None, bases=None, formula=None):
     """
     if cur_model() is None:
         new_model()
-    return cur_model().new_space(name, bases, formula)
+    return cur_model().new_space(
+        name, bases, formula, refs,
+        collect_over=collect_over, collect_outputs=collect_outputs)
 
 
 def defcells(space=None, name=None, is_cached=None, *funcs):
@@ -1522,7 +1531,15 @@ def export_model(model, path, use_slots=True, locked_spaces=None):
     the same time as each other. The lock is re-entrant, so Cells of locked
     Spaces can call each other and recurse freely. A formula that raises
     leaves no cached value and is run again by the next caller, as in
-    modelx. Spaces not listed are exported exactly as before.
+    modelx. Cell evaluation in other Spaces keeps its existing locking behavior.
+
+    In a collect-enabled export, cold persistent ItemSpace creation also uses
+    the model lock. A successful construction publishes one ItemSpace for
+    callers of that Space and key. A failed construction leaves the key uncached
+    so the next caller can retry. Cached ItemSpaces are returned without taking
+    the lock. Collect policy roots are transient and do not take the lock for
+    their construction. Collect on the same model runs serially when the caller
+    already holds the model lock.
 
     Limitations to keep in mind:
 
@@ -1538,6 +1555,10 @@ def export_model(model, path, use_slots=True, locked_spaces=None):
       needs a Cells of a locked Space, for example by joining a thread or
       a thread pool inside the formula. It would deadlock. Keep the threads
       in the script that drives the model.
+    * In a collect-enabled export, a dynamic Space formula creating a persistent
+      ItemSpace must not wait synchronously for another thread that needs the
+      same model lock. This includes threads constructing other uncached
+      ItemSpaces or evaluating uncached locked Cells.
     * Cells whose ``is_cached`` is :obj:`False` are not locked. They run
       under the lock only while called from a locked Cells.
     * ``del space[args]`` on an ItemSpace is not safe while other threads

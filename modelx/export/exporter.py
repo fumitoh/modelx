@@ -305,11 +305,14 @@ class Exporter:
 
     def export(self):
         io_manager = DataManager(self.model)
+        parents = tuple(self.gen_parents())
+        has_collect = any(parent is not self.model and parent._impl.collect_over_spec is not None
+                          for parent in parents)
 
         # Create self.path dir and Write Model module
         write_str_utf8(
             ModelTranslator(self.model, io_manager,
-                            use_lock=bool(self.locked_spaces)).code,
+                            use_lock=bool(self.locked_spaces), has_collect=has_collect).code,
             self.path / (MODEL_MODULE + '.py'))
 
         # Write _mx_sys.py
@@ -321,7 +324,7 @@ class Exporter:
                 MacroTranslator(self.model).code,
                 self.path / (MACRO_MODULE + '.py'))
 
-        for parent in self.gen_parents():
+        for parent in parents:
 
             if parent is self.model:
                 init_line = f'from .{MODEL_MODULE} import ({MODEL_VAR}, {self.model.name})'
@@ -341,8 +344,11 @@ class Exporter:
                 # Write space modules
                 write_str_utf8(
                     SpaceTranslator(parent, io_manager, self.use_slots,
-                                    self.locked_spaces).code,
+                                    self.locked_spaces, has_collect=has_collect).code,
                     cur_dir / (SPACE_MODULE + '.py'))
+
+        if has_collect:
+            copy_file(this_dir / '_mx_collect_semantics.py', self.path / '_mx_collect_semantics.py')
 
         # Write IO metadata
         ios = io_manager.get_literal_ios()
@@ -418,7 +424,7 @@ class DataManager:
 class ParentTranslator:
 
     module_template = ''
-    threading_import = ''   # set by ModelTranslator when the model has a lock
+    model_imports = ''
     space_dict_template = textwrap.dedent("""\
     self._mx_spaces = {{
     {elements}
@@ -433,7 +439,7 @@ class ParentTranslator:
     def code(self):
         return self.module_template.format(
             dots=self.dots,
-            threading_import=self.threading_import,
+            model_imports=self.model_imports,
             MODEL_VAR=MODEL_VAR,
             SPACE_MODULE=SPACE_MODULE,
             child_imports=self.child_imports,
@@ -558,7 +564,7 @@ class ParentTranslator:
 class ModelTranslator(ParentTranslator):
     
     module_template = textwrap.dedent("""\
-    from . import _mx_sys{threading_import}
+    from . import _mx_sys{model_imports}
     from . import {SPACE_MODULE}
     
     {class_defs}
@@ -587,31 +593,47 @@ class ModelTranslator(ParentTranslator):
     """)
 
     lock_init = textwrap.dedent("""\
-    # Lock shared by the locked Spaces
-    self.{LOCK_ATTR} = threading.RLock()
+    # Lock shared by {users}
+    self.{lock_attr} = {constructor}()
 
-    """).format(LOCK_ATTR=LOCK_ATTR)
+    """)
 
     def __init__(self, parent: BaseParent, io_manager: DataManager,
-                 use_lock: bool = False):
+                 use_lock: bool = False, has_collect: bool = False):
         super().__init__(parent, io_manager)
         self.use_lock = use_lock
-        if use_lock:
-            self.threading_import = '\nimport threading'
+        self.has_collect = has_collect
+        if has_collect:
+            self.model_imports = '\nfrom . import _mx_collect_semantics'
+        elif use_lock:
+            self.model_imports = '\nimport threading'
 
     @cached_property
     def class_defs(self):
         space_assigns = self.space_assigns(self.parent)
-        if self.use_lock:
+        if self.use_lock or self.has_collect:
             # Created before the Spaces, whose __init__ copies the reference.
-            space_assigns = self.lock_init + space_assigns
+            if self.has_collect:
+                constructor = '_mx_sys._CollectLock'
+                users = 'locked Cells and persistent ItemSpace creation'
+            else:
+                constructor = 'threading.RLock'
+                users = 'the locked Spaces'
+            space_assigns = self.lock_init.format(
+                lock_attr=LOCK_ATTR, constructor=constructor, users=users) + space_assigns
+        if self.has_collect:
+            space_assigns = 'self._mx_collect_init_v2()\n' + space_assigns
 
-        return self.class_template.format(
+        result = self.class_template.format(
             name=self.parent.name,
             space_assigns=textwrap.indent(space_assigns, ' ' * 8),
             space_dict=textwrap.indent(self.space_dict(self.parent), ' ' * 8),
             ref_assigns=textwrap.indent(self.ref_assigns(self.parent), ' ' * 8)
         )
+        if self.has_collect:
+            result += ('\n    def _mx_collect_parallel_allowed(self):\n'
+                       '        return not self._mx_lock.held_by_current_thread()\n')
+        return result
 
     def space_assigns(self, parent):
         result = []
@@ -788,7 +810,7 @@ class SpaceTranslator(ParentTranslator):
         _mx_root = self._mx_itemspaces.get(_mx_key)
         if _mx_root is not None:
             return _mx_root
-        with self._mx_lock:
+        with {itemspace_lock}:
             _mx_root = self._mx_itemspaces.get(_mx_key)
             if _mx_root is not None:
                 return _mx_root
@@ -836,10 +858,11 @@ class SpaceTranslator(ParentTranslator):
     """)
 
     def __init__(self, parent: BaseParent, io_manager: DataManager,
-                 use_slots: bool = True, locked_spaces=frozenset()):
+                 use_slots: bool = True, locked_spaces=frozenset(), *, has_collect: bool = False):
         super().__init__(parent, io_manager)
         self.use_slots = use_slots
         self.locked_spaces = locked_spaces
+        self.has_collect = has_collect
 
     @cached_property
     def class_defs(self):
@@ -975,11 +998,12 @@ class SpaceTranslator(ParentTranslator):
                 getitem = self.getitem_select
 
             itemspace_methods = (
-                self.itemspace_methods_locked if locked
+                self.itemspace_methods_locked if locked or self.has_collect
                 else self.itemspace_methods).format(
                 args=attrs.arg_str,
                 params=attrs.param_str,
                 idx_args=attrs.key_str,
+                itemspace_lock=f'self.{LOCK_ATTR}' if locked else f'self._model.{LOCK_ATTR}',
                 dynamic_refs=('\n\n        _mx_root._mx_apply_formula(' + attrs.arg_str + ')'
                               if space_formula else ''),
                 param_copies=textwrap.indent(
@@ -1005,6 +1029,56 @@ class SpaceTranslator(ParentTranslator):
                     for name, value in refs.items():
                         setattr(self, name, value)
                 """).replace('{dynamic_refs}', repr(tuple(dynamic_refs)))
+            if space._impl.collect_over_spec is not None:
+                if len(space._impl.collect_over_spec) != 1:
+                    raise ValueError("export supports one collect parameter")
+                loop_name, domain = next(iter(space._impl.collect_over_spec.items()))
+                if loop_name not in attrs.params:
+                    raise ValueError("collect parameter is not a Space parameter")
+                if (domain.source is not None
+                        and getattr(domain.source, 'parent', None) is space._impl
+                        and domain.source.name in space._impl.cells):
+                    domain_expr = "self.%s()" % domain.source.name
+                    domain_ref = (domain.source.name, True)
+                elif domain.ref_parent is space._impl:
+                    domain_expr = "self.%s" % domain.ref_name
+                    domain_ref = (domain.ref_name, False)
+                else:
+                    raise ValueError(
+                        "export collect domain must be a Cell or Reference "
+                        "owned by the collection Space")
+                itemspace_dict += '\nself._mx_collect_cache = {}'
+                slot_names.append('_mx_collect_cache')
+                collect_params = [
+                    param for name, param in space.formula.signature.parameters.items()
+                    if name != loop_name]
+                collect_signature = str(inspect.Signature(collect_params))[1:-1]
+                collect_args = ', '.join(param.name for param in collect_params)
+                collect_names = ', '.join(repr(param.name) for param in collect_params)
+                if len(collect_params) == 1:
+                    collect_args += ','
+                    collect_names += ','
+                collect_method = 'collect'
+                if ('collect' in class_names
+                        or any(normalize(name) == 'collect' for name in slot_names)
+                        or 'collect' in inherited_params):
+                    collect_method = '_mx_collect'
+                itemspace_methods += textwrap.dedent("""\
+                def _mx_collect_contract_v2(self):
+                    return {contract!r}
+
+                def {method}(self{comma}{signature}):
+                    return _mx_sys.collect_from_space(
+                        self, {domain}, {parameter!r}, ({names}), ({args}),
+                        cache=self._mx_collect_cache)
+
+                """).format(domain=domain_expr, parameter=loop_name,
+                            contract=(loop_name, tuple(param.name for param in collect_params), *domain_ref),
+                            method=collect_method,
+                            comma=', ' if collect_signature else '',
+                            signature=collect_signature, args=collect_args,
+                            names=collect_names)
+                class_names.add(collect_method)
             delitem = self.delitem_asis
         else:
             itemspace_dict = ''

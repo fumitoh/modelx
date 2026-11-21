@@ -20,6 +20,7 @@ Model properties
   ~Model.model
   ~Model.parent
   ~Model.allow_none
+  ~Model.collect_workers
   ~Model.properties
   ~Model.spaces
   ~Model.refs

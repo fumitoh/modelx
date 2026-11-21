@@ -73,6 +73,12 @@ class ItemSpaceManager:
 
         dirty = set(changes.dirty_spaces)
         dirty_bases = set(changes.dirty_bases)
+        # collect() has discarded its ItemSpaces: invalidate using the small
+        # template-ID closure recorded by its runner, not a retained tree.
+        for space in self.model.yield_spaces():
+            runner = space.collect_runner
+            if runner is not None:
+                runner.invalidate_templates(dirty | dirty_bases)
         if not dirty and not dirty_bases:
             return
 
@@ -95,6 +101,8 @@ class ItemSpaceManager:
     def _invalidate_all(self):
         targets = list(self._iter_foreign_targets(self.model.yield_spaces()))
         for space in self.model.yield_spaces():
+            if space.collect_runner is not None:
+                space.collect_runner.invalidate_templates()
             space.del_all_itemspaces()
         for parent, key in targets:
             parent.clear_itemspace_at(key)

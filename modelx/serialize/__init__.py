@@ -154,5 +154,31 @@ def read_model(system, model_path, name=None):
             % str(model_path))
 
     model = serializer.ModelReader(system, path).read_model(**kwargs)
+    _restore_collect_declarations(model, path)
     model.path = path
     return model
+
+
+def _restore_collect_declarations(model, root):
+    """Read optional collect metadata for every supported model format."""
+
+    def restore(parent, directory):
+        for name, space in parent.spaces.items():
+            path = directory / name
+            metadata = path / '_collect.json'
+            if ziputil.exists(metadata):
+                declaration = ziputil.read_file_utf8(
+                    lambda stream: json.load(stream), metadata, 't')
+                domain = declaration['domain']
+                if domain['kind'] == 'cell':
+                    source = space._impl.cells[domain['name']]
+                elif domain['kind'] == 'ref':
+                    source = space._impl.own_refs[domain['name']]
+                else:
+                    raise ValueError('invalid collect domain source')
+                if 'collect_outputs' not in space._impl.cells:
+                    raise ValueError('collect metadata requires collect_outputs')
+                space._impl.set_collect_spec({declaration['parameter']: source})
+            restore(space, path)
+
+    restore(model, root)

@@ -97,7 +97,9 @@ class EditableParent(BaseParent):
         else:
             self._impl.set_attr(name, value, refmode="auto")
 
-    def new_space(self, name=None, bases=None, formula=None, refs=None):
+    def new_space(
+            self, name=None, bases=None, formula=None, refs=None, *,
+            collect_over=None, collect_outputs=None):
         """Create a child space.
 
         Args:
@@ -112,14 +114,34 @@ class EditableParent(BaseParent):
                 to be passed to this method when the dynamic child spaces
                 are created.
             refs (optional): A dict of name–value pairs to define refs in the created space.
+            collect_over (optional): Mapping containing the one Space
+                parameter to iterate and its finite ordered domain (or a modelx
+                Reference/Cells returning it). Other Space parameters remain
+                ordinary arguments to ``collect()``. If a model member is named
+                ``collect``, call ``_mx_collect()`` to aggregate the outputs.
+            collect_outputs (optional): Zero-argument formula evaluated in each
+                collected ItemSpace. It returns optional 'individual' and 'sum' output sections.
 
         Returns:
             The new child space.
         """
+        from modelx.core.collect import validate_collect_contract
+
+        collect_over, collect_formula = validate_collect_contract(
+            formula, collect_over, collect_outputs)
+
         space = self._impl.model.currentspace = self._impl.model.updater.new_space(
             self._impl,
             name=name, bases=get_impls(bases), formula=formula, refs=refs
         )
+        try:
+            if collect_over is not None:
+                space.set_collect_spec(collect_over)
+                space.interface.new_cells("collect_outputs", collect_formula)
+        except BaseException:
+            self._impl.model.updater.del_defined_space(space)
+            raise
+
         self._impl.system.currentmodel = space.model
         return space.interface
 
