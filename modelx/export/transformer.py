@@ -117,8 +117,9 @@ FuncAttrs = namedtuple("FuncAttrs",
 
 def funcdef_to_attrs(func: FunctionDef, module: Module) -> FuncAttrs:
 
-    params = [p.name.value for p in func.params.params]
-    required_params = [p.name.value for p in func.params.params if p.default is None]
+    all_params = list(func.params.posonly_params) + list(func.params.params)
+    params = [p.name.value for p in all_params]
+    required_params = [p.name.value for p in all_params if p.default is None]
     argstr = ", ".join(params)
     t_args = "(" + params[0] + ",)" if len(params) == 1 else "(" + ", ".join(params) + ")"
 
@@ -295,9 +296,14 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
             )
 
         self_param = cst.Param(name=cst.Name(value='self'))
-        new_params = updated_node.params.with_changes(
-            params=(self_param,) + tuple(updated_node.params.params)
-        )
+        if updated_node.params.posonly_params:
+            new_params = updated_node.params.with_changes(
+                posonly_params=(self_param,) + tuple(updated_node.params.posonly_params)
+            )
+        else:
+            new_params = updated_node.params.with_changes(
+                params=(self_param,) + tuple(updated_node.params.params)
+            )
 
         self.topfunc_name = None
         self.func_level -= 1
@@ -305,6 +311,12 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
             name=name,
             params=new_params
         )
+
+    def is_declaration(self, node: cst.Name) -> bool:
+        parent = self.get_metadata(ParentNodeProvider, node)
+        if isinstance(parent, cst.NameItem):
+            parent = self.get_metadata(ParentNodeProvider, parent)
+        return isinstance(parent, (cst.Global, cst.Nonlocal))
 
     def visit_Attribute(self, node: "Attribute") -> Optional[bool]:
         self.attr_stack.append(node.attr)
@@ -324,8 +336,16 @@ class FormulaTransformer(m.MatcherDecoratableTransformer):
         elif self.attr_stack and self.attr_stack[-1] == original_node:
             # Do nothing if node is an attribute of another name
             return updated_node
+        elif self.is_declaration(original_node):
+            return updated_node
         elif self.should_replace(original_node):
-            return cst.Attribute(value=cst.Name('self'), attr=updated_node)
+            attr = updated_node.with_changes(lpar=(), rpar=())
+            return cst.Attribute(
+                value=cst.Name('self'),
+                attr=attr,
+                lpar=updated_node.lpar,
+                rpar=updated_node.rpar,
+            )
         else:
             return updated_node
 

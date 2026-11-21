@@ -691,3 +691,77 @@ def test_plain_name_after_genexp(comprehension_scopes):
         return [sum(self.b(t) for t in range(y)) for y in ys], self.c(1)
     """)
     assert nomx.Space1.bare_after_genexp() == m.Space1.bare_after_genexp()
+
+
+def test_positional_only_parameters(tmp_path):
+    """Positional-only parameters keep self as the first positional-only parameter"""
+    m = mx.new_model('PosOnlyModel')
+    s = m.new_space('Space1')
+    s.new_cells('a', formula='def a(x):\n    return 10 * x\n')
+    s.new_cells('f', formula='def f(p, /, q):\n    return a(p) + q\n')
+
+    export_path = tmp_path / 'posonly_nomx'
+    m.export(export_path)
+
+    try:
+        sys.path.insert(0, str(tmp_path))
+        from posonly_nomx import mx_model as nomx
+
+        assert _formula_source(nomx, 'f') == dedent("""\
+        def _f_f(self, p, /, q):
+            return self.a(p) + q
+        """)
+        assert nomx.Space1.f(2, 3) == m.Space1.f(2, 3) == 23
+    finally:
+        sys.path.pop(0)
+        m.close()
+
+
+def test_parenthesized_bare_name(tmp_path):
+    """A bare name in parentheses exports as (self.name) rather than self.(name)"""
+    m = mx.new_model('ParenModel')
+    s = m.new_space('Space1')
+    s.ys = [1, 2]
+    s.new_cells('f', formula='def f():\n    return (ys)\n')
+
+    export_path = tmp_path / 'paren_nomx'
+    m.export(export_path)
+
+    try:
+        sys.path.insert(0, str(tmp_path))
+        from paren_nomx import mx_model as nomx
+
+        assert _formula_source(nomx, 'f') == dedent("""\
+        def _f_f(self):
+            return (self.ys)
+        """)
+        assert nomx.Space1.f() == m.Space1.f() == [1, 2]
+    finally:
+        sys.path.pop(0)
+        m.close()
+
+
+def test_global_declaration_not_qualified(tmp_path):
+    """A global statement inside a formula does not qualify the declared name"""
+    m = mx.new_model('GlobalModel')
+    s = m.new_space('Space1')
+    s.new_cells('n', formula='def n(t):\n    return t\n')
+    s.new_cells('f', formula='def f():\n    global n\n    return n(42)\n')
+
+    export_path = tmp_path / 'global_nomx'
+    m.export(export_path)
+
+    try:
+        sys.path.insert(0, str(tmp_path))
+        from global_nomx import mx_model as nomx
+
+        assert _formula_source(nomx, 'f') == dedent("""\
+        def _f_f(self):
+            global n
+            return self.n(42)
+        """)
+        assert nomx.Space1.f() == m.Space1.f() == 42
+    finally:
+        sys.path.pop(0)
+        m.close()
+
