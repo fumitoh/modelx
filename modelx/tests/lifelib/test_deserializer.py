@@ -1,5 +1,5 @@
 import pathlib
-import pytest
+import tokenize
 from modelx.serialize import deserializer
 from modelx.serialize.serializer_6 import SourceStructure
 from modelx.serialize.ziputil import read_str_utf8
@@ -22,7 +22,14 @@ def test_compare_statements_agains_asttokens_using_lifelib():
         print(path_)
         srcstruct = SourceStructure(read_str_utf8(path_))
         file_count += 1
-        for t, a in zip(deserializer.get_statement_tokens(path_), get_statmetns_atok(path_)):
+        statements = deserializer.get_statement_tokens(path_)
+        ast_statements = get_statmetns_atok(path_)
+        assert len(statements) == len(ast_statements)
+        for t, a in zip(statements, ast_statements):
+            # ASTTokens ends at the last code token. The deserializer also
+            # captures trailing comments, including serializer-7 IOSpec metadata.
+            if t[-1].type == tokenize.COMMENT:
+                t = deserializer.StatementTokens(t[:-1], t.section)
             assert t.str_ == a
             assert srcstruct.get_section(t.lineno[0]) == t.section
 
