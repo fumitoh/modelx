@@ -26,7 +26,7 @@ import zipfile
 import modelx as mx
 from modelx.core.system import mxsys
 from modelx.core.model import Model
-from modelx.core.base import Interface
+from modelx.core.base import Interface, null_impl
 from modelx.core.util import (
     abs_to_rel, rel_to_abs, abs_to_rel_tuple, rel_to_abs_tuple)
 from modelx.core.api import _new_cells_keep_source
@@ -837,9 +837,13 @@ class InterfaceRefEncoder(BaseEncoder):
     @classmethod
     def condition(cls, ref, writer):
         value = ref.value
-        return isinstance(value, Interface) and value._is_valid()
+        return isinstance(value, Interface)
 
     def encode(self):
+        if not self.target.value._is_valid():
+            return '("Interface", (None, "%s"))' % (
+                type(self.target.value).__name__)
+
         idtuple = TupleID(abs_to_rel_tuple(
             self.target.value._idtuple,
             self.parent._idtuple
@@ -862,7 +866,10 @@ class InterfaceRefEncoder(BaseEncoder):
         idtuple.pickle_args(self.writer.pickledata, self.writer.assign_id)
 
     def instruct(self):
-        return Instruction(self.pickle_value)
+        if self.target.value._is_valid():
+            return Instruction(self.pickle_value)
+        else:
+            return None
 
 
 class LiteralEncoder(BaseEncoder):
@@ -1751,10 +1758,34 @@ class InterfaceDecoder(TupleDecoder):
     DECTYPE = "Interface"
 
     def decode(self):
-        return rel_to_abs(self.value[1], self.obj.fullname)
+        keys = self.value[1]
+        if (isinstance(keys, tuple)
+                and len(keys) == 2
+                and keys[0] is None):
+            return None
+        else:
+            return rel_to_abs(keys, self.obj.fullname)
 
     def restore(self):
         keys = self.value[1]
+        if (isinstance(keys, tuple)
+                and len(keys) == 2
+                and keys[0] is None):
+            from modelx.core.cells import Cells
+            from modelx.core.macro import Macro
+            from modelx.core.space import DynamicSpace, ItemSpace, UserSpace
+
+            interface_types = {
+                cls.__name__: cls for cls in (
+                    Cells, DynamicSpace, ItemSpace, Macro, Model, UserSpace
+                )
+            }
+            type_name = keys[1]
+            if type_name not in interface_types:
+                raise ValueError(
+                    "unknown null interface type: %s" % type_name)
+            cls = interface_types[type_name]
+            return cls.__new__(cls, null_impl)
         if any(isinstance(k, int) and not self.reader.find_pickledata(k)[0]
                for k in keys):
             self._warn_lost_ref()
