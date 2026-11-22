@@ -12,7 +12,8 @@ on:
 jobs:
   build:
 
-    runs-on: ${{ matrix.os }}
+    # Python 3.9 builds are available on Ubuntu 24.04.
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version.py == '3.9' && 'ubuntu-24.04' || matrix.os }}
     strategy:
       fail-fast: false
       matrix:
