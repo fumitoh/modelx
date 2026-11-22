@@ -127,6 +127,7 @@ Child Cells operations
 
   ~UserSpace.cells
   ~UserSpace.new_cells
+  ~UserSpace.set_collect
   ~UserSpace.new_cells_from_csv
   ~UserSpace.new_cells_from_excel
   ~UserSpace.new_cells_from_module

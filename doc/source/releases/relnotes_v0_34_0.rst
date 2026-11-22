@@ -16,6 +16,25 @@ Anaconda users should use the ``conda`` command instead::
 Enhancements
 ============
 
+* :meth:`UserSpace.set_collect <modelx.core.space.UserSpace.set_collect>`
+  declares, or changes, how ``collect()`` evaluates an existing Space, with the
+  values :meth:`~modelx.core.space.UserSpace.new_space` takes as
+  ``collect_over`` and ``collect_outputs``. The domain can then be a Cells of
+  the Space itself (``space.set_collect(over={'point_id': space.policy_ids},
+  outputs=...)``). ``new_space(collect_over=..., collect_outputs=...)`` is
+  unchanged; a saved model keeps the declaration.
+
+* :attr:`Model.collect_workers <modelx.core.model.Model.collect_workers>` sets the
+  number of worker threads ``collect()`` may use, the same way on a live, an
+  exported and a compiled model (``model.collect_workers = 4``; :obj:`None`
+  restores the default). With 1 worker, ``collect()`` evaluates the items one
+  after another. Individual results keep domain order for every worker count.
+  Floating-point sums from several workers may differ in the last bits.
+  On a free-threaded build an exported or a compiled model evaluates with
+  worker threads; live modelx evaluates serially, because a live model
+  evaluates its formulas through one shared call stack and dependency graph.
+  On a build with the GIL every form evaluates serially.
+
 * Tools can tell what a value is from the name of its class
   (:ref:`toolapi-kinds`). A tool first checks that
   ``type(v).__module__`` is a str that starts with ``"modelx."``,

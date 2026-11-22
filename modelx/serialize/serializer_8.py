@@ -403,6 +403,28 @@ class ModelWriter(serializer_7.ModelWriter):
 
         encoder.instruct().execute()
 
+        if isinstance(encoder, SpaceEncoder):
+            space = encoder.space._impl
+            if space.collect_over_spec is not None:
+                if len(space.collect_over_spec) != 1:
+                    raise ValueError("collect serialization requires one loop parameter")
+                parameter, domain = next(iter(space.collect_over_spec.items()))
+                if domain.ref_parent is space:
+                    source = {"kind": "ref", "name": domain.ref_name}
+                elif (domain.source is not None
+                      and getattr(domain.source, "parent", None) is space
+                      and getattr(domain.source, "name", None) in space.cells):
+                    source = {"kind": "cell", "name": domain.source.name}
+                else:
+                    raise ValueError(
+                        "collect serialization requires a domain Cell or Reference "
+                        "owned by the collection Space")
+                ziputil.write_str(
+                    json.dumps({"parameter": parameter, "domain": source}),
+                    encoder.srcpath.parent / "_collect.json",
+                    compression=self.compression,
+                    compresslevel=self.compresslevel)
+
     def write_pickledata(self):
         if self.model.iospecs:
             # Assign ids to any spec the traversal did not reach, then

@@ -75,13 +75,17 @@ class BaseSpace(BaseParent, NodeFactory):
     def __getattr__(self, name):
 
         if self._impl.system.callstack.counter:     # TODO: check executer.is_executing instead
-            return getattr(self._impl.namespace, name)
-        else:
-            child = self._impl.get_attr(name)
-            if child is None:
-                raise AttributeError(f"Attribute '{name}' is not in space {str(self)}")
-            else:
-                return child.interface
+            namespace = self._impl.namespace
+            if name == "collect" and name not in namespace:
+                return self._mx_collect
+            return getattr(namespace, name)
+
+        child = self._impl.get_attr(name)
+        if child is not None:
+            return child.interface
+        if name == "collect":
+            return self._mx_collect
+        raise AttributeError(f"Attribute '{name}' is not in space {str(self)}")
 
     def __dir__(self):
         return list(self._impl.ns_dict)
@@ -635,6 +639,18 @@ class BaseSpace(BaseParent, NodeFactory):
     def __call__(self, *args, **kwargs):
         return self._impl.get_itemspace(args, kwargs).interface
 
+    def _mx_collect(self, *args, **kwargs):
+        """Collect selected outputs over declared Space parameter domains.
+
+        Normal ``Space(...)`` calls retain ordinary Dynamic-Space semantics.
+        Call ``collect()`` on a Space created with both ``collect_over`` and
+        ``collect_outputs``. If the Space defines a member named ``collect``,
+        access that member normally and call ``_mx_collect()`` for aggregation.
+        """
+        if not isinstance(self._impl, UserSpaceImpl):
+            raise TypeError("collect() is only available on a static UserSpace")
+        return self._impl.collect(args, kwargs)
+
     # ----------------------------------------------------------------------
     # Conversion to Pandas objects
 
@@ -772,6 +788,56 @@ class UserSpace(BaseSpace, EditableParent):
     __slots__ = ()
     # ----------------------------------------------------------------------
     # Manipulating cells
+
+    def set_collect(self, over, outputs=None):
+        """Declare, or change, how :meth:`collect` evaluates this Space.
+
+        ``set_collect`` takes the same two values as :meth:`new_space` takes
+        as ``collect_over`` and ``collect_outputs``, for a Space that already
+        exists, so that the domain can be a Cells of the Space itself::
+
+            >>> space = model.new_space('Projection', formula=lambda point_id: None)
+            >>> space.new_cells('policy_ids', lambda: tuple(points.index))
+            >>> space.new_cells('pv', lambda: ...)
+            >>> space.set_collect(over={'point_id': space.policy_ids},
+            ...                   outputs=lambda: {'sum': {'pv': pv()}})
+            >>> space.collect().sum.pv
+
+        Args:
+            over: A mapping of the one Space parameter to iterate to its
+                finite ordered domain: a zero-argument Cells or a Reference of
+                this Space (the forms a saved, exported or compiled model
+                keeps), or a plain iterable.
+            outputs (optional): The zero-argument ``collect_outputs`` formula.
+                It replaces the formula of an existing ``collect_outputs``
+                Cells, or creates it; omit it to keep the existing one.
+
+        A change discards the results of earlier ``collect()`` calls. A model
+        saved with :func:`~modelx.write_model` keeps the declaration.
+
+        The ``individual`` section of the result is a dict keyed by the loop
+        parameter in domain order, for any :attr:`~modelx.core.model.Model.collect_workers`.
+
+        .. versionadded:: 0.34.0
+        """
+        from modelx.core.collect import validate_collect_contract
+        impl = self._impl
+        existing = impl.cells.get('collect_outputs')
+        if outputs is None and existing is None:
+            raise TypeError("set_collect needs outputs: the Space has no collect_outputs")
+        if impl.formula is None:
+            raise TypeError("a collect-enabled Space must have a parameter formula")
+        over, formula = validate_collect_contract(
+            impl.formula, over, existing.formula if outputs is None else outputs)
+        runner = getattr(impl, 'collect_runner', None)
+        if runner is not None:
+            runner.clear()
+        if outputs is not None:
+            if existing is not None:
+                self.cells['collect_outputs'].formula = formula
+            else:
+                self.new_cells('collect_outputs', formula)
+        impl.set_collect_spec(over)
 
     def new_cells(self, name=None, formula=None, is_cached=True):
         """Create a new :class:`~modelx.core.cells.Cells` object in this space.
@@ -1806,16 +1872,14 @@ class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
         node = get_node(self, args, kwargs)
         return self.system.executor.eval_node(node)
 
-    def on_eval_formula(self, key):
+    def _resolve_itemspace_params(self, key):
+        """Resolve the Dynamic-Space formula for persistent or transient use."""
         params = self.altfunc(*key)
 
         if params is None:
-            # Default
             base = self._dynbase if self.is_dynamic() else self
             refs = None
         elif isinstance(params, Mapping):
-
-            # Set base
             if "base" in params:
                 bs = params["base"]._impl
                 if isinstance(bs, UserSpaceImpl):
@@ -1824,18 +1888,14 @@ class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
                     base = bs._dynbase
                 else:
                     raise ValueError("base must be a Space")
-
             elif "bases" in params: # TODO: Remove 'bases' support
-
                 bs = params["bases"]
                 if isinstance(bs, Sequence):
                     if len(bs) == 1:
                         bs = bs[0]
                     else:
                         raise ValueError("bases must have a single element")
-
                 if bs is None:
-                    # Default
                     base = self._dynbase if self.is_dynamic() else self
                 elif isinstance(bs._impl, UserSpaceImpl):
                     base = bs._impl
@@ -1845,14 +1905,14 @@ class ItemSpaceParent(NodeFactoryImpl, AlteredFunction):
                     raise ValueError("invalid value for bases")
             else:
                 base = self._dynbase if self.is_dynamic() else self
-
-            # Set refs
             refs = params.get("refs", None)
-            # TODO: check if refs is a dict with str keys
-
         else:
             raise ValueError("Space formula must return either dict or None")
 
+        return base, refs
+
+    def on_eval_formula(self, key):
+        base, refs = self._resolve_itemspace_params(key)
         dkey = (self.dynamic_key if self.is_dynamic() else ()) + (key,)
 
         space = ItemSpaceImpl(
@@ -2252,7 +2312,9 @@ class UserSpaceImpl(*_user_space_impl_base):
 
     __slots__ = (
         "cellsnamer",
-        "source"
+        "source",
+        "collect_over_spec",
+        "collect_runner",
     ) + get_mixin_slots(*_user_space_impl_base)
 
     def __init__(
@@ -2279,6 +2341,41 @@ class UserSpaceImpl(*_user_space_impl_base):
             self.source = source.__name__
         else:
             self.source = source
+
+        self.collect_over_spec = None
+        self.collect_runner = None
+
+    def set_formula(self, formula):
+        # The ordinary parameter-formula setter predates the edit pipeline.
+        # Keep the optional collect signature/cache in sync on this path too.
+        super().set_formula(formula)
+        runner = getattr(self, "collect_runner", None)
+        if runner is not None:
+            runner.invalidate_templates()
+
+    def del_formula(self):
+        super().del_formula()
+        runner = getattr(self, "collect_runner", None)
+        if runner is not None:
+            runner.invalidate_templates()
+
+    def del_all_itemspaces(self):
+        runner = getattr(self, "collect_runner", None)
+        if runner is not None:
+            runner.clear()
+        super().del_all_itemspaces()
+
+    def set_collect_spec(self, collect_over):
+        from modelx.core.collect import CollectRunner, resolve_collect_over
+        self.collect_over_spec = resolve_collect_over(self, collect_over)
+        self.collect_runner = CollectRunner(self)
+
+    def collect(self, args, kwargs):
+        if self.collect_runner is None:
+            raise TypeError("this Space has no collect declaration")
+        if "collect_outputs" not in self.cells:
+            raise TypeError("collect-enabled Space requires collect_outputs")
+        return self.collect_runner.call(args, kwargs)
 
     def _init_refs(self, arguments=None):
         self.refs = CustomChainMap(self.own_refs, self.sys_refs, self.model._global_refs)

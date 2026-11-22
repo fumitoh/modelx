@@ -3,7 +3,9 @@ asttokens
 pandas
 numpy >= 1.16.5
 openpyxl
--e git+https://github.com/fumitoh/lifelib.git#egg=lifelib
+# lifelib main requires Python 3.10 or later.
+lifelib @ git+https://github.com/fumitoh/lifelib.git@b629db2bf0253c19447ce8c7671218fff3274b8a ; python_version < "3.10"
+lifelib @ git+https://github.com/fumitoh/lifelib.git ; python_version >= "3.10"
 pytest-benchmark
 psutil
 libcst

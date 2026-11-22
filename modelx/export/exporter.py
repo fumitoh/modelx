@@ -12,8 +12,11 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
+import ast
 import collections
+import keyword
 import pathlib
+import symtable
 import sys
 import textwrap
 import types
@@ -183,6 +186,105 @@ def get_space_formula_attrs(space: BaseSpace):
     return get_func_attrs(src)
 
 
+def _space_formula_nodes(body):
+    for node in body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            yield node
+            yield from _space_formula_nodes(ast.iter_child_nodes(node))
+
+
+def _dynamic_ref_names(space, source, definition, ref_names):
+    """Find all possible Reference names without evaluating the formula."""
+    nodes = list(_space_formula_nodes(definition.body))
+    bindings = collections.defaultdict(list)
+    uses = collections.defaultdict(set)
+    for node in nodes:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name):
+                bindings[target.id].append((target, node.value))
+    for node in ast.walk(definition):
+        if isinstance(node, ast.Name):
+            uses[node.id].add(node)
+
+    scope = next(child for child in symtable.symtable(source, '<Space formula>', 'exec').get_children()
+                 if child.get_name() == definition.name and child.get_lineno() == definition.lineno)
+    builtin = scope.lookup('dict') if 'dict' in scope.get_identifiers() else None
+    dict_is_builtin = (
+        'dict' not in set(ref_names) | set(space.parameters)
+        | set(space.cells) | set(space.spaces)
+        and (builtin is None or builtin.is_global() and not builtin.is_declared_global())
+    )
+    error = (
+        f"Cannot export Space formula for {space.fullname}: "
+        "return None or a dict whose 'refs' maps statically named References"
+    )
+    resolved_uses = collections.defaultdict(set)
+
+    def mappings(expr, resolving=frozenset()):
+        if expr is None or isinstance(expr, ast.Constant) and expr.value is None:
+            return
+        if isinstance(expr, ast.Dict) and all(
+            isinstance(key, ast.Constant) and isinstance(key.value, str)
+            for key in expr.keys
+        ):
+            yield dict(zip((key.value for key in expr.keys), expr.values))
+        elif (dict_is_builtin and isinstance(expr, ast.Call)
+              and isinstance(expr.func, ast.Name) and expr.func.id == 'dict'
+              and not expr.args and all(kw.arg is not None for kw in expr.keywords)):
+            yield {kw.arg: kw.value for kw in expr.keywords}
+        elif isinstance(expr, ast.Name) and expr.id in bindings and expr.id not in resolving:
+            resolved_uses[expr.id].add(expr)
+            for target, value in bindings[expr.id]:
+                resolved_uses[expr.id].add(target)
+                yield from mappings(value, resolving | {expr.id})
+        else:
+            raise ValueError(error)
+
+    keys = set()
+    for node in nodes:
+        if isinstance(node, ast.Return):
+            for params in mappings(node.value):
+                if params.keys() - {'refs'}:
+                    raise ValueError(error)
+                for refs in mappings(params.get('refs')):
+                    keys.update(refs)
+
+    # A mapping can be changed by other uses or bound by non-assignment syntax
+    # such as an import, an exception target or a pattern capture.
+    other_bindings = {name for node in nodes
+                      for name in (getattr(node, 'name', None), getattr(node, 'rest', None))
+                      if isinstance(name, str)}
+    for name, resolved in resolved_uses.items():
+        symbol = scope.lookup(name)
+        if (not symbol.is_local() or symbol.is_parameter() or symbol.is_imported()
+                or symbol.is_namespace() or name in other_bindings or uses[name] - resolved):
+            raise ValueError(error)
+    if any(not key.isidentifier() or key.startswith('_') or keyword.iskeyword(key)
+           for key in keys):
+        raise ValueError(error)
+    return keys
+
+
+def dynamic_ref_formula(space, cells, ref_names):
+    """Render Space formulas that declare named per-ItemSpace References."""
+    source = space.formula.source
+    if is_lambda_expr(source):
+        source = lambda_to_func(source, '_formula')
+    definition, = ast.parse(source).body
+    name = definition.name
+    keys = _dynamic_ref_names(space, source, definition, ref_names)
+    if not keys:
+        return '', ()
+    if keys & (set(space.parameters) | set(space.cells) | set(space.spaces)):
+        raise ValueError('Dynamic References cannot shadow Space parameters, Cells or child Spaces')
+    source = '\n'.join([*(key + ' = None' for key in ref_names), source])
+    trans = FormulaTransformer(source, cells, {name})
+    method, = trans.transformed.body
+    method = method.with_changes(name=method.name.with_changes(value='_mx_space_formula'))
+    return trans.transformed.code_for_node(method), sorted(keys)
+
+
 class Exporter:
 
     def __init__(self, model: Model, path, use_slots: bool = True,
@@ -203,11 +305,14 @@ class Exporter:
 
     def export(self):
         io_manager = DataManager(self.model)
+        parents = tuple(self.gen_parents())
+        has_collect = any(parent is not self.model and parent._impl.collect_over_spec is not None
+                          for parent in parents)
 
         # Create self.path dir and Write Model module
         write_str_utf8(
             ModelTranslator(self.model, io_manager,
-                            use_lock=bool(self.locked_spaces)).code,
+                            use_lock=bool(self.locked_spaces), has_collect=has_collect).code,
             self.path / (MODEL_MODULE + '.py'))
 
         # Write _mx_sys.py
@@ -219,7 +324,7 @@ class Exporter:
                 MacroTranslator(self.model).code,
                 self.path / (MACRO_MODULE + '.py'))
 
-        for parent in self.gen_parents():
+        for parent in parents:
 
             if parent is self.model:
                 init_line = f'from .{MODEL_MODULE} import ({MODEL_VAR}, {self.model.name})'
@@ -239,8 +344,11 @@ class Exporter:
                 # Write space modules
                 write_str_utf8(
                     SpaceTranslator(parent, io_manager, self.use_slots,
-                                    self.locked_spaces).code,
+                                    self.locked_spaces, has_collect=has_collect).code,
                     cur_dir / (SPACE_MODULE + '.py'))
+
+        if has_collect:
+            copy_file(this_dir / '_mx_collect_semantics.py', self.path / '_mx_collect_semantics.py')
 
         # Write IO metadata
         ios = io_manager.get_literal_ios()
@@ -316,7 +424,7 @@ class DataManager:
 class ParentTranslator:
 
     module_template = ''
-    threading_import = ''   # set by ModelTranslator when the model has a lock
+    model_imports = ''
     space_dict_template = textwrap.dedent("""\
     self._mx_spaces = {{
     {elements}
@@ -331,7 +439,7 @@ class ParentTranslator:
     def code(self):
         return self.module_template.format(
             dots=self.dots,
-            threading_import=self.threading_import,
+            model_imports=self.model_imports,
             MODEL_VAR=MODEL_VAR,
             SPACE_MODULE=SPACE_MODULE,
             child_imports=self.child_imports,
@@ -456,7 +564,7 @@ class ParentTranslator:
 class ModelTranslator(ParentTranslator):
     
     module_template = textwrap.dedent("""\
-    from . import _mx_sys{threading_import}
+    from . import _mx_sys{model_imports}
     from . import {SPACE_MODULE}
     
     {class_defs}
@@ -485,31 +593,47 @@ class ModelTranslator(ParentTranslator):
     """)
 
     lock_init = textwrap.dedent("""\
-    # Lock shared by the locked Spaces
-    self.{LOCK_ATTR} = threading.RLock()
+    # Lock shared by {users}
+    self.{lock_attr} = {constructor}()
 
-    """).format(LOCK_ATTR=LOCK_ATTR)
+    """)
 
     def __init__(self, parent: BaseParent, io_manager: DataManager,
-                 use_lock: bool = False):
+                 use_lock: bool = False, has_collect: bool = False):
         super().__init__(parent, io_manager)
         self.use_lock = use_lock
-        if use_lock:
-            self.threading_import = '\nimport threading'
+        self.has_collect = has_collect
+        if has_collect:
+            self.model_imports = '\nfrom . import _mx_collect_semantics'
+        elif use_lock:
+            self.model_imports = '\nimport threading'
 
     @cached_property
     def class_defs(self):
         space_assigns = self.space_assigns(self.parent)
-        if self.use_lock:
+        if self.use_lock or self.has_collect:
             # Created before the Spaces, whose __init__ copies the reference.
-            space_assigns = self.lock_init + space_assigns
+            if self.has_collect:
+                constructor = '_mx_sys._CollectLock'
+                users = 'locked Cells and persistent ItemSpace creation'
+            else:
+                constructor = 'threading.RLock'
+                users = 'the locked Spaces'
+            space_assigns = self.lock_init.format(
+                lock_attr=LOCK_ATTR, constructor=constructor, users=users) + space_assigns
+        if self.has_collect:
+            space_assigns = 'self._mx_collect_init_v2()\n' + space_assigns
 
-        return self.class_template.format(
+        result = self.class_template.format(
             name=self.parent.name,
             space_assigns=textwrap.indent(space_assigns, ' ' * 8),
             space_dict=textwrap.indent(self.space_dict(self.parent), ' ' * 8),
             ref_assigns=textwrap.indent(self.ref_assigns(self.parent), ' ' * 8)
         )
+        if self.has_collect:
+            result += ('\n    def _mx_collect_parallel_allowed(self):\n'
+                       '        return not self._mx_lock.held_by_current_thread()\n')
+        return result
 
     def space_assigns(self, parent):
         result = []
@@ -662,7 +786,7 @@ class SpaceTranslator(ParentTranslator):
 
                 self._mx_assign_params(_mx_s, {args})
                 _mx_s._mx_roots.extend(self._mx_roots)
-                _mx_s._mx_roots.append(_mx_root)
+                _mx_s._mx_roots.append(_mx_root){dynamic_refs}
 
             self._mx_itemspaces[_mx_key] = _mx_root
             return _mx_root
@@ -686,7 +810,7 @@ class SpaceTranslator(ParentTranslator):
         _mx_root = self._mx_itemspaces.get(_mx_key)
         if _mx_root is not None:
             return _mx_root
-        with self._mx_lock:
+        with {itemspace_lock}:
             _mx_root = self._mx_itemspaces.get(_mx_key)
             if _mx_root is not None:
                 return _mx_root
@@ -699,7 +823,7 @@ class SpaceTranslator(ParentTranslator):
 
                 self._mx_assign_params(_mx_s, {args})
                 _mx_s._mx_roots.extend(self._mx_roots)
-                _mx_s._mx_roots.append(_mx_root)
+                _mx_s._mx_roots.append(_mx_root){dynamic_refs}
 
             self._mx_itemspaces[_mx_key] = _mx_root
             return _mx_root
@@ -734,10 +858,11 @@ class SpaceTranslator(ParentTranslator):
     """)
 
     def __init__(self, parent: BaseParent, io_manager: DataManager,
-                 use_slots: bool = True, locked_spaces=frozenset()):
+                 use_slots: bool = True, locked_spaces=frozenset(), *, has_collect: bool = False):
         super().__init__(parent, io_manager)
         self.use_slots = use_slots
         self.locked_spaces = locked_spaces
+        self.has_collect = has_collect
 
     @cached_property
     def class_defs(self):
@@ -770,6 +895,12 @@ class SpaceTranslator(ParentTranslator):
             for k, v in d.items():
                 if isinstance(v, Cells):
                     cells.add(k)
+
+        space_formula, dynamic_refs = ('', ())
+        if space.formula:
+            space_formula, dynamic_refs = dynamic_ref_formula(space, cells, self.ref_names(space))
+            lines[:0] = [key + ' = None' for key in dynamic_refs if key not in space.refs]
+            source = '\n'.join(lines)
 
         cacheless = set(k for k, v in space.cells.items() if v.is_cached == False)
 
@@ -845,6 +976,8 @@ class SpaceTranslator(ParentTranslator):
             slot_names.append(LOCK_ATTR)
 
         slot_names.extend(self.ref_names(space))    # ref_assigns / ref_copies
+        slot_names.extend(dynamic_refs)
+        inherited_params = self.inherited_param_names(space)
 
         # ItemSpace
         if space.formula:
@@ -865,16 +998,87 @@ class SpaceTranslator(ParentTranslator):
                 getitem = self.getitem_select
 
             itemspace_methods = (
-                self.itemspace_methods_locked if locked
+                self.itemspace_methods_locked if locked or self.has_collect
                 else self.itemspace_methods).format(
                 args=attrs.arg_str,
                 params=attrs.param_str,
                 idx_args=attrs.key_str,
+                itemspace_lock=f'self.{LOCK_ATTR}' if locked else f'self._model.{LOCK_ATTR}',
+                dynamic_refs=('\n\n        _mx_root._mx_apply_formula(' + attrs.arg_str + ')'
+                              if space_formula else ''),
                 param_copies=textwrap.indent(
                     self.param_assigns(attrs.params, copy=True), ' ' * 4),
                 param_assigns=textwrap.indent(
                     self.param_assigns(attrs.params), ' ' * 4)
             )
+            if space_formula:
+                class_names.update(['_mx_space_formula', '_mx_apply_formula'])
+                itemspace_methods += space_formula + '\n' + textwrap.dedent("""
+
+                def _mx_apply_formula(self, *args, **kwargs):
+                    result = self._parent._mx_space_formula(*args, **kwargs)
+                    if result is None:
+                        return
+                    if not isinstance(result, dict) or result.keys() - {'refs'}:
+                        raise ValueError('Exported Space formula must return only dynamic References')
+                    refs = result.get('refs')
+                    if refs is None:
+                        return
+                    if type(refs) is not dict or refs.keys() - {dynamic_refs}:
+                        raise ValueError('Unexpected dynamic Reference')
+                    for name, value in refs.items():
+                        setattr(self, name, value)
+                """).replace('{dynamic_refs}', repr(tuple(dynamic_refs)))
+            if space._impl.collect_over_spec is not None:
+                if len(space._impl.collect_over_spec) != 1:
+                    raise ValueError("export supports one collect parameter")
+                loop_name, domain = next(iter(space._impl.collect_over_spec.items()))
+                if loop_name not in attrs.params:
+                    raise ValueError("collect parameter is not a Space parameter")
+                if (domain.source is not None
+                        and getattr(domain.source, 'parent', None) is space._impl
+                        and domain.source.name in space._impl.cells):
+                    domain_expr = "self.%s()" % domain.source.name
+                    domain_ref = (domain.source.name, True)
+                elif domain.ref_parent is space._impl:
+                    domain_expr = "self.%s" % domain.ref_name
+                    domain_ref = (domain.ref_name, False)
+                else:
+                    raise ValueError(
+                        "export collect domain must be a Cell or Reference "
+                        "owned by the collection Space")
+                itemspace_dict += '\nself._mx_collect_cache = {}'
+                slot_names.append('_mx_collect_cache')
+                collect_params = [
+                    param for name, param in space.formula.signature.parameters.items()
+                    if name != loop_name]
+                collect_signature = str(inspect.Signature(collect_params))[1:-1]
+                collect_args = ', '.join(param.name for param in collect_params)
+                collect_names = ', '.join(repr(param.name) for param in collect_params)
+                if len(collect_params) == 1:
+                    collect_args += ','
+                    collect_names += ','
+                collect_method = 'collect'
+                if ('collect' in class_names
+                        or any(normalize(name) == 'collect' for name in slot_names)
+                        or 'collect' in inherited_params):
+                    collect_method = '_mx_collect'
+                itemspace_methods += textwrap.dedent("""\
+                def _mx_collect_contract_v2(self):
+                    return {contract!r}
+
+                def {method}(self{comma}{signature}):
+                    return _mx_sys.collect_from_space(
+                        self, {domain}, {parameter!r}, ({names}), ({args}),
+                        cache=self._mx_collect_cache)
+
+                """).format(domain=domain_expr, parameter=loop_name,
+                            contract=(loop_name, tuple(param.name for param in collect_params), *domain_ref),
+                            method=collect_method,
+                            comma=', ' if collect_signature else '',
+                            signature=collect_signature, args=collect_args,
+                            names=collect_names)
+                class_names.add(collect_method)
             delitem = self.delitem_asis
         else:
             itemspace_dict = ''
@@ -884,7 +1088,11 @@ class SpaceTranslator(ParentTranslator):
 
         # _mx_copy_params on the enclosing ItemSpace roots assigns their
         # parameters here as well. See inherited_param_names.
-        slot_names.extend(self.inherited_param_names(space))
+        slot_names.extend(inherited_params)
+        ref_assigns = self.ref_assigns(space)
+        for name in dynamic_refs:
+            if name not in space.refs:
+                ref_assigns += '\nself.' + name + ' = None'
 
         return self.class_template.format(
             name=space.name,
@@ -897,7 +1105,7 @@ class SpaceTranslator(ParentTranslator):
             cache_vars=textwrap.indent("\n".join(cache_vars), ' ' * 8),
             ref_copies=textwrap.indent(
                 self.ref_copies(space), ' ' * 8),
-            ref_assigns=textwrap.indent(self.ref_assigns(space), ' ' * 8),
+            ref_assigns=textwrap.indent(ref_assigns, ' ' * 8),
             methods=textwrap.indent(trans.transformed.code, ' ' * 4),
             cache_methods=textwrap.indent(''.join(cache_methods), ' ' * 4),
             itemspace_methods=textwrap.indent(itemspace_methods, ' ' * 4),
